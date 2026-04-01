@@ -29,15 +29,27 @@ public class LogUtil {
                 return;
             }
             try {
-                String logPath = basePath + "/logs/bee.log";
+                // 优先使用/tmp目录，避免权限问题
+                String logDir = "/tmp/lt-monitor/logs";
+                File dir = new File(logDir);
+                if (!dir.exists()) {
+                    dir.mkdirs();
+                }
+                String logPath = logDir + "/lt-agent.log";
                 File logFile = new File(logPath);
                 if (!logFile.exists()) {
                     logFile.createNewFile();
                 }
-                System.out.println("log path=" + logPath);
+                System.out.println("[LT Agent] log path=" + logPath);
                 writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(logFile, true), "UTF-8"));
             } catch (Exception e) {
                 e.printStackTrace();
+                // 初始化失败，使用控制台输出，避免空指针
+                try {
+                    writer = new BufferedWriter(new OutputStreamWriter(System.out, "UTF-8"));
+                } catch (Exception ex) {
+                    writer = new BufferedWriter(new OutputStreamWriter(System.out));
+                }
             }
         }
     }

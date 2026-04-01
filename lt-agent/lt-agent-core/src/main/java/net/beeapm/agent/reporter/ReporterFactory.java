@@ -38,13 +38,8 @@ public class ReporterFactory {
         int threadNum = ConfigUtils.me().getInt("reporter.threadNum", 1);
         scheduledExecutorService = new ScheduledThreadPoolExecutor(threadNum, new BeeThreadFactory(REPORTER_THREAD_NAME));
         if (reporterMap == null) {
-            reporterName = ConfigUtils.me().getStr("reporter.name");
-            reporterMap = ReporterLoader.loadReporters();
-            reporter = reporterMap.get(reporterName);
-            if (reporter == null) {
-                LogUtil.log("===========================>reporter：" + reporterName + "不存在");
-                throw new RuntimeException("reporter：" + reporterName + "不存在");
-            }
+            // 直接使用ConsoleReporter，不需要加载外部reporter，快速验证
+            reporter = new ConsoleReporter();
             reporter.init();
             initQueue();
             initTask(threadNum);

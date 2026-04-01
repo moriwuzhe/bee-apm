@@ -16,20 +16,20 @@
     <description>采集&amp;诊断Agent模块</description>
 
     <modules>
-        <module>bee-agent</module>
-        <module>bee-agent-spy</module>
-        <module>bee-agent-core</module>
-        <module>bee-agent-plugin</module>
-        <module>bee-agent-reporter</module>
-        <module>bee-agent-boot-plugin</module>
+        <module>lt-agent-bootstrap</module>
+        <module>lt-agent-spy</module>
+        <module>lt-agent-core</module>
+        <module>lt-agent-plugin</module>
+        <module>lt-agent-reporter</module>
+        <module>lt-agent-boot-plugin</module>
 
     </modules>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
-        <shade.package>net.beeapm.agent.dependencies</shade.package>
-        <bee.agent.version>1.0.0</bee.agent.version>
+        <shade.package>org.xi.lt.agent.dependencies</shade.package>
+        <lt.agent.version>1.0.0</lt.agent.version>
     </properties>
 
     <build>
@@ -38,6 +38,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>

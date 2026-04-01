@@ -1,1 +1,1 @@
-net.beeapm.agent.annotation.BeeAnnotationProcessorImpl
+org.xi.lt.common.annotation.LtAnnotationProcessorImpl

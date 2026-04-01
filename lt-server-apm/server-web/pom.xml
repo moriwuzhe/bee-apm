@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>lt-server-apm</artifactId>
+        <groupId>org.xi.lt</groupId>
+        <version>1.0.0</version>
+    </parent>
+    <artifactId>lt-monitor-server-web</artifactId>
+    <packaging>war</packaging>
+    <name>lt-monitor-server-web</name>
+    <url>http://www.beeapm.net</url>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <compiler.version>1.8</compiler.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.xi.lt</groupId>
+            <artifactId>bee-servlet-stream</artifactId>
+            <version>${bee-server-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.xi.lt</groupId>
+            <artifactId>bee-stream-kafka1x</artifactId>
+            <version>${bee-server-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.xi.lt</groupId>
+            <artifactId>bee-store-elasticsearch</artifactId>
+            <version>${bee-server-version}</version>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <finalName>lt-monitor-server-web</finalName>
+    </build>
+</project>

@@ -21,6 +21,11 @@
             <version>${lt.agent.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.xi.lt</groupId>
+            <artifactId>lt-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy</artifactId>
             <version>${bytebuddy.version}</version>

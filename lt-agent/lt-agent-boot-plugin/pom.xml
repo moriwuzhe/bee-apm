@@ -16,7 +16,7 @@
         <plugin.dir>${agent.package.dir}/boot-plugins</plugin.dir>
     </properties>
     <modules>
-        <module>bee-boot-plugin-apollo</module>
+        <module>lt-boot-plugin-apollo</module>
     </modules>
     <dependencies>
         <dependency>
@@ -27,13 +27,13 @@
         </dependency>
         <dependency>
             <groupId>org.xi.lt</groupId>
-            <artifactId>lt-plugin-annotation</artifactId>
-            <version>${lt.agent.version}</version>
+            <artifactId>lt-common</artifactId>
+            <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
     <build>
-        <finalName>bee-agent-boot-plugin</finalName>
+        <finalName>lt-agent-boot-plugin</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

@@ -16,11 +16,11 @@
         <plugin.dir>${agent.package.dir}/reporter</plugin.dir>
     </properties>
     <modules>
-        <module>bee-agent-reporter-console</module>
-        <module>bee-agent-reporter-elasticsearch</module>
-        <module>bee-agent-reporter-kafka1x</module>
-        <module>bee-agent-reporter-rocketmq</module>
-        <module>bee-agent-reporter-okhttp</module>
+        <module>lt-agent-reporter-console</module>
+        <module>lt-agent-reporter-elasticsearch</module>
+        <module>lt-agent-reporter-kafka1x</module>
+        <module>lt-agent-reporter-rocketmq</module>
+        <module>lt-agent-reporter-okhttp</module>
     </modules>
     <dependencies>
         <dependency>
@@ -31,13 +31,13 @@
         </dependency>
         <dependency>
             <groupId>org.xi.lt</groupId>
-            <artifactId>lt-plugin-annotation</artifactId>
-            <version>${lt.agent.version}</version>
+            <artifactId>lt-common</artifactId>
+            <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
     <build>
-        <finalName>bee-agent-reporter</finalName>
+        <finalName>lt-agent-reporter</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

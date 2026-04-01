@@ -12,7 +12,7 @@
     <artifactId>lt-agent-reporter-console</artifactId>
     <packaging>jar</packaging>
     <build>
-        <finalName>bee-agent-reporter-console</finalName>
+        <finalName>lt-agent-reporter-console</finalName>
     </build>
 
 </project>

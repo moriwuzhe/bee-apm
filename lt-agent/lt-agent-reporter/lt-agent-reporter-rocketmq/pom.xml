@@ -9,23 +9,27 @@
         <groupId>org.xi.lt</groupId>
         <version>1.0.0</version>
     </parent>
-    <artifactId>lt-agent-reporter-kafka1x</artifactId>
+    <artifactId>lt-agent-reporter-rocketmq</artifactId>
     <packaging>jar</packaging>
+
+    <properties>
+    </properties>
     <dependencies>
+        <!-- rocketmq start-->
         <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka-clients</artifactId>
-            <version>1.1.0</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>*</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>com.alibaba.rocketmq</groupId>
+            <artifactId>rocketmq-client</artifactId>
+            <version>3.5.8</version>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.rocketmq</groupId>
+            <artifactId>rocketmq-all</artifactId>
+            <version>3.5.8</version>
+            <type>pom</type>
         </dependency>
     </dependencies>
     <build>
-        <finalName>bee-agent-reporter-kafka1x</finalName>
+        <finalName>lt-agent-reporter-rocketmq</finalName>
     </build>
 
 </project>

@@ -1,17 +1,30 @@
+# IDE & Editor
 .idea/
-.svn/
-target/
-*.class
+.vscode/
 *.iml
 .classpath
 .project
 .settings/
-*.log
+*.swp
+*~
+.DS_Store
+
+# Version Control
+.svn/
+
+# Build & Compilation
+target/
+*.class
 dependency-reduced-pom.xml
 weaving-class/
 plugins/
 package/reporter/
-node_modules/
-dist/
 boot-plugins/
 bee*.jar
+
+# Logs
+*.log
+
+# Frontend
+node_modules/
+dist/

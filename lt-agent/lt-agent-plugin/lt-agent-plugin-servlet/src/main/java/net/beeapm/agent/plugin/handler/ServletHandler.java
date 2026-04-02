@@ -69,7 +69,8 @@ public class ServletHandler extends AbstractHandler {
     public Object after(String className, String methodName, Object[] allArguments, Object result, Throwable t, Object[] extVal) {
         Span currSpan = SpanManager.getCurrentSpan();
         HttpServletResponse response = (HttpServletResponse) allArguments[1];
-        if (!ServletConfig.me().isEnable() || SamplingUtil.NO()) {
+        // 测试阶段强制所有请求都上报
+        if (!ServletConfig.me().isEnable()) {
             flush(response);
             return null;
         }
@@ -80,7 +81,7 @@ public class ServletHandler extends AbstractHandler {
             span.addTag("remote", request.getRemoteAddr());
             span.addTag("method", request.getMethod());
             calculateSpend(span);
-            if (span.getSpend() > ServletConfig.me().getSpend() && SamplingUtil.YES()) {
+            if (span.getSpend() > ServletConfig.me().getSpend()) {
                 //返回gid，用于跟踪
                 response.setHeader(HeaderKey.GID, span.getGid());
                 //返回id，用于跟踪

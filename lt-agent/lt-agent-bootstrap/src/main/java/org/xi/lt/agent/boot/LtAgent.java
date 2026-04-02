@@ -19,6 +19,7 @@ import net.bytebuddy.utility.JavaModule;
 
 import java.io.File;
 import java.lang.instrument.Instrumentation;
+import java.security.ProtectionDomain;
 import java.util.List;
 import java.util.jar.JarFile;
 
@@ -49,7 +50,7 @@ public class LtAgent {
                     @Override
                     public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder,
                                                             TypeDescription typeDescription,
-                                                            ClassLoader classLoader, JavaModule javaModule) {
+                                                            ClassLoader classLoader, JavaModule javaModule, ProtectionDomain protectionDomain) {
                         String className = typeDescription.getName();
                         log.exec("class-name={}, plugin-name={}", className, plugin.getName());
                         builder = builder.visit(Advice.to(plugin.interceptorAdviceClass()).on(interceptPoint.buildMethodsMatcher()));

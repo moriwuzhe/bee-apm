@@ -9,6 +9,6 @@ import java.util.*;
  */
 public class ReporterLoader extends AbstractLoader {
     public static Map<String, AbstractReporter> loadReporters() {
-        return load(new String[]{"reporter"},"bee-reporter.def");
+        return load(new String[]{"reporter"},"lt-reporter.def");
     }
 }

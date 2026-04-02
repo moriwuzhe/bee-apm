@@ -38,8 +38,17 @@ public class ReporterFactory {
         int threadNum = ConfigUtils.me().getInt("reporter.threadNum", 1);
         scheduledExecutorService = new ScheduledThreadPoolExecutor(threadNum, new BeeThreadFactory(REPORTER_THREAD_NAME));
         if (reporterMap == null) {
-            // 直接使用ConsoleReporter，不需要加载外部reporter，快速验证
-            reporter = new ConsoleReporter();
+            // 优先使用配置的reporter，默认用okhttp
+            reporterName = "okhttp";
+            reporterMap = ReporterLoader.loadReporters();
+            reporter = reporterMap.get(reporterName);
+            if (reporter == null) {
+                LogUtil.log("===========================>reporter：" + reporterName + "不存在，使用默认ConsoleReporter");
+                reporter = new ConsoleReporter();
+            }
+            // 读取上报地址配置
+            String serverUrl = ConfigUtils.me().getStr("reporter.serverUrl", ConfigUtils.me().getStr("serverUrl", "http://127.0.0.1:8080/apm/report"));
+            System.setProperty("lt.agent.report.url", serverUrl);
             reporter.init();
             initQueue();
             initTask(threadNum);

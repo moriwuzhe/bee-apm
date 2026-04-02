@@ -12,7 +12,7 @@
     <artifactId>lt-agent-core</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <bytebuddy.version>1.10.13</bytebuddy.version>
+        <bytebuddy.version>1.14.12</bytebuddy.version>
     </properties>
     <dependencies>
         <dependency>

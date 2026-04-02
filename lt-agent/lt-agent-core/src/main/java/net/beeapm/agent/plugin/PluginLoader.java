@@ -12,7 +12,7 @@ import java.util.*;
  */
 public class PluginLoader extends AbstractLoader {
     public static List<AbstractPlugin> loadPlugins() {
-        Map<String, AbstractPlugin> pluginMap = load(new String[]{"plugins", "ext-lib"}, "bee-plugin.def");
+        Map<String, AbstractPlugin> pluginMap = load(new String[]{"plugins", "ext-lib"}, "lt-plugin.def");
         List<AbstractPlugin> pluginList = new ArrayList<AbstractPlugin>(16);
         for (Map.Entry<String, AbstractPlugin> entry : pluginMap.entrySet()) {
             AbstractPlugin plugin = entry.getValue();

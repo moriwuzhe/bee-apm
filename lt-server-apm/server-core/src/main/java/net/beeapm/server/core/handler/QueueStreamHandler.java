@@ -1,7 +1,6 @@
 package net.beeapm.server.core.handler;
 
-import net.beeapm.agent.annotation.BeePlugin;
-import net.beeapm.agent.annotation.BeePluginType;
+import org.xi.lt.common.annotation.LtPlugin;
 import net.beeapm.server.core.common.ConfigHolder;
 import net.beeapm.server.core.common.Stream;
 import org.slf4j.Logger;
@@ -18,7 +17,7 @@ import java.util.concurrent.ScheduledExecutorService;
  * @author yuan
  * @date 2018/08/27
  */
-@BeePlugin(type = BeePluginType.HANDLER, name = "queue")
+@LtPlugin(type = "HANDLER", name = "queue")
 public class QueueStreamHandler extends AbstractStreamHandler {
     private static final Logger logger = LoggerFactory.getLogger(QueueStreamHandler.class);
     private static BlockingQueue<Object> queue;

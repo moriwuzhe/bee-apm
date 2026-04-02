@@ -1,14 +1,14 @@
 package net.beeapm.server.store;
 
-import net.beeapm.agent.annotation.BeePlugin;
-import net.beeapm.agent.annotation.BeePluginType;
+import org.xi.lt.common.annotation.LtPlugin;
+import org.xi.lt.common.annotation.LtPluginType;
 import net.beeapm.server.core.store.IStore;
 import net.beeapm.server.store.mysql.MysqlUtils;
 /**
  * @author kaddddd
  * @date 2018/11/17
  */
-@BeePlugin(type = BeePluginType.STORE,name = "mysql")
+@LtPlugin(type = "STORE",name = "mysql")
 public class MysqlStore implements IStore {
     @Override
     public void init() {

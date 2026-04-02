@@ -1,7 +1,6 @@
 package net.beeapm.server.stream;
 
-import net.beeapm.agent.annotation.BeePlugin;
-import net.beeapm.agent.annotation.BeePluginType;
+import org.xi.lt.common.annotation.LtPlugin;
 import net.beeapm.server.core.common.ConfigHolder;
 import net.beeapm.server.core.common.Stream;
 import net.beeapm.server.core.stream.AbstractStreamProvider;
@@ -20,7 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author yuan
  * @date 2018/11/03
  */
-@BeePlugin(type = BeePluginType.STREAM, name = "kafka1x")
+@LtPlugin(type = "STREAM", name = "kafka1x")
 public class BeeKafka1xStreamProvider extends AbstractStreamProvider {
     private final String DEF_DESERIALIZER = "org.apache.kafka.common.serialization.StringDeserializer";
     private static final Logger logger = LoggerFactory.getLogger(BeeKafka1xStreamProvider.class);

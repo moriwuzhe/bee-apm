@@ -2,8 +2,7 @@ package net.beeapm.server.core.handler;
 
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.JSONPath;
-import net.beeapm.agent.annotation.BeePlugin;
-import net.beeapm.agent.annotation.BeePluginType;
+import org.xi.lt.common.annotation.LtPlugin;
 import net.beeapm.server.core.common.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +18,7 @@ import java.util.TimeZone;
  * @author yuan
  * @date 2020/07/27
  */
-@BeePlugin(type = BeePluginType.HANDLER, name = "filebeat")
+@LtPlugin(type = "HANDLER", name = "filebeat")
 public class FileBeatStreamHandler extends AbstractStreamHandler {
     private static final Logger logger = LoggerFactory.getLogger(FileBeatStreamHandler.class);
     private static final String DATE_FMT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";

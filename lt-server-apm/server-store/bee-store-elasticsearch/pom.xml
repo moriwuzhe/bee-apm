@@ -25,9 +25,8 @@
     <dependencies>
         <dependency>
             <groupId>org.xi.lt</groupId>
-            <artifactId>bee-plugin-annotation</artifactId>
+            <artifactId>lt-common</artifactId>
             <version>1.0.0</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.xi.lt</groupId>

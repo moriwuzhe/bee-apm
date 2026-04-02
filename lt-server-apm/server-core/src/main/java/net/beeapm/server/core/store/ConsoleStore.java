@@ -1,14 +1,13 @@
 package net.beeapm.server.core.store;
 
 import com.alibaba.fastjson.JSON;
-import net.beeapm.agent.annotation.BeePlugin;
-import net.beeapm.agent.annotation.BeePluginType;
+import org.xi.lt.common.annotation.LtPlugin;
 
 /**
  * @author yuan
  * @date 2018/11/03
  */
-@BeePlugin(type = BeePluginType.STORE, name = "console")
+@LtPlugin(type = "STORE", name = "console")
 public class ConsoleStore implements IStore {
     @Override
     public void init() {

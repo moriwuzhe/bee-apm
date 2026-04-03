@@ -26,6 +26,7 @@
         <module>lt-agent-plugin-springtx</module>
         <module>lt-agent-plugin-thread</module>
         <module>lt-agent-plugin-dubbo</module>
+        <module>lt-agent-plugin-redis</module>
     </modules>
     <dependencies>
         <dependency>

@@ -28,6 +28,7 @@
         <module>lt-agent-plugin-dubbo</module>
         <module>lt-agent-plugin-redis</module>
         <module>lt-agent-plugin-rocketmq</module>
+        <module>lt-agent-plugin-mongodb</module>
     </modules>
     <dependencies>
         <dependency>

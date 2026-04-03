@@ -41,6 +41,7 @@
         <module>lt-agent-plugin-nacos</module>
         <module>lt-agent-plugin-apollo</module>
         <module>lt-agent-plugin-xxljob</module>
+        <module>lt-agent-plugin-shardingjdbc</module>
     </modules>
     <dependencies>
         <dependency>

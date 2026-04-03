@@ -36,6 +36,7 @@
         <module>lt-agent-plugin-gateway</module>
         <module>lt-agent-plugin-sentinel</module>
         <module>lt-agent-plugin-seata</module>
+        <module>lt-agent-plugin-hystrix</module>
     </modules>
     <dependencies>
         <dependency>

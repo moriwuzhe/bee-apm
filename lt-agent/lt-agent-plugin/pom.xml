@@ -29,6 +29,7 @@
         <module>lt-agent-plugin-redis</module>
         <module>lt-agent-plugin-rocketmq</module>
         <module>lt-agent-plugin-mongodb</module>
+        <module>lt-agent-plugin-rabbitmq</module>
     </modules>
     <dependencies>
         <dependency>

@@ -126,7 +126,7 @@ public class ShardingJdbcHandler extends AbstractHandler {
                     if (index >= 5) { // 最多记录5个路由单元
                         break;
                     }
-                    span.addTag("route." + index + ".data_source", unit.getDataSourceMapper().getActualDataSourceName());
+                    span.addTag("route." + index + ".data_source", unit.getDataSourceMapper().getActualName());
                     span.addTag("route." + index + ".table", unit.getTableMappers().toString());
                     index++;
                 }

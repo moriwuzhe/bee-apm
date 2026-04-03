@@ -1,0 +1,10 @@
+--exclude=.git
+--exclude=node_modules
+--exclude=target
+--exclude=.idea
+--exclude=.vscode
+--exclude=logs
+--exclude=*.log
+--exclude=*.class
+--exclude=*.jar
+--languages=Java

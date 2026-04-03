@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # ZooKeeper：注册中心，Agent服务发现用
+  zookeeper:
+    image: zookeeper:3.8
+    container_name: bistoury-zookeeper
+    restart: always
+    ports:
+      - "2181:2181"
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=0.0.0.0:2888:3888;2181
+      TZ: Asia/Shanghai
+    volumes:
+      - zookeeper_data:/data
+      - zookeeper_datalog:/datalog
+    networks:
+      - bistoury-network
+
+  # 后端服务
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile-backend
+    container_name: bistoury-backend
+    restart: always
+    ports:
+      - "8080:8080"   # API端口
+      - "3333:3333"   # Agent通信端口
+    environment:
+      TZ: Asia/Shanghai
+      SPRING_PROFILES_ACTIVE: prod
+      # ZooKeeper地址
+      ZOOKEEPER_ADDRESS: zookeeper:2181
+      # AI配置（可选）
+      # AI_API_KEY: 你的大模型API Key
+      # AI_API_URL: https://ark.cn-beijing.volces.com.com/api/v3/chat/completions
+      # AI_MODEL: doubao-seed-2.0-pro
+    volumes:
+      - backend_logs:/app/logs
+    depends_on:
+      - zookeeper
+    networks:
+      - bistoury-network
+
+  # 前端服务
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile-frontend
+    container_name: bistoury-frontend
+    restart: always
+    ports:
+      - "3000:80"    # 前端访问端口
+    environment:
+      TZ: Asia/Shanghai
+    depends_on:
+      - backend
+    networks:
+      - bistoury-network
+
+volumes:
+  zookeeper_data:
+  zookeeper_datalog:
+  backend_logs:
+
+networks:
+  bistoury-network:
+    driver: bridge

@@ -15,6 +15,7 @@
         <module>lt-common</module>
         <module>lt-agent</module>
         <module>lt-server-apm</module>
+        <module>bistoury</module>
     </modules>
 
     <properties>

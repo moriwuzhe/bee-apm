@@ -42,9 +42,45 @@ services:
     networks:
       - bee-apm-network
 
+  bistoury-backend:
+    build:
+      context: ./bistoury
+      dockerfile: docker/Dockerfile-backend
+    container_name: bistoury-backend
+    restart: always
+    ports:
+      - "8080:8080"   # API端口
+      - "3333:3333"   # Agent通信端口
+    environment:
+      TZ: Asia/Shanghai
+      SPRING_PROFILES_ACTIVE: prod
+      ZOOKEEPER_ADDRESS: zookeeper:2181
+    volumes:
+      - backend_logs:/app/logs
+    depends_on:
+      - zookeeper
+    networks:
+      - bee-apm-network
+
+  bistoury-frontend:
+    build:
+      context: ./bistoury
+      dockerfile: docker/Dockerfile-frontend
+    container_name: bistoury-frontend
+    restart: always
+    ports:
+      - "3000:80"    # 前端访问端口
+    environment:
+      TZ: Asia/Shanghai
+    depends_on:
+      - bistoury-backend
+    networks:
+      - bee-apm-network
+
 volumes:
   es_data:
   kafka_data:
+  backend_logs:
 
 networks:
   bee-apm-network:

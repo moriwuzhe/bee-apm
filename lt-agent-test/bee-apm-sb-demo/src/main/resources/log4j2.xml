@@ -9,7 +9,7 @@
         <Root level="error">
             <AppenderRef ref="Console"/>
         </Root>
-        <Logger name="net.beeapm.demo" level="trace" additivity="false">
+        <Logger name="org.xi.lt.demo" level="trace" additivity="false">
             <AppenderRef ref="Console"/>
         </Logger>
     </Loggers>

@@ -39,6 +39,7 @@
         <module>lt-agent-plugin-hystrix</module>
         <module>lt-agent-plugin-resilience4j</module>
         <module>lt-agent-plugin-nacos</module>
+        <module>lt-agent-plugin-apollo</module>
     </modules>
     <dependencies>
         <dependency>

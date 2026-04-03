@@ -32,6 +32,7 @@
         <module>lt-agent-plugin-rabbitmq</module>
         <module>lt-agent-plugin-elasticsearch</module>
         <module>lt-agent-plugin-feign</module>
+        <module>lt-agent-plugin-kafka</module>
     </modules>
     <dependencies>
         <dependency>

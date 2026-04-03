@@ -31,6 +31,7 @@
         <module>lt-agent-plugin-mongodb</module>
         <module>lt-agent-plugin-rabbitmq</module>
         <module>lt-agent-plugin-elasticsearch</module>
+        <module>lt-agent-plugin-feign</module>
     </modules>
     <dependencies>
         <dependency>

@@ -33,6 +33,8 @@
         <module>lt-agent-plugin-elasticsearch</module>
         <module>lt-agent-plugin-feign</module>
         <module>lt-agent-plugin-kafka</module>
+        <module>lt-agent-plugin-gateway</module>
+        <module>lt-agent-plugin-sentinel</module>
     </modules>
     <dependencies>
         <dependency>

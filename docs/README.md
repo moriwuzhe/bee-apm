@@ -114,4 +114,4 @@ bee.log.level=INFO
 ---
 
 ## 📝 插件文档
-详细的每个插件的使用说明和配置参数请参考 [plugins/](./plugins/) 目录下的对应文档。
+详细的每个插件的使用说明和配置参数请参考 [plugin-docs/](./plugin-docs/) 目录下的对应文档。

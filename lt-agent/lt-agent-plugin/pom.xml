@@ -38,6 +38,7 @@
         <module>lt-agent-plugin-seata</module>
         <module>lt-agent-plugin-hystrix</module>
         <module>lt-agent-plugin-resilience4j</module>
+        <module>lt-agent-plugin-nacos</module>
     </modules>
     <dependencies>
         <dependency>

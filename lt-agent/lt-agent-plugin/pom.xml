@@ -25,6 +25,7 @@
         <module>lt-agent-plugin-servlet</module>
         <module>lt-agent-plugin-springtx</module>
         <module>lt-agent-plugin-thread</module>
+        <module>lt-agent-plugin-dubbo</module>
     </modules>
     <dependencies>
         <dependency>

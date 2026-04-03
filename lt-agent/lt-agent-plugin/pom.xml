@@ -35,6 +35,7 @@
         <module>lt-agent-plugin-kafka</module>
         <module>lt-agent-plugin-gateway</module>
         <module>lt-agent-plugin-sentinel</module>
+        <module>lt-agent-plugin-seata</module>
     </modules>
     <dependencies>
         <dependency>

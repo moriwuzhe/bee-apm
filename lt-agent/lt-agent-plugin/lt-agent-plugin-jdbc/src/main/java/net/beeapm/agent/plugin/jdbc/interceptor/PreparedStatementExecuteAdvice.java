@@ -10,7 +10,7 @@ public class PreparedStatementExecuteAdvice {
                              @Advice.Origin("#t") String className,
                              @Advice.Origin("#m") String methodName,
                              @Advice.AllArguments Object[] allParams) {
-        handler = HandlerLoader.load("net.beeapm.agent.plugin.jdbc.handler.PreparedStatementExecuteHandler");
+        handler = HandlerLoader.load("org.xi.lt.agent.plugin.jdbc.handler.PreparedStatementExecuteHandler");
         handler.before(className, methodName, allParams, null);
     }
 

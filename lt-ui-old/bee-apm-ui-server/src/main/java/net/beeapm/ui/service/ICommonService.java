@@ -1,6 +1,6 @@
-package net.beeapm.ui.service;
+package org.xi.lt.ui.service;
 
-import net.beeapm.ui.model.vo.ResultVo;
+import org.xi.lt.ui.model.vo.ResultVo;
 
 import java.util.Map;
 

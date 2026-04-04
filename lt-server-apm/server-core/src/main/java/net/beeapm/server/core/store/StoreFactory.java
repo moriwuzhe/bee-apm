@@ -1,8 +1,8 @@
-package net.beeapm.server.core.store;
+package org.xi.lt.server.core.store;
 
-import net.beeapm.server.core.common.ConfigHolder;
-import net.beeapm.server.core.common.ServiceProviderLoader;
-import net.beeapm.server.core.handler.IStreamHandler;
+import org.xi.lt.server.core.common.ConfigHolder;
+import org.xi.lt.server.core.common.ServiceProviderLoader;
+import org.xi.lt.server.core.handler.IStreamHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

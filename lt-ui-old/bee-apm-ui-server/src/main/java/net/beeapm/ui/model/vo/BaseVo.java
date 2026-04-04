@@ -1,4 +1,4 @@
-package net.beeapm.ui.model.vo;
+package org.xi.lt.ui.model.vo;
 
 public class BaseVo {
     private String code;

@@ -1,4 +1,4 @@
-package net.beeapm.demo.entity;
+package org.xi.lt.demo.entity;
 
 /**
  * @author yuan

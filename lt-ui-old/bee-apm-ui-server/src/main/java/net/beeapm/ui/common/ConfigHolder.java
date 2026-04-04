@@ -1,4 +1,4 @@
-package net.beeapm.ui.common;
+package org.xi.lt.ui.common;
 
 import org.springframework.boot.origin.OriginTrackedValue;
 import org.springframework.core.env.ConfigurableEnvironment;

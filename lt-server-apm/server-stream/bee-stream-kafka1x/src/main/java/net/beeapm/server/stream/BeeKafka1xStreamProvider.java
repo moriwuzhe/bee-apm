@@ -1,9 +1,9 @@
-package net.beeapm.server.stream;
+package org.xi.lt.server.stream;
 
 import org.xi.lt.common.annotation.LtPlugin;
-import net.beeapm.server.core.common.ConfigHolder;
-import net.beeapm.server.core.common.Stream;
-import net.beeapm.server.core.stream.AbstractStreamProvider;
+import org.xi.lt.server.core.common.ConfigHolder;
+import org.xi.lt.server.core.common.Stream;
+import org.xi.lt.server.core.stream.AbstractStreamProvider;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;

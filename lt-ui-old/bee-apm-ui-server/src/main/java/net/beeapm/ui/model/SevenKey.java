@@ -1,4 +1,4 @@
-package net.beeapm.ui.model;
+package org.xi.lt.ui.model;
 
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;

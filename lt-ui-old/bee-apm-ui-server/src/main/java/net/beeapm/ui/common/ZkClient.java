@@ -1,4 +1,4 @@
-package net.beeapm.ui.common;
+package org.xi.lt.ui.common;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;

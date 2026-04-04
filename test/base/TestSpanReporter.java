@@ -1,7 +1,7 @@
 package base;
 
 import org.xi.lt.agent.model.Span;
-import org.xi.lt.agent.reporter.IReporter;
+import org.xi.lt.agent.reporter.AbstractReporter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,27 +12,24 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * 收集所有上报的Span，方便测试验证
  * @author LT Monitor Dev
  */
-public class TestSpanReporter implements IReporter {
+public class TestSpanReporter extends AbstractReporter {
     private final List<Span> spans = new CopyOnWriteArrayList<>();
 
     @Override
-    public void report(Span span) {
+    public int report(Span span) {
         spans.add(span);
+        return 0;
     }
 
     @Override
-    public void report(List<Span> list) {
+    public int report(List<Span> list) {
         spans.addAll(list);
+        return 0;
     }
 
     @Override
-    public void start() {
-        // 测试用不需要启动
-    }
-
-    @Override
-    public void shutdown() {
-        // 测试用不需要关闭
+    public int init() {
+        return 0;
     }
 
     /**

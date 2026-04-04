@@ -9,7 +9,7 @@ import java.util.Map;
 
 public class MatchKit {
     public static ElementMatcher.Junction<TypeDescription> buildTypesMatcher(Map<String, String> includeMap, Map<String, String> excludeMap) {
-        ElementMatcher.Junction<TypeDescription> matcher = ElementMatchers.not(ElementMatchers.<TypeDescription>nameStartsWith("net.beeapm.agent."));
+        ElementMatcher.Junction<TypeDescription> matcher = ElementMatchers.not(ElementMatchers.<TypeDescription>nameStartsWith("org.xi.lt.agent."));
         if (includeMap != null && !includeMap.isEmpty()) {
             String namedVal = includeMap.get("named");
             String nameStartsWithVal = includeMap.get("nameStartsWith");

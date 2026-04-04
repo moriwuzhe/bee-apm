@@ -1,7 +1,7 @@
-package net.beeapm.ui.service;
+package org.xi.lt.ui.service;
 
-import net.beeapm.ui.model.vo.ChartVo;
-import net.beeapm.ui.model.vo.TableVo;
+import org.xi.lt.ui.model.vo.ChartVo;
+import org.xi.lt.ui.model.vo.TableVo;
 
 import java.util.Map;
 

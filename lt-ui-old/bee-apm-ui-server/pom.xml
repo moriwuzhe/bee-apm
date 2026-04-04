@@ -92,7 +92,7 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
-					<mainClass>net.beeapm.ui.BeeUiApplication</mainClass>
+					<mainClass>org.xi.lt.ui.BeeUiApplication</mainClass>
 				</configuration>
 				<executions>
 					<execution>

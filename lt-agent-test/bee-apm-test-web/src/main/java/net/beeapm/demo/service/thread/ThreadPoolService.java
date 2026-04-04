@@ -1,4 +1,4 @@
-package net.beeapm.demo.service.thread;
+package org.xi.lt.demo.service.thread;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledThreadPoolExecutor;

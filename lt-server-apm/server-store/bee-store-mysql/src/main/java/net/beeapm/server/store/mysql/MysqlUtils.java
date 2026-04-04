@@ -1,4 +1,4 @@
-package net.beeapm.server.store.mysql;
+package org.xi.lt.server.store.mysql;
 
 import com.alibaba.druid.pool.DruidPooledConnection;
 

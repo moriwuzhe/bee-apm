@@ -1,4 +1,4 @@
-package net.beeapm.demo.common;
+package org.xi.lt.demo.common;
 
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;

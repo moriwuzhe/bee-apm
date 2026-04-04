@@ -1,10 +1,10 @@
-package net.beeapm.ui.controller;
+package org.xi.lt.ui.controller;
 
 import com.alibaba.fastjson.JSON;
-import net.beeapm.ui.model.KeyValue;
-import net.beeapm.ui.model.vo.ChartVo;
-import net.beeapm.ui.model.vo.ResultVo;
-import net.beeapm.ui.service.IDashboardService;
+import org.xi.lt.ui.model.KeyValue;
+import org.xi.lt.ui.model.vo.ChartVo;
+import org.xi.lt.ui.model.vo.ResultVo;
+import org.xi.lt.ui.service.IDashboardService;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.slf4j.Logger;

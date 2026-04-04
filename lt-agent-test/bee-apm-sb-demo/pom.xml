@@ -84,7 +84,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>net.beeapm.demo.Application</mainClass>
+                    <mainClass>org.xi.lt.demo.Application</mainClass>
                 </configuration>
                 <executions>
                     <execution>

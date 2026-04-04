@@ -1,9 +1,9 @@
-package net.beeapm.demo.controller;
+package org.xi.lt.demo.controller;
 
 import com.alibaba.fastjson.JSON;
-import net.beeapm.demo.model.RequestVo;
-import net.beeapm.demo.model.ResultVo;
-import net.beeapm.demo.service.IDogService;
+import org.xi.lt.demo.model.RequestVo;
+import org.xi.lt.demo.model.ResultVo;
+import org.xi.lt.demo.service.IDogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

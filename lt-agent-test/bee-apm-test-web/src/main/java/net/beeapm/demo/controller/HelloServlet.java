@@ -1,7 +1,7 @@
-package net.beeapm.demo.controller;
+package org.xi.lt.demo.controller;
 
-import net.beeapm.demo.service.HelloServiceImpl;
-import net.beeapm.demo.service.IHelloService;
+import org.xi.lt.demo.service.HelloServiceImpl;
+import org.xi.lt.demo.service.IHelloService;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;

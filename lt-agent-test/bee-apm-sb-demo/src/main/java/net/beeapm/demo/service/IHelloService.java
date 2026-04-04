@@ -1,7 +1,7 @@
-package net.beeapm.demo.service;
+package org.xi.lt.demo.service;
 
-import net.beeapm.demo.model.RequestVo;
-import net.beeapm.demo.model.ResultVo;
+import org.xi.lt.demo.model.RequestVo;
+import org.xi.lt.demo.model.ResultVo;
 
 /**
  * @author yuan

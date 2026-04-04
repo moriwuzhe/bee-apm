@@ -1,4 +1,4 @@
-package net.beeapm.demo;
+package org.xi.lt.demo;
 
 import com.baomidou.mybatisplus.extension.plugins.PaginationInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.pagination.optimize.JsqlParserCountOptimize;
@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  */
 @EnableTransactionManagement
 @Configuration
-@MapperScan("net.beeapm.*.mapper*")
+@MapperScan("org.xi.lt.*.mapper*")
 public class MybatisPlusConfig {
 
     @Bean

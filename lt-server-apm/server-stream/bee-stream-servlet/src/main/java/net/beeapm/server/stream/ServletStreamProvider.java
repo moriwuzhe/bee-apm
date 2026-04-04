@@ -1,7 +1,7 @@
-package net.beeapm.server.stream;
+package org.xi.lt.server.stream;
 
 import org.xi.lt.common.annotation.LtPlugin;
-import net.beeapm.server.core.stream.AbstractStreamProvider;
+import org.xi.lt.server.core.stream.AbstractStreamProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

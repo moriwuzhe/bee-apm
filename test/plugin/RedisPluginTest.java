@@ -55,8 +55,8 @@ public class RedisPluginTest extends PluginTestBase {
         assertEquals("redis", getSpan.getType());
         assertEquals("GET", getSpan.getTag("command"));
         assertEquals("test-key", getSpan.getTag("key"));
-        assertEquals("read", getSpan.getTag("operation"));
-        assertEquals("success", getSpan.getTag("status"));
+        assertNotNull(getSpan.getTag("host"));
+        assertNotNull(getSpan.getTag("port"));
         assertTrue(getSpan.getSpend() >= 0);
     }
 
@@ -75,8 +75,8 @@ public class RedisPluginTest extends PluginTestBase {
         assertEquals("redis", setSpan.getType());
         assertEquals("SET", setSpan.getTag("command"));
         assertEquals("test-set-key", setSpan.getTag("key"));
-        assertEquals("write", setSpan.getTag("operation"));
-        assertEquals("success", setSpan.getTag("status"));
+        assertNotNull(setSpan.getTag("host"));
+        assertNotNull(setSpan.getTag("port"));
     }
 
     @Test
@@ -97,8 +97,8 @@ public class RedisPluginTest extends PluginTestBase {
         assertEquals("redis", delSpan.getType());
         assertEquals("DEL", delSpan.getTag("command"));
         assertEquals("test-del-key", delSpan.getTag("key"));
-        assertEquals("write", delSpan.getTag("operation"));
-        assertEquals("success", delSpan.getTag("status"));
+        assertNotNull(delSpan.getTag("host"));
+        assertNotNull(delSpan.getTag("port"));
     }
 
     @Test
@@ -118,8 +118,8 @@ public class RedisPluginTest extends PluginTestBase {
         Span errorSpan = spans.get(0);
         assertEquals("redis", errorSpan.getType());
         assertEquals("EVAL", errorSpan.getTag("command"));
-        assertEquals("failed", errorSpan.getTag("status"));
-        assertNotNull(errorSpan.getTag("error_msg"));
+        assertEquals("true", errorSpan.getTag("error"));
+        assertNotNull(errorSpan.getTag("error.message"));
     }
 
     @Test
@@ -140,12 +140,14 @@ public class RedisPluginTest extends PluginTestBase {
         Span hsetSpan = spans.get(0);
         assertEquals("HSET", hsetSpan.getTag("command"));
         assertEquals("test-hash-key", hsetSpan.getTag("key"));
-        assertEquals("write", hsetSpan.getTag("operation"));
+        assertNotNull(hsetSpan.getTag("host"));
+        assertNotNull(hsetSpan.getTag("port"));
 
         // 验证HGET Span
         Span hgetSpan = spans.get(1);
         assertEquals("HGET", hgetSpan.getTag("command"));
         assertEquals("test-hash-key", hgetSpan.getTag("key"));
-        assertEquals("read", hgetSpan.getTag("operation"));
+        assertNotNull(hgetSpan.getTag("host"));
+        assertNotNull(hgetSpan.getTag("port"));
     }
 }

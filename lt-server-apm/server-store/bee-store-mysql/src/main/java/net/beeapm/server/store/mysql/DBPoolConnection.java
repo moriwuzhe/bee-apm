@@ -1,9 +1,9 @@
-package net.beeapm.server.store.mysql;
+package org.xi.lt.server.store.mysql;
 
 import com.alibaba.druid.pool.DruidDataSource;
 import com.alibaba.druid.pool.DruidDataSourceFactory;
 import com.alibaba.druid.pool.DruidPooledConnection;
-import net.beeapm.server.core.store.StoreFactory;
+import org.xi.lt.server.core.store.StoreFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

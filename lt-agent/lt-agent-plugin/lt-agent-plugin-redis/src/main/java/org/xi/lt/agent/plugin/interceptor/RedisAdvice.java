@@ -1,7 +1,6 @@
 package org.xi.lt.agent.plugin.interceptor;
 
 import net.bytebuddy.asm.Advice;
-import org.xi.lt.agent.model.Span;
 import org.xi.lt.agent.plugin.redis.handler.RedisHandler;
 
 /**

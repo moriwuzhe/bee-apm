@@ -1,4 +1,4 @@
-package net.beeapm.demo;
+package org.xi.lt.demo;
 
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
@@ -11,7 +11,7 @@ import org.springframework.boot.web.servlet.support.SpringBootServletInitializer
  * @author yuan
  */
 @SpringBootApplication
-@MapperScan("net.beeapm.demo.mapper")
+@MapperScan("org.xi.lt.demo.mapper")
 public class Application extends SpringBootServletInitializer {
 
 	@Override

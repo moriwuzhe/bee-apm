@@ -1,9 +1,9 @@
-package net.beeapm.server.store;
+package org.xi.lt.server.store;
 
 import org.xi.lt.common.annotation.LtPlugin;
 import org.xi.lt.common.annotation.LtPluginType;
-import net.beeapm.server.core.store.IStore;
-import net.beeapm.server.store.mysql.MysqlUtils;
+import org.xi.lt.server.core.store.IStore;
+import org.xi.lt.server.store.mysql.MysqlUtils;
 /**
  * @author kaddddd
  * @date 2018/11/17

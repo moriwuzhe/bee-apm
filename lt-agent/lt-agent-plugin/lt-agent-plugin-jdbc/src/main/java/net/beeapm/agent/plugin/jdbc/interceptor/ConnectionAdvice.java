@@ -10,7 +10,7 @@ public class ConnectionAdvice {
                              @Advice.Origin("#t") String className,
                              @Advice.Origin("#m") String methodName,
                              @Advice.AllArguments Object[] allParams){
-        handler = HandlerLoader.load("net.beeapm.agent.plugin.jdbc.handler.ConnectionHandler");
+        handler = HandlerLoader.load("org.xi.lt.agent.plugin.jdbc.handler.ConnectionHandler");
         handler.before(className,methodName,allParams,null);
     }
 

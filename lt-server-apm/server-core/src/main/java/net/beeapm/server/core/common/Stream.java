@@ -1,4 +1,4 @@
-package net.beeapm.server.core.common;
+package org.xi.lt.server.core.common;
 
 /**
  *

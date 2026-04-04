@@ -1,4 +1,4 @@
-package net.beeapm.ui.common;
+package org.xi.lt.ui.common;
 
 import org.apache.commons.lang3.time.DateFormatUtils;
 

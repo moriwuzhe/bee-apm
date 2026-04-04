@@ -1,4 +1,4 @@
-package net.beeapm.ui.common;
+package org.xi.lt.ui.common;
 
 public class EsIndicesPrefix {
     public static final String REQUEST = "bee-request-";

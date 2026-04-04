@@ -1,4 +1,4 @@
-package net.beeapm.demo;
+package org.xi.lt.demo;
 
 
 import org.springframework.context.ApplicationContextInitializer;

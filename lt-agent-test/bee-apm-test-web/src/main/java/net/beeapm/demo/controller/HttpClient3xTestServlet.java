@@ -1,7 +1,7 @@
-package net.beeapm.demo.controller;
+package org.xi.lt.demo.controller;
 
 
-import net.beeapm.demo.service.Httpclient3xService;
+import org.xi.lt.demo.service.Httpclient3xService;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;

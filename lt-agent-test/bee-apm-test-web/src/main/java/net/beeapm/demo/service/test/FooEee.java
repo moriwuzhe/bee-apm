@@ -1,4 +1,4 @@
-package net.beeapm.demo.service.test;
+package org.xi.lt.demo.service.test;
 
 import org.apache.commons.lang3.RandomUtils;
 

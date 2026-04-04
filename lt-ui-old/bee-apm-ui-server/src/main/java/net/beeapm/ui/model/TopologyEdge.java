@@ -1,4 +1,4 @@
-package net.beeapm.ui.model;
+package org.xi.lt.ui.model;
 
 /**
  * @author yuan

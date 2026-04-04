@@ -100,12 +100,12 @@ plugins:
             excludePointMatches: #正则表达式，排除的采集点的参数不被采集，可以配置到方法级别，优先级别高于includePointPrefix
                 - com.asiainfo.rule.*
             includePointMatches:  #正则表达式，包含的采集点的参数才被采集，可以配置到方法级别，不配置的话默认都采集，前提在interceptPoints的前提下
-                - net.beeapm.demo.*
+                - org.xi.lt.demo.*
         error:
             enable: true
             #白名单配置，不在白名单的不采集，该前缀是在interceptPoint的前提下，支持到方法级别(fullClassName.methodName)
             includeErrorPointPrefix:
-                - net.beeapm.demo
+                - org.xi.lt.demo
             #黑名单配置，优先级别最高，该前缀是在interceptPoint的前提下，支持到方法级别(fullClassName.methodName)
             excludeErrorPointPrefix:
         #采集范围配置，请根据自己的情况，调整下采集范围
@@ -113,10 +113,10 @@ plugins:
             -
                 typeMatch:  #类匹配规则
                     include: #包含规则named,nameStartsWith,nameEndsWith,nameContains,nameMatches,hasSuperType,hasAnnotation
-                        nameStartsWith: net.beeapm.demo
+                        nameStartsWith: org.xi.lt.demo
                     exclude: #排除规则named,nameStartsWith,nameEndsWith,nameContains,nameMatches,hasSuperType,hasAnnotation
                         nameContains: CGLIB
-                        nameStartsWith: org.apache.catalina,net.beeapm.demo.model.,net.beeapm.demo.common.,net.beeapm.demo.entity.
+                        nameStartsWith: org.apache.catalina,org.xi.lt.demo.model.,org.xi.lt.demo.common.,org.xi.lt.demo.entity.
                 methodMatch: #方法匹配规则
                     include: #包含规则named,nameStartsWith,nameEndsWith,nameContains,nameMatches,isAnnotatedWith
                         named:
@@ -133,7 +133,7 @@ plugins:
         defLevel: debug #默认级别，默认值为debug
         points:
         #日志采集点配置，规则为包名和日志级别，如a.b.c|debug，日志级别可不配置，为默认defLevel级别
-            - net.beeapm.demo|trace
+            - org.xi.lt.demo|trace
         loggerClass: #要埋点的目标logger类数组
 
     servlet:

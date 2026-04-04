@@ -1,4 +1,4 @@
-package net.beeapm.server.core.store;
+package org.xi.lt.server.core.store;
 
 import com.alibaba.fastjson.JSON;
 import org.xi.lt.common.annotation.LtPlugin;

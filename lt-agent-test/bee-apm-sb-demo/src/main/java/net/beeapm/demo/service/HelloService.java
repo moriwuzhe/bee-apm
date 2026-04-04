@@ -1,12 +1,12 @@
-package net.beeapm.demo.service;
+package org.xi.lt.demo.service;
 
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import net.beeapm.demo.common.OkHttpUtils;
-import net.beeapm.demo.entity.User;
-import net.beeapm.demo.mapper.UserMapper;
-import net.beeapm.demo.model.RequestVo;
-import net.beeapm.demo.model.ResultVo;
+import org.xi.lt.demo.common.OkHttpUtils;
+import org.xi.lt.demo.entity.User;
+import org.xi.lt.demo.mapper.UserMapper;
+import org.xi.lt.demo.model.RequestVo;
+import org.xi.lt.demo.model.ResultVo;
 import org.apache.commons.lang3.RandomUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

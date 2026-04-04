@@ -1,8 +1,8 @@
-package net.beeapm.ui;
+package org.xi.lt.ui;
 
 
-import net.beeapm.ui.common.ConfigHolder;
-import net.beeapm.ui.es.EsQueryStringMap;
+import org.xi.lt.ui.common.ConfigHolder;
+import org.xi.lt.ui.es.EsQueryStringMap;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 

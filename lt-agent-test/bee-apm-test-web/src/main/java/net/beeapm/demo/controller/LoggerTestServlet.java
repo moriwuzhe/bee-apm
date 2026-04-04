@@ -1,4 +1,4 @@
-package net.beeapm.demo.controller;
+package org.xi.lt.demo.controller;
 
 
 import ch.qos.logback.classic.LoggerContext;

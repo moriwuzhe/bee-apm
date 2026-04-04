@@ -1,7 +1,7 @@
-package net.beeapm.server.stream;
+package org.xi.lt.server.stream;
 
-import net.beeapm.server.core.common.Stream;
-import net.beeapm.server.core.handler.HandlerFactory;
+import org.xi.lt.server.core.common.Stream;
+import org.xi.lt.server.core.handler.HandlerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;

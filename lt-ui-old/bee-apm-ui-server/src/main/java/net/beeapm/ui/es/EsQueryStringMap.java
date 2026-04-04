@@ -1,4 +1,4 @@
-package net.beeapm.ui.es;
+package org.xi.lt.ui.es;
 
 import com.alibaba.fastjson.JSON;
 import org.slf4j.Logger;

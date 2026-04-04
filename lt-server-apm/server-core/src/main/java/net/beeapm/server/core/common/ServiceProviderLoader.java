@@ -1,4 +1,4 @@
-package net.beeapm.server.core.common;
+package org.xi.lt.server.core.common;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

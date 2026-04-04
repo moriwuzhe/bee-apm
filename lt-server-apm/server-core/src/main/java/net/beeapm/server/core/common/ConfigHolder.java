@@ -1,4 +1,4 @@
-package net.beeapm.server.core.common;
+package org.xi.lt.server.core.common;
 
 import org.springframework.boot.origin.OriginTrackedValue;
 import org.springframework.core.env.ConfigurableEnvironment;

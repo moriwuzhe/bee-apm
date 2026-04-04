@@ -1,8 +1,8 @@
-package net.beeapm.demo.common;
+package org.xi.lt.demo.common;
 
 import com.alibaba.fastjson.JSON;
-import net.beeapm.demo.model.RequestVo;
-import net.beeapm.demo.model.ResultVo;
+import org.xi.lt.demo.model.RequestVo;
+import org.xi.lt.demo.model.ResultVo;
 import okhttp3.*;
 import org.apache.commons.lang3.RandomUtils;
 import org.slf4j.Logger;

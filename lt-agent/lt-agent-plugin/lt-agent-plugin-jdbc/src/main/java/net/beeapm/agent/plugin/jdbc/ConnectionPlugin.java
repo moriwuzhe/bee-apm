@@ -2,7 +2,7 @@ package org.xi.lt.agent.plugin.jdbc;
 
 import org.xi.lt.common.annotation.LtPlugin;
 import org.xi.lt.common.annotation.LtPluginType;
-import org.xi.lt.agent.common.PluginOrder;
+import org.xi.lt.agent.common.PluginOrder; 
 import org.xi.lt.agent.plugin.AbstractPlugin;
 import org.xi.lt.agent.plugin.InterceptPoint;
 import org.xi.lt.agent.plugin.jdbc.interceptor.ConnectionAdvice;

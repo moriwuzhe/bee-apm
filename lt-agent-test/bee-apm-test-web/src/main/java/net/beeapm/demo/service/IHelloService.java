@@ -1,4 +1,4 @@
-package net.beeapm.demo.service;
+package org.xi.lt.demo.service;
 
 /**
  * Created by yuan on 2018/8/2.

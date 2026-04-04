@@ -1,7 +1,7 @@
-package net.beeapm.ui.controller;
+package org.xi.lt.ui.controller;
 
-import net.beeapm.ui.service.ISqlService;
-import net.beeapm.ui.service.ITxService;
+import org.xi.lt.ui.service.ISqlService;
+import org.xi.lt.ui.service.ITxService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

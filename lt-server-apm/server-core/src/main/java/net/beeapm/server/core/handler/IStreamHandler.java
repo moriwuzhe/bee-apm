@@ -1,6 +1,6 @@
-package net.beeapm.server.core.handler;
+package org.xi.lt.server.core.handler;
 
-import net.beeapm.server.core.common.Stream;
+import org.xi.lt.server.core.common.Stream;
 /**
  * @author yuan
  * @date 2018/08/27

@@ -25,6 +25,7 @@ import com.ning.http.client.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.xi.lt.server.web.diagnostic.common.AsyncHttpClientHolder;
 import org.xi.lt.server.web.diagnostic.common.JacksonSerializer;
@@ -57,6 +58,7 @@ public class ProxyServiceImpl implements ProxyService {
     private static final TypeReference<ApiResult<AgentInfo>> AGENT_TYPE_REFERENCE = new TypeReference<ApiResult<AgentInfo>>() {
     };
 
+    @Value("${agent.proxy:ws://%s:%s/ws}")
     private String proxyAgent;
 
     @Resource
@@ -67,7 +69,6 @@ public class ProxyServiceImpl implements ProxyService {
     @PostConstruct
     public void init() {
         zkClient = ZKClientCache.get(registryStore.getZkAddress());
-        DynamicConfigLoader.<LocalDynamicConfig>load("config.properties").addListener(conf -> proxyAgent = conf.getString("agent.proxy"));
     }
 
     @Override

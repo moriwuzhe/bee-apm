@@ -7,6 +7,17 @@ spring:
   application:
     name: lt-monitor-server
 
+# Zookeeper配置 (用于诊断代理节点注册)
+zk:
+  url: zookeeper:2181
+  sessionTimeoutMs: 15000
+  connectionTimeoutMs: 15000
+  retryIntervalMs: 10000
+
+# 诊断代理Agent通信端口
+agent:
+  proxy: ws://%s:%s/ws
+
 # Elasticsearch配置
 elasticsearch:
   host: 127.0.0.1

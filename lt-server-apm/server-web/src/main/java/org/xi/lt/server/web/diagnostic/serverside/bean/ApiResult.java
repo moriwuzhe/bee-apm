@@ -18,57 +18,75 @@
 package org.xi.lt.server.web.diagnostic.serverside.bean;
 
 /**
- * @author leix.xie
- * @date 2019/7/2 16:03
- * @describe
+ * Adapted to bee-apm ResultVo format
  */
 public class ApiResult<T> {
 
-    private Integer status;
+    private String code;
 
-    private String message;
+    private String msg;
 
-    private T data;
+    private T result;
 
     public ApiResult() {
     }
 
-    public ApiResult(Integer status, String message, T data) {
-        this.status = status;
-        this.message = message;
-        this.data = data;
+    public ApiResult(String code, String msg, T result) {
+        this.code = code;
+        this.msg = msg;
+        this.result = result;
     }
 
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
+    }
+
+    public String getMsg() {
+        return msg;
+    }
+
+    public void setMsg(String msg) {
+        this.msg = msg;
+    }
+
+    public T getResult() {
+        return result;
+    }
+
+    public void setResult(T result) {
+        this.result = result;
+    }
+
+    // Keep legacy getters for fastjson/jackson serialization compatibility if needed
     public Integer getStatus() {
-        return status;
+        try {
+            return Integer.parseInt(code);
+        } catch (Exception e) {
+            return -1;
+        }
     }
 
     public void setStatus(Integer status) {
-        this.status = status;
+        this.code = String.valueOf(status);
     }
 
     public String getMessage() {
-        return message;
+        return msg;
     }
 
     public void setMessage(String message) {
-        this.message = message;
+        this.msg = message;
     }
 
     public T getData() {
-        return data;
+        return result;
     }
 
     public void setData(T data) {
-        this.data = data;
-    }
-
-    @Override
-    public String toString() {
-        return "{" +
-                "\"status\":" + status +
-                ", \"message\":\"" + message + '\"' +
-                ", \"data\":" + data +
-                ",\"token\":\"dd\"}";
+        this.result = data;
     }
 }

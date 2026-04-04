@@ -17,15 +17,10 @@
 
 package org.xi.lt.agent.diagnostic.agent;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Strings;
-import com.ning.http.client.AsyncHttpClient;
-import com.ning.http.client.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xi.lt.agent.diagnostic.common.AsyncHttpClientHolder;
-import org.xi.lt.agent.diagnostic.common.JacksonSerializer;
-import org.xi.lt.agent.diagnostic.common.JsonResult;
+import org.xi.lt.agent.config.ConfigUtils;
 
 /**
  * @author zhenyu.nie created on 2018 2018/10/25 17:08
@@ -34,44 +29,31 @@ class Configs {
 
     private static final Logger logger = LoggerFactory.getLogger(Configs.class);
 
-
-    private static final TypeReference<JsonResult<ProxyConfig>> PROXY_REFERENCE = new TypeReference<JsonResult<ProxyConfig>>() {
-    };
-
-    private static final String PROXY_URI = "/proxy/config/foragent";
-
-
     public static ProxyConfig getProxyConfig() {
-        String bistouryProxyHost = System.getProperty("bistoury.proxy.host");
-        if (Strings.isNullOrEmpty(bistouryProxyHost)) {
-            throw new RuntimeException("system property [bistoury.proxy.host] cannot be null or empty");
-        }
-        return getProxyConfig(bistouryProxyHost);
-    }
-
-
-    private static ProxyConfig getProxyConfig(String bistouryHost) {
-        String url = "http://" + bistouryHost + PROXY_URI;
-        try {
-            AsyncHttpClient client = AsyncHttpClientHolder.getInstance();
-            AsyncHttpClient.BoundRequestBuilder builder = client.prepareGet(url);
-            builder.setHeader("content-type", "application/json;charset=utf-8");
-            Response response = client.executeRequest(builder.build()).get();
-            if (response.getStatusCode() != 200) {
-                logger.error("get proxy config error, http code [{}], url [{}]", response.getStatusCode(), url);
-                return null;
-            }
-
-            JsonResult<ProxyConfig> result = JacksonSerializer.deSerialize(response.getResponseBody("utf8"), PROXY_REFERENCE);
-            if (!result.isOK()) {
-                logger.error("get proxy config error, status code [{}], url [{}]", result.getStatus(), url);
-                return null;
-            }
-
-            return result.getData();
-        } catch (Throwable e) {
-            logger.error("get proxy config error, url [{}]", url, e);
+        ProxyConfig config = new ProxyConfig();
+        
+        // Read from VM options first, fallback to config.yml
+        String host = System.getProperty("bistoury.proxy.host", ConfigUtils.me().getStr("bistoury.proxy.host"));
+        if (Strings.isNullOrEmpty(host)) {
+            logger.warn("bistoury.proxy.host is not configured, diagnostic agent connection is disabled.");
             return null;
         }
+        
+        config.setIp(host);
+        
+        // Read port (default 3333 for bistoury netty server)
+        int port = ConfigUtils.me().getInt("bistoury.proxy.port", 3333);
+        String portStr = System.getProperty("bistoury.proxy.port");
+        if (!Strings.isNullOrEmpty(portStr)) {
+            port = Integer.parseInt(portStr);
+        }
+        config.setPort(port);
+        
+        // Read heartbeat
+        int heartbeat = ConfigUtils.me().getInt("bistoury.proxy.heartbeat", 30);
+        config.setHeartbeatSec(heartbeat);
+        
+        return config;
     }
+
 }

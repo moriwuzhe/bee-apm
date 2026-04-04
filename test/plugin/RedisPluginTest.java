@@ -5,7 +5,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.xi.lt.agent.model.Span;
-import org.xi.lt.agent.plugin.redis.RedisPlugin;
+import org.xi.lt.agent.plugin.redis.handler.RedisHandler;
 import redis.clients.jedis.Jedis;
 
 import java.util.List;
@@ -17,23 +17,21 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author LT Monitor Dev
  */
 public class RedisPluginTest extends PluginTestBase {
-    private RedisPlugin redisPlugin;
     private Jedis jedis;
+    private RedisHandler redisHandler;
 
     @BeforeEach
-    public void setup() throws Exception {
-        redisPlugin = new RedisPlugin();
-        // 安装Redis插件
-        installPlugin(redisPlugin);
-        // 初始化Jedis（这里用Mock或者连接本地测试Redis）
-        // 测试用可以用Embedded Redis
+    public void setup() {
         jedis = new Jedis("localhost", 6379);
+        jedis.flushDB();
+        redisHandler = new RedisHandler();
         clearSpans();
     }
 
     @AfterEach
     public void teardown() {
         if (jedis != null) {
+            jedis.flushDB();
             jedis.close();
         }
         clearSpans();
@@ -41,16 +39,14 @@ public class RedisPluginTest extends PluginTestBase {
 
     @Test
     public void testRedisGetCommand() {
-        // 执行GET命令
-        jedis.set("test-key", "test-value");
+        executeRedis("set", new Object[]{"test-key", "test-value"}, () -> jedis.set("test-key", "test-value"));
         String value = jedis.get("test-key");
+        executeRedis("get", new Object[]{"test-key"}, () -> jedis.get("test-key"));
         assertEquals("test-value", value);
 
-        // 验证Span上报
         List<Span> spans = getSpansByType("redis");
-        assertEquals(2, spans.size()); // SET + GET
+        assertEquals(2, spans.size());
 
-        // 验证GET Span
         Span getSpan = spans.get(1);
         assertEquals("redis", getSpan.getType());
         assertEquals("GET", getSpan.getTag("command"));
@@ -62,15 +58,12 @@ public class RedisPluginTest extends PluginTestBase {
 
     @Test
     public void testRedisSetCommand() {
-        // 执行SET命令
-        String result = jedis.set("test-set-key", "test-set-value");
+        String result = executeRedis("set", new Object[]{"test-set-key", "test-set-value"}, () -> jedis.set("test-set-key", "test-set-value"));
         assertEquals("OK", result);
 
-        // 验证Span上报
         List<Span> spans = getSpansByType("redis");
         assertEquals(1, spans.size());
 
-        // 验证SET Span
         Span setSpan = spans.get(0);
         assertEquals("redis", setSpan.getType());
         assertEquals("SET", setSpan.getTag("command"));
@@ -81,18 +74,15 @@ public class RedisPluginTest extends PluginTestBase {
 
     @Test
     public void testRedisDelCommand() {
-        // 先设置再删除
         jedis.set("test-del-key", "test-del-value");
         clearSpans();
 
-        Long result = jedis.del("test-del-key");
+        Long result = executeRedis("del", new Object[]{"test-del-key"}, () -> jedis.del("test-del-key"));
         assertEquals(1, result);
 
-        // 验证Span上报
         List<Span> spans = getSpansByType("redis");
         assertEquals(1, spans.size());
 
-        // 验证DEL Span
         Span delSpan = spans.get(0);
         assertEquals("redis", delSpan.getType());
         assertEquals("DEL", delSpan.getTag("command"));
@@ -104,14 +94,12 @@ public class RedisPluginTest extends PluginTestBase {
     @Test
     public void testRedisErrorCommand() {
         try {
-            // 执行错误的命令
-            jedis.eval("wrong lua script");
+            executeRedis("eval", new Object[]{"wrong lua script"}, () -> jedis.eval("wrong lua script"));
             fail("Should throw exception");
         } catch (Exception e) {
-            // 预期异常
+            assertNotNull(e);
         }
 
-        // 验证错误Span上报
         List<Span> spans = getSpansByType("redis");
         assertEquals(1, spans.size());
 
@@ -124,30 +112,42 @@ public class RedisPluginTest extends PluginTestBase {
 
     @Test
     public void testRedisHashCommand() {
-        // 执行HSET命令
-        Long result = jedis.hset("test-hash-key", "field1", "value1");
+        Long result = executeRedis("hset", new Object[]{"test-hash-key", "field1", "value1"}, () -> jedis.hset("test-hash-key", "field1", "value1"));
         assertEquals(1, result);
 
-        // 执行HGET命令
-        String value = jedis.hget("test-hash-key", "field1");
+        String value = executeRedis("hget", new Object[]{"test-hash-key", "field1"}, () -> jedis.hget("test-hash-key", "field1"));
         assertEquals("value1", value);
 
-        // 验证Span上报
         List<Span> spans = getSpansByType("redis");
         assertEquals(2, spans.size());
 
-        // 验证HSET Span
         Span hsetSpan = spans.get(0);
         assertEquals("HSET", hsetSpan.getTag("command"));
         assertEquals("test-hash-key", hsetSpan.getTag("key"));
         assertNotNull(hsetSpan.getTag("host"));
         assertNotNull(hsetSpan.getTag("port"));
 
-        // 验证HGET Span
         Span hgetSpan = spans.get(1);
         assertEquals("HGET", hgetSpan.getTag("command"));
         assertEquals("test-hash-key", hgetSpan.getTag("key"));
         assertNotNull(hgetSpan.getTag("host"));
         assertNotNull(hgetSpan.getTag("port"));
+    }
+
+    private <T> T executeRedis(String methodName, Object[] args, RedisAction<T> action) {
+        redisHandler.before("redis.clients.jedis.Jedis", methodName, args, new Object[]{jedis});
+        try {
+            T result = action.run();
+            redisHandler.after("redis.clients.jedis.Jedis", methodName, args, result, null, null);
+            return result;
+        } catch (Throwable t) {
+            redisHandler.after("redis.clients.jedis.Jedis", methodName, args, null, t, null);
+            throw new RuntimeException(t);
+        }
+    }
+
+    @FunctionalInterface
+    private interface RedisAction<T> {
+        T run() throws Exception;
     }
 }

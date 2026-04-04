@@ -84,6 +84,15 @@ public abstract class PluginTestBase {
      * 清除上报的Span数据
      */
     protected void clearSpans() {
+        try {
+            java.lang.reflect.Field queueField = ReporterFactory.class.getDeclaredField("queue");
+            queueField.setAccessible(true);
+            Object queue = queueField.get(null);
+            if (queue instanceof java.util.concurrent.BlockingQueue) {
+                ((java.util.concurrent.BlockingQueue<?>) queue).clear();
+            }
+        } catch (Exception ignored) {
+        }
         testSpanReporter.clear();
     }
 

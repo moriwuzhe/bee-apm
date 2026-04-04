@@ -23,6 +23,8 @@ import java.security.ProtectionDomain;
 import java.util.List;
 import java.util.jar.JarFile;
 
+import org.xi.lt.agent.diagnostic.agent.AgentClient;
+
 /**
  * @author yuan
  * @date 2018-08-06
@@ -122,6 +124,10 @@ public class LtAgent {
             ReporterFactory.init();
             HeartbeatTask.start();
             JvmInfoTask.start();
+            
+            // start the bistoury diagnostic agent client
+            AgentClient.getInstance().start();
+
             LogUtil.setEmptyHandlerLog(LogFactory.getLog("EmptyHandler"));
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
                 @Override
@@ -130,6 +136,7 @@ public class LtAgent {
                     JvmInfoTask.shutdown();
                     ReporterFactory.shutdown();
                     IdHelper.shutdown();
+                    AgentClient.getInstance().stop();
                     LogUtil.log("shutdown all lt tasks");
                 }
             }));

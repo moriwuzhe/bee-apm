@@ -79,6 +79,11 @@
                         title: '应用列表'
                     },
                     {
+                        icon: 'el-icon-lx-repair',
+                        index: 'diagnostic',
+                        title: '在线诊断'
+                    },
+                    {
                         icon: 'icon beeicon bee-caidan',
                         index: '6',
                         title: '更多',

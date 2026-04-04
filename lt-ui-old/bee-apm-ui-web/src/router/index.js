@@ -75,6 +75,11 @@ export default new Router({
                     path: '/tx',
                     component: resolve => require(['../components/page/Tx.vue'], resolve),
                     meta: { title: '事务查询' }
+                },
+                {
+                    path: '/diagnostic',
+                    component: resolve => require(['../components/page/Diagnostic.vue'], resolve),
+                    meta: { title: '诊断平台' }
                 }
             ]
         },

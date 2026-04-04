@@ -1,6 +1,6 @@
 package org.xi.lt.agent.plugin.redis.handler;
 
-import org.xi.lt.agent.common.*;
+import org.xi.lt.agent.common.SpanManager;
 import org.xi.lt.agent.config.BeeConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
@@ -9,8 +9,6 @@ import org.xi.lt.agent.plugin.handler.AbstractHandler;
 import org.xi.lt.agent.reporter.ReporterFactory;
 import redis.clients.jedis.Jedis;
 
-import java.lang.reflect.Field;
-import java.net.Socket;
 import java.util.Arrays;
 
 /**

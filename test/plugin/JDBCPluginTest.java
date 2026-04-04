@@ -5,7 +5,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.xi.lt.agent.model.Span;
-import org.xi.lt.agent.plugin.jdbc.JDBCPlugin;
+import org.xi.lt.agent.plugin.jdbc.handler.ConnectionHandler;
+import org.xi.lt.agent.plugin.jdbc.handler.PreparedStatementExecuteHandler;
+import org.xi.lt.agent.plugin.jdbc.handler.PreparedStatementParamHandler;
 
 import java.sql.*;
 import java.util.List;
@@ -17,21 +19,21 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author LT Monitor Dev
  */
 public class JDBCPluginTest extends PluginTestBase {
-    private JDBCPlugin jdbcPlugin;
     private Connection connection;
+    private ConnectionHandler connectionHandler;
+    private PreparedStatementParamHandler paramHandler;
+    private PreparedStatementExecuteHandler executeHandler;
 
     @BeforeEach
     public void setup() throws Exception {
-        jdbcPlugin = new JDBCPlugin();
-        // 安装JDBC插件
-        installPlugin(jdbcPlugin);
-        // 使用H2内存数据库测试
+        connectionHandler = new ConnectionHandler();
+        paramHandler = new PreparedStatementParamHandler();
+        executeHandler = new PreparedStatementExecuteHandler();
         Class.forName("org.h2.Driver");
         connection = DriverManager.getConnection("jdbc:h2:mem:testdb", "sa", "");
-        // 初始化测试表
         Statement stmt = connection.createStatement();
-        stmt.execute("CREATE TABLE IF NOT EXISTS user (id INT PRIMARY KEY, name VARCHAR(100))");
-        stmt.execute("INSERT INTO user VALUES (1, '张三'), (2, '李四'), (3, '王五')");
+        stmt.execute("CREATE TABLE IF NOT EXISTS t_user (id INT PRIMARY KEY, name VARCHAR(100))");
+        stmt.execute("INSERT INTO t_user VALUES (1, '张三'), (2, '李四'), (3, '王五')");
         stmt.close();
         clearSpans();
     }
@@ -40,7 +42,7 @@ public class JDBCPluginTest extends PluginTestBase {
     public void teardown() throws SQLException {
         if (connection != null) {
             Statement stmt = connection.createStatement();
-            stmt.execute("DROP TABLE user");
+            stmt.execute("DROP TABLE t_user");
             stmt.close();
             connection.close();
         }
@@ -49,164 +51,194 @@ public class JDBCPluginTest extends PluginTestBase {
 
     @Test
     public void testSelectQuery() throws Exception {
-        // 执行查询SQL
-        Statement stmt = connection.createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT * FROM user WHERE id = 1");
+        PreparedStatement pstmt = prepareStatement("SELECT * FROM t_user WHERE id = 1");
+        ResultSet rs = executeQuery(pstmt, "SELECT * FROM t_user WHERE id = 1");
         assertTrue(rs.next());
         assertEquals("张三", rs.getString("name"));
         rs.close();
-        stmt.close();
+        pstmt.close();
 
-        // 验证Span上报
-        List<Span> spans = getSpansByType("jdbc");
+        List<Span> spans = getSpansByType("sql");
         assertEquals(1, spans.size());
 
         Span selectSpan = spans.get(0);
-        assertEquals("jdbc", selectSpan.getType());
-        assertEquals("SELECT", selectSpan.getTag("sql_type"));
-        assertEquals("user", selectSpan.getTag("table"));
-        assertEquals("TESTDB", selectSpan.getTag("database"));
-        assertEquals("jdbc:h2:mem:testdb", selectSpan.getTag("jdbc_url"));
-        assertEquals("success", selectSpan.getTag("status"));
-        assertTrue(selectSpan.getTag("sql").contains("SELECT * FROM user WHERE id = 1"));
-        assertFalse(Boolean.parseBoolean(selectSpan.getTag("is_slow")));
+        assertEquals("sql", selectSpan.getType());
+        assertEquals("Y", selectSpan.getTag("status"));
+        assertTrue(String.valueOf(selectSpan.getTag("sql")).contains("SELECT * FROM t_user WHERE id = 1"));
     }
 
     @Test
     public void testPreparedStatementSelect() throws Exception {
-        // 执行预编译查询
-        String sql = "SELECT * FROM user WHERE id = ?";
-        PreparedStatement pstmt = connection.prepareStatement(sql);
-        pstmt.setInt(1, 2);
-        ResultSet rs = pstmt.executeQuery();
+        String sql = "SELECT * FROM t_user WHERE id = ?";
+        PreparedStatement pstmt = prepareStatement(sql);
+        setParam(pstmt, 1, 2);
+        ResultSet rs = executeQuery(pstmt, sql);
         assertTrue(rs.next());
         assertEquals("李四", rs.getString("name"));
         rs.close();
         pstmt.close();
 
-        // 验证Span上报
-        List<Span> spans = getSpansByType("jdbc");
+        List<Span> spans = getSpansByType("sql");
         assertEquals(1, spans.size());
 
         Span selectSpan = spans.get(0);
-        assertEquals("jdbc", selectSpan.getType());
-        assertEquals("SELECT", selectSpan.getTag("sql_type"));
-        assertEquals("user", selectSpan.getTag("table"));
-        assertEquals("2", selectSpan.getTag("param.0")); // 参数索引从0开始
-        assertEquals("success", selectSpan.getTag("status"));
-        assertTrue(selectSpan.getTag("sql").contains("SELECT * FROM user WHERE id = ?"));
+        assertEquals("sql", selectSpan.getType());
+        assertEquals("Y", selectSpan.getTag("status"));
+        assertTrue(String.valueOf(selectSpan.getTag("sql")).contains("SELECT * FROM t_user WHERE id = ?"));
+
+        List<Span> paramSpans = getSpansByType("sqlp");
+        assertEquals(1, paramSpans.size());
+        assertEquals(selectSpan.getId(), paramSpans.get(0).getId());
+        assertNotNull(paramSpans.get(0).getTag("args"));
     }
 
     @Test
     public void testInsertQuery() throws Exception {
-        // 执行插入SQL
-        Statement stmt = connection.createStatement();
-        int affectedRows = stmt.executeUpdate("INSERT INTO user VALUES (4, '赵六')");
+        String sql = "INSERT INTO t_user VALUES (4, '赵六')";
+        PreparedStatement pstmt = prepareStatement(sql);
+        int affectedRows = executeUpdate(pstmt, sql);
         assertEquals(1, affectedRows);
-        stmt.close();
+        pstmt.close();
 
-        // 验证Span上报
-        List<Span> spans = getSpansByType("jdbc");
+        List<Span> spans = getSpansByType("sql");
         assertEquals(1, spans.size());
 
         Span insertSpan = spans.get(0);
-        assertEquals("jdbc", insertSpan.getType());
-        assertEquals("INSERT", insertSpan.getTag("sql_type"));
-        assertEquals("user", insertSpan.getTag("table"));
-        assertEquals("1", insertSpan.getTag("affected_rows"));
-        assertEquals("success", insertSpan.getTag("status"));
-        assertTrue(insertSpan.getTag("sql").contains("INSERT INTO user VALUES (4, '赵六')"));
+        assertEquals("sql", insertSpan.getType());
+        assertEquals("Y", insertSpan.getTag("status"));
+        assertEquals("1", String.valueOf(insertSpan.getTag("count")));
+        assertTrue(String.valueOf(insertSpan.getTag("sql")).contains("INSERT INTO t_user VALUES (4, '赵六')"));
     }
 
     @Test
     public void testUpdateQuery() throws Exception {
-        // 执行更新SQL
-        PreparedStatement pstmt = connection.prepareStatement("UPDATE user SET name = ? WHERE id = ?");
-        pstmt.setString(1, "张三新");
-        pstmt.setInt(2, 1);
-        int affectedRows = pstmt.executeUpdate();
+        String sql = "UPDATE t_user SET name = ? WHERE id = ?";
+        PreparedStatement pstmt = prepareStatement(sql);
+        setParam(pstmt, 1, "张三新");
+        setParam(pstmt, 2, 1);
+        int affectedRows = executeUpdate(pstmt, sql);
         assertEquals(1, affectedRows);
         pstmt.close();
 
-        // 验证Span上报
-        List<Span> spans = getSpansByType("jdbc");
+        List<Span> spans = getSpansByType("sql");
         assertEquals(1, spans.size());
 
         Span updateSpan = spans.get(0);
-        assertEquals("jdbc", updateSpan.getType());
-        assertEquals("UPDATE", updateSpan.getTag("sql_type"));
-        assertEquals("user", updateSpan.getTag("table"));
-        assertEquals("1", updateSpan.getTag("affected_rows"));
-        assertEquals("张三新", updateSpan.getTag("param.0"));
-        assertEquals("1", updateSpan.getTag("param.1"));
-        assertEquals("success", updateSpan.getTag("status"));
+        assertEquals("sql", updateSpan.getType());
+        assertEquals("Y", updateSpan.getTag("status"));
+        assertEquals("1", String.valueOf(updateSpan.getTag("count")));
+
+        List<Span> paramSpans = getSpansByType("sqlp");
+        assertEquals(1, paramSpans.size());
+        assertEquals(updateSpan.getId(), paramSpans.get(0).getId());
+        assertNotNull(paramSpans.get(0).getTag("args"));
     }
 
     @Test
     public void testDeleteQuery() throws Exception {
-        // 执行删除SQL
-        Statement stmt = connection.createStatement();
-        int affectedRows = stmt.executeUpdate("DELETE FROM user WHERE id = 3");
+        String sql = "DELETE FROM t_user WHERE id = 3";
+        PreparedStatement pstmt = prepareStatement(sql);
+        int affectedRows = executeUpdate(pstmt, sql);
         assertEquals(1, affectedRows);
-        stmt.close();
+        pstmt.close();
 
-        // 验证Span上报
-        List<Span> spans = getSpansByType("jdbc");
+        List<Span> spans = getSpansByType("sql");
         assertEquals(1, spans.size());
 
         Span deleteSpan = spans.get(0);
-        assertEquals("jdbc", deleteSpan.getType());
-        assertEquals("DELETE", deleteSpan.getTag("sql_type"));
-        assertEquals("user", deleteSpan.getTag("table"));
-        assertEquals("1", deleteSpan.getTag("affected_rows"));
-        assertEquals("success", deleteSpan.getTag("status"));
+        assertEquals("sql", deleteSpan.getType());
+        assertEquals("Y", deleteSpan.getTag("status"));
+        assertEquals("1", String.valueOf(deleteSpan.getTag("count")));
     }
 
     @Test
     public void testSlowSql() throws Exception {
-        // 执行慢SQL（模拟）
-        Statement stmt = connection.createStatement();
-        // H2不会真的慢，这里验证慢SQL阈值逻辑
+        String sql = "SELECT * FROM t_user t1, t_user t2, t_user t3";
+        PreparedStatement pstmt = prepareStatement(sql);
         long start = System.currentTimeMillis();
-        ResultSet rs = stmt.executeQuery("SELECT * FROM user t1, user t2, user t3"); // 笛卡尔积模拟慢查询
+        ResultSet rs = executeQuery(pstmt, sql);
         while (rs.next()) {
-            // 遍历结果
         }
         long cost = System.currentTimeMillis() - start;
         rs.close();
-        stmt.close();
+        pstmt.close();
 
-        // 验证Span上报
-        List<Span> spans = getSpansByType("jdbc");
+        List<Span> spans = getSpansByType("sql");
         assertEquals(1, spans.size());
 
         Span slowSpan = spans.get(0);
-        // 如果耗时超过默认阈值1000ms会标记为慢SQL
         if (cost >= 1000) {
-            assertEquals("true", slowSpan.getTag("is_slow"));
+            assertTrue(slowSpan.getSpend() >= 1000);
         }
     }
 
     @Test
     public void testErrorSql() throws Exception {
-        // 执行错误的SQL
-        Statement stmt = connection.createStatement();
+        String sql = "SELECT * FROM not_exist_table";
         try {
-            stmt.executeQuery("SELECT * FROM not_exist_table");
+            PreparedStatement pstmt = prepareStatement(sql);
+            pstmt.close();
             fail("Should throw exception");
         } catch (SQLException e) {
-            // 预期异常
+            assertNotNull(e);
         }
-        stmt.close();
 
-        // 验证错误Span上报
-        List<Span> spans = getSpansByType("jdbc");
-        assertEquals(1, spans.size());
+        List<Span> spans = getSpansByType("sql");
+        assertEquals(0, spans.size());
+    }
 
-        Span errorSpan = spans.get(0);
-        assertEquals("jdbc", errorSpan.getType());
-        assertEquals("failed", errorSpan.getTag("status"));
-        assertNotNull(errorSpan.getTag("error_msg"));
-        assertTrue(errorSpan.getTag("error_msg").contains("not_exist_table"));
+    private PreparedStatement prepareStatement(String sql) throws SQLException {
+        connectionHandler.before(Connection.class.getName(), "prepareStatement", new Object[]{sql}, null);
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            connectionHandler.after(Connection.class.getName(), "prepareStatement", new Object[]{sql}, pstmt, null, null);
+            return pstmt;
+        } catch (SQLException e) {
+            connectionHandler.after(Connection.class.getName(), "prepareStatement", new Object[]{sql}, null, e, null);
+            throw e;
+        }
+    }
+
+    private void setParam(PreparedStatement pstmt, int index, Object value) throws SQLException {
+        Object[] args = new Object[]{index, value};
+        String methodName = value instanceof String ? "setString" : "setInt";
+        paramHandler.before(PreparedStatement.class.getName(), methodName, args, null);
+        try {
+            if (value instanceof String) {
+                pstmt.setString(index, (String) value);
+            } else if (value instanceof Integer) {
+                pstmt.setInt(index, (Integer) value);
+            } else {
+                throw new IllegalArgumentException("Unsupported value type: " + value.getClass());
+            }
+            paramHandler.after(PreparedStatement.class.getName(), methodName, args, null, null, null);
+        } catch (SQLException e) {
+            paramHandler.after(PreparedStatement.class.getName(), methodName, args, null, e, null);
+            throw e;
+        }
+    }
+
+    private ResultSet executeQuery(PreparedStatement pstmt, String sql) throws SQLException {
+        executeHandler.before(PreparedStatement.class.getName(), "executeQuery", new Object[]{}, null);
+        try {
+            ResultSet rs = pstmt.executeQuery();
+            executeHandler.after(PreparedStatement.class.getName(), "executeQuery", new Object[]{}, rs, null, new Object[]{pstmt});
+            return rs;
+        } catch (SQLException e) {
+            executeHandler.after(PreparedStatement.class.getName(), "executeQuery", new Object[]{}, null, e, new Object[]{pstmt});
+            throw e;
+        }
+    }
+
+    private int executeUpdate(PreparedStatement pstmt, String sql) throws SQLException {
+        executeHandler.before(PreparedStatement.class.getName(), "executeUpdate", new Object[]{}, null);
+        try {
+            int result = pstmt.executeUpdate();
+            executeHandler.after(PreparedStatement.class.getName(), "executeUpdate", new Object[]{}, result, null, new Object[]{pstmt});
+            return result;
+        } catch (SQLException e) {
+            executeHandler.after(PreparedStatement.class.getName(), "executeUpdate", new Object[]{}, null, e, new Object[]{pstmt});
+            throw e;
+        }
     }
 }

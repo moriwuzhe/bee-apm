@@ -15,6 +15,7 @@
         <module>lt-common</module>
         <module>lt-agent</module>
         <module>lt-server-apm</module>
+        <module>test</module>
     </modules>
 
     <properties>
@@ -25,6 +26,6 @@
     </properties>
 
     <build>
-        <finalName>beeapm</finalName>
+        <finalName>lt-monitor</finalName>
     </build>
 </project>

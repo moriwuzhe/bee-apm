@@ -1,0 +1,2 @@
+elasticsearch=org.xi.lt.server.store.ElasticSearchStore
+

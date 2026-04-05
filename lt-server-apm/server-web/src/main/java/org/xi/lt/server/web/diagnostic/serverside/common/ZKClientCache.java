@@ -34,7 +34,10 @@ public class ZKClientCache {
 
     private static final Map<String, ZKClient> CACHE = new HashMap<>();
 
-    private static final String LOCAL_ZK_TAG_FILE = "/tmp/bistoury/proxy.conf";
+    private static final String LOCAL_ZK_TAG_FILE = System.getProperty(
+            "bistoury.proxy.conf",
+            new File(System.getProperty("user.dir"), "bistoury-proxy.conf").getAbsolutePath()
+    );
 
     public synchronized static ZKClient get(String address) {
 

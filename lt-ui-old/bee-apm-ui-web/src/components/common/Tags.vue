@@ -115,71 +115,67 @@
 <style>
     .tags {
         position: relative;
-        height: 30px;
-        overflow: hidden;
-        background: #fff;
-        padding-right: 120px;
-        box-shadow: 0 5px 10px #ddd;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        background: var(--surface);
+        padding: 0 var(--space-3);
+        border-bottom: 1px solid var(--border);
     }
 
     .tags ul {
         box-sizing: border-box;
         width: 100%;
         height: 100%;
+        display: flex;
+        align-items: center;
+        gap: 6px;
     }
 
     .tags-li {
-        float: left;
-        margin: 3px 5px 2px 3px;
-        border-radius: 3px;
+        border-radius: 999px;
         font-size: 12px;
         overflow: hidden;
         cursor: pointer;
-        height: 23px;
-        line-height: 23px;
-        border: 1px solid #e9eaec;
-        background: #fff;
-        padding: 0 5px 0 12px;
+        height: 28px;
+        line-height: 28px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        padding: 0 10px 0 12px;
         vertical-align: middle;
-        color: #666;
-        -webkit-transition: all .3s ease-in;
-        -moz-transition: all .3s ease-in;
-        transition: all .3s ease-in;
+        color: var(--text);
+        transition: all .2s ease;
+        display: inline-flex;
+        align-items: center;
     }
 
     .tags-li:not(.active):hover {
-        background: #f8f8f8;
+        background: rgba(59, 130, 246, 0.06);
     }
 
     .tags-li.active {
-        color: #fff;
+        color: var(--primary);
+        border-color: rgba(59, 130, 246, 0.35);
+        background: rgba(59, 130, 246, 0.10);
     }
 
     .tags-li-title {
-        float: left;
-        max-width: 80px;
+        max-width: 120px;
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
         margin-right: 5px;
-        color: #666;
+        color: inherit;
     }
 
     .tags-li.active .tags-li-title {
-        color: #fff;
+        color: inherit;
     }
 
     .tags-close-box {
-        position: absolute;
-        right: 0;
-        top: 0;
-        box-sizing: border-box;
-        padding-top: 1px;
-        text-align: center;
-        width: 110px;
-        height: 30px;
-        background: #fff;
-        box-shadow: -3px 0 15px 3px rgba(0, 0, 0, .1);
-        z-index: 10;
+        margin-left: auto;
+        height: 40px;
+        display: flex;
+        align-items: center;
     }
 </style>

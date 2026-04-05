@@ -2,6 +2,7 @@ package org.xi.lt.server.web;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 
 /**
@@ -9,7 +10,7 @@ import org.springframework.context.annotation.ComponentScan;
  * @author LT Monitor Dev
  * @date 2026/04/01
  */
-@SpringBootApplication
+@SpringBootApplication(exclude = {ElasticsearchRestClientAutoConfiguration.class})
 @ComponentScan(basePackages = "org.xi.lt.server")
 public class LtMonitorServerApplication {
 

@@ -1,15 +1,17 @@
 <template>
-    <div class="wrapper">
+    <div class="wrapper" :class="{ 'is-collapsed': collapse }">
         <v-head></v-head>
-        <v-sidebar></v-sidebar>
-        <div class="content-box" :class="{'content-collapse':collapse}">
-            <v-tags></v-tags>
-            <div class="content">
-                <transition name="move" mode="out-in">
-                    <keep-alive :include="tagsList">
-                        <router-view></router-view>
-                    </keep-alive>
-                </transition>
+        <div class="app-body">
+            <v-sidebar></v-sidebar>
+            <div class="content-box">
+                <v-tags></v-tags>
+                <div class="content">
+                    <transition name="move" mode="out-in">
+                        <keep-alive :include="tagsList">
+                            <router-view></router-view>
+                        </keep-alive>
+                    </transition>
+                </div>
             </div>
         </div>
     </div>
@@ -31,18 +33,24 @@
             vHead, vSidebar, vTags
         },
         created(){
-            bus.$on('collapse', msg => {
+            bus.$on('collapse', this.onCollapse);
+            bus.$on('tags', this.onTags);
+        },
+        beforeDestroy(){
+            bus.$off('collapse', this.onCollapse);
+            bus.$off('tags', this.onTags);
+        },
+        methods:{
+            onCollapse(msg){
                 this.collapse = msg;
-            })
-
-            // 只有在标签页列表里的页面才使用keep-alive，即关闭标签之后就不保存到内存中了。
-            bus.$on('tags', msg => {
+            },
+            onTags(msg){
                 let arr = [];
                 for(let i = 0, len = msg.length; i < len; i ++){
                     msg[i].name && arr.push(msg[i].name);
                 }
                 this.tagsList = arr;
-            })
+            }
         }
     }
 </script>

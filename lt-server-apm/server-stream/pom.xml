@@ -17,6 +17,7 @@
     <modules>
         <module>bee-stream-servlet</module>
         <module>bee-stream-kafka1x</module>
+        <module>bee-stream-server</module>
     </modules>
 
     <properties>

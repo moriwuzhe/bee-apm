@@ -12,74 +12,87 @@ export default new Router({
         {
             path: '/',
             component: resolve => require(['../components/common/Home.vue'], resolve),
-            meta: { title: '自述文件' },
+            meta: { title: 'BeeAPM' },
             children:[
                 {
                     path: '/dashboard',
                     component: resolve => require(['../components/page/Dashboard.vue'], resolve),
-                    meta: { title: '仪表盘' }
+                    name: 'dashboard',
+                    meta: { title: '仪表盘', icon: 'el-icon-lx-home', order: 10 }
                 },
                 {
                     path: '/request',
                     component: resolve => require(['../components/page/Request.vue'], resolve),
-                    meta: { title: '请求查询' }
+                    name: 'request',
+                    meta: { title: '请求查询', icon: 'el-icon-lx-people', order: 20 }
                 },
                 {
                     path: '/method',
                     component: resolve => require(['../components/page/Method.vue'], resolve),
-                    meta: { title: '方法查询' }
+                    name: 'method',
+                    meta: { title: '方法查询', icon: 'el-icon-lx-searchlist', order: 25 }
                 },
                 {
                     path: '/logger',
                     component: resolve => require(['../components/page/Logger.vue'], resolve),
-                    meta: { title: 'Logger查询' }
+                    name: 'logger',
+                    meta: { title: 'Logger查询', icon: 'el-icon-lx-info', order: 40 }
                 },
                 {
                     path: '/table',
                     component: resolve => require(['../components/page/BaseTable.vue'], resolve),
-                    meta: { title: '基础表格' }
+                    name: 'table',
+                    meta: { title: '基础表格', hidden: true }
                 },
                 {
                     path: '/tabs',
                     component: resolve => require(['../components/page/Tabs.vue'], resolve),
-                    meta: { title: 'tab选项卡' }
+                    name: 'tabs',
+                    meta: { title: 'tab选项卡', hidden: true }
                 },
                 {
                     // 应用列表
                     path: '/appList',
                     component: resolve => require(['../components/page/AppList.vue'], resolve),
-                    meta: { title: '应用列表' }
+                    name: 'appList',
+                    meta: { title: '应用列表', icon: 'el-icon-lx-apps', order: 50 }
                 },
                 {
                     // 权限页面
                     path: '/permission',
                     component: resolve => require(['../components/page/Permission.vue'], resolve),
-                    meta: { title: '权限测试', permission: true }
+                    name: 'permission',
+                    meta: { title: '权限测试', permission: true, group: 'more', order: 91 }
                 },
                 {
                     path: '/404',
                     component: resolve => require(['../components/page/404.vue'], resolve),
-                    meta: { title: '404' }
+                    name: '404',
+                    meta: { title: '404', hidden: true }
                 },
                 {
                     path: '/403',
                     component: resolve => require(['../components/page/403.vue'], resolve),
-                    meta: { title: '403' }
+                    name: '403',
+                    meta: { title: '403', hidden: true }
                 },
                 {
                     path: '/sql',
                     component: resolve => require(['../components/page/Sql.vue'], resolve),
-                    meta: { title: 'SQL查询' }
+                    name: 'sql',
+                    meta: { title: 'SQL查询', group: 'db', order: 31 }
                 },
                 {
                     path: '/tx',
                     component: resolve => require(['../components/page/Tx.vue'], resolve),
-                    meta: { title: '事务查询' }
+                    name: 'tx',
+                    meta: { title: '事务查询', group: 'db', order: 32 }
                 },
                 {
                     path: '/diagnostic',
                     component: resolve => require(['../components/page/Diagnostic.vue'], resolve),
-                    meta: { title: '诊断平台' }
+                    name: 'diagnostic',
+                    meta: { title: '诊断平台', icon: 'el-icon-lx-repair', order: 60 }
                 }
             ]
         },

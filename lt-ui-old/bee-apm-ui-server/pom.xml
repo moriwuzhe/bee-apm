@@ -20,7 +20,7 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<java.version>1.8</java.version>
 		<!-- ui 前端项目路径-->
-		<web.ui.project.path>${project.basedir}/../lt-monitor-ui-web</web.ui.project.path>
+		<web.ui.project.path>${project.basedir}/../bee-apm-ui-web</web.ui.project.path>
 	</properties>
 
 	<dependencies>

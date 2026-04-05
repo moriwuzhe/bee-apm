@@ -196,38 +196,42 @@
             }
         },
         created(){
-            this.getPickerDate();
-            this.onRefresh();
-            this.getStatData();
-            this.getErrorPieData();
-            this.getErrorLineData();
-            this.getRequestBarData();
-            this.getRequestLineData();
+            bus.$on("refreshTag", this.onRefreshTag);
+            bus.$on("pickerDateEvent", this.onPickerDateEvent);
+            bus.$emit("getPickerDateEvent");
+            this.reloadAll();
+        },
+        beforeDestroy(){
+            bus.$off("refreshTag", this.onRefreshTag);
+            bus.$off("pickerDateEvent", this.onPickerDateEvent);
         },
         activated(){
         },
         deactivated(){
         },
         methods: {
-            onRefresh(){
-                let self = this;
-                bus.$on("refreshTag",function (val) {
-                    if(val === 'dashboard'){
-                        console.log("dashboard refresh.................")
-                        self.getStatData();
-                        self.getErrorPieData();
-                        self.getErrorLineData();
-                        self.getRequestBarData();
-                        self.getRequestLineData();
-                    }
-                });
-
+            reloadAll(){
+                this.getStatData();
+                this.getErrorPieData();
+                this.getErrorLineData();
+                this.getRequestBarData();
+                this.getRequestLineData();
+            },
+            onRefreshTag(val){
+                if(val === 'dashboard'){
+                    this.reloadAll();
+                }
+            },
+            onPickerDateEvent(val){
+                this.pickerDate = Array.isArray(val) ? val : [];
             },
             getBeginTime(){
-                return moment(this.pickerDate[0]).format('YYYY-MM-DD HH:mm');
+                const start = (this.pickerDate && this.pickerDate[0]) ? this.pickerDate[0] : new Date(new Date().getTime() - 10 * 60 * 1000);
+                return moment(start).format('YYYY-MM-DD HH:mm');
             },
             getEndTime(){
-                return moment(this.pickerDate[1]).format('YYYY-MM-DD HH:mm');
+                const end = (this.pickerDate && this.pickerDate[1]) ? this.pickerDate[1] : new Date();
+                return moment(end).format('YYYY-MM-DD HH:mm');
             },
             getStatData(){
                 const url = "/api/dashboard/stat";
@@ -235,8 +239,9 @@
                     beginTime: this.getBeginTime(),
                     endTime:this.getEndTime(),
                 }).then((res) => {
-                    console.log(res.data);
-                    this.statData = res.data;
+                    this.statData = (res && res.data) ? res.data : { req: 0, log: 0, inst: 0, error: 0 };
+                }).catch(() => {
+                    this.statData = { req: 0, log: 0, inst: 0, error: 0 };
                 })
             },
             getErrorPieData(){
@@ -245,8 +250,10 @@
                     beginTime: this.getBeginTime(),
                     endTime:this.getEndTime(),
                 }).then((res) => {
-                    console.log(res.data);
-                    this.errorPieData.rows = res.data.result;
+                    const rows = (res && res.data && Array.isArray(res.data.result)) ? res.data.result : [];
+                    this.errorPieData.rows = rows;
+                }).catch(() => {
+                    this.errorPieData.rows = [];
                 })
             },
             getErrorLineData(){
@@ -255,17 +262,14 @@
                     beginTime: this.getBeginTime(),
                     endTime:this.getEndTime(),
                 }).then((res) => {
-                    console.log(res.data);
-                    this.errorLineData.rows = res.data.rows;
-                    this.errorLineData.columns = res.data.columns;
+                    const rows = (res && res.data && Array.isArray(res.data.rows)) ? res.data.rows : [];
+                    const columns = (res && res.data && Array.isArray(res.data.columns)) ? res.data.columns : [];
+                    this.errorLineData.rows = rows;
+                    this.errorLineData.columns = columns;
+                }).catch(() => {
+                    this.errorLineData.rows = [];
+                    this.errorLineData.columns = [];
                 })
-            },
-            getPickerDate(){//时间选择框选择的日期
-                const self = this;
-                bus.$on("pickerDateEvent",function (val) {
-                    self.pickerDate = val;
-                });
-                bus.$emit("getPickerDateEvent");
             },
             getRequestBarData(){
                 const url = "/api/dashboard/getRequestBarData";
@@ -273,8 +277,10 @@
                     beginTime: this.getBeginTime(),
                     endTime:this.getEndTime(),
                 }).then((res) => {
-                    console.log("==>getRequestBarData:%o",res);
-                    this.requestBarData.rows = res.data.result;
+                    const rows = (res && res.data && Array.isArray(res.data.result)) ? res.data.result : [];
+                    this.requestBarData.rows = rows;
+                }).catch(() => {
+                    this.requestBarData.rows = [];
                 })
             },
             getRequestLineData(){
@@ -283,8 +289,10 @@
                     beginTime: this.getBeginTime(),
                     endTime:this.getEndTime(),
                 }).then((res) => {
-                    console.log("==>getRequestLineData:%o",res);
-                    this.requestLineData.rows = res.data.rows;
+                    const rows = (res && res.data && Array.isArray(res.data.rows)) ? res.data.rows : [];
+                    this.requestLineData.rows = rows;
+                }).catch(() => {
+                    this.requestLineData.rows = [];
                 })
             }
         }

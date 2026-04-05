@@ -1,0 +1,38 @@
+server:
+  port: 7001
+
+bee:
+  handlers:
+    flow: json>store
+  store:
+    name: elasticsearch
+    elasticsearch:
+      config:
+        url: http://127.0.0.1:9200
+        multiThreaded: true
+        readTimeout: 30000
+        maxTotalConnection: 100
+        defaultMaxTotalConnectionPerRoute: 20
+      indices:
+        default: bee-default
+        proc: bee-process
+        para: bee-process-param
+        sql: bee-sql
+        sqlp: bee-sql-param
+        req: bee-request
+        rp: bee-request-param
+        tx: bee-tx
+        log: bee-logger
+        err: bee-error
+        reqb: bee-request-body
+        reqh: bee-request-headers
+        resb: bee-response-body
+        hb: bee-heartbeat
+        topo: bee-topology
+        jvm: bee-jvm
+
+logging:
+  level:
+    org.xi.lt: INFO
+    root: WARN
+

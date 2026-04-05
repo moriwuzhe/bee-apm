@@ -6,10 +6,10 @@ import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
@@ -36,16 +36,15 @@ public class ApmReportController {
 
     private static final Logger log = LoggerFactory.getLogger(ApmReportController.class);
     private static final String INDEX_NAME = "lt_apm_span";
+    private static final String TYPE_NAME = "span";
 
+    private RestClient restClient;
     private RestHighLevelClient restHighLevelClient;
 
     @PostConstruct
     public void initEsClient() {
-        restHighLevelClient = new RestHighLevelClient(
-                RestClient.builder(
-                        new HttpHost("127.0.0.1", 9200, "http")
-                )
-        );
+        restClient = RestClient.builder(new HttpHost("127.0.0.1", 9200, "http")).build();
+        restHighLevelClient = new RestHighLevelClient(restClient);
         log.info("ES客户端初始化成功");
     }
 
@@ -61,12 +60,11 @@ public class ApmReportController {
             if (!spanList.isEmpty()) {
                 BulkRequest bulkRequest = new BulkRequest();
                 for (Span span : spanList) {
-                    IndexRequest indexRequest = new IndexRequest(INDEX_NAME);
-                    indexRequest.id(span.getSpanId());
+                    IndexRequest indexRequest = new IndexRequest(INDEX_NAME, TYPE_NAME, span.getSpanId());
                     indexRequest.source(JSON.parseObject(JSON.toJSONString(span), Map.class));
                     bulkRequest.add(indexRequest);
                 }
-                restHighLevelClient.bulk(bulkRequest, RequestOptions.DEFAULT);
+                restHighLevelClient.bulk(bulkRequest);
                 log.info("{}条Span数据成功存入ES", spanList.size());
             }
             return "success";
@@ -85,10 +83,9 @@ public class ApmReportController {
     public String reportSingle(@RequestBody Span span) {
         log.info("收到单条Span上报：traceId={}, name={}", span.getTraceId(), span.getOperationName());
         try {
-            IndexRequest indexRequest = new IndexRequest(INDEX_NAME);
-            indexRequest.id(span.getSpanId());
+            IndexRequest indexRequest = new IndexRequest(INDEX_NAME, TYPE_NAME, span.getSpanId());
             indexRequest.source(JSON.parseObject(JSON.toJSONString(span), Map.class));
-            restHighLevelClient.index(indexRequest, RequestOptions.DEFAULT);
+            restHighLevelClient.index(indexRequest);
             return "success";
         } catch (Exception e) {
             log.error("单条Span保存失败", e);
@@ -105,7 +102,7 @@ public class ApmReportController {
     public List<Span> getTraceById(@PathVariable String traceId) {
         SearchRequest searchRequest = new SearchRequest(INDEX_NAME);
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-        sourceBuilder.query(QueryBuilders.termQuery("traceId", traceId));
+        sourceBuilder.query(buildExactMatchQuery("traceId", traceId));
         sourceBuilder.sort("startTime", SortOrder.ASC);
         sourceBuilder.size(1000);
         searchRequest.source(sourceBuilder);
@@ -131,7 +128,7 @@ public class ApmReportController {
         SearchRequest searchRequest = new SearchRequest(INDEX_NAME);
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
-        boolQuery.must(QueryBuilders.termQuery("appId", appId));
+        boolQuery.must(buildExactMatchQuery("appId", appId));
         boolQuery.must(QueryBuilders.rangeQuery("startTime").gte(startTime).lte(endTime));
         sourceBuilder.query(boolQuery);
         sourceBuilder.sort("startTime", SortOrder.DESC);
@@ -141,12 +138,19 @@ public class ApmReportController {
         return executeSearch(searchRequest);
     }
 
+    private QueryBuilder buildExactMatchQuery(String field, String value) {
+        return QueryBuilders.boolQuery()
+                .should(QueryBuilders.termQuery(field + ".keyword", value))
+                .should(QueryBuilders.termQuery(field, value))
+                .minimumShouldMatch(1);
+    }
+
     /**
      * 执行查询并转换结果
      */
     private List<Span> executeSearch(SearchRequest searchRequest) {
         try {
-            SearchResponse response = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+            SearchResponse response = restHighLevelClient.search(searchRequest);
             List<Span> spanList = new ArrayList<>();
             response.getHits().forEach(hit -> {
                 Map<String, Object> sourceAsMap = hit.getSourceAsMap();
@@ -155,16 +159,16 @@ public class ApmReportController {
             });
             log.info("ES查询返回{}条结果", spanList.size());
             return spanList;
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("ES查询Span失败", e);
-            throw new RuntimeException("查询失败", e);
+            return new ArrayList<>();
         }
     }
 
     @PreDestroy
     public void closeEsClient() throws IOException {
-        if (restHighLevelClient != null) {
-            restHighLevelClient.close();
+        if (restClient != null) {
+            restClient.close();
             log.info("ES客户端已关闭");
         }
     }

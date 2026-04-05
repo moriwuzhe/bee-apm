@@ -28,3 +28,6 @@ bee*.jar
 # Frontend
 node_modules/
 dist/
+/**/node_modules/
+.npm-cache/
+.pnpm-store/

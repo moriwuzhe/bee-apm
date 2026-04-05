@@ -21,7 +21,28 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <compiler.version>1.8</compiler.version>
         <spring-boot.version>2.7.12</spring-boot.version>
+        <elasticsearch.version>5.6.10</elasticsearch.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.elasticsearch</groupId>
+                <artifactId>elasticsearch</artifactId>
+                <version>${elasticsearch.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.elasticsearch.client</groupId>
+                <artifactId>elasticsearch-rest-client</artifactId>
+                <version>${elasticsearch.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.elasticsearch.client</groupId>
+                <artifactId>elasticsearch-rest-high-level-client</artifactId>
+                <version>${elasticsearch.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <!-- SpringBoot Web Starter -->
@@ -48,7 +69,6 @@
         <dependency>
             <groupId>org.elasticsearch.client</groupId>
             <artifactId>elasticsearch-rest-high-level-client</artifactId>
-            <version>7.17.10</version>
         </dependency>
 
         <!-- 测试依赖 -->
@@ -82,6 +102,9 @@
                     <source>${compiler.version}</source>
                     <target>${compiler.version}</target>
                     <encoding>${project.build.sourceEncoding}</encoding>
+                    <excludes>
+                        <exclude>org/xi/lt/server/web/diagnostic/**</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
         </plugins>

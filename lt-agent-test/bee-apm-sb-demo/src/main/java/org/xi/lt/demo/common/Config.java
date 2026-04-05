@@ -14,15 +14,26 @@ import java.util.List;
 public class Config {
     public static List<String> getRemotePortList() {
         String portList = System.getProperty("remote.ports");
+        String serverPort = System.getProperty("server.port");
+        if (StringUtils.isBlank(portList) || StringUtils.isBlank(serverPort)) {
+            List<String> list = new ArrayList<>();
+            if (!StringUtils.isBlank(serverPort)) {
+                list.add(serverPort);
+            }
+            return list;
+        }
         List<String> list = new ArrayList<>(Arrays.asList(StringUtils.split(portList, "_")));
-        list.remove(System.getProperty("server.port"));
+        list.remove(serverPort);
+        if (list.isEmpty()) {
+            list.add(serverPort);
+        }
         return list;
     }
 
     public static String getBaseUrl() {
         String ip = System.getProperty("server.ip", "127.0.0.1");
         List<String> ports = getRemotePortList();
-        String port = ports.get(RandomUtils.nextInt(0, ports.size() - 1));
+        String port = ports.get(RandomUtils.nextInt(0, ports.size()));
         return String.format("http://%s:%s", ip, port);
     }
 

@@ -1,53 +1,42 @@
 <template>
     <div class="header">
-        <!-- 折叠按钮 -->
-        <div class="collapse-btn" @click="collapseChage">
-            <i class="el-icon-menu"></i>
-        </div>
-        <div class="logo">BeeAPM</div>
-        <div class="header-right">
-            <div class="header-user-con">
-                <div id="date-picker">
-                    <el-date-picker v-model="datePicker.values" type="datetimerange" :picker-options="datePicker.options"
-                        range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期"
-                        :clearable="datePicker.clearable" :editable="datePicker.editable"
-                        @change="sendPickerDate" format="yyyy-MM-dd HH:mm"
-                        align="right">
-                    </el-date-picker>
-                </div>
-                <!-- 全屏显示 -->
-                <div class="btn-fullscreen" @click="handleFullScreen">
-                    <el-tooltip effect="dark" :content="fullscreen?`取消全屏`:`全屏`" placement="bottom">
-                        <i class="el-icon-rank"></i>
-                    </el-tooltip>
-                </div>
-                <!-- 消息中心 -->
-                <div class="btn-bell">
-                    <el-tooltip effect="dark" :content="message?`有${message}条未读消息`:`消息中心`" placement="bottom">
-                        <router-link to="/tabs">
-                            <i class="el-icon-bell"></i>
-                        </router-link>
-                    </el-tooltip>
-                    <span class="btn-bell-badge" v-if="message"></span>
-                </div>
-                <!-- 用户头像 -->
-                <div class="user-avator"><img src="static/img/img.jpg"></div>
-                <!-- 用户名下拉菜单 -->
-                <el-dropdown class="user-name" trigger="click" @command="handleCommand">
-                    <span class="el-dropdown-link">
-                        {{username}} <i class="el-icon-caret-bottom"></i>
-                    </span>
-                    <el-dropdown-menu slot="dropdown">
-                        <a href="http://blog.gdfengshuo.com/about/" target="_blank">
-                            <el-dropdown-item>关于作者</el-dropdown-item>
-                        </a>
-                        <a href="https://github.com/lin-xin/vue-manage-system" target="_blank">
-                            <el-dropdown-item>项目仓库</el-dropdown-item>
-                        </a>
-                        <el-dropdown-item divided  command="loginout">退出登录</el-dropdown-item>
-                    </el-dropdown-menu>
-                </el-dropdown>
+        <div class="header-left">
+            <button class="icon-btn" @click="collapseChage" title="折叠侧栏">
+                <i class="el-icon-menu"></i>
+            </button>
+            <div class="logo">BeeAPM</div>
+            <div class="crumb">
+                <el-breadcrumb class="crumb-breadcrumb" separator="/">
+                    <el-breadcrumb-item v-for="(item, idx) in breadcrumbs" :key="idx" :to="item.to">
+                        {{ item.title }}
+                    </el-breadcrumb-item>
+                </el-breadcrumb>
             </div>
+        </div>
+        <div class="header-right">
+            <div id="date-picker">
+                <el-date-picker v-model="datePicker.values" type="datetimerange" :picker-options="datePicker.options"
+                    range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期"
+                    :clearable="datePicker.clearable" :editable="datePicker.editable"
+                    @change="sendPickerDate" format="yyyy-MM-dd HH:mm"
+                    align="right">
+                </el-date-picker>
+            </div>
+            <button class="icon-btn" @click="toggleTheme" :title="theme === 'dark' ? '切换浅色' : '切换深色'">
+                <i :class="theme === 'dark' ? 'el-icon-sunny' : 'el-icon-moon'"></i>
+            </button>
+            <button class="icon-btn" @click="handleFullScreen" :title="fullscreen ? '退出全屏' : '全屏'">
+                <i class="el-icon-rank"></i>
+            </button>
+            <div class="user-avator"><img src="static/img/img.jpg"></div>
+            <el-dropdown class="user-name" trigger="click" @command="handleCommand">
+                <span class="el-dropdown-link">
+                    {{username}} <i class="el-icon-caret-bottom"></i>
+                </span>
+                <el-dropdown-menu slot="dropdown">
+                    <el-dropdown-item divided command="loginout">退出登录</el-dropdown-item>
+                </el-dropdown-menu>
+            </el-dropdown>
         </div>
     </div>
 </template>
@@ -60,6 +49,7 @@
                 fullscreen: false,
                 name: 'linxin',
                 message: 2,
+                theme: 'light',
                 datePicker:{
                     clearable:false,
                     editable: false,
@@ -162,6 +152,22 @@
             username(){
                 let username = localStorage.getItem('ms_username');
                 return username ? username : this.name;
+            },
+            pageTitle(){
+                return (this.$route && this.$route.meta && this.$route.meta.title) ? this.$route.meta.title : 'BeeAPM';
+            },
+            breadcrumbs(){
+                const matched = (this.$route && this.$route.matched) ? this.$route.matched : [];
+                const list = matched
+                    .filter(r => r && r.meta && r.meta.title && !r.meta.hidden)
+                const items = list
+                    .map((r, idx) => {
+                        const isLast = idx === list.length - 1;
+                        const to = isLast ? undefined : { path: r.path === '/' ? '/dashboard' : r.path };
+                        return { title: r.meta.title, to };
+                    });
+                if (!items.length) return [{ title: this.pageTitle, to: undefined }];
+                return items;
             }
         },
         methods:{
@@ -205,15 +211,15 @@
                 this.fullscreen = !this.fullscreen;
             },
             sendPickerDate(){
-                console.log("===>send:%o",this.datePicker.values);
                 bus.$emit("pickerDateEvent",this.datePicker.values);
             },
-            onGetPickerDate(){
-                const self = this;
-                console.log("===>onGetPickerDateEvent");
-                bus.$on("getPickerDateEvent",function () {
-                    bus.$emit("pickerDateEvent",self.datePicker.values);
-                });
+            onGetPickerDateEvent(){
+                bus.$emit("pickerDateEvent",this.datePicker.values);
+            },
+            toggleTheme(){
+                this.theme = this.theme === 'dark' ? 'light' : 'dark';
+                localStorage.setItem('ms_theme', this.theme);
+                document.documentElement.setAttribute('data-theme', this.theme);
             }
         },
         mounted(){
@@ -222,85 +228,104 @@
             }
         },
         created(){
-            this.onGetPickerDate();
+            const saved = localStorage.getItem('ms_theme');
+            this.theme = saved === 'dark' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', this.theme);
+            bus.$on("getPickerDateEvent", this.onGetPickerDateEvent);
+        },
+        beforeDestroy(){
+            bus.$off("getPickerDateEvent", this.onGetPickerDateEvent);
         }
     }
 </script>
 <style>
-    #date-picker input{
-        width: 110px;
-    }
-    #date-picker div{
-        width: 270px;
-    }
     .header {
-        position: relative;
-        box-sizing: border-box;
-        width: 100%;
-        height: 70px;
-        font-size: 22px;
-        color: #fff;
+        height: var(--header-h);
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 var(--space-3);
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        box-shadow: var(--shadow-sm);
     }
-    .collapse-btn{
-        float: left;
-        padding: 0 21px;
-        cursor: pointer;
-        line-height: 70px;
+    .header-left{
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        gap: var(--space-2);
     }
-    .header .logo{
-        float: left;
-        width:250px;
-        line-height: 70px;
+    .logo{
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text);
+        letter-spacing: .2px;
+        padding: 0 var(--space-2);
+        border-right: 1px solid var(--border);
+    }
+    .crumb{
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        color: var(--text-muted);
+        font-size: 13px;
+    }
+    .crumb-breadcrumb{
+        min-width: 0;
+    }
+    .crumb-breadcrumb .el-breadcrumb__inner,
+    .crumb-breadcrumb .el-breadcrumb__separator{
+        color: var(--text-muted);
+    }
+    .crumb-breadcrumb .el-breadcrumb__item:last-child .el-breadcrumb__inner{
+        color: var(--text);
+        font-weight: 600;
     }
     .header-right{
-        float: right;
-        padding-right: 50px;
-    }
-    .header-user-con{
         display: flex;
-        height: 70px;
         align-items: center;
+        gap: var(--space-2);
     }
-    .btn-fullscreen{
-        transform: rotate(45deg);
-        margin-right: 5px;
-        font-size: 24px;
+
+    #date-picker .el-date-editor{
+        width: 320px;
     }
-    .btn-bell, .btn-fullscreen{
-        position: relative;
-        width: 30px;
-        height: 30px;
-        text-align: center;
-        border-radius: 15px;
+    @media (max-width: 1400px){
+        #date-picker .el-date-editor{
+            width: 260px;
+        }
+    }
+    .icon-btn{
+        width: 34px;
+        height: 34px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--text);
         cursor: pointer;
-    }
-    .btn-bell-badge{
-        position: absolute;
-        right: 0;
-        top: -2px;
-        width: 8px;
-        height: 8px;
-        border-radius: 4px;
-        background: #f56c6c;
-        color: #fff;
-    }
-    .btn-bell .el-icon-bell{
-        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: var(--shadow-sm);
     }
     .user-name{
-        margin-left: 10px;
+        margin-left: 4px;
     }
     .user-avator{
-        margin-left: 20px;
+        margin-left: 8px;
     }
     .user-avator img{
         display: block;
-        width:40px;
-        height:40px;
+        width:32px;
+        height:32px;
         border-radius: 50%;
+        border: 1px solid var(--border);
     }
     .el-dropdown-link{
-        color: #fff;
+        color: var(--text);
         cursor: pointer;
     }
 </style>

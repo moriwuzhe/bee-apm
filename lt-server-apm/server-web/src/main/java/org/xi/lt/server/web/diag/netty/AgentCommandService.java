@@ -9,6 +9,7 @@ import org.xi.lt.server.web.diag.remoting.protocol.RemotingBuilder;
 import org.xi.lt.server.web.diag.remoting.protocol.payload.RawStringPayloadHolder;
 
 import java.nio.charset.StandardCharsets;
+import java.net.URLEncoder;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -96,6 +97,16 @@ public class AgentCommandService {
         return exec(agentId, "watchAdd:" + className + ":" + methodName + ":" + n, timeoutMs);
     }
 
+    public String watchAdd(String agentId, String className, String methodName, String paramTypes, int limit, long timeoutMs) {
+        int n = limit;
+        if (n < 1) n = 1;
+        if (n > 500) n = 500;
+        String c = urlEncode(className);
+        String m = urlEncode(methodName);
+        String p = urlEncode(paramTypes == null ? "" : paramTypes);
+        return exec(agentId, "watchAdd:" + c + ":" + m + ":" + n + ":" + p, timeoutMs);
+    }
+
     public String watchDump(String agentId, String id, int maxLines, long timeoutMs) {
         int n = maxLines;
         if (n < 1) n = 1;
@@ -109,6 +120,38 @@ public class AgentCommandService {
 
     public String watchList(String agentId, long timeoutMs) {
         return exec(agentId, "watchList", timeoutMs);
+    }
+
+    public String debugAdd(String agentId, String className, String methodName, String when, String paramTypes, int limit, int stackDepth, String contains, long timeoutMs) {
+        int n = limit;
+        if (n < 1) n = 1;
+        if (n > 500) n = 500;
+        int sd = stackDepth;
+        if (sd < 0) sd = 0;
+        if (sd > 60) sd = 60;
+        String c = urlEncode(className);
+        String m = urlEncode(methodName);
+        String w = urlEncode(when);
+        String f = urlEncode(contains == null ? "" : contains);
+        String p = urlEncode(paramTypes == null ? "" : paramTypes);
+        return exec(agentId, "debugAdd:" + c + ":" + m + ":" + w + ":" + n + ":" + sd + ":" + f + ":" + p, timeoutMs);
+    }
+
+    public String debugDump(String agentId, String id, int maxLines, long timeoutMs) {
+        int n = maxLines;
+        if (n < 1) n = 1;
+        if (n > 2000) n = 2000;
+        String d = urlEncode(id);
+        return exec(agentId, "debugDump:" + d + ":" + n, timeoutMs);
+    }
+
+    public String debugClear(String agentId, String id, long timeoutMs) {
+        String d = urlEncode(id);
+        return exec(agentId, "debugClear:" + d, timeoutMs);
+    }
+
+    public String debugList(String agentId, long timeoutMs) {
+        return exec(agentId, "debugList", timeoutMs);
     }
 
     private String exec(String agentId, String cmd, long timeoutMs) {
@@ -151,5 +194,14 @@ public class AgentCommandService {
     private String readBodyString(ByteBuf body) {
         if (body == null || !body.isReadable()) return "";
         return body.toString(StandardCharsets.UTF_8);
+    }
+
+    private static String urlEncode(String s) {
+        if (s == null) return "";
+        try {
+            return URLEncoder.encode(s, "UTF-8");
+        } catch (Exception ignored) {
+            return s;
+        }
     }
 }

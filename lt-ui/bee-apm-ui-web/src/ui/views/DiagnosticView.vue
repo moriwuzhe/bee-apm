@@ -3,7 +3,7 @@ import { onMounted, onUnmounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import PageShell from '../components/PageShell.vue'
-import { debugAdd, debugClear, debugDump, debugList, enableJdwp, fetchAgentConnections, fetchClassLoading, fetchDeadlocks, fetchEnv, fetchGcStats, fetchInputArgs, fetchJvmInfo, fetchJdwpStatus, fetchMemory, fetchSysProps, fetchThreadDump, fetchThreadsSummary, fetchTopThreadsCpu, searchAgentConnections, triggerGc, watchAdd, watchClear, watchDump, watchList, type AgentConnection } from '../../api/diagnostic'
+import { debugAdd, debugClear, debugDump, debugList, enableJdwp, fetchAgentConnections, fetchClassLoading, fetchDeadlocks, fetchEnv, fetchGcStats, fetchInputArgs, fetchJvmInfo, fetchJdwpStatus, fetchMemory, fetchSysProps, fetchThreadDump, fetchThreadsSummary, fetchTopThreadsCpu, replayDebugOnce, searchAgentConnections, triggerGc, watchAdd, watchClear, watchDump, watchList, type AgentConnection } from '../../api/diagnostic'
 
 const loading = ref(false)
 const rows = ref<AgentConnection[]>([])
@@ -35,6 +35,11 @@ const debugStackDepth = ref(8)
 const debugContains = ref('')
 const debugId = ref('')
 const debugMaxLines = ref(200)
+const replayRequestId = ref('')
+const replayTargetBaseUrl = ref('')
+const replayWaitMs = ref(5000)
+const replayLastEventOnly = ref(true)
+const replayClearAfter = ref(true)
 
 let timer: any = null
 
@@ -401,6 +406,36 @@ async function openDebugClear(row: AgentConnection) {
     dialogLoading.value = false
   }
 }
+
+async function openReplayDebug(row: AgentConnection) {
+  dialogTitle.value = `回放Debug - ${row.agentId}`
+  dialogText.value = ''
+  dialogVisible.value = true
+  dialogLoading.value = true
+  try {
+    dialogText.value = await replayDebugOnce({
+      agentId: row.agentId,
+      requestId: replayRequestId.value,
+      targetBaseUrl: replayTargetBaseUrl.value,
+      className: debugClassName.value,
+      methodName: debugMethodName.value,
+      when: debugWhen.value,
+      paramTypes: debugParamTypes.value,
+      limit: debugLimit.value,
+      stackDepth: debugStackDepth.value,
+      contains: debugContains.value,
+      dumpLines: debugMaxLines.value,
+      waitMs: replayWaitMs.value,
+      clearAfter: replayClearAfter.value,
+      lastEventOnly: replayLastEventOnly.value,
+    })
+  } catch (e: any) {
+    dialogText.value = ''
+    ElMessage.error(e?.message || '回放Debug失败')
+  } finally {
+    dialogLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -480,6 +515,21 @@ async function openDebugClear(row: AgentConnection) {
           <el-form-item label="DLines">
             <el-input-number v-model="debugMaxLines" :min="1" :max="2000" controls-position="right" />
           </el-form-item>
+          <el-form-item label="回放ReqId">
+            <el-input v-model="replayRequestId" placeholder="ES里的req id" clearable style="width: 260px" />
+          </el-form-item>
+          <el-form-item label="回放URL">
+            <el-input v-model="replayTargetBaseUrl" placeholder="http://ip:port（可选）" clearable style="width: 260px" />
+          </el-form-item>
+          <el-form-item label="回放等待">
+            <el-input-number v-model="replayWaitMs" :min="100" :max="20000" controls-position="right" />
+          </el-form-item>
+          <el-form-item>
+            <el-checkbox v-model="replayLastEventOnly">仅最后事件</el-checkbox>
+          </el-form-item>
+          <el-form-item>
+            <el-checkbox v-model="replayClearAfter">回放后清理</el-checkbox>
+          </el-form-item>
         </div>
       </el-form>
     </template>
@@ -521,6 +571,7 @@ async function openDebugClear(row: AgentConnection) {
           <el-button size="small" :disabled="!row.active || !row.writable" @click="openDebugDump(row)">DebugDump</el-button>
           <el-button size="small" :disabled="!row.active || !row.writable" @click="openDebugList(row)">DebugList</el-button>
           <el-button size="small" :disabled="!row.active || !row.writable" @click="openDebugClear(row)">DebugClear</el-button>
+          <el-button size="small" :disabled="!row.active || !row.writable" @click="openReplayDebug(row)">回放Debug</el-button>
         </template>
       </el-table-column>
     </el-table>

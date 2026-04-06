@@ -14,7 +14,7 @@ export type AgentConnection = {
 }
 
 const diagHttp = axios.create({
-  baseURL: (import.meta as any).env?.VITE_DIAG_API_BASE || '/diag-api',
+  baseURL: (import.meta as any).env?.VITE_DIAG_API_BASE === undefined ? '/diag-api' : (import.meta as any).env?.VITE_DIAG_API_BASE,
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 })
@@ -144,5 +144,42 @@ export async function debugClear(agentId: string, id: string): Promise<string> {
 
 export async function debugList(agentId: string): Promise<string> {
   const res = await diagHttp.get<ApiResult<string>>('/diag/agent/debugList', { params: { agentId } })
+  return unwrap(res.data) || ''
+}
+
+export type ReplaySnapshot = {
+  url?: string
+  method?: string
+  ip?: string
+  port?: string
+  body?: string
+  headers?: Record<string, string>
+  params?: Record<string, any>
+}
+
+export type ReplayDebugRequest = {
+  agentId: string
+  requestId?: string
+  targetBaseUrl?: string
+  className: string
+  methodName: string
+  when: string
+  paramTypes?: string
+  limit?: number
+  stackDepth?: number
+  contains?: string
+  dumpLines?: number
+  waitMs?: number
+  clearAfter?: boolean
+  includeAuthHeaders?: boolean
+  includeCookieHeaders?: boolean
+  responseMaxChars?: number
+  dryRun?: boolean
+  lastEventOnly?: boolean
+  snapshot?: ReplaySnapshot
+}
+
+export async function replayDebugOnce(payload: ReplayDebugRequest): Promise<string> {
+  const res = await diagHttp.post<ApiResult<string>>('/diag/replay/debugOnce', payload)
   return unwrap(res.data) || ''
 }

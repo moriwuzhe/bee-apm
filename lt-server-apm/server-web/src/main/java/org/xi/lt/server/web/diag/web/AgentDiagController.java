@@ -164,9 +164,13 @@ public class AgentDiagController {
     public ApiResult<String> watchAdd(@RequestParam("agentId") String agentId,
                                       @RequestParam("className") String className,
                                       @RequestParam("methodName") String methodName,
+                                      @RequestParam(value = "paramTypes", required = false) String paramTypes,
                                       @RequestParam(value = "limit", required = false) Integer limit) {
         try {
             int n = limit == null ? 50 : limit;
+            if (paramTypes != null && !paramTypes.trim().isEmpty()) {
+                return ApiResult.ok(commandService.watchAdd(agentId, className, methodName, paramTypes, n, 8000));
+            }
             return ApiResult.ok(commandService.watchAdd(agentId, className, methodName, n, 8000));
         } catch (Exception e) {
             return ApiResult.fail(e.getMessage());
@@ -198,6 +202,54 @@ public class AgentDiagController {
     public ApiResult<String> watchList(@RequestParam("agentId") String agentId) {
         try {
             return ApiResult.ok(commandService.watchList(agentId, 8000));
+        } catch (Exception e) {
+            return ApiResult.fail(e.getMessage());
+        }
+    }
+
+    @GetMapping("/diag/agent/debugAdd")
+    public ApiResult<String> debugAdd(@RequestParam("agentId") String agentId,
+                                      @RequestParam("className") String className,
+                                      @RequestParam("methodName") String methodName,
+                                      @RequestParam("when") String when,
+                                      @RequestParam(value = "paramTypes", required = false) String paramTypes,
+                                      @RequestParam(value = "limit", required = false) Integer limit,
+                                      @RequestParam(value = "stackDepth", required = false) Integer stackDepth,
+                                      @RequestParam(value = "contains", required = false) String contains) {
+        try {
+            int n = limit == null ? 20 : limit;
+            int sd = stackDepth == null ? 0 : stackDepth;
+            return ApiResult.ok(commandService.debugAdd(agentId, className, methodName, when, paramTypes, n, sd, contains, 8000));
+        } catch (Exception e) {
+            return ApiResult.fail(e.getMessage());
+        }
+    }
+
+    @GetMapping("/diag/agent/debugDump")
+    public ApiResult<String> debugDump(@RequestParam("agentId") String agentId,
+                                       @RequestParam("id") String id,
+                                       @RequestParam(value = "maxLines", required = false) Integer maxLines) {
+        try {
+            int n = maxLines == null ? 200 : maxLines;
+            return ApiResult.ok(commandService.debugDump(agentId, id, n, 8000));
+        } catch (Exception e) {
+            return ApiResult.fail(e.getMessage());
+        }
+    }
+
+    @GetMapping("/diag/agent/debugClear")
+    public ApiResult<String> debugClear(@RequestParam("agentId") String agentId, @RequestParam("id") String id) {
+        try {
+            return ApiResult.ok(commandService.debugClear(agentId, id, 8000));
+        } catch (Exception e) {
+            return ApiResult.fail(e.getMessage());
+        }
+    }
+
+    @GetMapping("/diag/agent/debugList")
+    public ApiResult<String> debugList(@RequestParam("agentId") String agentId) {
+        try {
+            return ApiResult.ok(commandService.debugList(agentId, 8000));
         } catch (Exception e) {
             return ApiResult.fail(e.getMessage());
         }

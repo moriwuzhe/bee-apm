@@ -13,8 +13,9 @@ export type AgentConnection = {
   writable: boolean
 }
 
+const diagBase = (import.meta as any).env?.VITE_DIAG_API_BASE
 const diagHttp = axios.create({
-  baseURL: (import.meta as any).env?.VITE_DIAG_API_BASE === undefined ? '/diag-api' : (import.meta as any).env?.VITE_DIAG_API_BASE,
+  baseURL: diagBase && String(diagBase).trim() !== '' ? diagBase : ((import.meta as any).env?.DEV ? '/diag-api' : ''),
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 })

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useRoute } from 'vue-router'
 
 import { fetchMethodList, type MethodRow } from '../../api/method'
 import { useTimeRangeStore } from '../../stores/timeRange'
@@ -9,6 +10,8 @@ import { useGroups } from '../composables/useGroups'
 
 const timeRange = useTimeRangeStore()
 const { envOptions, appOptions, loading: groupsLoading, reload: reloadGroups } = useGroups()
+const route = useRoute()
+const appLocked = computed(() => Boolean((route.params as any)?.app))
 
 const loading = ref(false)
 const rows = ref<MethodRow[]>([])
@@ -54,7 +57,27 @@ async function load(p = 1) {
   }
 }
 
+function applyRouteQuery() {
+  const q: any = route.query || {}
+  const pApp = (route.params as any)?.app
+  if (pApp != null && String(pApp)) form.app = String(pApp)
+  if (q.env != null) form.env = String(q.env || '')
+  if (q.app != null) form.app = String(q.app || '')
+  if (q.ip != null) form.ip = String(q.ip || '')
+  if (q.gid != null) form.gid = String(q.gid || '')
+}
+
+const subtitle = computed(() => {
+  if (!appLocked.value) return ''
+  const parts: string[] = []
+  if (form.env) parts.push(`env=${form.env}`)
+  if (form.app) parts.push(`app=${form.app}`)
+  if (form.ip) parts.push(`ip=${form.ip}`)
+  return parts.join('  ')
+})
+
 onMounted(async () => {
+  applyRouteQuery()
   await reloadGroups()
   await load(1)
 })
@@ -62,10 +85,14 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
   await reloadGroups()
   await load(1)
 })
+watch(() => route.query, async () => {
+  applyRouteQuery()
+  await load(1)
+})
 </script>
 
 <template>
-  <PageShell title="方法查询">
+  <PageShell title="方法查询" :subtitle="subtitle || undefined">
     <template #actions>
       <el-button :loading="loading || groupsLoading" type="primary" @click="load(1)">查询</el-button>
     </template>
@@ -73,12 +100,12 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
     <template #filters>
       <el-form label-width="64px">
         <div class="filters">
-          <el-form-item label="环境">
+          <el-form-item v-if="!appLocked" label="环境">
             <el-select v-model="form.env" placeholder="全部" clearable filterable :teleported="false">
               <el-option v-for="o in envOptions" :key="String(o.value)" :label="o.name" :value="String(o.value)" />
             </el-select>
           </el-form-item>
-          <el-form-item label="应用">
+          <el-form-item v-if="!appLocked" label="应用">
             <el-select v-model="form.app" placeholder="全部" clearable filterable :teleported="false">
               <el-option v-for="o in appOptions" :key="String(o.value)" :label="o.name" :value="String(o.value)" />
             </el-select>

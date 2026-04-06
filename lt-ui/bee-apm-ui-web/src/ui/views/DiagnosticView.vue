@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useRoute } from 'vue-router'
 
 import PageShell from '../components/PageShell.vue'
 import { debugAdd, debugClear, debugDump, debugList, enableJdwp, fetchAgentConnections, fetchClassLoading, fetchDeadlocks, fetchEnv, fetchGcStats, fetchInputArgs, fetchJvmInfo, fetchJdwpStatus, fetchMemory, fetchSysProps, fetchThreadDump, fetchThreadsSummary, fetchTopThreadsCpu, replayDebugOnce, searchAgentConnections, triggerGc, watchAdd, watchClear, watchDump, watchList, type AgentConnection } from '../../api/diagnostic'
+
+const route = useRoute()
+const appLocked = computed(() => Boolean((route.params as any)?.app))
 
 const loading = ref(false)
 const rows = ref<AgentConnection[]>([])
@@ -71,6 +75,25 @@ function stopAutoRefresh() {
 }
 
 onMounted(async () => {
+  const q: any = route.query || {}
+  if (q.agentId != null) {
+    form.agentId = String(q.agentId || '')
+  } else {
+    const pApp = String(((route.params as any)?.app || ''))
+    const env = String((q.env || ''))
+    const inst = String((q.inst || ''))
+    const ip = String((q.ip || ''))
+    const port = String((q.port || ''))
+    if (pApp && env && inst && ip && port) {
+      form.agentId = `${pApp}@${env}@${inst}@${ip}:${port}`
+    } else if (pApp && env && inst && ip) {
+      form.agentId = `${pApp}@${env}@${inst}@${ip}`
+    } else if (pApp && env) {
+      form.agentId = `${pApp}@${env}`
+    } else if (pApp) {
+      form.agentId = pApp
+    }
+  }
   await load()
   startAutoRefresh()
 })
@@ -439,7 +462,7 @@ async function openReplayDebug(row: AgentConnection) {
 </script>
 
 <template>
-  <PageShell title="诊断">
+  <PageShell title="诊断" :subtitle="appLocked ? ('agentId=' + (form.agentId || '')) : undefined">
     <template #actions>
       <el-button :loading="loading" type="primary" @click="load">刷新</el-button>
     </template>
@@ -448,7 +471,7 @@ async function openReplayDebug(row: AgentConnection) {
       <el-form label-width="80px">
         <div class="filters">
           <el-form-item label="AgentId">
-            <el-input v-model="form.agentId" placeholder="ip/标识（模糊匹配）" clearable @keyup.enter="load" />
+            <el-input v-model="form.agentId" :disabled="appLocked" placeholder="ip/标识（模糊匹配）" clearable @keyup.enter="load" />
           </el-form-item>
           <el-form-item>
             <el-button :loading="loading" @click="load">查询</el-button>

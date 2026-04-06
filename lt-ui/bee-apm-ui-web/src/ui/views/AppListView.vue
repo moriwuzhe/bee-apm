@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
 
 import PageShell from '../components/PageShell.vue'
 import { useGroups } from '../composables/useGroups'
@@ -9,6 +10,7 @@ import { fetchAppInfoList, type AppInfoRow } from '../../api/app'
 
 const timeRange = useTimeRangeStore()
 const { envOptions, appOptions, loading: groupsLoading, reload: reloadGroups } = useGroups()
+const router = useRouter()
 
 const loading = ref(false)
 const rows = ref<AppInfoRow[]>([])
@@ -24,6 +26,44 @@ const form = reactive({
 function formatTime(v: string) {
   if (!v) return ''
   return v.length >= 19 ? v.substring(11, 19) : v
+}
+
+function toAppQuery(row: any) {
+  return {
+    env: row?.env || undefined,
+    ip: row?.ip || undefined,
+    inst: row?.inst || undefined,
+    port: row?.port || undefined,
+  } as any
+}
+
+function toDiagQuery(row: any) {
+  const app = row?.app || ''
+  const env = row?.env || ''
+  const inst = row?.inst || ''
+  const ip = row?.ip || ''
+  const port = row?.port ? String(row.port) : ''
+  const agentId = port ? `${app}@${env}@${inst}@${ip}:${port}` : `${app}@${env}@${inst}@${ip}`
+  return { ...toAppQuery(row), agentId }
+}
+
+function goRequest(row: any) {
+  router.push({ path: `/apps/${encodeURIComponent(String(row?.app || ''))}/request`, query: toAppQuery(row) })
+}
+function goMethod(row: any) {
+  router.push({ path: `/apps/${encodeURIComponent(String(row?.app || ''))}/method`, query: toAppQuery(row) })
+}
+function goSql(row: any) {
+  router.push({ path: `/apps/${encodeURIComponent(String(row?.app || ''))}/sql`, query: toAppQuery(row) })
+}
+function goTx(row: any) {
+  router.push({ path: `/apps/${encodeURIComponent(String(row?.app || ''))}/tx`, query: toAppQuery(row) })
+}
+function goLogger(row: any) {
+  router.push({ path: `/apps/${encodeURIComponent(String(row?.app || ''))}/logger`, query: toAppQuery(row) })
+}
+function goDiagnostic(row: any) {
+  router.push({ path: `/apps/${encodeURIComponent(String(row?.app || ''))}/diagnostic`, query: toDiagQuery(row) })
 }
 
 async function load(p = 1) {
@@ -87,6 +127,18 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
     </template>
 
     <el-table :data="rows" border stripe v-loading="loading">
+      <el-table-column type="expand">
+        <template #default="{ row }">
+          <el-space wrap>
+            <el-button size="small" type="primary" plain @click="goRequest(row)">请求查询</el-button>
+            <el-button size="small" type="primary" plain @click="goMethod(row)">方法查询</el-button>
+            <el-button size="small" type="primary" plain @click="goSql(row)">SQL查询</el-button>
+            <el-button size="small" type="primary" plain @click="goTx(row)">事务查询</el-button>
+            <el-button size="small" type="primary" plain @click="goLogger(row)">Logger查询</el-button>
+            <el-button size="small" type="primary" plain @click="goDiagnostic(row)">诊断</el-button>
+          </el-space>
+        </template>
+      </el-table-column>
       <el-table-column prop="app" label="应用" width="160" />
       <el-table-column prop="inst" label="实例" width="160" />
       <el-table-column prop="ip" label="IP" width="160" />

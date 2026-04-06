@@ -16,6 +16,7 @@ const loading = ref(false)
 const rows = ref<AppInfoRow[]>([])
 const pageNum = ref(1)
 const pageTotal = ref(0)
+let autoExpanded = false
 
 const form = reactive({
   env: '',
@@ -81,6 +82,11 @@ async function load(p = 1) {
     rows.value = Array.isArray(data.rows) ? data.rows : []
     pageNum.value = Number((data as any).pageNum || pageNum.value)
     pageTotal.value = Number((data as any).pageTotal || 0)
+    if (!autoExpanded && rows.value.length === 0) {
+      autoExpanded = true
+      ElMessage.warning('未查询到应用数据，已切换到最近2小时')
+      setTimeout(() => timeRange.setQuick(120), 0)
+    }
   } catch (e: any) {
     rows.value = []
     pageTotal.value = 0

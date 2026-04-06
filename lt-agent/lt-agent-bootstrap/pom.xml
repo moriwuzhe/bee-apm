@@ -24,6 +24,11 @@
             <version>${lt.agent.version}</version>
         </dependency>
         <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+            <version>4.1.109.Final</version>
+        </dependency>
+        <dependency>
             <groupId>org.xi.lt</groupId>
             <artifactId>lt-agent-spy</artifactId>
             <version>${lt.agent.version}</version>
@@ -66,7 +71,6 @@
                                 <excludes>
                                     <exclude>commons-logging:*</exclude>
                                     <exclude>jline:*</exclude>
-                                    <exclude>io.netty:*</exclude>
                                     <exclude>log4j:*</exclude>
                                 </excludes>
                             </artifactSet>

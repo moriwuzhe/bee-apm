@@ -9,6 +9,7 @@ import org.apache.curator.framework.state.ConnectionStateListener;
 import org.apache.curator.retry.RetryForever;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -21,6 +22,7 @@ import java.util.List;
  * @date 2020/01/28
  */
 @Service
+@ConditionalOnProperty(prefix = "zk", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class ZkClient {
     private static CuratorFramework client = null;
     private static char[] lock = new char[1];

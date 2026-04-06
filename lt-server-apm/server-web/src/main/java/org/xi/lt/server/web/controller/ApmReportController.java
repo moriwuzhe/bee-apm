@@ -15,6 +15,7 @@ import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.xi.lt.common.model.apm.Span;
 
@@ -41,8 +42,14 @@ public class ApmReportController {
     private RestClient restClient;
     private RestHighLevelClient restHighLevelClient;
 
+    @Value("${apm.es.enabled:true}")
+    private boolean esEnabled;
+
     @PostConstruct
     public void initEsClient() {
+        if (!esEnabled) {
+            return;
+        }
         restClient = RestClient.builder(new HttpHost("127.0.0.1", 9200, "http")).build();
         restHighLevelClient = new RestHighLevelClient(restClient);
         log.info("ES客户端初始化成功");
@@ -55,6 +62,9 @@ public class ApmReportController {
      */
     @PostMapping("/report")
     public String report(@RequestBody List<Span> spanList) {
+        if (!esEnabled || restHighLevelClient == null) {
+            return "disabled";
+        }
         log.info("收到APM上报数据，共{}条Span", spanList.size());
         try {
             if (!spanList.isEmpty()) {
@@ -81,6 +91,9 @@ public class ApmReportController {
      */
     @PostMapping("/report/single")
     public String reportSingle(@RequestBody Span span) {
+        if (!esEnabled || restHighLevelClient == null) {
+            return "disabled";
+        }
         log.info("收到单条Span上报：traceId={}, name={}", span.getTraceId(), span.getOperationName());
         try {
             IndexRequest indexRequest = new IndexRequest(INDEX_NAME, TYPE_NAME, span.getSpanId());
@@ -100,6 +113,9 @@ public class ApmReportController {
      */
     @GetMapping("/trace/{traceId}")
     public List<Span> getTraceById(@PathVariable String traceId) {
+        if (!esEnabled || restHighLevelClient == null) {
+            return new ArrayList<>();
+        }
         SearchRequest searchRequest = new SearchRequest(INDEX_NAME);
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         sourceBuilder.query(buildExactMatchQuery("traceId", traceId));
@@ -125,6 +141,9 @@ public class ApmReportController {
             @RequestParam long endTime,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
+        if (!esEnabled || restHighLevelClient == null) {
+            return new ArrayList<>();
+        }
         SearchRequest searchRequest = new SearchRequest(INDEX_NAME);
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
@@ -167,6 +186,9 @@ public class ApmReportController {
 
     @PreDestroy
     public void closeEsClient() throws IOException {
+        if (!esEnabled) {
+            return;
+        }
         if (restClient != null) {
             restClient.close();
             log.info("ES客户端已关闭");

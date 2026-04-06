@@ -93,8 +93,17 @@ public class NettyServerManager {
     @Value("${server.port:8081}")
     int tomcatPort;
 
-    @Value("${agent.port:3333}")
+    @Value("${diagnostic.proxy.uiPort:${websocket.port:6666}}")
     int websocketPort;
+
+    @Value("${diagnostic.proxy.agentPort:3334}")
+    int agentNewPort;
+
+    @Value("${diagnostic.zk.enabled:false}")
+    boolean zkEnabled;
+
+    @Value("${diagnostic.proxy.enabled:false}")
+    boolean proxyEnabled;
 
     private NettyServerForAgent nettyServerForAgent;
 
@@ -102,25 +111,36 @@ public class NettyServerManager {
 
     @PostConstruct
     public void start() {
-        zkClient = ZKClientCache.get(registryStore.getZkAddress());
-        
+        if (!proxyEnabled) {
+            return;
+        }
         java.util.Map<String, String> map = new java.util.HashMap<>();
         map.put("server.port", String.valueOf(websocketPort));
         map.put("tomcat.port", String.valueOf(tomcatPort));
+        map.put("agent.newport", String.valueOf(agentNewPort));
         conf = Conf.fromMap(map);
 
         nettyServerForAgent = startAgentServer(conf);
         nettyServerForUi = startUiServer(conf);
 
-        online();
+        if (zkEnabled) {
+            zkClient = ZKClientCache.get(registryStore.getZkAddress());
+            online();
+        }
     }
 
     @PreDestroy
     public void stop() {
-        offline();
+        if (zkEnabled) {
+            offline();
+        } else {
+            closeAgentConnections();
+        }
         nettyServerForUi.stop();
         nettyServerForAgent.stop();
-        zkClient.close();
+        if (zkClient != null) {
+            zkClient.close();
+        }
     }
 
     private NettyServerForUi startUiServer(Conf conf) {
@@ -207,12 +227,19 @@ public class NettyServerManager {
     }
 
     public boolean offline() {
+        if (!zkEnabled) {
+            closeAgentConnections();
+            return true;
+        }
         deleteSelf();
         closeAgentConnections();
         return true;
     }
 
     public boolean online() {
+        if (!zkEnabled) {
+            return true;
+        }
         deleteSelf();
         register();
         return true;

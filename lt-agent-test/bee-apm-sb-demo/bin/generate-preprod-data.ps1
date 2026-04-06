@@ -26,6 +26,11 @@ if ([string]::IsNullOrWhiteSpace($LoadThreads)) { $LoadThreads = "2" }
 $LoadDurationSeconds = $env:LOAD_DURATION_SECONDS
 if ([string]::IsNullOrWhiteSpace($LoadDurationSeconds)) { $LoadDurationSeconds = "0" }
 
+$BistouryProxyHost = $env:BISTOURY_PROXY_HOST
+if ([string]::IsNullOrWhiteSpace($BistouryProxyHost)) { $BistouryProxyHost = "127.0.0.1" }
+$BistouryProxyPort = $env:BISTOURY_PROXY_PORT
+if ([string]::IsNullOrWhiteSpace($BistouryProxyPort)) { $BistouryProxyPort = "3333" }
+
 if (!(Test-Path $AgentJar)) {
   Write-Host "Agent jar not found: $AgentJar"
   exit 1
@@ -48,6 +53,10 @@ reporter:
   batchSize: 50
 sampling:
   rate: 10000
+bistoury:
+  proxy:
+    host: "$BistouryProxyHost"
+    port: $BistouryProxyPort
 "@ | Set-Content -Encoding UTF8 $TmpCfg
 
 Push-Location $DemoDir

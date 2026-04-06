@@ -17,6 +17,9 @@ LOAD_QPS="${LOAD_QPS:-5}"
 LOAD_THREADS="${LOAD_THREADS:-2}"
 LOAD_DURATION_SECONDS="${LOAD_DURATION_SECONDS:-0}"
 
+BISTOURY_PROXY_HOST="${BISTOURY_PROXY_HOST:-127.0.0.1}"
+BISTOURY_PROXY_PORT="${BISTOURY_PROXY_PORT:-3333}"
+
 if [ ! -f "${AGENT_JAR}" ]; then
   echo "Agent jar not found: ${AGENT_JAR}"
   exit 1
@@ -37,6 +40,10 @@ reporter:
   batchSize: 50
 sampling:
   rate: 10000
+bistoury:
+  proxy:
+    host: "${BISTOURY_PROXY_HOST}"
+    port: ${BISTOURY_PROXY_PORT}
 EOF
 
 cd "${DEMO_DIR}"

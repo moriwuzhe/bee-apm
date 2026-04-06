@@ -29,13 +29,16 @@ public class LogUtil {
                 return;
             }
             try {
-                // 优先使用/tmp目录，避免权限问题
-                String logDir = "/tmp/lt-monitor/logs";
+                String tmpDir = System.getProperty("java.io.tmpdir");
+                if (tmpDir == null || tmpDir.trim().isEmpty()) {
+                    tmpDir = System.getProperty("user.home");
+                }
+                String logDir = tmpDir + File.separator + "lt-monitor" + File.separator + "logs";
                 File dir = new File(logDir);
                 if (!dir.exists()) {
                     dir.mkdirs();
                 }
-                String logPath = logDir + "/lt-agent.log";
+                String logPath = logDir + File.separator + "lt-agent.log";
                 File logFile = new File(logPath);
                 if (!logFile.exists()) {
                     logFile.createNewFile();

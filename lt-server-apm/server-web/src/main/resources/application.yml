@@ -7,6 +7,10 @@ spring:
   application:
     name: lt-monitor-server
 
+diagnostic:
+  zk:
+    enabled: false
+
 # Zookeeper配置 (用于诊断代理节点注册)
 zk:
   url: zookeeper:2181
@@ -16,6 +20,7 @@ zk:
 
 # 诊断代理Agent通信端口
 agent:
+  port: 3333
   proxy: ws://%s:%s/ws
 
 # Elasticsearch配置

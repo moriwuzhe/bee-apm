@@ -15,6 +15,8 @@ import org.springframework.context.annotation.ComponentScan;
 public class LtMonitorServerApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(LtMonitorServerApplication.class, args);
+        SpringApplication application = new SpringApplication(LtMonitorServerApplication.class);
+        application.addInitializers(new LtMonitorServerInitializer());
+        application.run(args);
     }
 }

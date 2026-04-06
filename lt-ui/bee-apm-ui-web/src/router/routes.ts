@@ -1,5 +1,5 @@
 import type { RouteRecordRaw } from 'vue-router'
-import { Coin, Connection, DataLine, Grid, Link, Tickets } from '@element-plus/icons-vue'
+import { Coin, Connection, DataLine, Grid, Link, Tickets, Tools } from '@element-plus/icons-vue'
 
 import AppLayout from '../ui/layouts/AppLayout.vue'
 import LoginView from '../ui/views/LoginView.vue'
@@ -10,6 +10,7 @@ import SqlView from '../ui/views/SqlView.vue'
 import TxView from '../ui/views/TxView.vue'
 import LoggerView from '../ui/views/LoggerView.vue'
 import AppListView from '../ui/views/AppListView.vue'
+import DiagnosticView from '../ui/views/DiagnosticView.vue'
 import NotFoundView from '../ui/views/NotFoundView.vue'
 
 export const routes: RouteRecordRaw[] = [
@@ -65,6 +66,12 @@ export const routes: RouteRecordRaw[] = [
         name: 'apps',
         component: AppListView,
         meta: { title: '应用列表', nav: true, icon: Grid, order: 70 },
+      },
+      {
+        path: 'diagnostic',
+        name: 'diagnostic',
+        component: DiagnosticView,
+        meta: { title: '诊断', nav: true, icon: Tools, order: 80 },
       },
     ],
   },

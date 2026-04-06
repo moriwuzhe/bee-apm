@@ -23,14 +23,16 @@ import java.security.ProtectionDomain;
 import java.util.List;
 import java.util.jar.JarFile;
 
-import org.xi.lt.agent.diagnostic.agent.AgentClient;
-
 /**
  * @author yuan
  * @date 2018-08-06
  */
 public class LtAgent {
+    private static volatile DiagAgentClient diagClient;
+    private static volatile Instrumentation instrumentation;
+
     public static void premain(String arguments, Instrumentation inst) throws Throwable {
+        instrumentation = inst;
         loadSpy(inst);
         LogUtil.write("\n---------------------------------Welcome LT监控系统 ---------------------------------------");
         initialize();
@@ -69,6 +71,10 @@ public class LtAgent {
             }
         }
         agentBuilder.installOn(inst);
+    }
+
+    public static Instrumentation getInstrumentation() {
+        return instrumentation;
     }
 
     public static void loadSpy(Instrumentation inst) {
@@ -124,9 +130,10 @@ public class LtAgent {
             ReporterFactory.init();
             HeartbeatTask.start();
             JvmInfoTask.start();
-            
-            // start the bistoury diagnostic agent client
-            AgentClient.getInstance().start();
+            diagClient = DiagAgentClient.tryCreate();
+            if (diagClient != null) {
+                diagClient.start();
+            }
 
             LogUtil.setEmptyHandlerLog(LogFactory.getLog("EmptyHandler"));
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
@@ -136,7 +143,9 @@ public class LtAgent {
                     JvmInfoTask.shutdown();
                     ReporterFactory.shutdown();
                     IdHelper.shutdown();
-                    AgentClient.getInstance().stop();
+                    if (diagClient != null) {
+                        diagClient.stop();
+                    }
                     LogUtil.log("shutdown all lt tasks");
                 }
             }));

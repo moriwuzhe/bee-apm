@@ -23,7 +23,11 @@ onMounted(() => {
       </header>
 
       <main class="app-content">
-        <RouterView />
+        <RouterView v-slot="{ Component, route }">
+          <KeepAlive include="DashboardView,RequestView,MethodView,SqlView,TxView,LoggerView,AppListView">
+            <component :is="Component" :key="route.fullPath" />
+          </KeepAlive>
+        </RouterView>
       </main>
     </div>
   </div>

@@ -1,0 +1,247 @@
+/*
+ * Copyright (C) 2019 Qunar, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package org.xi.lt.server.web.diagnostic.proxy.startup;
+
+import org.apache.curator.framework.state.ConnectionState;
+import org.apache.curator.utils.ZKPaths;
+import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import org.xi.lt.server.web.diagnostic.application.api.AppServerService;
+import org.xi.lt.server.web.diagnostic.proxy.communicate.Connection;
+import org.xi.lt.server.web.diagnostic.proxy.communicate.SessionManager;
+import org.xi.lt.server.web.diagnostic.proxy.communicate.agent.AgentConnection;
+import org.xi.lt.server.web.diagnostic.proxy.communicate.agent.AgentConnectionStore;
+import org.xi.lt.server.web.diagnostic.proxy.communicate.agent.NettyServerForAgent;
+import org.xi.lt.server.web.diagnostic.proxy.communicate.agent.handler.AgentMessageHandler;
+import org.xi.lt.server.web.diagnostic.proxy.communicate.agent.handler.AgentMessageProcessor;
+import org.xi.lt.server.web.diagnostic.proxy.communicate.ui.NettyServerForUi;
+import org.xi.lt.server.web.diagnostic.proxy.communicate.ui.UiConnectionStore;
+import org.xi.lt.server.web.diagnostic.proxy.communicate.ui.command.CommunicateCommandStore;
+import org.xi.lt.server.web.diagnostic.proxy.generator.IdGenerator;
+import org.xi.lt.server.web.diagnostic.serverside.agile.Conf;
+import org.xi.lt.server.web.diagnostic.remoting.util.LocalHost;
+import org.xi.lt.server.web.diagnostic.serverside.common.ZKClient;
+import org.xi.lt.server.web.diagnostic.serverside.common.ZKClientCache;
+import org.xi.lt.server.web.diagnostic.serverside.configuration.DynamicConfigLoader;
+import org.xi.lt.server.web.diagnostic.serverside.store.RegistryStore;
+import org.xi.lt.server.web.diagnostic.serverside.util.ServerManager;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @author leix.xie
+ * @date 2019-07-18 11:32
+ * @describe
+ */
+@Component
+public class NettyServerManager {
+
+    private static final Logger logger = LoggerFactory.getLogger(NettyServerManager.class);
+
+    @Autowired
+    private RegistryStore registryStore;
+
+    @Autowired
+    private CommunicateCommandStore commandStore;
+
+    @Autowired
+    private UiConnectionStore uiConnectionStore;
+
+    @Autowired
+    private AgentConnectionStore agentConnectionStore;
+
+    @Autowired
+    private SessionManager sessionManager;
+
+    @Autowired
+    private AppServerService appServerService;
+
+    @Autowired
+    private IdGenerator sessionIdGenerator;
+
+    @Autowired
+    private List<AgentMessageProcessor> agentMessageProcessors;
+
+    private volatile String uiNode;
+    private ZKClient zkClient;
+    private Conf conf;
+
+    @Value("${server.port:8081}")
+    int tomcatPort;
+
+    @Value("${diagnostic.proxy.uiPort:${websocket.port:6666}}")
+    int websocketPort;
+
+    @Value("${diagnostic.proxy.agentPort:3334}")
+    int agentNewPort;
+
+    @Value("${diagnostic.zk.enabled:false}")
+    boolean zkEnabled;
+
+    @Value("${diagnostic.proxy.enabled:false}")
+    boolean proxyEnabled;
+
+    private NettyServerForAgent nettyServerForAgent;
+
+    private NettyServerForUi nettyServerForUi;
+
+    @PostConstruct
+    public void start() {
+        if (!proxyEnabled) {
+            return;
+        }
+        java.util.Map<String, String> map = new java.util.HashMap<>();
+        map.put("server.port", String.valueOf(websocketPort));
+        map.put("tomcat.port", String.valueOf(tomcatPort));
+        map.put("agent.newport", String.valueOf(agentNewPort));
+        conf = Conf.fromMap(map);
+
+        nettyServerForAgent = startAgentServer(conf);
+        nettyServerForUi = startUiServer(conf);
+
+        if (zkEnabled) {
+            zkClient = ZKClientCache.get(registryStore.getZkAddress());
+            online();
+        }
+    }
+
+    @PreDestroy
+    public void stop() {
+        if (zkEnabled) {
+            offline();
+        } else {
+            closeAgentConnections();
+        }
+        nettyServerForUi.stop();
+        nettyServerForAgent.stop();
+        if (zkClient != null) {
+            zkClient.close();
+        }
+    }
+
+    private NettyServerForUi startUiServer(Conf conf) {
+        NettyServerForUi serverForUi = new NettyServerForUi(
+                conf,
+                sessionIdGenerator,
+                commandStore,
+                uiConnectionStore,
+                agentConnectionStore,
+                sessionManager,
+                appServerService);
+        serverForUi.start();
+        return serverForUi;
+    }
+
+    private NettyServerForAgent startAgentServer(Conf conf) {
+        AgentMessageHandler handler = new AgentMessageHandler(agentMessageProcessors);
+        NettyServerForAgent serverForAgent = new NettyServerForAgent(conf, handler);
+        serverForAgent.start();
+        return serverForAgent;
+    }
+
+    private void closeAgentConnections() {
+        Map<String, AgentConnection> agentConnection = agentConnectionStore.getAgentConnection();
+        Collection<AgentConnection> connections = agentConnection.values();
+        for (Connection connection : connections) {
+            connection.close();
+        }
+    }
+
+    private boolean deleteSelf() {
+        return deleteNode(uiNode);
+    }
+
+    private boolean deleteNode(String... nodes) {
+        boolean ret = true;
+        for (String node : nodes) {
+            if (node != null) {
+                try {
+                    zkClient.deletePath(node);
+                    logger.info("zk delete successfully, node {}", node);
+                } catch (KeeperException.NoNodeException e) {
+                    // ignore
+                } catch (Exception e) {
+                    logger.error("zk delete path error", e);
+                    ret = false;
+                }
+            }
+        }
+        return ret;
+    }
+
+    private void register() {
+        registerUiNode();
+        zkClient.addConnectionChangeListener((sender, state) -> {
+            if (state == ConnectionState.RECONNECTED) {
+                deleteSelf();
+                registerUiNode();
+            }
+        });
+    }
+
+    private String doRegister(String basePath, String node) {
+        try {
+            if (!zkClient.checkExist(basePath)) {
+                zkClient.addPersistentNode(basePath);
+            }
+            node = ZKPaths.makePath(basePath, node);
+            deleteNode(node);
+            zkClient.addEphemeralNode(node);
+            logger.info("zk register successfully, node {}", node);
+        } catch (Exception e) {
+            logger.error("zk register failed", e);
+        }
+        return node;
+    }
+
+    private void registerUiNode() {
+        this.uiNode = doRegister(registryStore.getProxyZkPathForNewUi(), getIp() + ":" + tomcatPort + ":" + websocketPort);
+    }
+
+    private static String getIp() {
+        return LocalHost.getLocalHost();
+    }
+
+    public boolean offline() {
+        if (!zkEnabled) {
+            closeAgentConnections();
+            return true;
+        }
+        deleteSelf();
+        closeAgentConnections();
+        return true;
+    }
+
+    public boolean online() {
+        if (!zkEnabled) {
+            return true;
+        }
+        deleteSelf();
+        register();
+        return true;
+    }
+}

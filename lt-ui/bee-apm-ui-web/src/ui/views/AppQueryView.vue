@@ -1,20 +1,29 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 
 import PageShell from '../components/PageShell.vue'
 import { useGroups } from '../composables/useGroups'
+import { useTimeRangeStore } from '../../stores/timeRange'
 import RequestTab from './query/RequestTab.vue'
 import MethodTab from './query/MethodTab.vue'
 import SqlTab from './query/SqlTab.vue'
 import TxTab from './query/TxTab.vue'
 import LoggerTab from './query/LoggerTab.vue'
 
-const { envOptions, appOptions, loading: groupsLoading } = useGroups()
+const timeRange = useTimeRangeStore()
+const { envOptions, appOptions, loading: groupsLoading, reload: reloadGroups } = useGroups()
 
 const env = ref('')
 const app = ref('')
 const activeTab = ref('request')
+
+onMounted(async () => {
+  await reloadGroups()
+})
+watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
+  await reloadGroups()
+})
 
 </script>
 

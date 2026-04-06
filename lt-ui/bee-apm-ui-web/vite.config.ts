@@ -8,6 +8,10 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [vue()],
+    build: {
+      outDir: 'dist',
+      emptyOutDir: true,
+    },
     server: {
       port: 8000,
       strictPort: true,

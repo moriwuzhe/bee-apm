@@ -1,3 +1,0 @@
-elasticsearch=org.xi.lt.server.store.ElasticSearchStore
-console=org.xi.lt.server.core.store.ConsoleStore
-

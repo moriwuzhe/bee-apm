@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 export const http = axios.create({
-  baseURL: '/api',
+  baseURL: (import.meta as any).env?.VITE_API_BASE || '/api',
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 })

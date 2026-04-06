@@ -14,7 +14,7 @@ export type AgentConnection = {
 }
 
 const diagHttp = axios.create({
-  baseURL: '/diag-api',
+  baseURL: (import.meta as any).env?.VITE_DIAG_API_BASE || '/diag-api',
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 })
@@ -107,8 +107,8 @@ export async function fetchJdwpStatus(agentId: string, port = 5005): Promise<str
   return unwrap(res.data) || ''
 }
 
-export async function watchAdd(agentId: string, className: string, methodName: string, limit = 50): Promise<string> {
-  const res = await diagHttp.get<ApiResult<string>>('/diag/agent/watchAdd', { params: { agentId, className, methodName, limit } })
+export async function watchAdd(agentId: string, className: string, methodName: string, paramTypes = '', limit = 50): Promise<string> {
+  const res = await diagHttp.get<ApiResult<string>>('/diag/agent/watchAdd', { params: { agentId, className, methodName, paramTypes, limit } })
   return unwrap(res.data) || ''
 }
 
@@ -124,5 +124,25 @@ export async function watchClear(agentId: string, id: string): Promise<string> {
 
 export async function watchList(agentId: string): Promise<string> {
   const res = await diagHttp.get<ApiResult<string>>('/diag/agent/watchList', { params: { agentId } })
+  return unwrap(res.data) || ''
+}
+
+export async function debugAdd(agentId: string, className: string, methodName: string, when: string, paramTypes = '', limit = 20, stackDepth = 0, contains = ''): Promise<string> {
+  const res = await diagHttp.get<ApiResult<string>>('/diag/agent/debugAdd', { params: { agentId, className, methodName, when, paramTypes, limit, stackDepth, contains } })
+  return unwrap(res.data) || ''
+}
+
+export async function debugDump(agentId: string, id: string, maxLines = 200): Promise<string> {
+  const res = await diagHttp.get<ApiResult<string>>('/diag/agent/debugDump', { params: { agentId, id, maxLines } })
+  return unwrap(res.data) || ''
+}
+
+export async function debugClear(agentId: string, id: string): Promise<string> {
+  const res = await diagHttp.get<ApiResult<string>>('/diag/agent/debugClear', { params: { agentId, id } })
+  return unwrap(res.data) || ''
+}
+
+export async function debugList(agentId: string): Promise<string> {
+  const res = await diagHttp.get<ApiResult<string>>('/diag/agent/debugList', { params: { agentId } })
   return unwrap(res.data) || ''
 }

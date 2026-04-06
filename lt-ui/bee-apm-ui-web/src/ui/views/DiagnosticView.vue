@@ -3,7 +3,7 @@ import { onMounted, onUnmounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import PageShell from '../components/PageShell.vue'
-import { enableJdwp, fetchAgentConnections, fetchClassLoading, fetchDeadlocks, fetchEnv, fetchGcStats, fetchInputArgs, fetchJvmInfo, fetchJdwpStatus, fetchMemory, fetchSysProps, fetchThreadDump, fetchThreadsSummary, fetchTopThreadsCpu, searchAgentConnections, triggerGc, watchAdd, watchClear, watchDump, watchList, type AgentConnection } from '../../api/diagnostic'
+import { debugAdd, debugClear, debugDump, debugList, enableJdwp, fetchAgentConnections, fetchClassLoading, fetchDeadlocks, fetchEnv, fetchGcStats, fetchInputArgs, fetchJvmInfo, fetchJdwpStatus, fetchMemory, fetchSysProps, fetchThreadDump, fetchThreadsSummary, fetchTopThreadsCpu, searchAgentConnections, triggerGc, watchAdd, watchClear, watchDump, watchList, type AgentConnection } from '../../api/diagnostic'
 
 const loading = ref(false)
 const rows = ref<AgentConnection[]>([])
@@ -22,9 +22,19 @@ const topCpuRunnableOnly = ref(false)
 const jdwpPort = ref(5005)
 const watchClassName = ref('')
 const watchMethodName = ref('')
+const watchParamTypes = ref('')
 const watchLimit = ref(50)
 const watchId = ref('')
 const watchMaxLines = ref(200)
+const debugClassName = ref('')
+const debugMethodName = ref('')
+const debugWhen = ref('ENTER')
+const debugParamTypes = ref('')
+const debugLimit = ref(20)
+const debugStackDepth = ref(8)
+const debugContains = ref('')
+const debugId = ref('')
+const debugMaxLines = ref(200)
 
 let timer: any = null
 
@@ -274,7 +284,7 @@ async function openWatchAdd(row: AgentConnection) {
   dialogVisible.value = true
   dialogLoading.value = true
   try {
-    dialogText.value = await watchAdd(row.agentId, watchClassName.value, watchMethodName.value, watchLimit.value)
+    dialogText.value = await watchAdd(row.agentId, watchClassName.value, watchMethodName.value, watchParamTypes.value, watchLimit.value)
     const m = dialogText.value.match(/id=([0-9a-fA-F]+)/)
     if (m && m[1]) watchId.value = m[1]
   } catch (e: any) {
@@ -329,6 +339,68 @@ async function openWatchClear(row: AgentConnection) {
     dialogLoading.value = false
   }
 }
+
+async function openDebugAdd(row: AgentConnection) {
+  dialogTitle.value = `DebugAdd - ${row.agentId}`
+  dialogText.value = ''
+  dialogVisible.value = true
+  dialogLoading.value = true
+  try {
+    dialogText.value = await debugAdd(row.agentId, debugClassName.value, debugMethodName.value, debugWhen.value, debugParamTypes.value, debugLimit.value, debugStackDepth.value, debugContains.value)
+    const m = dialogText.value.match(/id=([0-9a-fA-F]+)/)
+    if (m && m[1]) debugId.value = m[1]
+  } catch (e: any) {
+    dialogText.value = ''
+    ElMessage.error(e?.message || 'DebugAdd失败')
+  } finally {
+    dialogLoading.value = false
+  }
+}
+
+async function openDebugDump(row: AgentConnection) {
+  dialogTitle.value = `DebugDump - ${row.agentId}`
+  dialogText.value = ''
+  dialogVisible.value = true
+  dialogLoading.value = true
+  try {
+    dialogText.value = await debugDump(row.agentId, debugId.value, debugMaxLines.value)
+  } catch (e: any) {
+    dialogText.value = ''
+    ElMessage.error(e?.message || 'DebugDump失败')
+  } finally {
+    dialogLoading.value = false
+  }
+}
+
+async function openDebugList(row: AgentConnection) {
+  dialogTitle.value = `DebugList - ${row.agentId}`
+  dialogText.value = ''
+  dialogVisible.value = true
+  dialogLoading.value = true
+  try {
+    dialogText.value = await debugList(row.agentId)
+  } catch (e: any) {
+    dialogText.value = ''
+    ElMessage.error(e?.message || 'DebugList失败')
+  } finally {
+    dialogLoading.value = false
+  }
+}
+
+async function openDebugClear(row: AgentConnection) {
+  dialogTitle.value = `DebugClear - ${row.agentId}`
+  dialogText.value = ''
+  dialogVisible.value = true
+  dialogLoading.value = true
+  try {
+    dialogText.value = await debugClear(row.agentId, debugId.value)
+  } catch (e: any) {
+    dialogText.value = ''
+    ElMessage.error(e?.message || 'DebugClear失败')
+  } finally {
+    dialogLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -365,6 +437,9 @@ async function openWatchClear(row: AgentConnection) {
           <el-form-item label="Watch方法">
             <el-input v-model="watchMethodName" placeholder="methodName" clearable style="width: 180px" />
           </el-form-item>
+          <el-form-item label="W参数">
+            <el-input v-model="watchParamTypes" placeholder="java.lang.String,int" clearable style="width: 220px" />
+          </el-form-item>
           <el-form-item label="WLimit">
             <el-input-number v-model="watchLimit" :min="1" :max="500" controls-position="right" />
           </el-form-item>
@@ -373,6 +448,37 @@ async function openWatchClear(row: AgentConnection) {
           </el-form-item>
           <el-form-item label="WLines">
             <el-input-number v-model="watchMaxLines" :min="1" :max="2000" controls-position="right" />
+          </el-form-item>
+          <el-form-item label="Debug类">
+            <el-input v-model="debugClassName" placeholder="com.foo.Bar" clearable style="width: 260px" />
+          </el-form-item>
+          <el-form-item label="Debug方法">
+            <el-input v-model="debugMethodName" placeholder="methodName" clearable style="width: 180px" />
+          </el-form-item>
+          <el-form-item label="D参数">
+            <el-input v-model="debugParamTypes" placeholder="java.lang.String,int" clearable style="width: 220px" />
+          </el-form-item>
+          <el-form-item label="When">
+            <el-select v-model="debugWhen" style="width: 120px">
+              <el-option label="ENTER" value="ENTER" />
+              <el-option label="EXIT" value="EXIT" />
+              <el-option label="THROW" value="THROW" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="DLimit">
+            <el-input-number v-model="debugLimit" :min="1" :max="500" controls-position="right" />
+          </el-form-item>
+          <el-form-item label="Stack">
+            <el-input-number v-model="debugStackDepth" :min="0" :max="60" controls-position="right" />
+          </el-form-item>
+          <el-form-item label="Contains">
+            <el-input v-model="debugContains" placeholder="可选过滤" clearable style="width: 220px" />
+          </el-form-item>
+          <el-form-item label="DebugId">
+            <el-input v-model="debugId" placeholder="自动填充/手动输入" clearable style="width: 260px" />
+          </el-form-item>
+          <el-form-item label="DLines">
+            <el-input-number v-model="debugMaxLines" :min="1" :max="2000" controls-position="right" />
           </el-form-item>
         </div>
       </el-form>
@@ -391,7 +497,7 @@ async function openWatchClear(row: AgentConnection) {
           <el-tag :type="row.writable ? 'success' : 'warning'">{{ row.writable ? '是' : '否' }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="980">
+      <el-table-column label="操作" width="1180">
         <template #default="{ row }">
           <el-button size="small" :disabled="!row.active || !row.writable" @click="openThreadDump(row)">线程栈</el-button>
           <el-button size="small" :disabled="!row.active || !row.writable" @click="openJvmInfo(row)">JVM</el-button>
@@ -411,6 +517,10 @@ async function openWatchClear(row: AgentConnection) {
           <el-button size="small" :disabled="!row.active || !row.writable" @click="openWatchDump(row)">WatchDump</el-button>
           <el-button size="small" :disabled="!row.active || !row.writable" @click="openWatchList(row)">WatchList</el-button>
           <el-button size="small" :disabled="!row.active || !row.writable" @click="openWatchClear(row)">WatchClear</el-button>
+          <el-button size="small" :disabled="!row.active || !row.writable" @click="openDebugAdd(row)">DebugAdd</el-button>
+          <el-button size="small" :disabled="!row.active || !row.writable" @click="openDebugDump(row)">DebugDump</el-button>
+          <el-button size="small" :disabled="!row.active || !row.writable" @click="openDebugList(row)">DebugList</el-button>
+          <el-button size="small" :disabled="!row.active || !row.writable" @click="openDebugClear(row)">DebugClear</el-button>
         </template>
       </el-table-column>
     </el-table>

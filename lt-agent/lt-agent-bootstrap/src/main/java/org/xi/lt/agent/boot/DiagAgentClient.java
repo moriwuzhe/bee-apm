@@ -374,6 +374,22 @@ public class DiagAgentClient {
                     sendResponse(ctx, d.header.id, WebDebugger.watchList());
                     return;
                 }
+                if (cmd.startsWith("debugAdd")) {
+                    sendResponse(ctx, d.header.id, handleDebugAdd(cmd));
+                    return;
+                }
+                if (cmd.startsWith("debugDump")) {
+                    sendResponse(ctx, d.header.id, handleDebugDump(cmd));
+                    return;
+                }
+                if (cmd.startsWith("debugClear")) {
+                    sendResponse(ctx, d.header.id, handleDebugClear(cmd));
+                    return;
+                }
+                if ("debugList".equals(cmd)) {
+                    sendResponse(ctx, d.header.id, WebDebugger.debugList());
+                    return;
+                }
             }
         }
 
@@ -696,10 +712,10 @@ public class DiagAgentClient {
     }
 
     private static String handleWatchAdd(String cmd) {
-        String[] parts = cmd.split(":", 4);
-        if (parts.length < 3) return "Usage watchAdd:<class>:<method>[:limit]\n";
-        String className = parts[1];
-        String methodName = parts[2];
+        String[] parts = cmd.split(":", 5);
+        if (parts.length < 3) return "Usage watchAdd:<class>:<method>[:limit][:paramTypes]\n";
+        String className = decode(parts[1]);
+        String methodName = decode(parts[2]);
         int limit = 50;
         if (parts.length >= 4) {
             try {
@@ -707,7 +723,8 @@ public class DiagAgentClient {
             } catch (Exception ignored) {
             }
         }
-        return WebDebugger.watchAdd(className, methodName, limit);
+        String paramTypes = parts.length >= 5 ? decode(parts[4]) : "";
+        return WebDebugger.watchAdd(className, methodName, paramTypes, limit);
     }
 
     private static String handleWatchDump(String cmd) {
@@ -728,6 +745,73 @@ public class DiagAgentClient {
         String[] parts = cmd.split(":", 2);
         if (parts.length < 2) return "Usage watchClear:<id>\n";
         return WebDebugger.watchClear(parts[1]);
+    }
+
+    private static String handleDebugAdd(String cmd) {
+        String[] parts = cmd.split(":", 9);
+        if (parts.length < 4) return "Usage debugAdd:<class>:<method>:<when>[:limit][:stackDepth][:paramTypes][:contains]\n";
+        String className = decode(parts[1]);
+        String methodName = decode(parts[2]);
+        String when = decode(parts[3]);
+        int limit = parts.length >= 5 ? parseInt(parts[4], 20) : 20;
+        int stackDepth = parts.length >= 6 ? parseInt(parts[5], 0) : 0;
+        String paramTypes = "";
+        String contains = "";
+        if (parts.length >= 8) {
+            contains = decode(parts[6]);
+            paramTypes = decode(parts[7]);
+        } else if (parts.length >= 7) {
+            String tail = decode(parts[6]);
+            if (looksLikeParamTypes(tail)) {
+                paramTypes = tail;
+            } else {
+                contains = tail;
+            }
+        }
+        return WebDebugger.debugAdd(className, methodName, when, paramTypes, limit, stackDepth, contains);
+    }
+
+    private static boolean looksLikeParamTypes(String s) {
+        if (s == null) return false;
+        String x = s.trim();
+        if (x.isEmpty()) return false;
+        if (x.indexOf('.') >= 0) return true;
+        if (x.indexOf(',') >= 0) return true;
+        if ("boolean".equals(x) || "byte".equals(x) || "short".equals(x) || "char".equals(x) || "int".equals(x) || "long".equals(x) || "float".equals(x) || "double".equals(x)) return true;
+        if (x.endsWith("[]")) return true;
+        return false;
+    }
+
+    private static String handleDebugDump(String cmd) {
+        String[] parts = cmd.split(":", 4);
+        if (parts.length < 2) return "Usage debugDump:<id>[:maxLines]\n";
+        String id = decode(parts[1]);
+        int maxLines = parts.length >= 3 ? parseInt(parts[2], 200) : 200;
+        return WebDebugger.debugDump(id, maxLines);
+    }
+
+    private static String handleDebugClear(String cmd) {
+        String[] parts = cmd.split(":", 2);
+        if (parts.length < 2) return "Usage debugClear:<id>\n";
+        return WebDebugger.debugClear(decode(parts[1]));
+    }
+
+    private static String decode(String s) {
+        if (s == null) return "";
+        try {
+            return java.net.URLDecoder.decode(s, "UTF-8");
+        } catch (Exception ignored) {
+            return s;
+        }
+    }
+
+    private static int parseInt(String s, int def) {
+        if (s == null) return def;
+        try {
+            return Integer.parseInt(s);
+        } catch (Exception ignored) {
+            return def;
+        }
     }
 
     private static boolean isPortListening(int port, int timeoutMs) {

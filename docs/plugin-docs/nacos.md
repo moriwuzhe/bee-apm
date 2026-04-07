@@ -16,10 +16,10 @@ Nacos插件支持配置中心和服务注册发现全场景的链路追踪：
 ## 配置参数
 | 参数名称 | 默认值 | 说明 |
 |---------|--------|------|
-| bee.plugin.nacos.enable | true | 是否开启Nacos插件 |
-| bee.plugin.nacos.collect.config.content | false | 是否采集配置内容（默认关闭，避免敏感信息泄露） |
-| bee.plugin.nacos.collect.instance.info | true | 是否采集服务实例信息 |
-| bee.plugin.nacos.config.max_length | 500 | 配置内容截断长度 |
+| lt.plugin.nacos.enable | true | 是否开启Nacos插件 |
+| lt.plugin.nacos.collect.config.content | false | 是否采集配置内容（默认关闭，避免敏感信息泄露） |
+| lt.plugin.nacos.collect.instance.info | true | 是否采集服务实例信息 |
+| lt.plugin.nacos.config.max_length | 500 | 配置内容截断长度 |
 
 ## 埋点标签
 ### 配置中心事件标签
@@ -56,7 +56,7 @@ Nacos插件支持配置中心和服务注册发现全场景的链路追踪：
 
 ### 2. 开启配置内容采集（谨慎开启）
 ```properties
-bee.plugin.nacos.collect.config.content=true
+lt.plugin.nacos.collect.config.content=true
 ```
 开启后会采集配置内容，标签格式为：
 | 标签名称 | 说明 |
@@ -68,7 +68,7 @@ bee.plugin.nacos.collect.config.content=true
 ### 3. 关闭实例信息采集
 如果不需要采集服务实例的具体IP和端口信息，可以关闭：
 ```properties
-bee.plugin.nacos.collect.instance.info=false
+lt.plugin.nacos.collect.instance.info=false
 ```
 关闭后 `instance_ip` 和 `instance_port` 标签将不会被采集。
 
@@ -94,12 +94,12 @@ bee.plugin.nacos.collect.instance.info=false
 A: 支持，Nacos 1.x的HTTP协议和2.x的gRPC协议都支持，插件会自动识别协议类型。
 
 ### Q: 会采集配置中的敏感信息吗？
-A: 默认不会采集配置内容，只有手动开启 `bee.plugin.nacos.collect.config.content` 才会采集，生产环境建议保持默认关闭状态。
+A: 默认不会采集配置内容，只有手动开启 `lt.plugin.nacos.collect.config.content` 才会采集，生产环境建议保持默认关闭状态。
 
 ### Q: 如何过滤不需要采集的Data ID？
 A: 可以通过配置Data ID黑名单：
 ```properties
-bee.plugin.nacos.exclude.data_ids=*password*,*secret*,*key*
+lt.plugin.nacos.exclude.data_ids=*password*,*secret*,*key*
 ```
 支持通配符 `*` 匹配，匹配到的Data ID配置操作不会上报。
 

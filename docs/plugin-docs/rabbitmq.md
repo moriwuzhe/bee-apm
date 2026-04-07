@@ -18,10 +18,10 @@ RabbitMQ插件支持消息生产和消费两端的全链路追踪：
 ## 配置参数
 | 参数名称 | 默认值 | 说明 |
 |---------|--------|------|
-| bee.plugin.rabbitmq.enable | true | 是否开启RabbitMQ插件 |
-| bee.plugin.rabbitmq.collect.headers | true | 是否采集消息头 |
-| bee.plugin.rabbitmq.collect.body | false | 是否采集消息体（默认关闭，避免敏感信息泄露） |
-| bee.plugin.rabbitmq.body.max_length | 200 | 消息体截断长度 |
+| lt.plugin.rabbitmq.enable | true | 是否开启RabbitMQ插件 |
+| lt.plugin.rabbitmq.collect.headers | true | 是否采集消息头 |
+| lt.plugin.rabbitmq.collect.body | false | 是否采集消息体（默认关闭，避免敏感信息泄露） |
+| lt.plugin.rabbitmq.body.max_length | 200 | 消息体截断长度 |
 
 ## 埋点标签
 ### 通用标签
@@ -85,7 +85,7 @@ RabbitMQ插件支持消息生产和消费两端的全链路追踪：
 
 ### 2. 开启消息体采集（谨慎开启）
 ```properties
-bee.plugin.rabbitmq.collect.body=true
+lt.plugin.rabbitmq.collect.body=true
 ```
 开启后会采集消息体内容，最多采集配置的截断长度。
 > ⚠️ **安全警告**：消息体通常包含业务敏感数据，开启前请确认不会泄露用户隐私、密码、Token等敏感信息。
@@ -93,13 +93,13 @@ bee.plugin.rabbitmq.collect.body=true
 ### 3. 关闭消息头采集
 如果不需要采集消息头中的自定义属性，可以关闭：
 ```properties
-bee.plugin.rabbitmq.collect.headers=false
+lt.plugin.rabbitmq.collect.headers=false
 ```
 
 ### 4. 配置消息头黑名单
 可以配置不需要采集的消息头：
 ```properties
-bee.plugin.rabbitmq.exclude.headers=secret,token,password,*key*
+lt.plugin.rabbitmq.exclude.headers=secret,token,password,*key*
 ```
 支持通配符 `*` 匹配，匹配到的消息头不会被采集。
 
@@ -131,7 +131,7 @@ RabbitMQ插件会自动在消息头中添加以下链路追踪属性：
 ## 常见问题
 ### Q: 上下文透传不生效？
 A: 请检查：
-1. 确认生产者和消费者都接入了Bee-APM Agent
+1. 确认生产者和消费者都接入了Lt-APM Agent
 2. 确认没有自定义的消息拦截器过滤了链路头
 3. 确认消息没有被重新发布时丢失了头信息
 
@@ -142,9 +142,9 @@ A: 会的，当mandatory=true且消息不可路由时，会记录退回事件，
 A: 可以通过配置黑名单：
 ```properties
 # 过滤Exchange
-bee.plugin.rabbitmq.exclude.exchanges=amq.*,test_exchange,temp_*
+lt.plugin.rabbitmq.exclude.exchanges=amq.*,test_exchange,temp_*
 # 过滤Queue
-bee.plugin.rabbitmq.exclude.queues=dlq.*,test_queue,temp_*
+lt.plugin.rabbitmq.exclude.queues=dlq.*,test_queue,temp_*
 ```
 支持通配符 `*` 匹配，默认已经过滤了系统默认的Exchange。
 

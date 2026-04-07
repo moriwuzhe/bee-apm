@@ -91,7 +91,7 @@ public class LocalDynamicConfig implements DynamicConfig<LocalDynamicConfig> {
         if (file == null) {
             return;
         }
-        LOG.info("config {} has been modified", name);
+        LOG.info("config {} has ltn modified", name);
         loadConfig();
         executeListeners();
         loaded = true;

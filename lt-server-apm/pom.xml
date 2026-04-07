@@ -18,7 +18,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <compiler.version>1.8</compiler.version>
-        <bee-server-version>1.0.0</bee-server-version>
+        <lt-server-version>1.0.0</lt-server-version>
     </properties>
 
     <modules>

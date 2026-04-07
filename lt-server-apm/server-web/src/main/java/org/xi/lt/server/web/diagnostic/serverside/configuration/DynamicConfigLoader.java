@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * Adapted for bee-apm configuration mechanism
+ * Adapted for lt-monitor configuration mechanism
  */
 public final class DynamicConfigLoader {
 

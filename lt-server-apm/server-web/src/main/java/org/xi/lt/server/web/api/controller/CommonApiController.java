@@ -37,7 +37,7 @@ public class CommonApiController {
         if (!"env".equals(field) && !"app".equals(field)) field = "env";
 
         try {
-            SearchRequest sr = new SearchRequest("bee-*");
+            SearchRequest sr = new SearchRequest("lt-*");
             SearchSourceBuilder ssb = new SearchSourceBuilder();
             BoolQueryBuilder q = QueryBuilders.boolQuery()
                     .must(QueryBuilders.rangeQuery("time").gte(beginMs).lte(endMs));

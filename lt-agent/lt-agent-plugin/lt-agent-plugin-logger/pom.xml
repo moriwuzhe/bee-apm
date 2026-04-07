@@ -15,7 +15,7 @@
     <properties>
     </properties>
     <build>
-        <finalName>bee-agent-plugin-logger</finalName>
+        <finalName>lt-agent-plugin-logger</finalName>
     </build>
 
 </project>

@@ -17,7 +17,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.MessageToByteEncoder;
 import io.netty.util.concurrent.ScheduledFuture;
-import org.xi.lt.agent.common.BeeUtils;
+import org.xi.lt.agent.common.LtUtils;
 import org.xi.lt.agent.config.ConfigUtils;
 import org.xi.lt.agent.log.LogUtil;
 
@@ -56,44 +56,44 @@ public class DiagAgentClient {
 
     public static DiagAgentClient tryCreate() {
         String host = System.getProperty("diag.proxy.host", ConfigUtils.me().getStr("diag.proxy.host"));
-        if (BeeUtils.isBlank(host)) {
+        if (LtUtils.isBlank(host)) {
             host = System.getProperty("bistoury.proxy.host", ConfigUtils.me().getStr("bistoury.proxy.host"));
         }
-        if (BeeUtils.isBlank(host)) {
+        if (LtUtils.isBlank(host)) {
             return null;
         }
         int port = ConfigUtils.me().getInt("diag.proxy.port", -1);
         String portStr = System.getProperty("diag.proxy.port");
-        if (BeeUtils.isBlank(portStr) && port <= 0) {
+        if (LtUtils.isBlank(portStr) && port <= 0) {
             port = ConfigUtils.me().getInt("bistoury.proxy.port", 3333);
             portStr = System.getProperty("bistoury.proxy.port");
         }
-        if (!BeeUtils.isBlank(portStr)) {
+        if (!LtUtils.isBlank(portStr)) {
             port = Integer.parseInt(portStr);
         }
         int heartbeat = ConfigUtils.me().getInt("diag.proxy.heartbeat", -1);
         String heartbeatStr = System.getProperty("diag.proxy.heartbeat");
-        if (BeeUtils.isBlank(heartbeatStr) && heartbeat <= 0) {
+        if (LtUtils.isBlank(heartbeatStr) && heartbeat <= 0) {
             heartbeat = ConfigUtils.me().getInt("bistoury.proxy.heartbeat", 30);
             heartbeatStr = System.getProperty("bistoury.proxy.heartbeat");
         }
-        if (!BeeUtils.isBlank(heartbeatStr)) {
+        if (!LtUtils.isBlank(heartbeatStr)) {
             heartbeat = Integer.parseInt(heartbeatStr);
         }
         return new DiagAgentClient(host, port, heartbeat, buildAgentId());
     }
 
     private static String buildAgentId() {
-        String ip = System.getProperty("bee.ip");
-        String port = System.getProperty("bee.port");
-        String app = System.getProperty("bee.app");
-        String env = System.getProperty("bee.env");
-        String inst = System.getProperty("bee.inst");
+        String ip = System.getProperty("lt.ip");
+        String port = System.getProperty("lt.port");
+        String app = System.getProperty("lt.app");
+        String env = System.getProperty("lt.env");
+        String inst = System.getProperty("lt.inst");
         StringBuilder sb = new StringBuilder();
-        if (!BeeUtils.isBlank(app)) sb.append(app);
-        if (!BeeUtils.isBlank(env)) sb.append("@").append(env);
-        if (!BeeUtils.isBlank(inst)) sb.append("@").append(inst);
-        if (!BeeUtils.isBlank(ip) || !BeeUtils.isBlank(port)) sb.append("@").append(ip == null ? "" : ip).append(":").append(port == null ? "" : port);
+        if (!LtUtils.isBlank(app)) sb.append(app);
+        if (!LtUtils.isBlank(env)) sb.append("@").append(env);
+        if (!LtUtils.isBlank(inst)) sb.append("@").append(inst);
+        if (!LtUtils.isBlank(ip) || !LtUtils.isBlank(port)) sb.append("@").append(ip == null ? "" : ip).append(":").append(port == null ? "" : port);
         if (sb.length() == 0) {
             sb.append("agent@").append(UUID.randomUUID().toString().replace("-", ""));
         }

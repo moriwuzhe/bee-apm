@@ -6,7 +6,7 @@ import com.alibaba.csp.sentinel.slots.block.degrade.DegradeException;
 import com.alibaba.csp.sentinel.slots.block.flow.FlowException;
 import com.alibaba.csp.sentinel.slots.system.SystemBlockException;
 import org.xi.lt.agent.common.*;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -86,7 +86,7 @@ public class SentinelHandler extends AbstractHandler {
                 calculateSpend(span);
                 
                 // 上报Span
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         } catch (Exception e) {

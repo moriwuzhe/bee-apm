@@ -1,6 +1,6 @@
 package org.xi.lt.agent.boot;
 
-import org.xi.lt.agent.common.BeeUtils;
+import org.xi.lt.agent.common.LtUtils;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.DynamicType;
 
@@ -20,7 +20,7 @@ public enum WeavingClassLog {
             try {
                 if (weavingClassLogPath == null) {
                     try {
-                        weavingClassLogPath = new File(BeeUtils.getJarDirPath() +"/weaving-class");
+                        weavingClassLogPath = new File(LtUtils.getJarDirPath() +"/weaving-class");
                         if (!weavingClassLogPath.exists()) {
                             weavingClassLogPath.mkdir();
                         }

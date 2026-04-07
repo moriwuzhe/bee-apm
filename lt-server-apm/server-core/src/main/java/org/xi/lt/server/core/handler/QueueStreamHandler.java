@@ -45,11 +45,11 @@ public class QueueStreamHandler extends AbstractStreamHandler {
     private final static String THREAD_NAME_PREFIX = "hlog-stream-thread-";
 
     private void initConfig() {
-        threadNum = Integer.parseInt(ConfigHolder.getProperty("bee.handlers.queue.threadNum", Runtime.getRuntime().availableProcessors() + ""));
-        queueSize = Integer.parseInt(ConfigHolder.getProperty("bee.handlers.queue.queueSize", "2000"));
-        sleep = Integer.parseInt(ConfigHolder.getProperty("bee.handlers.queue.sleep", "100"));
-        batchSize = Integer.parseInt(ConfigHolder.getProperty("bee.handlers.queue.batchSize", "100"));
-        maxLoopTimes = Integer.parseInt(ConfigHolder.getProperty("bee.handlers.queue.maxLoopTimes", "3"));
+        threadNum = Integer.parseInt(ConfigHolder.getProperty("lt.handlers.queue.threadNum", Runtime.getRuntime().availableProcessors() + ""));
+        queueSize = Integer.parseInt(ConfigHolder.getProperty("lt.handlers.queue.queueSize", "2000"));
+        sleep = Integer.parseInt(ConfigHolder.getProperty("lt.handlers.queue.sleep", "100"));
+        batchSize = Integer.parseInt(ConfigHolder.getProperty("lt.handlers.queue.batchSize", "100"));
+        maxLoopTimes = Integer.parseInt(ConfigHolder.getProperty("lt.handlers.queue.maxLoopTimes", "3"));
     }
 
     @Override

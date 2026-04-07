@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Bee-APM 测试应用启动类
+ * Lt-APM 测试应用启动类
  * @author Test
  */
 @SpringBootApplication
@@ -17,7 +17,7 @@ public class TestDemoApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(TestDemoApplication.class, args);
-        System.out.println("Bee-APM Test Demo started successfully!");
+        System.out.println("Lt-APM Test Demo started successfully!");
     }
 
     /**
@@ -25,7 +25,7 @@ public class TestDemoApplication {
      */
     @GetMapping("/test")
     public String test() {
-        return "Hello Bee-APM!";
+        return "Hello Lt-APM!";
     }
 
     /**

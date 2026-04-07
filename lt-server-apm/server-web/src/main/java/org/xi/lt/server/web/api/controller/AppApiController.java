@@ -12,6 +12,9 @@ import org.xi.lt.server.web.api.model.PageResult;
 import org.xi.lt.server.web.api.util.TimeParseUtils;
 
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 @RestController
 public class AppApiController {
@@ -23,27 +26,43 @@ public class AppApiController {
     @PostMapping("/api/app/info/list")
     public PageResult<Map<String, Object>> list(@RequestBody Map<String, Object> req) {
         int pageNum = asInt(req.get("pageNum"), 1);
-        String beginTime = asString(req.get("beginTime"));
-        String endTime = asString(req.get("endTime"));
-        long beginMs = TimeParseUtils.parseMillis(beginTime);
-        long endMs = TimeParseUtils.parseMillis(endTime);
         String env = asString(req.get("env"));
         String app = asString(req.get("app"));
         String ip = asString(req.get("ip"));
 
-        BoolQueryBuilder q = QueryBuilders.boolQuery()
-                .must(QueryBuilders.termQuery("type.keyword", "hb"))
-                .must(QueryBuilders.rangeQuery("time").gte(beginMs).lte(endMs));
-        if (!env.isEmpty()) q.must(QueryBuilders.termQuery("env.keyword", env));
-        if (!app.isEmpty()) q.must(QueryBuilders.termQuery("app.keyword", app));
-        if (!ip.isEmpty()) q.must(QueryBuilders.termQuery("ip.keyword", ip));
-
-        try {
-            EsSearchService.PageSearchResult r = es.searchPage("bee-heartbeat-*", q, "time", SortOrder.DESC, (pageNum - 1) * PAGE_SIZE, PAGE_SIZE);
-            return new PageResult<>(r.rows, pageNum, (int) r.total);
-        } catch (Exception e) {
-            return PageResult.empty(pageNum);
+        List<Map<String, Object>> allInstances = new ArrayList<>();
+        Map<String, Object> agentData = new AgentControlController().getInstances();
+        List<AgentControlController.AgentInstanceInfo> infos = (List<AgentControlController.AgentInstanceInfo>) agentData.get("data");
+        
+        if (infos != null) {
+            for (AgentControlController.AgentInstanceInfo info : infos) {
+                // Apply filters
+                if (!app.isEmpty() && !app.equals(info.getApp())) continue;
+                if (!ip.isEmpty() && !ip.equals(info.getIp())) continue;
+                // Currently env is not in AgentInstanceInfo, we can add it or skip
+                
+                Map<String, Object> row = new HashMap<>();
+                row.put("app", info.getApp());
+                row.put("inst", info.getInst());
+                row.put("ip", info.getIp());
+                row.put("env", "default"); // Mock env or fetch from info if added
+                row.put("time", TimeParseUtils.formatMillis(info.getLastHeartbeatTime()));
+                
+                Map<String, String> tags = new HashMap<>();
+                tags.put("version", info.getVersion());
+                row.put("tags", tags);
+                row.put("online", info.isOnline());
+                
+                allInstances.add(row);
+            }
         }
+        
+        // simple pagination
+        int start = (pageNum - 1) * PAGE_SIZE;
+        int end = Math.min(start + PAGE_SIZE, allInstances.size());
+        List<Map<String, Object>> paged = start >= allInstances.size() ? new ArrayList<>() : allInstances.subList(start, end);
+        
+        return new PageResult<>(paged, pageNum, allInstances.size());
     }
 
     private static String asString(Object o) {

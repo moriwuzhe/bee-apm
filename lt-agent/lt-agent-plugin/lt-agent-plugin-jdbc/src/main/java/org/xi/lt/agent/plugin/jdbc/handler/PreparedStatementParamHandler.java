@@ -1,6 +1,6 @@
 package org.xi.lt.agent.plugin.jdbc.handler;
 
-import org.xi.lt.agent.common.BeeUtils;
+import org.xi.lt.agent.common.LtUtils;
 import org.xi.lt.agent.common.SamplingUtil;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
@@ -50,7 +50,7 @@ public class PreparedStatementParamHandler extends AbstractHandler {
     }
 
     public boolean isExcludeType(Object val){
-        if(BeeUtils.isPrimitive(val.getClass())
+        if(LtUtils.isPrimitive(val.getClass())
                 || val instanceof java.sql.Date
                 || val instanceof Date
                 || val instanceof Time

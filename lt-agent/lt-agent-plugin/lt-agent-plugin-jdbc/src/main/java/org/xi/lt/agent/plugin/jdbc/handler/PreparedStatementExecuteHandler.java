@@ -3,7 +3,7 @@ package org.xi.lt.agent.plugin.jdbc.handler;
 import com.alibaba.fastjson.JSON;
 import org.xi.lt.agent.common.SamplingUtil;
 import org.xi.lt.agent.common.SpanManager;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -68,7 +68,7 @@ public class PreparedStatementExecuteHandler extends AbstractHandler {
             }
             //当methodName=execute结果是ResultSet时候result=true，否则为false
             span.addTag("count", calcResultCount(result));
-            BeeConfig.me().fillEnvInfo(span);
+            LtConfig.me().fillEnvInfo(span);
             ReporterFactory.report(span);
         }
         return result;

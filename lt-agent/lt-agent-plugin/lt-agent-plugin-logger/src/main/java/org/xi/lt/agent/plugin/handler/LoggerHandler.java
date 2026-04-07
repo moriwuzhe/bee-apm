@@ -1,11 +1,11 @@
 package org.xi.lt.agent.plugin.handler;
 
 import com.alibaba.fastjson.JSON;
-import org.xi.lt.agent.common.BeeTraceContext;
-import org.xi.lt.agent.common.BeeUtils;
+import org.xi.lt.agent.common.LtTraceContext;
+import org.xi.lt.agent.common.LtUtils;
 import org.xi.lt.agent.common.SamplingUtil;
 import org.xi.lt.agent.common.SpanManager;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -58,7 +58,7 @@ public class LoggerHandler extends AbstractHandler {
             }
             if (arg instanceof Throwable) {
                 logBuff.append(parseThrowable((Throwable) arg));
-            } else if (BeeUtils.isPrimitive(arg)) {
+            } else if (LtUtils.isPrimitive(arg)) {
                 logBuff.append(arg);
             } else {
                 logBuff.append(JSON.toJSONString(arg));
@@ -67,7 +67,7 @@ public class LoggerHandler extends AbstractHandler {
         span.addTag("point", point + "." + extVal[1]);
         span.addTag("log", logBuff.toString());
         span.addTag("level", methodName);
-        BeeConfig.me().fillEnvInfo(span);
+        LtConfig.me().fillEnvInfo(span);
         ReporterFactory.report(span);
         return null;
     }
@@ -112,7 +112,7 @@ public class LoggerHandler extends AbstractHandler {
             String detailMessage = t.getMessage();
             if (messageField != null) {
                 try {
-                    messageField.set(t, "[" + BeeTraceContext.getGId() + "]" + detailMessage);
+                    messageField.set(t, "[" + LtTraceContext.getGId() + "]" + detailMessage);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

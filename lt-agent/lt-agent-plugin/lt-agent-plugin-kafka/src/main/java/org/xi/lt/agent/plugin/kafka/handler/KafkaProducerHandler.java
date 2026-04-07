@@ -4,7 +4,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.xi.lt.agent.common.*;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -48,7 +48,7 @@ public class KafkaProducerHandler extends AbstractHandler {
                 Headers headers = record.headers();
                 String traceId = SpanManager.getCurrentSpan() != null ? SpanManager.getCurrentSpan().getGid() : IdHelper.id();
                 String spanId = SpanManager.getCurrentSpan() != null ? SpanManager.getCurrentSpan().getId() : IdHelper.id();
-                String sourceApp = BeeConfig.me().getApp();
+                String sourceApp = LtConfig.me().getApp();
                 headers.add("traceId", traceId.getBytes(StandardCharsets.UTF_8));
                 headers.add("spanId", spanId.getBytes(StandardCharsets.UTF_8));
                 headers.add("sourceApp", sourceApp.getBytes(StandardCharsets.UTF_8));
@@ -84,7 +84,7 @@ public class KafkaProducerHandler extends AbstractHandler {
                 }
                 
                 // 上报Span
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
             return result;

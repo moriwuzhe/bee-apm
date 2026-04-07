@@ -17,11 +17,11 @@ MongoDB插件支持MongoDB操作的全链路追踪：
 ## 配置参数
 | 参数名称 | 默认值 | 说明 |
 |---------|--------|------|
-| bee.plugin.mongodb.enable | true | 是否开启MongoDB插件 |
-| bee.plugin.mongodb.collect.query | true | 是否采集查询条件 |
-| bee.plugin.mongodb.collect.result | false | 是否采集返回结果（默认关闭） |
-| bee.plugin.mongodb.command.max_length | 1000 | 命令JSON截断长度 |
-| bee.plugin.mongodb.slow_threshold | 500 | 慢查询阈值（毫秒） |
+| lt.plugin.mongodb.enable | true | 是否开启MongoDB插件 |
+| lt.plugin.mongodb.collect.query | true | 是否采集查询条件 |
+| lt.plugin.mongodb.collect.result | false | 是否采集返回结果（默认关闭） |
+| lt.plugin.mongodb.command.max_length | 1000 | 命令JSON截断长度 |
+| lt.plugin.mongodb.slow_threshold | 500 | 慢查询阈值（毫秒） |
 
 ## 埋点标签
 ### 通用标签
@@ -77,7 +77,7 @@ MongoDB插件支持MongoDB操作的全链路追踪：
 
 ### 2. 开启结果采集（可选）
 ```properties
-bee.plugin.mongodb.collect.result=true
+lt.plugin.mongodb.collect.result=true
 ```
 开启后会采集查询返回的结果JSON，最多采集前200字符。
 > ⚠️ 注意：开启结果采集可能会泄露敏感数据，同时会增加数据上报量，请在确认安全的场景下开启。
@@ -85,13 +85,13 @@ bee.plugin.mongodb.collect.result=true
 ### 3. 调整慢查询阈值
 ```properties
 # 调整慢查询阈值为1000毫秒
-bee.plugin.mongodb.slow_threshold=1000
+lt.plugin.mongodb.slow_threshold=1000
 ```
 
 ### 4. 关闭查询条件采集
 如果查询条件包含敏感信息，可以关闭采集：
 ```properties
-bee.plugin.mongodb.collect.query=false
+lt.plugin.mongodb.collect.query=false
 ```
 关闭后只会采集操作类型、库名、集合名，不会采集具体的查询条件。
 
@@ -121,7 +121,7 @@ A: 支持，事务内的多个操作会被独立采集，并且共享同一个Tr
 ### Q: 如何过滤不需要采集的集合？
 A: 可以通过配置集合黑名单：
 ```properties
-bee.plugin.mongodb.exclude.collections=system.*,temp_*,test_*,ignore_*
+lt.plugin.mongodb.exclude.collections=system.*,temp_*,test_*,ignore_*
 ```
 支持通配符 `*` 匹配，默认已经过滤了系统集合。
 

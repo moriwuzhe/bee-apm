@@ -12,7 +12,7 @@
     <artifactId>lt-monitor-server-core</artifactId>
     <packaging>jar</packaging>
     <name>lt-monitor-server-core</name>
-    <url>http://www.beeapm.net</url>
+    <url>http://www.ltmonitor.net</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

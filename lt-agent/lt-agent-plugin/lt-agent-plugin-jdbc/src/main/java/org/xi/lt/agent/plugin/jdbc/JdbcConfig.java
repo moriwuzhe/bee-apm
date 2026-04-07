@@ -1,10 +1,10 @@
 package org.xi.lt.agent.plugin.jdbc;
 
-import org.xi.lt.agent.config.AbstractBeeConfig;
-import org.xi.lt.agent.config.BeeConfigFactory;
+import org.xi.lt.agent.config.AbstractLtConfig;
+import org.xi.lt.agent.config.LtConfigFactory;
 import org.xi.lt.agent.config.ConfigUtils;
 
-public class JdbcConfig extends AbstractBeeConfig {
+public class JdbcConfig extends AbstractLtConfig {
     private static JdbcConfig config;
     private Boolean enableParam;
     private Boolean enable;
@@ -15,7 +15,7 @@ public class JdbcConfig extends AbstractBeeConfig {
             synchronized (JdbcConfig.class) {
                 if (config == null) {
                     config = new JdbcConfig();
-                    BeeConfigFactory.me().registryConfig("jdbc", config);
+                    LtConfigFactory.me().registryConfig("jdbc", config);
                 }
             }
         }

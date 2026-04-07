@@ -1,7 +1,7 @@
 package org.xi.lt.agent.plugin.thread;
 
-import org.xi.lt.agent.config.AbstractBeeConfig;
-import org.xi.lt.agent.config.BeeConfigFactory;
+import org.xi.lt.agent.config.AbstractLtConfig;
+import org.xi.lt.agent.config.LtConfigFactory;
 import org.xi.lt.agent.config.ConfigUtils;
 
 import java.util.ArrayList;
@@ -11,7 +11,7 @@ import java.util.List;
  * @author yuan
  * @date 2020/07/05
  */
-public class ThreadConfig extends AbstractBeeConfig {
+public class ThreadConfig extends AbstractLtConfig {
     private static ThreadConfig config;
     private Boolean enable;
     private List<String> excludeClassNameStartsWithList;
@@ -22,7 +22,7 @@ public class ThreadConfig extends AbstractBeeConfig {
             synchronized (ThreadConfig.class) {
                 if (config == null) {
                     config = new ThreadConfig();
-                    BeeConfigFactory.me().registryConfig("thread", config);
+                    LtConfigFactory.me().registryConfig("thread", config);
                 }
             }
         }

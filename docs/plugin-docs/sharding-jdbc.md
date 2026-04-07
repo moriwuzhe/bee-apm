@@ -16,10 +16,10 @@ Sharding-JDBC插件支持分库分表全场景链路追踪：
 ## 配置参数
 | 参数名称 | 默认值 | 说明 |
 |---------|--------|------|
-| bee.plugin.shardingjdbc.enable | true | 是否开启Sharding-JDBC插件 |
-| bee.plugin.shardingjdbc.collect.actual.sql | true | 是否采集实际执行的SQL |
-| bee.plugin.shardingjdbc.collect.route.detail | true | 是否采集详细路由信息 |
-| bee.plugin.shardingjdbc.sql.max_length | 1000 | SQL截断长度 |
+| lt.plugin.shardingjdbc.enable | true | 是否开启Sharding-JDBC插件 |
+| lt.plugin.shardingjdbc.collect.actual.sql | true | 是否采集实际执行的SQL |
+| lt.plugin.shardingjdbc.collect.route.detail | true | 是否采集详细路由信息 |
+| lt.plugin.shardingjdbc.sql.max_length | 1000 | SQL截断长度 |
 
 ## 埋点标签
 ### 分库分表执行标签
@@ -67,21 +67,21 @@ Sharding-JDBC插件支持分库分表全场景链路追踪：
 ### 2. 关闭实际SQL采集
 如果不需要采集每个分片实际执行的SQL，可以关闭：
 ```properties
-bee.plugin.shardingjdbc.collect.actual.sql=false
+lt.plugin.shardingjdbc.collect.actual.sql=false
 ```
 关闭后只会采集逻辑SQL和路由结果，不会采集每个分片的实际SQL。
 
 ### 3. 关闭详细路由信息采集
 如果分片数量很多，不需要采集每个分片的详细信息，可以关闭：
 ```properties
-bee.plugin.shardingjdbc.collect.route.detail=false
+lt.plugin.shardingjdbc.collect.route.detail=false
 ```
 关闭后只会统计路由到的数据源和表的数量，不会采集每个分片的详细信息，可以大幅减少上报数据量。
 
 ### 4. 调整SQL长度
 ```properties
 # 调整SQL最大长度为2000字符
-bee.plugin.shardingjdbc.sql.max_length=2000
+lt.plugin.shardingjdbc.sql.max_length=2000
 ```
 
 ## 支持的Sharding-JDBC功能
@@ -114,7 +114,7 @@ A: 不会，插件会自动识别是否已经被JDBC插件采集，避免重复�
 ### Q: 如何过滤不需要采集的逻辑表？
 A: 可以通过配置逻辑表黑名单：
 ```properties
-bee.plugin.shardingjdbc.exclude.logic_tables=temp_*,test_*,ignore_*
+lt.plugin.shardingjdbc.exclude.logic_tables=temp_*,test_*,ignore_*
 ```
 支持通配符 `*` 匹配，匹配到的逻辑表操作不会上报。
 

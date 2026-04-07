@@ -5,7 +5,7 @@ import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcContext;
 import org.xi.lt.agent.common.*;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -43,11 +43,11 @@ public class DubboConsumerHandler extends AbstractHandler {
             // 将链路信息传递到Provider端
             invocation.getAttachments().put(HeaderKey.GID, span.getGid());
             invocation.getAttachments().put(HeaderKey.PID, span.getId());
-            invocation.getAttachments().put(HeaderKey.CTAG, BeeTraceContext.getCTag());
-            invocation.getAttachments().put(HeaderKey.SRC_APP, BeeConfig.me().getApp());
+            invocation.getAttachments().put(HeaderKey.CTAG, LtTraceContext.getCTag());
+            invocation.getAttachments().put(HeaderKey.SRC_APP, LtConfig.me().getApp());
             
             // 创建拓扑Span
-            SpanManager.createTopologySpan(BeeConfig.me().getApp(), serviceName);
+            SpanManager.createTopologySpan(LtConfig.me().getApp(), serviceName);
             
             return span;
         } catch (Exception e) {
@@ -74,7 +74,7 @@ public class DubboConsumerHandler extends AbstractHandler {
                 }
                 
                 // 上报Span
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
             return result;

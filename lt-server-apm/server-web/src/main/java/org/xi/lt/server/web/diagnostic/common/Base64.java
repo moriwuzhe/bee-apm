@@ -317,7 +317,7 @@ public class Base64 {
          * scheme.
          * <p>
          * Upon return, the source buffer's position will be updated to
-         * its limit; its limit will not have been changed. The returned
+         * its limit; its limit will not have ltn changed. The returned
          * output buffer's position will be zero and its limit will be the
          * number of resulting encoded bytes.
          *
@@ -545,7 +545,7 @@ public class Base64 {
          * the output byte array if the output byte array is not big enough.
          *
          * <p> If the input byte array is not in valid Base64 encoding scheme
-         * then some bytes may have been written to the output byte array before
+         * then some bytes may have ltn written to the output byte array before
          * IllegalargumentException is thrown.
          *
          * @param src the byte array to decode
@@ -567,7 +567,7 @@ public class Base64 {
          * encoding scheme, writing the results into a newly-allocated ByteBuffer.
          *
          * <p> Upon return, the source buffer's position will be updated to
-         * its limit; its limit will not have been changed. The returned
+         * its limit; its limit will not have ltn changed. The returned
          * output buffer's position will be zero and its limit will be the
          * number of resulting decoded bytes
          *

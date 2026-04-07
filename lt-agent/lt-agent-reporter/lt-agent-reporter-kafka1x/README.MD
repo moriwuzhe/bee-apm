@@ -8,11 +8,11 @@ repoerter:
                 bootstrap.servers: 127.0.0.1:9092
                 linger.ms: 200
             topic: #span type和kafka topic映射关系
-                default: bee-default #配置默认topic，没有配置映射关系的，数据写到该topic
-                proc: bee-process
-                para: bee-process-param
-                sql: bee-sql
-                sqlp: bee-sql-param
-                req: bee-request
-                log: bee-logger
+                default: lt-default #配置默认topic，没有配置映射关系的，数据写到该topic
+                proc: lt-process
+                para: lt-process-param
+                sql: lt-sql
+                sqlp: lt-sql-param
+                req: lt-request
+                log: lt-logger
 ```

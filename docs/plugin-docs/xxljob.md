@@ -18,10 +18,10 @@ XXL-Job插件支持定时任务全生命周期的链路追踪：
 ## 配置参数
 | 参数名称 | 默认值 | 说明 |
 |---------|--------|------|
-| bee.plugin.xxljob.enable | true | 是否开启XXL-Job插件 |
-| bee.plugin.xxljob.collect.param | true | 是否采集任务参数 |
-| bee.plugin.xxljob.collect.callback | true | 是否采集任务结果回调事件 |
-| bee.plugin.xxljob.param.max_length | 200 | 任务参数截断长度 |
+| lt.plugin.xxljob.enable | true | 是否开启XXL-Job插件 |
+| lt.plugin.xxljob.collect.param | true | 是否采集任务参数 |
+| lt.plugin.xxljob.collect.callback | true | 是否采集任务结果回调事件 |
+| lt.plugin.xxljob.param.max_length | 200 | 任务参数截断长度 |
 
 ## 埋点标签
 ### 任务执行事件标签
@@ -74,14 +74,14 @@ XXL-Job插件支持定时任务全生命周期的链路追踪：
 ### 2. 关闭参数采集
 如果任务参数包含敏感信息，可以关闭参数采集：
 ```properties
-bee.plugin.xxljob.collect.param=false
+lt.plugin.xxljob.collect.param=false
 ```
 关闭后 `job_param` 标签将不会被采集。
 
 ### 3. 关闭回调采集
 如果不需要采集任务结果回调事件，可以关闭：
 ```properties
-bee.plugin.xxljob.collect.callback=false
+lt.plugin.xxljob.collect.callback=false
 ```
 
 ## 功能支持列表
@@ -112,7 +112,7 @@ A: 会的，任务执行抛出的异常会被捕获，并且记录在 `error_msg
 ### Q: 如何过滤不需要采集的任务？
 A: 可以通过配置任务名称黑名单：
 ```properties
-bee.plugin.xxljob.exclude.job_names=testJob,temp*,*ignore*
+lt.plugin.xxljob.exclude.job_names=testJob,temp*,*ignore*
 ```
 支持通配符 `*` 匹配，匹配到的任务执行不会上报。
 

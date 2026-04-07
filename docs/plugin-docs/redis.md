@@ -15,9 +15,9 @@ Redis插件支持所有主流Java Redis客户端的链路追踪：
 ## 配置参数
 | 参数名称 | 默认值 | 说明 |
 |---------|--------|------|
-| bee.plugin.redis.enable | true | 是否开启Redis插件 |
-| bee.plugin.redis.command.max_length | 100 | Redis命令截断长度（超过会截断） |
-| bee.plugin.redis.collect.values | false | 是否采集SET等命令的Value值（默认关闭） |
+| lt.plugin.redis.enable | true | 是否开启Redis插件 |
+| lt.plugin.redis.command.max_length | 100 | Redis命令截断长度（超过会截断） |
+| lt.plugin.redis.collect.values | false | 是否采集SET等命令的Value值（默认关闭） |
 
 ## 埋点标签
 | 标签名称 | 说明 |
@@ -36,7 +36,7 @@ Redis插件支持所有主流Java Redis客户端的链路追踪：
 
 ### 2. 开启Value采集（可选）
 ```properties
-bee.plugin.redis.collect.values=true
+lt.plugin.redis.collect.values=true
 ```
 
 开启后会额外采集Value标签：
@@ -49,7 +49,7 @@ bee.plugin.redis.collect.values=true
 ### 3. 命令长度调整
 ```properties
 # 调整Redis命令最大长度为200字符
-bee.plugin.redis.command.max_length=200
+lt.plugin.redis.command.max_length=200
 ```
 
 ## 支持的命令列表
@@ -72,10 +72,10 @@ PING、AUTH、SELECT等
 
 ## 常见问题
 ### Q: Redisson客户端不生效？
-A: 请确认Redisson版本在3.x以上，并且 `bee.plugin.redis.enable` 配置为 `true`。
+A: 请确认Redisson版本在3.x以上，并且 `lt.plugin.redis.enable` 配置为 `true`。
 
 ### Q: 如何过滤不需要采集的Key前缀？
 A: 可以通过配置Key前缀黑名单：
 ```properties
-bee.plugin.redis.exclude.prefixes=temp:,test:,ignore:
+lt.plugin.redis.exclude.prefixes=temp:,test:,ignore:
 ```

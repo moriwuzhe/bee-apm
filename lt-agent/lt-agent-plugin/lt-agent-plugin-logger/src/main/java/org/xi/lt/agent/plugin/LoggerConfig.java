@@ -1,13 +1,13 @@
 package org.xi.lt.agent.plugin;
 
-import org.xi.lt.agent.common.BeeUtils;
-import org.xi.lt.agent.config.AbstractBeeConfig;
-import org.xi.lt.agent.config.BeeConfigFactory;
+import org.xi.lt.agent.common.LtUtils;
+import org.xi.lt.agent.config.AbstractLtConfig;
+import org.xi.lt.agent.config.LtConfigFactory;
 import org.xi.lt.agent.config.ConfigUtils;
 
 import java.util.*;
 
-public class LoggerConfig extends AbstractBeeConfig {
+public class LoggerConfig extends AbstractLtConfig {
     private static LoggerConfig config;
     public static int LEVEL_TRACE = 0;
     public static int LEVEL_DEBUG = LEVEL_TRACE + 1;
@@ -27,7 +27,7 @@ public class LoggerConfig extends AbstractBeeConfig {
             synchronized (LoggerConfig.class) {
                 if (config == null) {
                     config = new LoggerConfig();
-                    BeeConfigFactory.me().registryConfig("logger", config);
+                    LtConfigFactory.me().registryConfig("logger", config);
                 }
             }
         }
@@ -77,12 +77,12 @@ public class LoggerConfig extends AbstractBeeConfig {
         }
         for (int i = 0; i < pointsList.size(); i++) {
             String item = pointsList.get(i);
-            if (BeeUtils.isNotBlank(item)) {
+            if (LtUtils.isNotBlank(item)) {
                 //没有日志级别，使用默认级别
                 if (!item.contains("|")) {
                     item = item + "|" + defLevel;
                 }
-                String[] array = BeeUtils.split(item, '|');
+                String[] array = LtUtils.split(item, '|');
                 Integer nLevel = levelMap.get(array[1]);
                 //为null时，日志级别配置配置错误，为error级别
                 if (nLevel == null) {

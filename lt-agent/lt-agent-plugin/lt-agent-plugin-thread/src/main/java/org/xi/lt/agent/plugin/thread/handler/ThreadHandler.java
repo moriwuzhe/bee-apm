@@ -1,6 +1,6 @@
 package org.xi.lt.agent.plugin.thread.handler;
 
-import org.xi.lt.agent.common.BeeTraceContext;
+import org.xi.lt.agent.common.LtTraceContext;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -8,9 +8,9 @@ import org.xi.lt.agent.model.TraceContextModel;
 import org.xi.lt.agent.plugin.handler.AbstractHandler;
 import org.xi.lt.agent.plugin.thread.ThreadConfig;
 import org.xi.lt.agent.plugin.thread.common.ThreadConst;
-import org.xi.lt.agent.plugin.thread.wrapper.BeeCallableWrapper;
-import org.xi.lt.agent.plugin.thread.wrapper.BeeRunnableWrapper;
-import org.xi.lt.agent.plugin.thread.wrapper.BeeForkJoinTaskWrapper;
+import org.xi.lt.agent.plugin.thread.wrapper.LtCallableWrapper;
+import org.xi.lt.agent.plugin.thread.wrapper.LtRunnableWrapper;
+import org.xi.lt.agent.plugin.thread.wrapper.LtForkJoinTaskWrapper;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ForkJoinTask;
@@ -28,9 +28,9 @@ public class ThreadHandler extends AbstractHandler {
             return null;
         }
         Object task = allArguments[0];
-        if (task instanceof BeeRunnableWrapper
-                || task instanceof BeeCallableWrapper
-                || task instanceof BeeForkJoinTaskWrapper) {
+        if (task instanceof LtRunnableWrapper
+                || task instanceof LtCallableWrapper
+                || task instanceof LtForkJoinTaskWrapper) {
             log.debug("thread-pool: class={},method={},handler=ignore", className, methodName);
             return null;
         } else {
@@ -38,14 +38,14 @@ public class ThreadHandler extends AbstractHandler {
         }
         Span span = new Span("t");
         //修改入参
-        TraceContextModel traceContextModel = BeeTraceContext.getOrNew().copy();
-        traceContextModel.setPid(BeeTraceContext.getCurrentId());
+        TraceContextModel traceContextModel = LtTraceContext.getOrNew().copy();
+        traceContextModel.setPid(LtTraceContext.getCurrentId());
         if (task instanceof Runnable) {
-            task = new BeeRunnableWrapper((Runnable) task, traceContextModel);
+            task = new LtRunnableWrapper((Runnable) task, traceContextModel);
         } else if (task instanceof Callable) {
-            task = new BeeCallableWrapper((Callable) task, traceContextModel);
-        } else if (task instanceof BeeForkJoinTaskWrapper) {
-            task = new BeeForkJoinTaskWrapper((ForkJoinTask) task, traceContextModel);
+            task = new LtCallableWrapper((Callable) task, traceContextModel);
+        } else if (task instanceof LtForkJoinTaskWrapper) {
+            task = new LtForkJoinTaskWrapper((ForkJoinTask) task, traceContextModel);
         }
         span.addTag(ThreadConst.KEY_TASK, task);
         return span;

@@ -18,11 +18,11 @@ Resilience4j插件支持所有韧性组件的事件采集：
 ## 配置参数
 | 参数名称 | 默认值 | 说明 |
 |---------|--------|------|
-| bee.plugin.resilience4j.enable | true | 是否开启Resilience4j插件 |
-| bee.plugin.resilience4j.collect.blocked.only | false | 是否只采集被拒绝的请求（默认采集所有） |
-| bee.plugin.resilience4j.collect.metrics | true | 是否采集Metrics指标 |
-| bee.plugin.resilience4j.metrics.interval | 60000 | 指标采集间隔（毫秒，默认1分钟） |
-| bee.plugin.resilience4j.components | circuitbreaker,ratelimiter,bulkhead,retry,timelimiter | 要采集的组件列表，逗号分隔 |
+| lt.plugin.resilience4j.enable | true | 是否开启Resilience4j插件 |
+| lt.plugin.resilience4j.collect.blocked.only | false | 是否只采集被拒绝的请求（默认采集所有） |
+| lt.plugin.resilience4j.collect.metrics | true | 是否采集Metrics指标 |
+| lt.plugin.resilience4j.metrics.interval | 60000 | 指标采集间隔（毫秒，默认1分钟） |
+| lt.plugin.resilience4j.components | circuitbreaker,ratelimiter,bulkhead,retry,timelimiter | 要采集的组件列表，逗号分隔 |
 
 ## 埋点标签
 ### 熔断器（CircuitBreaker）标签
@@ -105,7 +105,7 @@ Resilience4j插件支持所有韧性组件的事件采集：
 
 ### 2. 只采集拒绝事件（推荐生产使用）
 ```properties
-bee.plugin.resilience4j.collect.blocked.only=true
+lt.plugin.resilience4j.collect.blocked.only=true
 ```
 开启后只有被拒绝的请求才会上报，正常通过的请求不会上报，可以大幅减少上报数据量。
 
@@ -113,17 +113,17 @@ bee.plugin.resilience4j.collect.blocked.only=true
 如果只需要采集部分组件，可以配置：
 ```properties
 # 只采集熔断器和限流
-bee.plugin.resilience4j.components=circuitbreaker,ratelimiter
+lt.plugin.resilience4j.components=circuitbreaker,ratelimiter
 ```
 
 ### 4. 调整指标采集间隔
 ```properties
 # 调整指标采集间隔为5分钟
-bee.plugin.resilience4j.metrics.interval=300000
+lt.plugin.resilience4j.metrics.interval=300000
 ```
 不需要指标采集可以关闭：
 ```properties
-bee.plugin.resilience4j.collect.metrics=false
+lt.plugin.resilience4j.collect.metrics=false
 ```
 
 ## 支持的Resilience4j功能
@@ -149,7 +149,7 @@ A: 支持，无论是同步调用还是异步响应式调用都会被正确采�
 ### Q: 如何过滤不需要采集的组件？
 A: 可以通过配置组件名称黑名单：
 ```properties
-bee.plugin.resilience4j.exclude.names=test*,ignore*,temp-*
+lt.plugin.resilience4j.exclude.names=test*,ignore*,temp-*
 ```
 支持通配符 `*` 匹配，匹配到的组件事件不会上报。
 

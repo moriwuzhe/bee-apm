@@ -2,7 +2,7 @@ package org.xi.lt.agent.plugin.handler;
 
 import com.alibaba.fastjson.JSON;
 import org.xi.lt.agent.common.*;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.config.ConfigUtils;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
@@ -25,7 +25,7 @@ import java.io.IOException;
 public class ProcessHandler extends AbstractHandler {
     private static final ILog log = LogFactory.getLog(ProcessHandler.class.getSimpleName());
     private static final String KEY_ERROR_THROWABLE = "_ERROR_THROWABLE";
-    private static final String KEY_BEE_CHILD_ID = "_BEE_CHILD_ID";
+    private static final String KEY_LT_CHILD_ID = "_LT_CHILD_ID";
     private static final String KEY_ERROR_POINT = "_ERROR_POINT";
     private static final String KEY_PARAM = "_PARAM";
 
@@ -48,13 +48,13 @@ public class ProcessHandler extends AbstractHandler {
             return result;
         }
         Throwable childThrowable = (Throwable) span.getTag(KEY_ERROR_THROWABLE);
-        String childId = (String) span.getTag(KEY_BEE_CHILD_ID);
+        String childId = (String) span.getTag(KEY_LT_CHILD_ID);
         String childErrorPoint = (String) span.getTag(KEY_ERROR_POINT);
         String errorPoint = className + "." + methodName;
         String params = (String) span.getTag(KEY_PARAM);
         //清除暂存的异常信息
         span.removeTag(KEY_ERROR_THROWABLE);
-        span.removeTag(KEY_BEE_CHILD_ID);
+        span.removeTag(KEY_LT_CHILD_ID);
         span.removeTag(KEY_ERROR_POINT);
         span.removeTag(KEY_PARAM);
 
@@ -68,7 +68,7 @@ public class ProcessHandler extends AbstractHandler {
             sendParams(span.getId(), params);
             span.addTag("method", methodName).addTag("clazz", className);
             handleMethodSignature(span, (String) extVal[0]);
-            BeeConfig.me().fillEnvInfo(span);
+            LtConfig.me().fillEnvInfo(span);
             ReporterFactory.report(span);
         }
         //异常处理
@@ -98,14 +98,14 @@ public class ProcessHandler extends AbstractHandler {
             if (childThrowable == null && t != null) {
                 //暂存异常信息
                 parentSpan.addTag(KEY_ERROR_THROWABLE, t);
-                parentSpan.addTag(KEY_BEE_CHILD_ID, id);
+                parentSpan.addTag(KEY_LT_CHILD_ID, id);
                 parentSpan.addTag(KEY_ERROR_POINT, errorPoint);
                 return;
             } else if (childThrowable != null && t == null) {
                 sendError(childId, childErrorPoint, childThrowable);
             } else {
                 parentSpan.addTag(KEY_ERROR_THROWABLE, t);
-                parentSpan.addTag(KEY_BEE_CHILD_ID, id);
+                parentSpan.addTag(KEY_LT_CHILD_ID, id);
                 parentSpan.addTag(KEY_ERROR_POINT, errorPoint);
                 if (t != childThrowable && t.getCause() != childThrowable) {
                     sendError(childId, childErrorPoint, childThrowable);
@@ -127,9 +127,9 @@ public class ProcessHandler extends AbstractHandler {
     public void sendError(String id, String errorPoint, Throwable t) {
         if (ProcessConfig.me().isEnableError() && ProcessConfig.me().checkErrorPoint(errorPoint)) {
             Span err = new Span(SpanType.ERROR);
-            BeeConfig.me().fillEnvInfo(err);
+            LtConfig.me().fillEnvInfo(err);
             err.setId(id);
-            err.setGid(BeeTraceContext.getGId());
+            err.setGid(LtTraceContext.getGId());
             err.addTag("desc", formatThrowable(t));
             ReporterFactory.report(err);
         }

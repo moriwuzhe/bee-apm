@@ -5,7 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import org.xi.lt.common.annotation.LtPlugin;
 import org.xi.lt.common.annotation.LtPluginType;
 import org.xi.lt.agent.boot.AbstractBootPlugin;
-import org.xi.lt.agent.common.BeeUtils;
+import org.xi.lt.agent.common.LtUtils;
 import org.xi.lt.agent.common.SysPropKey;
 import org.xi.lt.agent.log.LogUtil;
 
@@ -25,9 +25,9 @@ public class ApolloBootPlugin extends AbstractBootPlugin {
         try {
             //{config_server_url}/configs/{appId}/{clusterName}/{namespaceName}?releaseKey={releaseKey}&ip={clientIp}
             String namespaceName = "config.yml";
-            String configPath = System.getProperty(SysPropKey.BEE_CONFIG);
+            String configPath = System.getProperty(SysPropKey.LT_CONFIG);
             if (configPath == null) {
-                configPath = BeeUtils.getJarDirPath() + "/" + namespaceName;
+                configPath = LtUtils.getJarDirPath() + "/" + namespaceName;
             }
             String env = System.getProperty("env");
             if (env == null) {
@@ -45,7 +45,7 @@ public class ApolloBootPlugin extends AbstractBootPlugin {
                 return;
             }
 
-            String ip = System.getProperty(SysPropKey.BEE_IP);
+            String ip = System.getProperty(SysPropKey.LT_IP);
             url = url + "/configs/" + appId + "/" + clusterName + "/" + namespaceName;
             System.out.println(url);
             String result = sendHttpGet(url, ip);

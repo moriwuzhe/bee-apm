@@ -4,7 +4,7 @@ import io.github.resilience4j.bulkhead.Bulkhead;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import org.xi.lt.agent.common.*;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -57,7 +57,7 @@ public class Resilience4jHandler extends AbstractHandler {
                     span.addTag("action", "reject_request");
                     span.addTag("state", state.name());
                     span.setSpend(cost);
-                    BeeConfig.me().fillEnvInfo(span);
+                    LtConfig.me().fillEnvInfo(span);
                     ReporterFactory.report(span);
                 }
             } else if (methodName.equals("onSuccess")) {
@@ -68,7 +68,7 @@ public class Resilience4jHandler extends AbstractHandler {
                 span.addTag("action", "mark_success");
                 span.addTag("state", state.name());
                 span.setSpend(cost);
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             } else if (methodName.equals("onError")) {
                 // 调用失败
@@ -81,7 +81,7 @@ public class Resilience4jHandler extends AbstractHandler {
                     span.addTag("error_msg", ((Throwable) allArguments[0]).getMessage());
                 }
                 span.setSpend(cost);
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
             
@@ -94,7 +94,7 @@ public class Resilience4jHandler extends AbstractHandler {
                 span.addTag("slow_call_rate", String.valueOf(circuitBreaker.getMetrics().getSlowCallRate()));
                 span.addTag("number_of_buffered_calls", String.valueOf(circuitBreaker.getMetrics().getNumberOfBufferedCalls()));
                 span.setSpend(cost);
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         } catch (Exception e) {
@@ -127,7 +127,7 @@ public class Resilience4jHandler extends AbstractHandler {
                     span.addTag("available_permissions", String.valueOf(rateLimiter.getMetrics().getAvailablePermissions()));
                     span.addTag("waiting_threads", String.valueOf(rateLimiter.getMetrics().getNumberOfWaitingThreads()));
                     span.setSpend(cost);
-                    BeeConfig.me().fillEnvInfo(span);
+                    LtConfig.me().fillEnvInfo(span);
                     ReporterFactory.report(span);
                 }
             }
@@ -161,7 +161,7 @@ public class Resilience4jHandler extends AbstractHandler {
                     span.addTag("available_concurrent_calls", String.valueOf(bulkhead.getMetrics().getAvailableConcurrentCalls()));
                     span.addTag("max_allowed_concurrent_calls", String.valueOf(bulkhead.getBulkheadConfig().getMaxConcurrentCalls()));
                     span.setSpend(cost);
-                    BeeConfig.me().fillEnvInfo(span);
+                    LtConfig.me().fillEnvInfo(span);
                     ReporterFactory.report(span);
                 }
             }

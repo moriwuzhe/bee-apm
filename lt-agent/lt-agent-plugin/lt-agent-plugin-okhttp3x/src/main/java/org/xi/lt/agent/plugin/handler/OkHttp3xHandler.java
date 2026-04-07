@@ -1,8 +1,8 @@
 package org.xi.lt.agent.plugin.handler;
 
-import org.xi.lt.agent.common.BeeTraceContext;
+import org.xi.lt.agent.common.LtTraceContext;
 import org.xi.lt.agent.common.HeaderKey;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -17,12 +17,12 @@ public class OkHttp3xHandler extends AbstractHandler {
         try {
             if(allArguments[0] != null && allArguments[0] instanceof okhttp3.Request.Builder){
                 okhttp3.Request.Builder builder = (okhttp3.Request.Builder)allArguments[0];
-                builder.header(HeaderKey.GID, BeeTraceContext.getGId());
-                builder.header(HeaderKey.PID,BeeTraceContext.getCurrentId());
-                builder.header(HeaderKey.SRC_APP, BeeConfig.me().getApp());
-                builder.header(HeaderKey.SRC_INST, BeeConfig.me().getInst());
-                if(BeeTraceContext.getCTag() != null) {
-                    builder.header(HeaderKey.CTAG, BeeTraceContext.getCTag());
+                builder.header(HeaderKey.GID, LtTraceContext.getGId());
+                builder.header(HeaderKey.PID,LtTraceContext.getCurrentId());
+                builder.header(HeaderKey.SRC_APP, LtConfig.me().getApp());
+                builder.header(HeaderKey.SRC_INST, LtConfig.me().getInst());
+                if(LtTraceContext.getCTag() != null) {
+                    builder.header(HeaderKey.CTAG, LtTraceContext.getCTag());
                 }
             }
         }catch (Exception e){

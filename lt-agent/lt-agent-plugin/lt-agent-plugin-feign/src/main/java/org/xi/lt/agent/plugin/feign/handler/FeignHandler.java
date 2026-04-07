@@ -3,7 +3,7 @@ package org.xi.lt.agent.plugin.feign.handler;
 import feign.Request;
 import feign.Response;
 import org.xi.lt.agent.common.*;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -42,7 +42,7 @@ public class FeignHandler extends AbstractHandler {
                 Map<String, Collection<String>> headers = request.headers();
                 String traceId = SpanManager.getCurrentSpan() != null ? SpanManager.getCurrentSpan().getGid() : IdHelper.id();
                 String spanId = SpanManager.getCurrentSpan() != null ? SpanManager.getCurrentSpan().getId() : IdHelper.id();
-                String sourceApp = BeeConfig.me().getApp();
+                String sourceApp = LtConfig.me().getApp();
                 headers.put("traceId", Collections.singletonList(traceId));
                 headers.put("spanId", Collections.singletonList(spanId));
                 headers.put("sourceApp", Collections.singletonList(sourceApp));
@@ -95,7 +95,7 @@ public class FeignHandler extends AbstractHandler {
                 }
                 
                 // 上报Span
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
             return result;

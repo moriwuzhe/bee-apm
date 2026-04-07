@@ -1,6 +1,6 @@
 {
   "order": 1,
-  "template": "bee-*",
+  "template": "lt-*",
   "settings": {
     "index": {
       "max_result_window": "1000000",

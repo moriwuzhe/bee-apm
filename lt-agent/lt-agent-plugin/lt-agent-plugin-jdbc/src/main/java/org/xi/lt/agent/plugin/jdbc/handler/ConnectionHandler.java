@@ -1,6 +1,6 @@
 package org.xi.lt.agent.plugin.jdbc.handler;
 
-import org.xi.lt.agent.common.BeeTraceContext;
+import org.xi.lt.agent.common.LtTraceContext;
 import org.xi.lt.agent.common.SamplingUtil;
 import org.xi.lt.agent.common.SpanManager;
 import org.xi.lt.agent.log.ILog;
@@ -19,7 +19,7 @@ public class ConnectionHandler extends AbstractHandler {
             return null;
         }
         Span span = JdbcContext.getJdbcSpan();
-        String gid = BeeTraceContext.getGId();
+        String gid = LtTraceContext.getGId();
         //如果gid相等，那么调用过名称相同参数签名不一样的方法，属于二次调用,不需要再采集了
         if(span == null || !gid.equals(span.getGid())) {
             span = SpanManager.createLocalSpan(SpanType.SQL);

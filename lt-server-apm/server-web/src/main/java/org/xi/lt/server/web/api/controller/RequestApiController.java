@@ -64,7 +64,7 @@ public class RequestApiController {
         if ("spend".equals(sort)) sortField = "spend";
 
         try {
-            EsSearchService.PageSearchResult r = es.searchPage("bee-request-*", q, sortField, SortOrder.DESC, (pageNum - 1) * PAGE_SIZE, PAGE_SIZE);
+            EsSearchService.PageSearchResult r = es.searchPage("lt-request-*", q, sortField, SortOrder.DESC, (pageNum - 1) * PAGE_SIZE, PAGE_SIZE);
             return new PageResult<>(r.rows, pageNum, (int) r.total);
         } catch (Exception e) {
             return PageResult.empty(pageNum);
@@ -102,7 +102,7 @@ public class RequestApiController {
     }
 
     private Map<String, Object> buildCallTree(String gid, long beginMs, long endMs) throws Exception {
-        List<Map<String, Object>> reqs = searchByGid("bee-request-*", "req", gid, beginMs, endMs, 2000);
+        List<Map<String, Object>> reqs = searchByGid("lt-request-*", "req", gid, beginMs, endMs, 2000);
         if (reqs.isEmpty()) return new HashMap<>();
         Map<String, Object> rootSpan = reqs.get(0);
         Map<String, Object> root = new HashMap<>();
@@ -114,7 +114,7 @@ public class RequestApiController {
         root.put("children", new ArrayList<>());
 
         String rootId = asString(rootSpan.get("id"));
-        List<Map<String, Object>> procs = searchByPid("bee-process-*", "proc", gid, rootId, beginMs, endMs, 5000);
+        List<Map<String, Object>> procs = searchByPid("lt-process-*", "proc", gid, rootId, beginMs, endMs, 5000);
         List<Map<String, Object>> children = (List<Map<String, Object>>) root.get("children");
         for (Map<String, Object> p : procs) {
             Map<String, Object> node = new HashMap<>();
@@ -127,7 +127,7 @@ public class RequestApiController {
             children.add(node);
 
             String pid = asString(p.get("id"));
-            List<Map<String, Object>> sqls = searchByPid("bee-sql-*", "sql", gid, pid, beginMs, endMs, 5000);
+            List<Map<String, Object>> sqls = searchByPid("lt-sql-*", "sql", gid, pid, beginMs, endMs, 5000);
             List<Map<String, Object>> c2 = (List<Map<String, Object>>) node.get("children");
             for (Map<String, Object> s : sqls) {
                 Map<String, Object> n2 = new HashMap<>();
@@ -144,7 +144,7 @@ public class RequestApiController {
     }
 
     private Map<String, Object> buildTopology(String gid, long beginMs, long endMs) throws Exception {
-        List<Map<String, Object>> reqs = searchByGid("bee-request-*", "req", gid, beginMs, endMs, 2000);
+        List<Map<String, Object>> reqs = searchByGid("lt-request-*", "req", gid, beginMs, endMs, 2000);
         if (reqs.isEmpty()) return new HashMap<>();
         Map<String, Object> r = reqs.get(0);
         String app = asString(r.get("app"));

@@ -1,6 +1,6 @@
 package org.xi.lt.agent.reporter.okhttp;
 
-import org.xi.lt.agent.common.BeeUtils;
+import org.xi.lt.agent.common.LtUtils;
 import org.xi.lt.agent.config.ConfigUtils;
 import okhttp3.*;
 
@@ -80,7 +80,7 @@ public class OkHttpHelper {
             Request.Builder builder = new Request.Builder().post(body).url(uri);
             if(header != null && !header.isEmpty()){
                 for (Map.Entry<String, String> entry : header.entrySet()) {
-                    if(BeeUtils.isNotBlank(entry.getKey()) && BeeUtils.isNotBlank(entry.getValue())) {
+                    if(LtUtils.isNotBlank(entry.getKey()) && LtUtils.isNotBlank(entry.getValue())) {
                         builder.addHeader(entry.getKey(), entry.getValue());
                     }
                 }

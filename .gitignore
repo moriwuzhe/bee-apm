@@ -20,7 +20,7 @@ weaving-class/
 plugins/
 package/reporter/
 boot-plugins/
-bee*.jar
+lt*.jar
 
 # Logs
 *.log

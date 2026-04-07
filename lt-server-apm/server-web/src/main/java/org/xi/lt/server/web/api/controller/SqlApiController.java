@@ -46,7 +46,7 @@ public class SqlApiController {
         if ("count".equals(sort)) sortField = "tags.count";
 
         try {
-            EsSearchService.PageSearchResult r = es.searchPage("bee-sql-*", q, sortField, SortOrder.DESC, (pageNum - 1) * PAGE_SIZE, PAGE_SIZE);
+            EsSearchService.PageSearchResult r = es.searchPage("lt-sql-*", q, sortField, SortOrder.DESC, (pageNum - 1) * PAGE_SIZE, PAGE_SIZE);
             return new PageResult<>(r.rows, pageNum, (int) r.total);
         } catch (Exception e) {
             return PageResult.empty(pageNum);

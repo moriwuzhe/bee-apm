@@ -22,7 +22,7 @@
     </dependencies>
 
     <build>
-        <finalName>bee-agent-plugin-springtx</finalName>
+        <finalName>lt-agent-plugin-springtx</finalName>
     </build>
 
 </project>

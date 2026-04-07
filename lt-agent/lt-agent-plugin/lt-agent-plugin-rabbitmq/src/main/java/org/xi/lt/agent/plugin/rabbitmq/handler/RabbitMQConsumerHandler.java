@@ -4,7 +4,7 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Envelope;
 import org.springframework.amqp.core.Message;
 import org.xi.lt.agent.common.*;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -49,10 +49,10 @@ public class RabbitMQConsumerHandler extends AbstractHandler {
                     String traceId = (String) headers.get("traceId");
                     String spanId = (String) headers.get("spanId");
                     if (traceId != null) {
-                        BeeTraceContext.setGId(traceId);
+                        LtTraceContext.setGId(traceId);
                     }
                     if (spanId != null) {
-                        BeeTraceContext.setPId(spanId);
+                        LtTraceContext.setPId(spanId);
                     }
                 }
             } else if (methodName.equals("onMessage")) {
@@ -71,10 +71,10 @@ public class RabbitMQConsumerHandler extends AbstractHandler {
                     String traceId = (String) headers.get("traceId");
                     String spanId = (String) headers.get("spanId");
                     if (traceId != null) {
-                        BeeTraceContext.setGId(traceId);
+                        LtTraceContext.setGId(traceId);
                     }
                     if (spanId != null) {
-                        BeeTraceContext.setPId(spanId);
+                        LtTraceContext.setPId(spanId);
                     }
                 }
             }
@@ -104,7 +104,7 @@ public class RabbitMQConsumerHandler extends AbstractHandler {
                 }
                 
                 // 上报Span
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
             return result;

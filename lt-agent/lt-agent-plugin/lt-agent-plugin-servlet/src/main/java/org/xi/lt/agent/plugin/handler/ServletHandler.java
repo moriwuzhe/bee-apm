@@ -2,13 +2,13 @@ package org.xi.lt.agent.plugin.handler;
 
 import com.alibaba.fastjson.JSON;
 import org.xi.lt.agent.common.*;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
 import org.xi.lt.agent.model.SpanType;
-import org.xi.lt.agent.plugin.common.BeeHttpServletRequestWrapper;
-import org.xi.lt.agent.plugin.common.BeeHttpServletResponseWrapper;
+import org.xi.lt.agent.plugin.common.LtHttpServletRequestWrapper;
+import org.xi.lt.agent.plugin.common.LtHttpServletResponseWrapper;
 import org.xi.lt.agent.plugin.ServletConfig;
 import org.xi.lt.agent.plugin.common.servlet.Const;
 import org.xi.lt.agent.reporter.ReporterFactory;
@@ -39,9 +39,9 @@ public class ServletHandler extends AbstractHandler {
         }
         Span currSpan = SpanManager.getCurrentSpan();
         if (currSpan == null || !currSpan.getType().equals(SpanType.REQUEST)) {
-            BeeTraceContext.setGId(request.getHeader(HeaderKey.GID));
-            BeeTraceContext.setPId(request.getHeader(HeaderKey.PID));
-            BeeTraceContext.setCTag(request.getHeader(HeaderKey.CTAG));
+            LtTraceContext.setGId(request.getHeader(HeaderKey.GID));
+            LtTraceContext.setPId(request.getHeader(HeaderKey.PID));
+            LtTraceContext.setCTag(request.getHeader(HeaderKey.CTAG));
             Span span = SpanManager.createEntrySpan(SpanType.REQUEST);
             String srcApp = request.getHeader(HeaderKey.SRC_APP);
             if (srcApp == null) {
@@ -49,17 +49,17 @@ public class ServletHandler extends AbstractHandler {
             }
             span.addTag("srcApp", srcApp);
             span.addTag("srcInst", request.getHeader(HeaderKey.SRC_INST));
-            if (ServletConfig.me().isEnableRespBody() && !resp.getClass().getSimpleName().equals(Const.CLASS_BEE_HTTP_SERVLET_RESPONSE_WRAPPER)) {
-                BeeHttpServletResponseWrapper wrapper = new BeeHttpServletResponseWrapper(resp);
+            if (ServletConfig.me().isEnableRespBody() && !resp.getClass().getSimpleName().equals(Const.CLASS_LT_HTTP_SERVLET_RESPONSE_WRAPPER)) {
+                LtHttpServletResponseWrapper wrapper = new LtHttpServletResponseWrapper(resp);
                 //在ServletAdvice里取出来要清除掉
                 span.addTag(Const.KEY_RESP_WRAPPER, wrapper);
             }
-            if (ServletConfig.me().isEnableReqBody() && !resp.getClass().getSimpleName().equals(Const.CLASS_BEE_HTTP_SERVLET_REQUEST_RAPPER)) {
-                BeeHttpServletRequestWrapper wrapper = new BeeHttpServletRequestWrapper(request);
+            if (ServletConfig.me().isEnableReqBody() && !resp.getClass().getSimpleName().equals(Const.CLASS_LT_HTTP_SERVLET_REQUEST_RAPPER)) {
+                LtHttpServletRequestWrapper wrapper = new LtHttpServletRequestWrapper(request);
                 //在ServletAdvice里取出来要清除掉
                 span.addTag(Const.KEY_REQ_WRAPPER, wrapper);
             }
-            SpanManager.createTopologySpan(request.getHeader(HeaderKey.SRC_APP), BeeConfig.me().getApp());
+            SpanManager.createTopologySpan(request.getHeader(HeaderKey.SRC_APP), LtConfig.me().getApp());
             return span;
         }
         return null;
@@ -86,7 +86,7 @@ public class ServletHandler extends AbstractHandler {
                 response.setHeader(HeaderKey.GID, span.getGid());
                 //返回id，用于跟踪
                 response.setHeader(HeaderKey.ID, span.getId());
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
                 //采集参数
                 collectRequestParameter(span, request);
@@ -137,8 +137,8 @@ public class ServletHandler extends AbstractHandler {
      * @param request
      */
     private void collectRequestBody(Span span, HttpServletRequest request) {
-        if (request instanceof BeeHttpServletRequestWrapper) {
-            BeeHttpServletRequestWrapper wrapper = (BeeHttpServletRequestWrapper) request;
+        if (request instanceof LtHttpServletRequestWrapper) {
+            LtHttpServletRequestWrapper wrapper = (LtHttpServletRequestWrapper) request;
             Span bodySpan = new Span(SpanType.REQUEST_BODY);
             bodySpan.setId(span.getId());
             String body = new String(wrapper.getBody());
@@ -180,13 +180,13 @@ public class ServletHandler extends AbstractHandler {
      * @param resp
      */
     private void collectResponseBody(Span span, HttpServletResponse resp) {
-        if (resp instanceof BeeHttpServletResponseWrapper) {
-            BeeHttpServletResponseWrapper beeResp = (BeeHttpServletResponseWrapper) resp;
+        if (resp instanceof LtHttpServletResponseWrapper) {
+            LtHttpServletResponseWrapper ltResp = (LtHttpServletResponseWrapper) resp;
             //触发原有的输出
-            beeResp.writeOriginOutputStream();
+            ltResp.writeOriginOutputStream();
             Span respSpan = new Span(SpanType.RESPONSE_BODY);
             respSpan.setId(span.getId());
-            byte[] body = beeResp.toByteArray();
+            byte[] body = ltResp.toByteArray();
             if (body != null && body.length > 0) {
                 respSpan.addTag("body", new String(body));
                 ReporterFactory.report(respSpan);

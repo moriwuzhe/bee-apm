@@ -18,11 +18,11 @@ Elasticsearch插件支持Elasticsearch操作的全链路追踪：
 ## 配置参数
 | 参数名称 | 默认值 | 说明 |
 |---------|--------|------|
-| bee.plugin.elasticsearch.enable | true | 是否开启Elasticsearch插件 |
-| bee.plugin.elasticsearch.collect.query | true | 是否采集查询DSL |
-| bee.plugin.elasticsearch.collect.result | false | 是否采集返回结果（默认关闭） |
-| bee.plugin.elasticsearch.dsl.max_length | 1000 | 查询DSL截断长度 |
-| bee.plugin.elasticsearch.slow_threshold | 1000 | 慢查询阈值（毫秒） |
+| lt.plugin.elasticsearch.enable | true | 是否开启Elasticsearch插件 |
+| lt.plugin.elasticsearch.collect.query | true | 是否采集查询DSL |
+| lt.plugin.elasticsearch.collect.result | false | 是否采集返回结果（默认关闭） |
+| lt.plugin.elasticsearch.dsl.max_length | 1000 | 查询DSL截断长度 |
+| lt.plugin.elasticsearch.slow_threshold | 1000 | 慢查询阈值（毫秒） |
 
 ## 埋点标签
 ### 通用标签
@@ -87,7 +87,7 @@ Elasticsearch插件支持Elasticsearch操作的全链路追踪：
 
 ### 2. 开启结果采集（可选）
 ```properties
-bee.plugin.elasticsearch.collect.result=true
+lt.plugin.elasticsearch.collect.result=true
 ```
 开启后会采集查询返回的结果JSON，最多采集前200字符。
 > ⚠️ 注意：开启结果采集可能会泄露敏感数据，同时会增加数据上报量，请在确认安全的场景下开启。
@@ -95,13 +95,13 @@ bee.plugin.elasticsearch.collect.result=true
 ### 3. 调整慢查询阈值
 ```properties
 # 调整慢查询阈值为2000毫秒
-bee.plugin.elasticsearch.slow_threshold=2000
+lt.plugin.elasticsearch.slow_threshold=2000
 ```
 
 ### 4. 关闭查询DSL采集
 如果查询DSL包含敏感信息，可以关闭采集：
 ```properties
-bee.plugin.elasticsearch.collect.query=false
+lt.plugin.elasticsearch.collect.query=false
 ```
 关闭后只会采集操作类型、索引名，不会采集具体的查询DSL内容。
 
@@ -131,7 +131,7 @@ A: 支持，批量操作会统计操作总数、成功数量、失败数量，�
 ### Q: 如何过滤不需要采集的索引？
 A: 可以通过配置索引黑名单：
 ```properties
-bee.plugin.elasticsearch.exclude.indexes=.kibana*,.security*,test_*,temp_*,ignore_*
+lt.plugin.elasticsearch.exclude.indexes=.kibana*,.security*,test_*,temp_*,ignore_*
 ```
 支持通配符 `*` 匹配，默认已经过滤了系统索引和Kibana索引。
 

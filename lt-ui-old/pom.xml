@@ -13,7 +13,7 @@
 
 	<name>lt-monitor-ui</name>
 	<modules>
-		<module>bee-apm-ui-server</module>
+		<module>lt-monitor-ui-server</module>
 	</modules>
 
 	<build>

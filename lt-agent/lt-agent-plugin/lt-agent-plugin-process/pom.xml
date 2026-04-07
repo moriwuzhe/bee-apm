@@ -12,7 +12,7 @@
     <artifactId>lt-agent-plugin-process</artifactId>
     <packaging>jar</packaging>
     <build>
-        <finalName>bee-agent-plugin-process</finalName>
+        <finalName>lt-agent-plugin-process</finalName>
     </build>
 
 </project>

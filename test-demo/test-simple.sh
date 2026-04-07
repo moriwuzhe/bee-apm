@@ -17,28 +17,28 @@ if [ ! -d "${PLUGINS_DIR}" ]; then
     exit 1
 fi
 
-echo "✅ Bee-APM Agent 检查通过"
+echo "✅ Lt-APM Agent 检查通过"
 echo "Agent路径: ${AGENT_JAR}"
 echo "插件数量: $(ls ${PLUGINS_DIR} | wc -l) 个"
 
 # 创建临时配置文件
-cat > /tmp/bee-apm-test.properties << EOF
-bee.app.name=bee-apm-test-demo
-bee.agent.enable=true
-bee.reporter.type=console
-bee.reporter.console.output=true
-bee.plugin.dir=${PLUGINS_DIR}
-bee.log.level=DEBUG
+cat > /tmp/lt-monitor-test.properties << EOF
+lt.app.name=lt-monitor-test-demo
+lt.agent.enable=true
+lt.reporter.type=console
+lt.reporter.console.output=true
+lt.plugin.dir=${PLUGINS_DIR}
+lt.log.level=DEBUG
 EOF
 
 echo "✅ 测试配置文件已生成"
 
 # 启动测试应用，只跑10秒就退出
-echo "🚀 启动测试应用，挂载Bee-APM Agent..."
+echo "🚀 启动测试应用，挂载Lt-APM Agent..."
 java -Xms256m -Xmx256m \
 -javaagent:${AGENT_JAR} \
--Dbee.config.file=/tmp/bee-apm-test.properties \
--jar target/bee-apm-test-demo-1.0.0.jar &
+-Dlt.config.file=/tmp/lt-monitor-test.properties \
+-jar target/lt-monitor-test-demo-1.0.0.jar &
 APP_PID=$!
 
 # 等待应用启动
@@ -58,7 +58,7 @@ kill ${APP_PID}
 wait ${APP_PID} 2>/dev/null
 
 # 清理临时文件
-rm -f /tmp/bee-apm-test.properties
+rm -f /tmp/lt-monitor-test.properties
 
 echo "🎉 简化版全流程测试完成！"
 echo "如果控制台输出了采集到的Span信息，说明Agent基础功能正常工作~"

@@ -6,7 +6,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
- * 用于LT监控系统的log组件还没初始化前的日志打印，日志内容输出到{user.home}/logs/bee.log文件里，并输出到控制台中<br/>
+ * 用于LT监控系统的log组件还没初始化前的日志打印，日志内容输出到{user.home}/logs/lt.log文件里，并输出到控制台中<br/>
  * 比如LT监控系统启动时候的日志输出<br/>
  * 其它地方请使用 LogFactory  获取 Log 对象进行日志打印<br/>
  *
@@ -60,7 +60,7 @@ public class LogUtil {
     public static void log(String msg) {
         try {
             StringBuilder sb = new StringBuilder();
-            sb.append("[BEE][").append(dateFmt.format(new Date())).append("] ").append(msg);
+            sb.append("[LT][").append(dateFmt.format(new Date())).append("] ").append(msg);
             write(sb.toString());
         } catch (Exception e) {
             e.printStackTrace();

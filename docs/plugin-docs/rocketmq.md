@@ -18,10 +18,10 @@ RocketMQ插件支持消息生产和消费两端的全链路追踪：
 ## 配置参数
 | 参数名称 | 默认值 | 说明 |
 |---------|--------|------|
-| bee.plugin.rocketmq.enable | true | 是否开启RocketMQ插件 |
-| bee.plugin.rocketmq.collect.properties | true | 是否采集消息属性 |
-| bee.plugin.rocketmq.collect.body | false | 是否采集消息体（默认关闭，避免敏感信息泄露） |
-| bee.plugin.rocketmq.body.max_length | 200 | 消息体截断长度 |
+| lt.plugin.rocketmq.enable | true | 是否开启RocketMQ插件 |
+| lt.plugin.rocketmq.collect.properties | true | 是否采集消息属性 |
+| lt.plugin.rocketmq.collect.body | false | 是否采集消息体（默认关闭，避免敏感信息泄露） |
+| lt.plugin.rocketmq.body.max_length | 200 | 消息体截断长度 |
 
 ## 埋点标签
 ### 通用标签
@@ -88,7 +88,7 @@ RocketMQ插件支持消息生产和消费两端的全链路追踪：
 
 ### 2. 开启消息体采集（谨慎开启）
 ```properties
-bee.plugin.rocketmq.collect.body=true
+lt.plugin.rocketmq.collect.body=true
 ```
 开启后会采集消息体内容，最多采集配置的截断长度。
 > ⚠️ **安全警告**：消息体通常包含业务敏感数据，开启前请确认不会泄露用户隐私、密码、Token等敏感信息。
@@ -96,13 +96,13 @@ bee.plugin.rocketmq.collect.body=true
 ### 3. 关闭消息属性采集
 如果不需要采集消息自定义属性，可以关闭：
 ```properties
-bee.plugin.rocketmq.collect.properties=false
+lt.plugin.rocketmq.collect.properties=false
 ```
 
 ### 4. 配置属性黑名单
 可以配置不需要采集的消息属性：
 ```properties
-bee.plugin.rocketmq.exclude.properties=secret,token,password,*key*
+lt.plugin.rocketmq.exclude.properties=secret,token,password,*key*
 ```
 支持通配符 `*` 匹配，匹配到的属性不会被采集。
 
@@ -132,7 +132,7 @@ RocketMQ插件会自动在消息属性中添加以下链路追踪属性：
 ## 常见问题
 ### Q: 上下文透传不生效？
 A: 请检查：
-1. 确认生产者和消费者都接入了Bee-APM Agent
+1. 确认生产者和消费者都接入了Lt-APM Agent
 2. 确认RocketMQ版本在4.3.x以上（支持消息属性）
 3. 确认没有自定义的消息过滤器过滤了链路属性
 
@@ -146,7 +146,7 @@ A: 事务消息会被采集三次：
 ### Q: 如何过滤不需要采集的Topic？
 A: 可以通过配置Topic黑名单：
 ```properties
-bee.plugin.rocketmq.exclude.topics=RMQ_SYS_*,test_topic,temp_*,%DLQ%
+lt.plugin.rocketmq.exclude.topics=RMQ_SYS_*,test_topic,temp_*,%DLQ%
 ```
 支持通配符 `*` 匹配，默认已经过滤了系统Topic和死信队列Topic。
 

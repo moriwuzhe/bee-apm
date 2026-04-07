@@ -18,11 +18,11 @@ Hystrix插件支持熔断器全场景事件采集：
 ## 配置参数
 | 参数名称 | 默认值 | 说明 |
 |---------|--------|------|
-| bee.plugin.hystrix.enable | true | 是否开启Hystrix插件 |
-| bee.plugin.hystrix.collect.blocked.only | false | 是否只采集被拒绝的请求（默认采集所有） |
-| bee.plugin.hystrix.collect.metrics | true | 是否采集Metrics指标 |
-| bee.plugin.hystrix.metrics.interval | 60000 | 指标采集间隔（毫秒，默认1分钟） |
-| bee.plugin.hystrix.collect.fallback | true | 是否采集Fallback执行事件 |
+| lt.plugin.hystrix.enable | true | 是否开启Hystrix插件 |
+| lt.plugin.hystrix.collect.blocked.only | false | 是否只采集被拒绝的请求（默认采集所有） |
+| lt.plugin.hystrix.collect.metrics | true | 是否采集Metrics指标 |
+| lt.plugin.hystrix.metrics.interval | 60000 | 指标采集间隔（毫秒，默认1分钟） |
+| lt.plugin.hystrix.collect.fallback | true | 是否采集Fallback执行事件 |
 
 ## 埋点标签
 ### 命令执行事件标签
@@ -92,24 +92,24 @@ Hystrix插件支持熔断器全场景事件采集：
 
 ### 2. 只采集拒绝事件（推荐生产使用）
 ```properties
-bee.plugin.hystrix.collect.blocked.only=true
+lt.plugin.hystrix.collect.blocked.only=true
 ```
 开启后只有被熔断、超时、拒绝的请求才会上报，正常成功的请求不会上报，可以大幅减少上报数据量。
 
 ### 3. 关闭Fallback采集
 如果不需要采集降级执行情况，可以关闭：
 ```properties
-bee.plugin.hystrix.collect.fallback=false
+lt.plugin.hystrix.collect.fallback=false
 ```
 
 ### 4. 调整指标采集间隔
 ```properties
 # 调整指标采集间隔为5分钟
-bee.plugin.hystrix.metrics.interval=300000
+lt.plugin.hystrix.metrics.interval=300000
 ```
 不需要指标采集可以关闭：
 ```properties
-bee.plugin.hystrix.collect.metrics=false
+lt.plugin.hystrix.collect.metrics=false
 ```
 
 ## 支持的Hystrix功能
@@ -135,7 +135,7 @@ A: 支持，合并后的请求会被作为独立的Span采集，每个子请求�
 ### Q: 如何过滤不需要采集的命令？
 A: 可以通过配置Command Key黑名单：
 ```properties
-bee.plugin.hystrix.exclude.command_keys=test*,ignore*,temp-*
+lt.plugin.hystrix.exclude.command_keys=test*,ignore*,temp-*
 ```
 支持通配符 `*` 匹配，匹配到的命令事件不会上报。
 

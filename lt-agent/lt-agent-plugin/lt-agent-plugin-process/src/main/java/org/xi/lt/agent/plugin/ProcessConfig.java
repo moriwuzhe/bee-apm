@@ -1,13 +1,13 @@
 package org.xi.lt.agent.plugin;
 
-import org.xi.lt.agent.config.AbstractBeeConfig;
-import org.xi.lt.agent.config.BeeConfigFactory;
+import org.xi.lt.agent.config.AbstractLtConfig;
+import org.xi.lt.agent.config.LtConfigFactory;
 import org.xi.lt.agent.config.ConfigUtils;
 
 import java.util.*;
 import java.util.regex.Pattern;
 
-public class ProcessConfig extends AbstractBeeConfig {
+public class ProcessConfig extends AbstractLtConfig {
     private static ProcessConfig config;
     private Boolean enableParam;
     private Boolean enable;
@@ -25,7 +25,7 @@ public class ProcessConfig extends AbstractBeeConfig {
             synchronized (ProcessConfig.class) {
                 if (config == null) {
                     config = new ProcessConfig();
-                    BeeConfigFactory.me().registryConfig("process", config);
+                    LtConfigFactory.me().registryConfig("process", config);
                 }
             }
         }

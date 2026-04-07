@@ -12,11 +12,11 @@
     <artifactId>lt-monitor-server-store</artifactId>
     <packaging>pom</packaging>
     <name>lt-monitor-server-store</name>
-    <url>http://www.beeapm.net</url>
+    <url>http://www.ltmonitor.net</url>
 
     <modules>
-        <module>bee-store-elasticsearch</module>
-        <module>bee-store-mysql</module>
+        <module>lt-store-elasticsearch</module>
+        <module>lt-store-mysql</module>
     </modules>
 
     <properties>

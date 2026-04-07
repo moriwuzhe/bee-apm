@@ -16,10 +16,10 @@ Apollo插件支持配置中心全场景的链路追踪：
 ## 配置参数
 | 参数名称 | 默认值 | 说明 |
 |---------|--------|------|
-| bee.plugin.apollo.enable | true | 是否开启Apollo插件 |
-| bee.plugin.apollo.collect.config.content | false | 是否采集配置内容（默认关闭，避免敏感信息泄露） |
-| bee.plugin.apollo.collect.change.detail | true | 是否采集配置变更详情 |
-| bee.plugin.apollo.config.max_length | 500 | 配置内容截断长度 |
+| lt.plugin.apollo.enable | true | 是否开启Apollo插件 |
+| lt.plugin.apollo.collect.config.content | false | 是否采集配置内容（默认关闭，避免敏感信息泄露） |
+| lt.plugin.apollo.collect.change.detail | true | 是否采集配置变更详情 |
+| lt.plugin.apollo.config.max_length | 500 | 配置内容截断长度 |
 
 ## 埋点标签
 ### 配置操作事件标签
@@ -57,7 +57,7 @@ Apollo插件支持配置中心全场景的链路追踪：
 
 ### 2. 开启配置内容采集（谨慎开启）
 ```properties
-bee.plugin.apollo.collect.config.content=true
+lt.plugin.apollo.collect.config.content=true
 ```
 开启后会采集配置内容，标签格式为：
 | 标签名称 | 说明 |
@@ -70,7 +70,7 @@ bee.plugin.apollo.collect.config.content=true
 ### 3. 关闭变更详情采集
 如果不需要采集具体变更的Key列表，可以关闭：
 ```properties
-bee.plugin.apollo.collect.change.detail=false
+lt.plugin.apollo.collect.change.detail=false
 ```
 关闭后只会上报变更数量，不会上报具体的变更Key。
 
@@ -99,7 +99,7 @@ A: 支持所有集成方式：
 ### Q: 如何过滤不需要采集的Key？
 A: 可以通过配置Key黑名单：
 ```properties
-bee.plugin.apollo.exclude.keys=*password*,*secret*,*token*,*key*
+lt.plugin.apollo.exclude.keys=*password*,*secret*,*token*,*key*
 ```
 支持通配符 `*` 匹配，匹配到的Key操作不会上报。
 

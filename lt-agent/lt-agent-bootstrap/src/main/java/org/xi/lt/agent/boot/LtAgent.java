@@ -79,14 +79,14 @@ public class LtAgent {
 
     public static void loadSpy(Instrumentation inst) {
         try {
-            String rootPath = BeeUtils.getJarDirPath();
+            String rootPath = LtUtils.getJarDirPath();
             inst.appendToBootstrapClassLoaderSearch(new JarFile(new File(rootPath + "/lt-agent-spy.jar")));
             LogUtil.init(rootPath);
             HandlerLoader.init(rootPath);
             LogUtil.log("load lt-agent-spy.jar successful!");
         } catch (Throwable t) {
-            //初始化失败LogUtil可能无法使用，这里使用BeeUtils.write来写日志
-            BeeUtils.write("load lt-agent-spy.jar failed!", t, "lt.log");
+            //初始化失败LogUtil可能无法使用，这里使用LtUtils.write来写日志
+            LtUtils.write("load lt-agent-spy.jar failed!", t, "lt.log");
             throw new RuntimeException("load lt-agent-spy.jar failed!", t);
         }
     }

@@ -18,11 +18,11 @@ Feign插件支持Feign远程调用的全链路追踪：
 ## 配置参数
 | 参数名称 | 默认值 | 说明 |
 |---------|--------|------|
-| bee.plugin.feign.enable | true | 是否开启Feign插件 |
-| bee.plugin.feign.collect.headers | true | 是否采集请求头 |
-| bee.plugin.feign.collect.params | false | 是否采集请求参数（默认关闭） |
-| bee.plugin.feign.collect.response | false | 是否采集响应内容（默认关闭） |
-| bee.plugin.feign.header.blacklist | Authorization,Token,Cookie | 不采集的请求头列表 |
+| lt.plugin.feign.enable | true | 是否开启Feign插件 |
+| lt.plugin.feign.collect.headers | true | 是否采集请求头 |
+| lt.plugin.feign.collect.params | false | 是否采集请求参数（默认关闭） |
+| lt.plugin.feign.collect.response | false | 是否采集响应内容（默认关闭） |
+| lt.plugin.feign.header.blacklist | Authorization,Token,Cookie | 不采集的请求头列表 |
 
 ## 埋点标签
 ### 通用标签
@@ -61,7 +61,7 @@ Feign插件支持Feign远程调用的全链路追踪：
 
 ### 2. 开启请求参数采集（可选）
 ```properties
-bee.plugin.feign.collect.params=true
+lt.plugin.feign.collect.params=true
 ```
 开启后会采集方法参数和Query参数：
 - GET请求：采集URL上的所有Query参数
@@ -71,14 +71,14 @@ bee.plugin.feign.collect.params=true
 
 ### 3. 开启响应内容采集（可选）
 ```properties
-bee.plugin.feign.collect.response=true
+lt.plugin.feign.collect.response=true
 ```
 开启后会采集响应内容，最多采集前200字符。
 
 ### 4. 自定义请求头黑名单
 ```properties
 # 增加自定义的敏感头到黑名单
-bee.plugin.feign.header.blacklist=Authorization,Token,Cookie,X-Secret,X-Password
+lt.plugin.feign.header.blacklist=Authorization,Token,Cookie,X-Secret,X-Password
 ```
 黑名单中的请求头不会被采集。
 
@@ -89,7 +89,7 @@ Feign插件会自动在请求头中添加以下链路追踪属性：
 - `parentSpanId`：父SpanID
 - `appName`：调用方应用名称
 
-被调用方如果也接入了Bee-APM Agent，会自动读取这些请求头，实现跨服务链路追踪。
+被调用方如果也接入了Lt-APM Agent，会自动读取这些请求头，实现跨服务链路追踪。
 
 ## 支持的Feign特性
 ✅ `@FeignClient`注解方式  
@@ -106,9 +106,9 @@ Feign插件会自动在请求头中添加以下链路追踪属性：
 ## 常见问题
 ### Q: 上下文透传不生效？
 A: 请检查：
-1. 确认调用方和被调用方都接入了Bee-APM Agent
+1. 确认调用方和被调用方都接入了Lt-APM Agent
 2. 确认没有自定义的Feign拦截器过滤了链路请求头
-3. 确认`bee.plugin.feign.enable`配置为`true`
+3. 确认`lt.plugin.feign.enable`配置为`true`
 
 ### Q: Feign调用的异常会被捕获吗？
 A: 会的，所有Feign调用抛出的异常（包括业务异常、网络异常、超时异常等）都会被捕获，并且记录在`error_msg`标签中，同时标记状态为`failed`。
@@ -116,7 +116,7 @@ A: 会的，所有Feign调用抛出的异常（包括业务异常、网络异常
 ### Q: 如何过滤不需要采集的Feign接口？
 A: 可以通过配置接口黑名单：
 ```properties
-bee.plugin.feign.exclude.interfaces=com.example.service.IgnoreService,com.example.service.TestService
+lt.plugin.feign.exclude.interfaces=com.example.service.IgnoreService,com.example.service.TestService
 ```
 支持通配符 `*` 匹配，匹配到的接口调用不会上报。
 

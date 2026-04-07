@@ -1,7 +1,7 @@
-# Bee-APM 插件使用文档
+# Lt-APM 插件使用文档
 
 ## 📦 插件总览
-Bee-APM 是一款高性能、低侵入的Java微服务APM Agent，支持以下17个主流微服务组件的全链路埋点：
+Lt-APM 是一款高性能、低侵入的Java微服务APM Agent，支持以下17个主流微服务组件的全链路埋点：
 
 ### 🌐 网关层
 | 插件名称 | 支持版本 | 功能说明 |
@@ -65,30 +65,30 @@ Bee-APM 是一款高性能、低侵入的Java微服务APM Agent，支持以下17
 
 ## 🚀 快速接入
 ### 1. 下载Agent
-从 `bee-apm/packages/` 目录下载最新的 `lt-agent.jar`。
+从 `lt-monitor/packages/` 目录下载最新的 `lt-agent.jar`。
 
 ### 2. JVM参数配置
 在应用启动参数中添加：
 ```bash
 -javaagent:/path/to/lt-agent.jar \
--Dbee.app.name=your-application-name \
--Dbee.agent.enable=true \
--Dbee.reporter.type=elasticsearch \
--Dbee.reporter.elasticsearch.address=http://es-host:9200
+-Dlt.app.name=your-application-name \
+-Dlt.agent.enable=true \
+-Dlt.reporter.type=elasticsearch \
+-Dlt.reporter.elasticsearch.address=http://es-host:9200
 ```
 
 ### 3. 可选配置
 ```properties
 # 采样率配置（默认100%采样）
-bee.trace.sampling.rate=1.0
+lt.trace.sampling.rate=1.0
 
 # 插件开关（默认全部开启）
-bee.plugin.sentinel.enable=true
-bee.plugin.dubbo.enable=true
-bee.plugin.feign.enable=true
+lt.plugin.sentinel.enable=true
+lt.plugin.dubbo.enable=true
+lt.plugin.feign.enable=true
 
 # 日志级别配置
-bee.log.level=INFO
+lt.log.level=INFO
 ```
 
 ---

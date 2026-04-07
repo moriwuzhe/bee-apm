@@ -10,8 +10,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <modules>
-        <module>bee-apm-test-web</module>
-        <module>bee-apm-sb-demo</module>
+        <module>lt-monitor-test-web</module>
+        <module>lt-monitor-sb-demo</module>
     </modules>
     <dependencies>
 

@@ -77,7 +77,7 @@ public class VirtualMachineUtil {
                         try {
                             vmConnector.close();
                         } catch (IOException e) {
-                            //ignore, the application corresponding to this PID may have been closed
+                            //ignore, the application corresponding to this PID may have ltn closed
                         }
                         vmConnector = null;
                     }
@@ -97,7 +97,7 @@ public class VirtualMachineUtil {
                 try {
                     vmConnector.close();
                 } catch (IOException e) {
-                    //ignore, the application corresponding to this PID may have been closed
+                    //ignore, the application corresponding to this PID may have ltn closed
                 }
                 vmConnector = null;
             }

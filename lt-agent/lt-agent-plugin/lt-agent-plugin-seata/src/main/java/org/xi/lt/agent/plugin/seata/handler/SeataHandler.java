@@ -3,7 +3,7 @@ package org.xi.lt.agent.plugin.seata.handler;
 import io.seata.core.context.RootContext;
 import io.seata.tm.api.GlobalTransaction;
 import org.xi.lt.agent.common.*;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -58,7 +58,7 @@ public class SeataHandler extends AbstractHandler {
                     span.addTag("status", "failed");
                     span.addTag("error_msg", t.getMessage());
                     calculateSpend(span);
-                    BeeConfig.me().fillEnvInfo(span);
+                    LtConfig.me().fillEnvInfo(span);
                     ReporterFactory.report(span);
                     GLOBAL_SPAN.remove();
                 } else {
@@ -108,7 +108,7 @@ public class SeataHandler extends AbstractHandler {
                     span.addTag("status", methodName + "_success");
                 }
                 // 上报全局事务Span
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         } catch (Exception e) {
@@ -152,7 +152,7 @@ public class SeataHandler extends AbstractHandler {
                     span.addTag("status", "success");
                 }
                 // 上报分支事务Span
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         } catch (Exception e) {

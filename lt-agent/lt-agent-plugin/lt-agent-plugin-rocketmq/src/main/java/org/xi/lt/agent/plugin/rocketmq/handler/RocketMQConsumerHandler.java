@@ -2,7 +2,7 @@ package org.xi.lt.agent.plugin.rocketmq.handler;
 
 import org.apache.rocketmq.common.message.MessageExt;
 import org.xi.lt.agent.common.*;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -44,10 +44,10 @@ public class RocketMQConsumerHandler extends AbstractHandler {
                     String traceId = msg.getUserProperty("traceId");
                     String parentSpanId = msg.getUserProperty("spanId");
                     if (traceId != null) {
-                        BeeTraceContext.setGId(traceId);
+                        LtTraceContext.setGId(traceId);
                     }
                     if (parentSpanId != null) {
-                        BeeTraceContext.setPId(parentSpanId);
+                        LtTraceContext.setPId(parentSpanId);
                     }
                 }
             }
@@ -85,7 +85,7 @@ public class RocketMQConsumerHandler extends AbstractHandler {
                 }
                 
                 // 上报Span
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
             return result;

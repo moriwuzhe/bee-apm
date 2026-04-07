@@ -34,9 +34,9 @@ public class DashboardApiController {
         r.put("code", "0");
         r.put("msg", "成功");
         Map<String, Object> result = new HashMap<>();
-        result.put("req", count("bee-request-*", "req", beginMs, endMs, env, app, ip));
-        result.put("log", count("bee-logger-*", "log", beginMs, endMs, env, app, ip));
-        result.put("error", count("bee-error-*", "err", beginMs, endMs, env, app, ip));
+        result.put("req", count("lt-request-*", "req", beginMs, endMs, env, app, ip));
+        result.put("log", count("lt-logger-*", "log", beginMs, endMs, env, app, ip));
+        result.put("error", count("lt-error-*", "err", beginMs, endMs, env, app, ip));
         result.put("inst", countDistinctInst(beginMs, endMs, env, app, ip));
         r.put("result", result);
         return r;
@@ -64,7 +64,7 @@ public class DashboardApiController {
 
     private long countDistinctInst(long beginMs, long endMs, String env, String app, String ip) {
         try {
-            SearchRequest sr = new SearchRequest("bee-heartbeat-*");
+            SearchRequest sr = new SearchRequest("lt-heartbeat-*");
             SearchSourceBuilder ssb = new SearchSourceBuilder();
             BoolQueryBuilder q = QueryBuilders.boolQuery()
                     .must(QueryBuilders.termQuery("type.keyword", "hb"))

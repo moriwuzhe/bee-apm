@@ -21,7 +21,7 @@ import org.xi.lt.server.web.diagnostic.serverside.bean.ApiResult;
 import org.xi.lt.server.web.diagnostic.serverside.bean.ApiStatus;
 
 /**
- * Adapted to bee-apm
+ * Adapted to lt-monitor
  */
 public class ResultHelper {
 

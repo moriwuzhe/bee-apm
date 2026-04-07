@@ -41,16 +41,16 @@ public class RequestReplayService {
     @Value("${elasticsearch.scheme:http}")
     private String esScheme;
 
-    @Value("${replay.es.index.req:bee-request-*}")
+    @Value("${replay.es.index.req:lt-request-*}")
     private String reqIndex;
 
-    @Value("${replay.es.index.reqb:bee-request-body-*}")
+    @Value("${replay.es.index.reqb:lt-request-body-*}")
     private String reqbIndex;
 
-    @Value("${replay.es.index.reqh:bee-request-headers-*}")
+    @Value("${replay.es.index.reqh:lt-request-headers-*}")
     private String reqhIndex;
 
-    @Value("${replay.es.index.rp:bee-request-param-*}")
+    @Value("${replay.es.index.rp:lt-request-param-*}")
     private String rpIndex;
 
     @PostConstruct

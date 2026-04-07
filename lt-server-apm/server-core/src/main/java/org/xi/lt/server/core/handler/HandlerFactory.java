@@ -32,8 +32,8 @@ public class HandlerFactory {
     public void init(){
         try {
             handlerList = new ArrayList<>();
-            String[] handlerNames = ConfigHolder.getProperty("bee.handlers.flow", "").split(">");
-            ServiceProviderLoader loader = new ServiceProviderLoader("bee-handler.def");
+            String[] handlerNames = ConfigHolder.getProperty("lt.handlers.flow", "").split(">");
+            ServiceProviderLoader loader = new ServiceProviderLoader("lt-handler.def");
             IStreamHandler prevHandler = null;
             for (String name : handlerNames) {
                 logger.error("load handler : " + name);

@@ -4,7 +4,7 @@ import org.apache.shardingsphere.driver.jdbc.core.statement.ShardingSpherePrepar
 import org.apache.shardingsphere.infra.route.context.RouteContext;
 import org.apache.shardingsphere.infra.route.context.RouteUnit;
 import org.xi.lt.agent.common.*;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -162,7 +162,7 @@ public class ShardingJdbcHandler extends AbstractHandler {
                 span.addTag("total_actual_cost", totalActualCost.toString());
                 
                 // 上报最终Span
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         } catch (Exception e) {

@@ -4,7 +4,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.header.Header;
 import org.xi.lt.agent.common.*;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -68,11 +68,11 @@ public class KafkaConsumerHandler extends AbstractHandler {
                             Header spanIdHeader = record.headers().lastHeader("spanId");
                             if (traceIdHeader != null) {
                                 String traceId = new String(traceIdHeader.value(), StandardCharsets.UTF_8);
-                                BeeTraceContext.setGId(traceId);
+                                LtTraceContext.setGId(traceId);
                             }
                             if (spanIdHeader != null) {
                                 String spanId = new String(spanIdHeader.value(), StandardCharsets.UTF_8);
-                                BeeTraceContext.setPId(spanId);
+                                LtTraceContext.setPId(spanId);
                             }
                         }
                     }
@@ -81,7 +81,7 @@ public class KafkaConsumerHandler extends AbstractHandler {
                 }
                 
                 // 上报Span
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
             return result;

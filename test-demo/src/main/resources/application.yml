@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: bee-apm-test-demo
+    name: lt-monitor-test-demo
   profiles:
     active: dev
 

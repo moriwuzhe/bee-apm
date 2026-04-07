@@ -41,7 +41,7 @@ public class LoggerApiController {
         if (!ip.isEmpty()) q.must(QueryBuilders.termQuery("ip.keyword", ip));
 
         try {
-            EsSearchService.PageSearchResult r = es.searchPage("bee-logger-*", q, "time", SortOrder.DESC, (pageNum - 1) * PAGE_SIZE, PAGE_SIZE);
+            EsSearchService.PageSearchResult r = es.searchPage("lt-logger-*", q, "time", SortOrder.DESC, (pageNum - 1) * PAGE_SIZE, PAGE_SIZE);
             return new PageResult<>(r.rows, pageNum, (int) r.total);
         } catch (Exception e) {
             return PageResult.empty(pageNum);

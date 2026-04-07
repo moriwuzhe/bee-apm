@@ -20,5 +20,9 @@ public class TimeParseUtils {
             return 0;
         }
     }
-}
 
+    public static String formatMillis(long ms) {
+        if (ms <= 0) return "";
+        return new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date(ms));
+    }
+}

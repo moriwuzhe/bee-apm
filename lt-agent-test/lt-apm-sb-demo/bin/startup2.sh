@@ -1,0 +1,1 @@
+java  -Xmx128m -javaagent:/win10/ltmonitor/lt-agent.jar -Dlt.app=mouse -Dlt.env=dev -Dlt.inst=mouse01 -Dlt.port=8102 -Dserver.port=8102 -Dserver.ip=192.168.137.100 -Dlt.ip=192.168.137.12 -Dmax.counter=12 -Dremote.ports=8101_8102_8103_8104_8105_8106 -jar /win10/demo/target/lt-monitor-sb-demo.jar

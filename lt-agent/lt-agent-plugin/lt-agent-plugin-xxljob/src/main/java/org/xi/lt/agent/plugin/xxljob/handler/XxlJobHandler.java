@@ -7,7 +7,7 @@ import com.xxl.job.core.context.XxlJobHelper;
 import com.xxl.job.core.handler.IJobHandler;
 import com.xxl.job.core.handler.impl.MethodJobHandler;
 import org.xi.lt.agent.common.*;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -125,7 +125,7 @@ public class XxlJobHandler extends AbstractHandler {
                     }
                 }
                 // 上报Span
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         } catch (Exception e) {
@@ -167,7 +167,7 @@ public class XxlJobHandler extends AbstractHandler {
                 } else {
                     span.addTag("status", "success");
                 }
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         } catch (Exception e) {
@@ -222,7 +222,7 @@ public class XxlJobHandler extends AbstractHandler {
                         span.addTag("status", "success");
                     }
                 }
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         } catch (Exception e) {

@@ -1,7 +1,7 @@
 package org.xi.lt.agent.plugin.nacos.handler;
 
 import org.xi.lt.agent.common.*;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -71,7 +71,7 @@ public class NacosHandler extends AbstractHandler {
                         span.addTag("content_length", String.valueOf(content.length()));
                     }
                 }
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         } catch (Exception e) {
@@ -116,7 +116,7 @@ public class NacosHandler extends AbstractHandler {
                 } else {
                     span.addTag("status", "success");
                 }
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         } catch (Exception e) {
@@ -159,7 +159,7 @@ public class NacosHandler extends AbstractHandler {
                 } else {
                     span.addTag("status", "success");
                 }
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         } catch (Exception e) {
@@ -206,7 +206,7 @@ public class NacosHandler extends AbstractHandler {
                 } else {
                     span.addTag("status", "success");
                 }
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         } catch (Exception e) {
@@ -250,7 +250,7 @@ public class NacosHandler extends AbstractHandler {
                     span.addTag("status", "success");
                     // 这里可以统计返回的实例数量
                 }
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         } catch (Exception e) {
@@ -293,7 +293,7 @@ public class NacosHandler extends AbstractHandler {
                 } else {
                     span.addTag("status", "success");
                 }
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         } catch (Exception e) {

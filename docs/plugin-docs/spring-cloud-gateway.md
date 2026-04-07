@@ -18,11 +18,11 @@ Spring Cloud Gateway插件支持网关层全链路追踪：
 ## 配置参数
 | 参数名称 | 默认值 | 说明 |
 |---------|--------|------|
-| bee.plugin.gateway.enable | true | 是否开启Spring Cloud Gateway插件 |
-| bee.plugin.gateway.collect.request.headers | true | 是否采集请求头 |
-| bee.plugin.gateway.collect.response.headers | false | 是否采集响应头 |
-| bee.plugin.gateway.collect.request.params | false | 是否采集请求参数（默认关闭，避免敏感信息泄露） |
-| bee.plugin.gateway.trace.header.name | traceId | 透传到下游的TraceId请求头名称 |
+| lt.plugin.gateway.enable | true | 是否开启Spring Cloud Gateway插件 |
+| lt.plugin.gateway.collect.request.headers | true | 是否采集请求头 |
+| lt.plugin.gateway.collect.response.headers | false | 是否采集响应头 |
+| lt.plugin.gateway.collect.request.params | false | 是否采集请求参数（默认关闭，避免敏感信息泄露） |
+| lt.plugin.gateway.trace.header.name | traceId | 透传到下游的TraceId请求头名称 |
 
 ## 埋点标签
 ### 通用请求标签
@@ -66,17 +66,17 @@ Spring Cloud Gateway插件支持网关层全链路追踪：
 ### 2. 自定义TraceId透传头名称
 ```properties
 # 修改透传到下游的TraceId头名称为X-B3-TraceId（和ZipKin兼容）
-bee.plugin.gateway.trace.header.name=X-B3-TraceId
+lt.plugin.gateway.trace.header.name=X-B3-TraceId
 ```
 如果需要同时透传多个链路头，可以配置多个：
 ```properties
-bee.plugin.gateway.trace.header.names=traceId,X-B3-TraceId,sw8
+lt.plugin.gateway.trace.header.names=traceId,X-B3-TraceId,sw8
 ```
 多个名称用逗号分隔。
 
 ### 3. 开启请求参数采集（谨慎开启）
 ```properties
-bee.plugin.gateway.collect.request.params=true
+lt.plugin.gateway.collect.request.params=true
 ```
 开启后会采集GET的Query参数和POST的Form参数：
 | 标签名称 | 说明 |
@@ -88,7 +88,7 @@ bee.plugin.gateway.collect.request.params=true
 ### 4. 配置请求头黑名单
 可以配置不需要采集的请求头：
 ```properties
-bee.plugin.gateway.exclude.headers=Cookie,Authorization,Token,*Password*
+lt.plugin.gateway.exclude.headers=Cookie,Authorization,Token,*Password*
 ```
 支持通配符 `*` 匹配，匹配到的请求头不会被采集。
 
@@ -124,12 +124,12 @@ A: 插件是基于网关的核心处理链路拦截，所有经过网关的请�
 ### Q: 如何过滤不需要采集的路径？
 A: 可以通过配置路径黑名单：
 ```properties
-bee.plugin.gateway.exclude.paths=/actuator/**,/health,/favicon.ico,/webjars/**
+lt.plugin.gateway.exclude.paths=/actuator/**,/health,/favicon.ico,/webjars/**
 ```
 支持Ant风格路径匹配，匹配到的路径不会被采集。
 
 ### Q: TraceId会和其他APM系统兼容吗？
-A: 默认使用自定义的TraceId格式，如果需要和SkyWalking、ZipKin等其他APM系统兼容，可以通过配置`bee.plugin.gateway.trace.header.name`修改透传的头名称，同时配置TraceId生成策略为对应系统的格式。
+A: 默认使用自定义的TraceId格式，如果需要和SkyWalking、ZipKin等其他APM系统兼容，可以通过配置`lt.plugin.gateway.trace.header.name`修改透传的头名称，同时配置TraceId生成策略为对应系统的格式。
 
 ### Q: 对网关性能有影响吗？
 A: 插件只在请求进入和返回的时候插入埋点逻辑，没有额外IO操作，对网关性能的影响小于5%，QPS越高影响越小。

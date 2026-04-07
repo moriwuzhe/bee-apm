@@ -3,7 +3,7 @@ package org.xi.lt.agent.plugin.apollo.handler;
 import com.ctrip.framework.apollo.model.ConfigChange;
 import com.ctrip.framework.apollo.model.ConfigChangeEvent;
 import org.xi.lt.agent.common.*;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -71,7 +71,7 @@ public class ApolloHandler extends AbstractHandler {
                     span.addTag("status", "success");
                     span.addTag("value_exists", String.valueOf(result != null));
                 }
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         } catch (Exception e) {
@@ -109,7 +109,7 @@ public class ApolloHandler extends AbstractHandler {
                 } else {
                     span.addTag("status", "success");
                 }
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         } catch (Exception e) {
@@ -172,7 +172,7 @@ public class ApolloHandler extends AbstractHandler {
                 } else {
                     span.addTag("status", "success");
                 }
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         } catch (Exception e) {
@@ -211,7 +211,7 @@ public class ApolloHandler extends AbstractHandler {
                 } else {
                     span.addTag("status", "success");
                 }
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         } catch (Exception e) {

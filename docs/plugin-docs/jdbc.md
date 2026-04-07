@@ -20,11 +20,11 @@ JDBC插件支持所有关系型数据库的SQL执行链路追踪：
 ## 配置参数
 | 参数名称 | 默认值 | 说明 |
 |---------|--------|------|
-| bee.plugin.jdbc.enable | true | 是否开启JDBC插件 |
-| bee.plugin.jdbc.sql.max_length | 1000 | SQL语句截断长度 |
-| bee.plugin.jdbc.slow_sql.threshold | 1000 | 慢SQL阈值（毫秒），超过会标记为慢SQL |
-| bee.plugin.jdbc.collect.parameters | true | 是否采集PreparedStatement参数 |
-| bee.plugin.jdbc.parameter.max_length | 100 | 参数值截断长度 |
+| lt.plugin.jdbc.enable | true | 是否开启JDBC插件 |
+| lt.plugin.jdbc.sql.max_length | 1000 | SQL语句截断长度 |
+| lt.plugin.jdbc.slow_sql.threshold | 1000 | 慢SQL阈值（毫秒），超过会标记为慢SQL |
+| lt.plugin.jdbc.collect.parameters | true | 是否采集PreparedStatement参数 |
+| lt.plugin.jdbc.parameter.max_length | 100 | 参数值截断长度 |
 
 ## 埋点标签
 | 标签名称 | 说明 |
@@ -48,19 +48,19 @@ JDBC插件支持所有关系型数据库的SQL执行链路追踪：
 ### 2. 慢SQL阈值调整
 ```properties
 # 调整慢SQL阈值为500毫秒
-bee.plugin.jdbc.slow_sql.threshold=500
+lt.plugin.jdbc.slow_sql.threshold=500
 ```
 
 ### 3. 关闭参数采集（可选）
 如果担心参数泄露敏感信息，可以关闭参数采集：
 ```properties
-bee.plugin.jdbc.collect.parameters=false
+lt.plugin.jdbc.collect.parameters=false
 ```
 
 ### 4. SQL长度调整
 ```properties
 # 调整SQL最大长度为2000字符
-bee.plugin.jdbc.sql.max_length=2000
+lt.plugin.jdbc.sql.max_length=2000
 ```
 
 ## SQL解析说明
@@ -88,7 +88,7 @@ A: 支持多数据源，每个数据源的SQL都会被独立采集，并且会�
 ### Q: 如何过滤不需要采集的SQL？
 A: 可以通过配置SQL前缀黑名单：
 ```properties
-bee.plugin.jdbc.exclude.sql.prefixes=SHOW,SELECT 1,SET NAMES
+lt.plugin.jdbc.exclude.sql.prefixes=SHOW,SELECT 1,SET NAMES
 ```
 匹配到前缀的SQL会被过滤，不会上报。
 

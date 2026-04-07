@@ -27,44 +27,44 @@ reporter:
             bootstrap.servers: 192.168.137.100:9092
             linger.ms: 200
         topic: #配置span type和kafka topic映射关系
-            default: bee-default #配置默认topic，没有配置映射关系的，数据写到该topic
-            proc: bee-process
-            para: bee-process-param
-            sql: bee-sql
-            sqlp: bee-sql-param
-            req: bee-request
-            rp: bee-request-param
-            tx: bee-tx
-            log: bee-logger
-            err: bee-error
-            reqb: bee-request-body
-            reqh: bee-request-headers
-            resb: bee-response-body
-            hb: bee-heartbeat
-            topo: bee-topology
-            jvm: bee-jvm
+            default: lt-default #配置默认topic，没有配置映射关系的，数据写到该topic
+            proc: lt-process
+            para: lt-process-param
+            sql: lt-sql
+            sqlp: lt-sql-param
+            req: lt-request
+            rp: lt-request-param
+            tx: lt-tx
+            log: lt-logger
+            err: lt-error
+            reqb: lt-request-body
+            reqh: lt-request-headers
+            resb: lt-response-body
+            hb: lt-heartbeat
+            topo: lt-topology
+            jvm: lt-jvm
     rocketmq:
         #rocketmq配置值项，项名称和值请参考rocketmq文档
         nameSrvAddr: 192.168.2.244:9876
         instanceName: rmq-instance
         producerGroup: rmq-group
         topic: #配置span type和kafka topic映射关系
-            default: bee-default #配置默认topic，没有配置映射关系的，数据写到该topic
-            proc: bee-process
-            para: bee-process-param
-            sql: bee-sql
-            sqlp: bee-sql-param
-            req: bee-request
-            rp: bee-request-param
-            tx: bee-tx
-            log: bee-logger
-            err: bee-error
-            reqb: bee-request-body
-            reqh: bee-request-headers
-            respb: bee-response-body
-            hb: bee-heartbeat
-            topo: bee-topology
-            jvm: bee-jvm
+            default: lt-default #配置默认topic，没有配置映射关系的，数据写到该topic
+            proc: lt-process
+            para: lt-process-param
+            sql: lt-sql
+            sqlp: lt-sql-param
+            req: lt-request
+            rp: lt-request-param
+            tx: lt-tx
+            log: lt-logger
+            err: lt-error
+            reqb: lt-request-body
+            reqh: lt-request-headers
+            respb: lt-response-body
+            hb: lt-heartbeat
+            topo: lt-topology
+            jvm: lt-jvm
 sampling:
     rate: 100000 #采样率，万分几，默认全采集,比如100就是100/10000的采样
 id:

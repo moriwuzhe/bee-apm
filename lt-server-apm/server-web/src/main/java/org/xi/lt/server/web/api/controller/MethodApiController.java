@@ -45,7 +45,7 @@ public class MethodApiController {
         if ("spend".equals(sort)) sortField = "spend";
 
         try {
-            EsSearchService.PageSearchResult r = es.searchPage("bee-process-*", q, sortField, SortOrder.DESC, (pageNum - 1) * PAGE_SIZE, PAGE_SIZE);
+            EsSearchService.PageSearchResult r = es.searchPage("lt-process-*", q, sortField, SortOrder.DESC, (pageNum - 1) * PAGE_SIZE, PAGE_SIZE);
             return new PageResult<>(r.rows, pageNum, (int) r.total);
         } catch (Exception e) {
             return PageResult.empty(pageNum);

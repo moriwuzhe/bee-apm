@@ -1,7 +1,7 @@
 package org.xi.lt.agent.plugin.handler;
 
 import org.xi.lt.agent.common.SamplingUtil;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -21,7 +21,7 @@ public class SpringTxEndHandler extends AbstractHandler {
         if(span != null) {
             calculateSpend(span);
             if(span.getSpend() > SpringTxConfig.me().getSpend()) {
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         }

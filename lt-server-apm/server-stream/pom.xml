@@ -12,12 +12,12 @@
     <artifactId>lt-monitor-server-stream</artifactId>
     <packaging>pom</packaging>
     <name>lt-monitor-server-stream</name>
-    <url>http://www.beeapm.net</url>
+    <url>http://www.ltmonitor.net</url>
 
     <modules>
-        <module>bee-stream-servlet</module>
-        <module>bee-stream-kafka1x</module>
-        <module>bee-stream-server</module>
+        <module>lt-stream-servlet</module>
+        <module>lt-stream-kafka1x</module>
+        <module>lt-stream-server</module>
     </modules>
 
     <properties>

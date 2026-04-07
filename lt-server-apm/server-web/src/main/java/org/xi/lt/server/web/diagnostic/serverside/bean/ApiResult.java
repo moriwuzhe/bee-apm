@@ -18,7 +18,7 @@
 package org.xi.lt.server.web.diagnostic.serverside.bean;
 
 /**
- * Adapted to bee-apm ResultVo format
+ * Adapted to lt-monitor ResultVo format
  */
 public class ApiResult<T> {
 

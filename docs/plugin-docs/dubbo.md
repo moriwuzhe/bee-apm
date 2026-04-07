@@ -14,9 +14,9 @@ Dubbo插件支持服务提供者和消费者两端的链路追踪：
 ## 配置参数
 | 参数名称 | 默认值 | 说明 |
 |---------|--------|------|
-| bee.plugin.dubbo.enable | true | 是否开启Dubbo插件 |
-| bee.plugin.dubbo.collect.arguments | false | 是否采集方法参数（默认关闭，避免敏感信息泄露） |
-| bee.plugin.dubbo.collect.result | false | 是否采集方法返回值（默认关闭，避免敏感信息泄露） |
+| lt.plugin.dubbo.enable | true | 是否开启Dubbo插件 |
+| lt.plugin.dubbo.collect.arguments | false | 是否采集方法参数（默认关闭，避免敏感信息泄露） |
+| lt.plugin.dubbo.collect.result | false | 是否采集方法返回值（默认关闭，避免敏感信息泄露） |
 
 ## 埋点标签
 ### 通用标签
@@ -47,8 +47,8 @@ Dubbo插件支持服务提供者和消费者两端的链路追踪：
 
 ### 2. 开启参数采集（可选）
 ```properties
-bee.plugin.dubbo.collect.arguments=true
-bee.plugin.dubbo.collect.result=true
+lt.plugin.dubbo.collect.arguments=true
+lt.plugin.dubbo.collect.result=true
 ```
 
 开启后会额外采集以下标签：
@@ -65,11 +65,11 @@ bee.plugin.dubbo.collect.result=true
 ### Q: Dubbo插件不生效？
 A: 请检查：
 1. 确认Dubbo版本在支持范围内
-2. 确认 `bee.plugin.dubbo.enable` 配置为 `true`
+2. 确认 `lt.plugin.dubbo.enable` 配置为 `true`
 3. 检查应用日志中是否有Dubbo插件初始化日志
 
 ### Q: 如何过滤不需要采集的服务？
 A: 可以通过配置黑名单：
 ```properties
-bee.plugin.dubbo.exclude.services=com.example.service.IgnoreService,com.example.service.TestService
+lt.plugin.dubbo.exclude.services=com.example.service.IgnoreService,com.example.service.TestService
 ```

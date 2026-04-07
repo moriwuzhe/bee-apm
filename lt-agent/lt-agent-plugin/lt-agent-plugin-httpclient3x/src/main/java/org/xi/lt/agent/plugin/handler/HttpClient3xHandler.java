@@ -1,8 +1,8 @@
 package org.xi.lt.agent.plugin.handler;
 
-import org.xi.lt.agent.common.BeeTraceContext;
+import org.xi.lt.agent.common.LtTraceContext;
 import org.xi.lt.agent.common.HeaderKey;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -20,11 +20,11 @@ public class HttpClient3xHandler extends AbstractHandler {
                 if (allArguments[i] instanceof HttpMethod) {
                     HttpMethod req = (HttpMethod) allArguments[i];
                     if(req.getRequestHeader(HeaderKey.GID) == null){
-                        req.setRequestHeader(HeaderKey.GID, BeeTraceContext.getGId());
-                        req.setRequestHeader(HeaderKey.PID,BeeTraceContext.getCurrentId());
-                        req.setRequestHeader(HeaderKey.CTAG,BeeTraceContext.getCTag());
-                        req.setRequestHeader(HeaderKey.SRC_APP, BeeConfig.me().getApp());
-                        req.setRequestHeader(HeaderKey.SRC_INST, BeeConfig.me().getInst());
+                        req.setRequestHeader(HeaderKey.GID, LtTraceContext.getGId());
+                        req.setRequestHeader(HeaderKey.PID,LtTraceContext.getCurrentId());
+                        req.setRequestHeader(HeaderKey.CTAG,LtTraceContext.getCTag());
+                        req.setRequestHeader(HeaderKey.SRC_APP, LtConfig.me().getApp());
+                        req.setRequestHeader(HeaderKey.SRC_INST, LtConfig.me().getInst());
                     }
                 }
             }

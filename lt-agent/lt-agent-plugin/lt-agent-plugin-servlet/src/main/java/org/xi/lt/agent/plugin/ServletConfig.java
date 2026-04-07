@@ -1,7 +1,7 @@
 package org.xi.lt.agent.plugin;
 
-import org.xi.lt.agent.config.AbstractBeeConfig;
-import org.xi.lt.agent.config.BeeConfigFactory;
+import org.xi.lt.agent.config.AbstractLtConfig;
+import org.xi.lt.agent.config.LtConfigFactory;
 import org.xi.lt.agent.config.ConfigUtils;
 
 import java.util.Arrays;
@@ -11,7 +11,7 @@ import java.util.List;
  * @author yuan
  * @date 2018/09/19
  */
-public class ServletConfig extends AbstractBeeConfig {
+public class ServletConfig extends AbstractLtConfig {
     private static ServletConfig config;
     private Boolean enable;
     private Boolean enableReqParam;
@@ -26,7 +26,7 @@ public class ServletConfig extends AbstractBeeConfig {
             synchronized (ServletConfig.class) {
                 if (config == null) {
                     config = new ServletConfig();
-                    BeeConfigFactory.me().registryConfig("servlet", config);
+                    LtConfigFactory.me().registryConfig("servlet", config);
                 }
             }
         }

@@ -1,7 +1,7 @@
 package org.xi.lt.agent.plugin.common.servlet;
 
-import org.xi.lt.agent.plugin.common.BeeHttpServletRequestWrapper;
-import org.xi.lt.agent.plugin.common.BeeHttpServletResponseWrapper;
+import org.xi.lt.agent.plugin.common.LtHttpServletRequestWrapper;
+import org.xi.lt.agent.plugin.common.LtHttpServletResponseWrapper;
 
 /**
  * @author yuan
@@ -10,6 +10,6 @@ import org.xi.lt.agent.plugin.common.BeeHttpServletResponseWrapper;
 public class Const {
     public static final String KEY_RESP_WRAPPER = "_respWrapper";
     public static final String KEY_REQ_WRAPPER = "_reqWrapper";
-    public static final String CLASS_BEE_HTTP_SERVLET_REQUEST_RAPPER = BeeHttpServletRequestWrapper.class.getSimpleName();
-    public static final String CLASS_BEE_HTTP_SERVLET_RESPONSE_WRAPPER = BeeHttpServletResponseWrapper.class.getSimpleName();
+    public static final String CLASS_LT_HTTP_SERVLET_REQUEST_RAPPER = LtHttpServletRequestWrapper.class.getSimpleName();
+    public static final String CLASS_LT_HTTP_SERVLET_RESPONSE_WRAPPER = LtHttpServletResponseWrapper.class.getSimpleName();
 }

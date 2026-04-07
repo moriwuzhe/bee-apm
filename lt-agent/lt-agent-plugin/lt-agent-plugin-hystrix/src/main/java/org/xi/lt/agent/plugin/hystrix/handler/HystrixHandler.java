@@ -4,7 +4,7 @@ import com.netflix.hystrix.HystrixCommand;
 import com.netflix.hystrix.HystrixCommandKey;
 import com.netflix.hystrix.HystrixCommandMetrics;
 import org.xi.lt.agent.common.*;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -68,7 +68,7 @@ public class HystrixHandler extends AbstractHandler {
                     span.addTag("status", "success");
                 }
                 // 上报命令Span
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         } catch (Exception e) {
@@ -107,7 +107,7 @@ public class HystrixHandler extends AbstractHandler {
                     span.addTag("status", "success");
                 }
                 // 上报业务执行Span
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         } catch (Exception e) {
@@ -147,7 +147,7 @@ public class HystrixHandler extends AbstractHandler {
                 }
                 span.addTag("fallback_reason", command.getExecutionException() != null ? command.getExecutionException().getMessage() : "unknown");
                 // 上报降级执行Span
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
         } catch (Exception e) {
@@ -175,7 +175,7 @@ public class HystrixHandler extends AbstractHandler {
                 span.addTag("action", "mark_non_success");
                 span.addTag("circuit_breaker", circuitBreaker.getClass().getSimpleName());
                 calculateSpend(span);
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             } else if (methodName.equals("markSuccess") && t == null) {
                 // 标记成功，熔断器可能关闭
@@ -183,7 +183,7 @@ public class HystrixHandler extends AbstractHandler {
                 span.addTag("action", "mark_success");
                 span.addTag("circuit_breaker", circuitBreaker.getClass().getSimpleName());
                 calculateSpend(span);
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             } else if (methodName.equals("allowRequest") && result != null) {
                 // 请求是否被允许
@@ -193,7 +193,7 @@ public class HystrixHandler extends AbstractHandler {
                     span.addTag("action", "reject_request");
                     span.addTag("circuit_breaker", circuitBreaker.getClass().getSimpleName());
                     calculateSpend(span);
-                    BeeConfig.me().fillEnvInfo(span);
+                    LtConfig.me().fillEnvInfo(span);
                     ReporterFactory.report(span);
                 }
             }

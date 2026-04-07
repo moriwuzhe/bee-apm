@@ -5,7 +5,7 @@ import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.Result;
 import org.apache.dubbo.rpc.RpcContext;
 import org.xi.lt.agent.common.*;
-import org.xi.lt.agent.config.BeeConfig;
+import org.xi.lt.agent.config.LtConfig;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -33,9 +33,9 @@ public class DubboProviderHandler extends AbstractHandler {
             Map<String, String> attachments = RpcContext.getContext().getAttachments();
             
             // 设置链路上下文
-            BeeTraceContext.setGId(attachments.get(HeaderKey.GID));
-            BeeTraceContext.setPId(attachments.get(HeaderKey.PID));
-            BeeTraceContext.setCTag(attachments.get(HeaderKey.CTAG));
+            LtTraceContext.setGId(attachments.get(HeaderKey.GID));
+            LtTraceContext.setPId(attachments.get(HeaderKey.PID));
+            LtTraceContext.setCTag(attachments.get(HeaderKey.CTAG));
             
             // 创建入口Span
             Span span = SpanManager.createEntrySpan("dubbo");
@@ -55,7 +55,7 @@ public class DubboProviderHandler extends AbstractHandler {
             if (srcApp == null) {
                 srcApp = "nvl";
             }
-            SpanManager.createTopologySpan(srcApp, BeeConfig.me().getApp());
+            SpanManager.createTopologySpan(srcApp, LtConfig.me().getApp());
             
             return span;
         } catch (Exception e) {
@@ -82,7 +82,7 @@ public class DubboProviderHandler extends AbstractHandler {
                 }
                 
                 // 上报Span
-                BeeConfig.me().fillEnvInfo(span);
+                LtConfig.me().fillEnvInfo(span);
                 ReporterFactory.report(span);
             }
             return result;

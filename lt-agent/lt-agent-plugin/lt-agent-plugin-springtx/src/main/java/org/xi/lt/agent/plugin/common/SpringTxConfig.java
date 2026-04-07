@@ -1,10 +1,10 @@
 package org.xi.lt.agent.plugin.common;
 
-import org.xi.lt.agent.config.AbstractBeeConfig;
-import org.xi.lt.agent.config.BeeConfigFactory;
+import org.xi.lt.agent.config.AbstractLtConfig;
+import org.xi.lt.agent.config.LtConfigFactory;
 import org.xi.lt.agent.config.ConfigUtils;
 
-public class SpringTxConfig extends AbstractBeeConfig {
+public class SpringTxConfig extends AbstractLtConfig {
     private static SpringTxConfig config;
     private Boolean enable;
     private long spend;
@@ -14,7 +14,7 @@ public class SpringTxConfig extends AbstractBeeConfig {
             synchronized (SpringTxConfig.class){
                 if(config == null){
                     config = new SpringTxConfig();
-                    BeeConfigFactory.me().registryConfig("springTx",config);
+                    LtConfigFactory.me().registryConfig("springTx",config);
                 }
             }
         }

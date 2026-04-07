@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRoute } from 'vue-router'
 
 import PageShell from '../components/PageShell.vue'
@@ -44,6 +44,9 @@ const replayTargetBaseUrl = ref('')
 const replayWaitMs = ref(5000)
 const replayLastEventOnly = ref(true)
 const replayClearAfter = ref(true)
+
+const safeMode = ref(true)
+const filterPanels = ref<string[]>(['query'])
 
 let timer: any = null
 
@@ -133,11 +136,16 @@ async function openJvmInfo(row: AgentConnection) {
 }
 
 async function doGc(row: AgentConnection) {
+  if (safeMode.value) {
+    ElMessage.warning('当前处于安全模式')
+    return
+  }
   try {
+    await ElMessageBox.confirm('触发GC可能影响线上性能，确认继续？', '确认操作', { type: 'warning' })
     await triggerGc(row.agentId)
     ElMessage.success('已触发GC')
   } catch (e: any) {
-    ElMessage.error(e?.message || '触发GC失败')
+    if (e !== 'cancel') ElMessage.error(e?.message || '触发GC失败')
   }
 }
 
@@ -277,15 +285,20 @@ async function openTopThreadsCpu(row: AgentConnection) {
 }
 
 async function openJdwpEnable(row: AgentConnection) {
+  if (safeMode.value) {
+    ElMessage.warning('当前处于安全模式')
+    return
+  }
   dialogTitle.value = `JDWP - ${row.agentId}`
   dialogText.value = ''
   dialogVisible.value = true
   dialogLoading.value = true
   try {
+    await ElMessageBox.confirm(`启用JDWP将打开调试端口 ${jdwpPort.value}，确认继续？`, '确认操作', { type: 'warning' })
     dialogText.value = await enableJdwp(row.agentId, jdwpPort.value)
   } catch (e: any) {
     dialogText.value = ''
-    ElMessage.error(e?.message || '启用JDWP失败')
+    if (e !== 'cancel') ElMessage.error(e?.message || '启用JDWP失败')
   } finally {
     dialogLoading.value = false
   }
@@ -307,6 +320,10 @@ async function openJdwpStatus(row: AgentConnection) {
 }
 
 async function openWatchAdd(row: AgentConnection) {
+  if (safeMode.value) {
+    ElMessage.warning('当前处于安全模式')
+    return
+  }
   dialogTitle.value = `WatchAdd - ${row.agentId}`
   dialogText.value = ''
   dialogVisible.value = true
@@ -354,21 +371,30 @@ async function openWatchList(row: AgentConnection) {
 }
 
 async function openWatchClear(row: AgentConnection) {
+  if (safeMode.value) {
+    ElMessage.warning('当前处于安全模式')
+    return
+  }
   dialogTitle.value = `WatchClear - ${row.agentId}`
   dialogText.value = ''
   dialogVisible.value = true
   dialogLoading.value = true
   try {
+    await ElMessageBox.confirm('将清理 Watch 规则，确认继续？', '确认操作', { type: 'warning' })
     dialogText.value = await watchClear(row.agentId, watchId.value)
   } catch (e: any) {
     dialogText.value = ''
-    ElMessage.error(e?.message || 'WatchClear失败')
+    if (e !== 'cancel') ElMessage.error(e?.message || 'WatchClear失败')
   } finally {
     dialogLoading.value = false
   }
 }
 
 async function openDebugAdd(row: AgentConnection) {
+  if (safeMode.value) {
+    ElMessage.warning('当前处于安全模式')
+    return
+  }
   dialogTitle.value = `DebugAdd - ${row.agentId}`
   dialogText.value = ''
   dialogVisible.value = true
@@ -416,26 +442,36 @@ async function openDebugList(row: AgentConnection) {
 }
 
 async function openDebugClear(row: AgentConnection) {
+  if (safeMode.value) {
+    ElMessage.warning('当前处于安全模式')
+    return
+  }
   dialogTitle.value = `DebugClear - ${row.agentId}`
   dialogText.value = ''
   dialogVisible.value = true
   dialogLoading.value = true
   try {
+    await ElMessageBox.confirm('将清理 Debug 规则，确认继续？', '确认操作', { type: 'warning' })
     dialogText.value = await debugClear(row.agentId, debugId.value)
   } catch (e: any) {
     dialogText.value = ''
-    ElMessage.error(e?.message || 'DebugClear失败')
+    if (e !== 'cancel') ElMessage.error(e?.message || 'DebugClear失败')
   } finally {
     dialogLoading.value = false
   }
 }
 
 async function openReplayDebug(row: AgentConnection) {
+  if (safeMode.value) {
+    ElMessage.warning('当前处于安全模式')
+    return
+  }
   dialogTitle.value = `回放Debug - ${row.agentId}`
   dialogText.value = ''
   dialogVisible.value = true
   dialogLoading.value = true
   try {
+    await ElMessageBox.confirm('回放会对目标服务发起真实请求，确认继续？', '确认操作', { type: 'warning' })
     dialogText.value = await replayDebugOnce({
       agentId: row.agentId,
       requestId: replayRequestId.value,
@@ -454,9 +490,22 @@ async function openReplayDebug(row: AgentConnection) {
     })
   } catch (e: any) {
     dialogText.value = ''
-    ElMessage.error(e?.message || '回放Debug失败')
+    if (e !== 'cancel') ElMessage.error(e?.message || '回放Debug失败')
   } finally {
     dialogLoading.value = false
+  }
+}
+
+async function onSafeModeChange(v: boolean) {
+  if (v) {
+    safeMode.value = true
+    return
+  }
+  try {
+    await ElMessageBox.confirm('关闭安全模式后将允许执行高风险操作（JDWP/Watch/Debug/回放/GC）。确认关闭？', '确认操作', { type: 'warning' })
+    safeMode.value = false
+  } catch (e) {
+    safeMode.value = true
   }
 }
 </script>
@@ -469,91 +518,118 @@ async function openReplayDebug(row: AgentConnection) {
 
     <template #filters>
       <el-form label-width="80px">
-        <div class="filters">
+        <el-alert
+          title="诊断功能包含高风险操作（JDWP/Watch/Debug/回放/GC）。默认启用安全模式，需手动关闭后才能执行高风险操作。"
+          type="warning"
+          :closable="false"
+          show-icon
+        />
+
+        <div class="toolbar">
           <el-form-item label="AgentId">
             <el-input v-model="form.agentId" :disabled="appLocked" placeholder="ip/标识（模糊匹配）" clearable @keyup.enter="load" />
           </el-form-item>
           <el-form-item>
-            <el-button :loading="loading" @click="load">查询</el-button>
+            <el-button :loading="loading" type="primary" @click="load">查询</el-button>
           </el-form-item>
-          <el-form-item label="TopCPU">
-            <el-select v-model="topCpuLimit" style="width: 120px">
-              <el-option label="5" :value="5" />
-              <el-option label="10" :value="10" />
-              <el-option label="20" :value="20" />
-            </el-select>
-          </el-form-item>
-          <el-form-item>
-            <el-checkbox v-model="topCpuRunnableOnly">仅RUNNABLE</el-checkbox>
-          </el-form-item>
-          <el-form-item label="JDWP端口">
-            <el-input-number v-model="jdwpPort" :min="1" :max="65535" controls-position="right" />
-          </el-form-item>
-          <el-form-item label="Watch类">
-            <el-input v-model="watchClassName" placeholder="com.foo.Bar" clearable style="width: 260px" />
-          </el-form-item>
-          <el-form-item label="Watch方法">
-            <el-input v-model="watchMethodName" placeholder="methodName" clearable style="width: 180px" />
-          </el-form-item>
-          <el-form-item label="W参数">
-            <el-input v-model="watchParamTypes" placeholder="java.lang.String,int" clearable style="width: 220px" />
-          </el-form-item>
-          <el-form-item label="WLimit">
-            <el-input-number v-model="watchLimit" :min="1" :max="500" controls-position="right" />
-          </el-form-item>
-          <el-form-item label="WatchId">
-            <el-input v-model="watchId" placeholder="自动填充/手动输入" clearable style="width: 260px" />
-          </el-form-item>
-          <el-form-item label="WLines">
-            <el-input-number v-model="watchMaxLines" :min="1" :max="2000" controls-position="right" />
-          </el-form-item>
-          <el-form-item label="Debug类">
-            <el-input v-model="debugClassName" placeholder="com.foo.Bar" clearable style="width: 260px" />
-          </el-form-item>
-          <el-form-item label="Debug方法">
-            <el-input v-model="debugMethodName" placeholder="methodName" clearable style="width: 180px" />
-          </el-form-item>
-          <el-form-item label="D参数">
-            <el-input v-model="debugParamTypes" placeholder="java.lang.String,int" clearable style="width: 220px" />
-          </el-form-item>
-          <el-form-item label="When">
-            <el-select v-model="debugWhen" style="width: 120px">
-              <el-option label="ENTER" value="ENTER" />
-              <el-option label="EXIT" value="EXIT" />
-              <el-option label="THROW" value="THROW" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="DLimit">
-            <el-input-number v-model="debugLimit" :min="1" :max="500" controls-position="right" />
-          </el-form-item>
-          <el-form-item label="Stack">
-            <el-input-number v-model="debugStackDepth" :min="0" :max="60" controls-position="right" />
-          </el-form-item>
-          <el-form-item label="Contains">
-            <el-input v-model="debugContains" placeholder="可选过滤" clearable style="width: 220px" />
-          </el-form-item>
-          <el-form-item label="DebugId">
-            <el-input v-model="debugId" placeholder="自动填充/手动输入" clearable style="width: 260px" />
-          </el-form-item>
-          <el-form-item label="DLines">
-            <el-input-number v-model="debugMaxLines" :min="1" :max="2000" controls-position="right" />
-          </el-form-item>
-          <el-form-item label="回放ReqId">
-            <el-input v-model="replayRequestId" placeholder="ES里的req id" clearable style="width: 260px" />
-          </el-form-item>
-          <el-form-item label="回放URL">
-            <el-input v-model="replayTargetBaseUrl" placeholder="http://ip:port（可选）" clearable style="width: 260px" />
-          </el-form-item>
-          <el-form-item label="回放等待">
-            <el-input-number v-model="replayWaitMs" :min="100" :max="20000" controls-position="right" />
-          </el-form-item>
-          <el-form-item>
-            <el-checkbox v-model="replayLastEventOnly">仅最后事件</el-checkbox>
-          </el-form-item>
-          <el-form-item>
-            <el-checkbox v-model="replayClearAfter">回放后清理</el-checkbox>
+          <el-form-item label="安全模式">
+            <el-switch :model-value="safeMode" @update:model-value="(v:any)=>onSafeModeChange(Boolean(v))" />
           </el-form-item>
         </div>
+
+        <el-collapse v-model="filterPanels">
+          <el-collapse-item title="性能参数" name="perf">
+            <div class="filters">
+              <el-form-item label="TopCPU">
+                <el-select v-model="topCpuLimit" style="width: 120px">
+                  <el-option label="5" :value="5" />
+                  <el-option label="10" :value="10" />
+                  <el-option label="20" :value="20" />
+                </el-select>
+              </el-form-item>
+              <el-form-item>
+                <el-checkbox v-model="topCpuRunnableOnly">仅RUNNABLE</el-checkbox>
+              </el-form-item>
+              <el-form-item label="JDWP端口">
+                <el-input-number v-model="jdwpPort" :min="1" :max="65535" controls-position="right" />
+              </el-form-item>
+            </div>
+          </el-collapse-item>
+
+          <el-collapse-item title="Watch" name="watch">
+            <div class="filters">
+              <el-form-item label="Watch类">
+                <el-input v-model="watchClassName" placeholder="com.foo.Bar" clearable style="width: 260px" />
+              </el-form-item>
+              <el-form-item label="Watch方法">
+                <el-input v-model="watchMethodName" placeholder="methodName" clearable style="width: 180px" />
+              </el-form-item>
+              <el-form-item label="W参数">
+                <el-input v-model="watchParamTypes" placeholder="java.lang.String,int" clearable style="width: 220px" />
+              </el-form-item>
+              <el-form-item label="WLimit">
+                <el-input-number v-model="watchLimit" :min="1" :max="500" controls-position="right" />
+              </el-form-item>
+              <el-form-item label="WatchId">
+                <el-input v-model="watchId" placeholder="自动填充/手动输入" clearable style="width: 260px" />
+              </el-form-item>
+              <el-form-item label="WLines">
+                <el-input-number v-model="watchMaxLines" :min="1" :max="2000" controls-position="right" />
+              </el-form-item>
+            </div>
+          </el-collapse-item>
+
+          <el-collapse-item title="Debug / 回放" name="debug">
+            <div class="filters">
+              <el-form-item label="Debug类">
+                <el-input v-model="debugClassName" placeholder="com.foo.Bar" clearable style="width: 260px" />
+              </el-form-item>
+              <el-form-item label="Debug方法">
+                <el-input v-model="debugMethodName" placeholder="methodName" clearable style="width: 180px" />
+              </el-form-item>
+              <el-form-item label="D参数">
+                <el-input v-model="debugParamTypes" placeholder="java.lang.String,int" clearable style="width: 220px" />
+              </el-form-item>
+              <el-form-item label="When">
+                <el-select v-model="debugWhen" style="width: 120px">
+                  <el-option label="ENTER" value="ENTER" />
+                  <el-option label="EXIT" value="EXIT" />
+                  <el-option label="THROW" value="THROW" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="DLimit">
+                <el-input-number v-model="debugLimit" :min="1" :max="500" controls-position="right" />
+              </el-form-item>
+              <el-form-item label="Stack">
+                <el-input-number v-model="debugStackDepth" :min="0" :max="60" controls-position="right" />
+              </el-form-item>
+              <el-form-item label="Contains">
+                <el-input v-model="debugContains" placeholder="可选过滤" clearable style="width: 220px" />
+              </el-form-item>
+              <el-form-item label="DebugId">
+                <el-input v-model="debugId" placeholder="自动填充/手动输入" clearable style="width: 260px" />
+              </el-form-item>
+              <el-form-item label="DLines">
+                <el-input-number v-model="debugMaxLines" :min="1" :max="2000" controls-position="right" />
+              </el-form-item>
+              <el-form-item label="回放ReqId">
+                <el-input v-model="replayRequestId" placeholder="ES里的req id" clearable style="width: 260px" />
+              </el-form-item>
+              <el-form-item label="回放URL">
+                <el-input v-model="replayTargetBaseUrl" placeholder="http://ip:port（可选）" clearable style="width: 260px" />
+              </el-form-item>
+              <el-form-item label="回放等待">
+                <el-input-number v-model="replayWaitMs" :min="100" :max="20000" controls-position="right" />
+              </el-form-item>
+              <el-form-item>
+                <el-checkbox v-model="replayLastEventOnly">仅最后事件</el-checkbox>
+              </el-form-item>
+              <el-form-item>
+                <el-checkbox v-model="replayClearAfter">回放后清理</el-checkbox>
+              </el-form-item>
+            </div>
+          </el-collapse-item>
+        </el-collapse>
       </el-form>
     </template>
 
@@ -577,7 +653,7 @@ async function openReplayDebug(row: AgentConnection) {
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item :disabled="!row.active || !row.writable" @click="openJvmInfo(row)">JVM</el-dropdown-item>
-                <el-dropdown-item :disabled="!row.active || !row.writable" @click="doGc(row)">GC</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable || safeMode" @click="doGc(row)">GC</el-dropdown-item>
                 <el-dropdown-item :disabled="!row.active || !row.writable" @click="openGcStats(row)">GCStat</el-dropdown-item>
                 <el-dropdown-item :disabled="!row.active || !row.writable" @click="openMemory(row)">Mem</el-dropdown-item>
                 <el-dropdown-item :disabled="!row.active || !row.writable" @click="openSysProps(row)">属性</el-dropdown-item>
@@ -604,17 +680,17 @@ async function openReplayDebug(row: AgentConnection) {
             <el-button size="small" :disabled="!row.active || !row.writable">调试</el-button>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openJdwpEnable(row)">JDWP</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable || safeMode" @click="openJdwpEnable(row)">JDWP</el-dropdown-item>
                 <el-dropdown-item :disabled="!row.active || !row.writable" @click="openJdwpStatus(row)">JDWP状态</el-dropdown-item>
-                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openWatchAdd(row)">WatchAdd</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable || safeMode" @click="openWatchAdd(row)">WatchAdd</el-dropdown-item>
                 <el-dropdown-item :disabled="!row.active || !row.writable" @click="openWatchDump(row)">WatchDump</el-dropdown-item>
                 <el-dropdown-item :disabled="!row.active || !row.writable" @click="openWatchList(row)">WatchList</el-dropdown-item>
-                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openWatchClear(row)">WatchClear</el-dropdown-item>
-                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openDebugAdd(row)">DebugAdd</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable || safeMode" @click="openWatchClear(row)">WatchClear</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable || safeMode" @click="openDebugAdd(row)">DebugAdd</el-dropdown-item>
                 <el-dropdown-item :disabled="!row.active || !row.writable" @click="openDebugDump(row)">DebugDump</el-dropdown-item>
                 <el-dropdown-item :disabled="!row.active || !row.writable" @click="openDebugList(row)">DebugList</el-dropdown-item>
-                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openDebugClear(row)">DebugClear</el-dropdown-item>
-                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openReplayDebug(row)">回放Debug</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable || safeMode" @click="openDebugClear(row)">DebugClear</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable || safeMode" @click="openReplayDebug(row)">回放Debug</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -629,6 +705,13 @@ async function openReplayDebug(row: AgentConnection) {
 </template>
 
 <style scoped>
+.toolbar{
+  display:flex;
+  align-items:flex-start;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
 .filters{
   display:flex;
   align-items:flex-start;

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 echo "Starting LT Monitor Build..."
 
 # 1. Build Frontend

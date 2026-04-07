@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, shallowRef } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import PageShell from '../components/PageShell.vue'
 import { fetchDashboardStat, fetchGlobalTopology, type DashboardStat } from '../../api/dashboard'
 import { useTimeRangeStore } from '../../stores/timeRange'
 
@@ -50,19 +49,24 @@ async function renderTopology() {
       }
       
       const nodes = new vis.DataSet(data.nodes.map(n => ({
-        ...n,
+        id: n.id,
+        label: n.label,
+        group: n.group,
         shape: n.image ? 'image' : 'dot',
         image: n.image || undefined,
         size: n.image ? 25 : 15,
         font: { color: '#fff', size: 14 }
       })))
       
-      const edges = new vis.DataSet(data.edges.map(e => ({
-        ...e,
+      const edges = new vis.DataSet(data.edges.map((e, index) => ({
+        id: 'edge_' + index,
+        from: e.from,
+        to: e.to,
+        label: e.label,
         arrows: 'to',
         font: { color: '#999', size: 12, align: 'horizontal' },
         color: { color: '#555', highlight: '#409EFF' },
-        smooth: { type: 'continuous' }
+        smooth: { enabled: true, type: 'continuous', roundness: 0.5 }
       })))
       
       const options = {
@@ -98,7 +102,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="page">
+  <div class="dashboard-container">
     <div class="page-head">
       <div class="title">仪表盘</div>
       <el-button :loading="loading" type="primary" @click="reload">刷新</el-button>
@@ -135,8 +139,8 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.page{
-  display:flex;
+.dashboard-container {
+  display: flex;
   flex-direction: column;
   gap: var(--space-4);
 }

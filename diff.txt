@@ -1,0 +1,977 @@
+diff --git a/lt-ui/bee-apm-ui-web/src/router/routes.ts b/lt-ui/bee-apm-ui-web/src/router/routes.ts
+index 6611849..36898f1 100644
+--- a/lt-ui/bee-apm-ui-web/src/router/routes.ts
++++ b/lt-ui/bee-apm-ui-web/src/router/routes.ts
+@@ -1,14 +1,10 @@
+ import type { RouteRecordRaw } from 'vue-router'
+-import { Coin, Connection, DataLine, Grid, Link, Tickets, Tools } from '@element-plus/icons-vue'
++import { Coin, Connection, DataLine, Grid, Link, Tickets, Tools, Search } from '@element-plus/icons-vue'
+ 
+ import AppLayout from '../ui/layouts/AppLayout.vue'
+ import LoginView from '../ui/views/LoginView.vue'
+ import DashboardView from '../ui/views/DashboardView.vue'
+-import RequestView from '../ui/views/RequestView.vue'
+-import MethodView from '../ui/views/MethodView.vue'
+-import SqlView from '../ui/views/SqlView.vue'
+-import TxView from '../ui/views/TxView.vue'
+-import LoggerView from '../ui/views/LoggerView.vue'
++import AppQueryView from '../ui/views/AppQueryView.vue'
+ import AppListView from '../ui/views/AppListView.vue'
+ import DiagnosticView from '../ui/views/DiagnosticView.vue'
+ import NotFoundView from '../ui/views/NotFoundView.vue'
+@@ -32,34 +28,10 @@ export const routes: RouteRecordRaw[] = [
+         meta: { title: '仪表盘', nav: true, icon: DataLine, order: 10 },
+       },
+       {
+-        path: 'request',
+-        name: 'request',
+-        component: RequestView,
+-        meta: { title: '请求查询', nav: true, icon: Link, order: 20 },
+-      },
+-      {
+-        path: 'method',
+-        name: 'method',
+-        component: MethodView,
+-        meta: { title: '方法查询', nav: true, icon: Link, order: 30 },
+-      },
+-      {
+-        path: 'sql',
+-        name: 'sql',
+-        component: SqlView,
+-        meta: { title: 'SQL查询', nav: true, icon: Coin, order: 40 },
+-      },
+-      {
+-        path: 'tx',
+-        name: 'tx',
+-        component: TxView,
+-        meta: { title: '事务查询', nav: true, icon: Connection, order: 50 },
+-      },
+-      {
+-        path: 'logger',
+-        name: 'logger',
+-        component: LoggerView,
+-        meta: { title: 'Logger查询', nav: true, icon: Tickets, order: 60 },
++        path: 'query',
++        name: 'query',
++        component: AppQueryView,
++        meta: { title: '应用查询', nav: true, icon: Search, order: 20 },
+       },
+       {
+         path: 'apps',
+diff --git a/lt-ui/bee-apm-ui-web/src/ui/layouts/AppLayout.vue b/lt-ui/bee-apm-ui-web/src/ui/layouts/AppLayout.vue
+index 4be4c98..ac28e35 100644
+--- a/lt-ui/bee-apm-ui-web/src/ui/layouts/AppLayout.vue
++++ b/lt-ui/bee-apm-ui-web/src/ui/layouts/AppLayout.vue
+@@ -23,7 +23,11 @@ onMounted(() => {
+       </header>
+ 
+       <main class="app-content">
+-        <RouterView />
++        <RouterView v-slot="{ Component, route }">
++          <KeepAlive include="DashboardView,AppQueryView,AppListView">
++            <component :is="Component" :key="route.fullPath" />
++          </KeepAlive>
++        </RouterView>
+       </main>
+     </div>
+   </div>
+diff --git a/lt-ui/bee-apm-ui-web/src/ui/views/AppQueryView.vue b/lt-ui/bee-apm-ui-web/src/ui/views/AppQueryView.vue
+new file mode 100644
+index 0000000..72b7843
+--- /dev/null
++++ b/lt-ui/bee-apm-ui-web/src/ui/views/AppQueryView.vue
+@@ -0,0 +1,83 @@
++<script setup lang="ts">
++import { ref, onMounted, watch } from 'vue'
++import { Search } from '@element-plus/icons-vue'
++
++import PageShell from '../components/PageShell.vue'
++import { useGroups } from '../composables/useGroups'
++import { useTimeRangeStore } from '../../stores/timeRange'
++import RequestTab from './query/RequestTab.vue'
++import MethodTab from './query/MethodTab.vue'
++import SqlTab from './query/SqlTab.vue'
++import TxTab from './query/TxTab.vue'
++import LoggerTab from './query/LoggerTab.vue'
++
++const timeRange = useTimeRangeStore()
++const { envOptions, appOptions, loading: groupsLoading, reload: reloadGroups } = useGroups()
++
++const env = ref('')
++const app = ref('')
++const activeTab = ref('request')
++
++onMounted(async () => {
++  await reloadGroups()
++})
++watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
++  await reloadGroups()
++})
++
++</script>
++
++<template>
++  <PageShell title="应用查询">
++    <template #actions>
++      <el-button type="primary" :icon="Search" disabled v-if="false">预留</el-button>
++    </template>
++
++    <template #filters>
++      <el-form label-width="64px">
++        <div class="filters">
++          <el-form-item label="环境">
++            <el-select v-model="env" placeholder="全部" clearable filterable :teleported="false">
++              <el-option v-for="o in envOptions" :key="String(o.value)" :label="o.name" :value="String(o.value)" />
++            </el-select>
++          </el-form-item>
++          <el-form-item label="应用">
++            <el-select v-model="app" placeholder="全部" clearable filterable :teleported="false">
++              <el-option v-for="o in appOptions" :key="String(o.value)" :label="o.name" :value="String(o.value)" />
++            </el-select>
++          </el-form-item>
++        </div>
++      </el-form>
++    </template>
++
++    <el-tabs v-model="activeTab" class="query-tabs">
++      <el-tab-pane label="请求查询" name="request" :lazy="true">
++        <RequestTab :env="env" :app="app" />
++      </el-tab-pane>
++      <el-tab-pane label="方法查询" name="method" :lazy="true">
++        <MethodTab :env="env" :app="app" />
++      </el-tab-pane>
++      <el-tab-pane label="SQL查询" name="sql" :lazy="true">
++        <SqlTab :env="env" :app="app" />
++      </el-tab-pane>
++      <el-tab-pane label="事务查询" name="tx" :lazy="true">
++        <TxTab :env="env" :app="app" />
++      </el-tab-pane>
++      <el-tab-pane label="Logger查询" name="logger" :lazy="true">
++        <LoggerTab :env="env" :app="app" />
++      </el-tab-pane>
++    </el-tabs>
++  </PageShell>
++</template>
++
++<style scoped>
++.filters {
++  display: flex;
++  flex-wrap: wrap;
++  gap: 0 var(--space-4);
++}
++
++.query-tabs {
++  margin-top: -10px;
++}
++</style>
+\ No newline at end of file
+diff --git a/lt-ui/bee-apm-ui-web/src/ui/views/LoggerView.vue b/lt-ui/bee-apm-ui-web/src/ui/views/query/LoggerTab.vue
+similarity index 52%
+rename from lt-ui/bee-apm-ui-web/src/ui/views/LoggerView.vue
+rename to lt-ui/bee-apm-ui-web/src/ui/views/query/LoggerTab.vue
+index c536aa7..22ae0f3 100644
+--- a/lt-ui/bee-apm-ui-web/src/ui/views/LoggerView.vue
++++ b/lt-ui/bee-apm-ui-web/src/ui/views/query/LoggerTab.vue
+@@ -2,13 +2,12 @@
+ import { onMounted, reactive, ref, watch } from 'vue'
+ import { ElMessage } from 'element-plus'
+ 
+-import PageShell from '../components/PageShell.vue'
+-import { useGroups } from '../composables/useGroups'
+-import { useTimeRangeStore } from '../../stores/timeRange'
+-import { fetchLoggerList, type LoggerRow } from '../../api/logger'
++import { fetchLoggerList, type LoggerRow } from '../../../api/logger'
++import { useTimeRangeStore } from '../../../stores/timeRange'
++
++const props = defineProps<{ env: string; app: string }>()
+ 
+ const timeRange = useTimeRangeStore()
+-const { envOptions, appOptions, loading: groupsLoading, reload: reloadGroups } = useGroups()
+ 
+ const loading = ref(false)
+ const rows = ref<LoggerRow[]>([])
+@@ -16,11 +15,10 @@ const pageNum = ref(1)
+ const pageTotal = ref(0)
+ 
+ const form = reactive({
+-  env: '',
+-  app: '',
++  sort: 'time' as 'time' | '',
++  level: '',
+   gid: '',
+   ip: '',
+-  level: '',
+ })
+ 
+ function formatTime(v: string) {
+@@ -33,11 +31,12 @@ async function load(p = 1) {
+   loading.value = true
+   try {
+     const data = await fetchLoggerList({
+-      env: form.env || undefined,
+-      app: form.app || undefined,
++      env: props.env || undefined,
++      app: props.app || undefined,
++      sort: form.sort,
++      level: form.level || undefined,
+       gid: form.gid || undefined,
+       ip: form.ip || undefined,
+-      'tags.level': form.level || undefined,
+       pageNum: pageNum.value,
+       beginTime: timeRange.beginTime,
+       endTime: timeRange.endTime,
+@@ -55,79 +54,72 @@ async function load(p = 1) {
+ }
+ 
+ onMounted(async () => {
+-  await reloadGroups()
+   await load(1)
+ })
+-watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
+-  await reloadGroups()
++watch(() => [timeRange.beginTime, timeRange.endTime, props.env, props.app], async () => {
+   await load(1)
+ })
++
++defineExpose({ load })
+ </script>
+ 
+ <template>
+-  <PageShell title="Logger 查询">
+-    <template #actions>
+-      <el-button :loading="loading || groupsLoading" type="primary" @click="load(1)">查询</el-button>
+-    </template>
+-
+-    <template #filters>
++  <div class="tab-content">
++    <div class="tab-filters">
+       <el-form label-width="64px">
+         <div class="filters">
+-          <el-form-item label="环境">
+-            <el-select v-model="form.env" placeholder="全部" clearable filterable :teleported="false">
+-              <el-option v-for="o in envOptions" :key="String(o.value)" :label="o.name" :value="String(o.value)" />
+-            </el-select>
+-          </el-form-item>
+-          <el-form-item label="应用">
+-            <el-select v-model="form.app" placeholder="全部" clearable filterable :teleported="false">
+-              <el-option v-for="o in appOptions" :key="String(o.value)" :label="o.name" :value="String(o.value)" />
++          <el-form-item label="排序">
++            <el-select v-model="form.sort" placeholder="排序" style="width: 140px" :teleported="false">
++              <el-option label="时间" value="time" />
+             </el-select>
+           </el-form-item>
+           <el-form-item label="级别">
+-            <el-select v-model="form.level" placeholder="全部" clearable style="width: 160px" :teleported="false">
+-              <el-option label="trace" value="trace" />
+-              <el-option label="debug" value="debug" />
+-              <el-option label="info" value="info" />
+-              <el-option label="warm" value="warm" />
+-              <el-option label="error" value="error" />
+-              <el-option label="fatal" value="fatal" />
++            <el-select v-model="form.level" placeholder="全部" style="width: 140px" clearable :teleported="false">
++              <el-option label="全部" value="" />
++              <el-option label="DEBUG" value="DEBUG" />
++              <el-option label="INFO" value="INFO" />
++              <el-option label="WARN" value="WARN" />
++              <el-option label="ERROR" value="ERROR" />
+             </el-select>
+           </el-form-item>
+           <el-form-item label="gId">
+-            <el-input v-model="form.gid" placeholder="gid" clearable />
++            <el-input v-model="form.gid" placeholder="gid" clearable @keyup.enter="load(1)" />
+           </el-form-item>
+           <el-form-item label="IP">
+-            <el-input v-model="form.ip" placeholder="ip" clearable />
++            <el-input v-model="form.ip" placeholder="ip" clearable @keyup.enter="load(1)" />
++          </el-form-item>
++          <el-form-item>
++            <el-button :loading="loading" type="primary" @click="load(1)">查询</el-button>
+           </el-form-item>
+         </div>
+       </el-form>
+-    </template>
++    </div>
+ 
+     <el-table :data="rows" border stripe v-loading="loading">
+-      <el-table-column prop="id" label="ID" width="200" fixed />
++      <el-table-column prop="id" label="ID" width="220" fixed />
+       <el-table-column prop="time" label="时间" width="110" :formatter="(r:any)=>formatTime(r.time)" fixed />
+       <el-table-column prop="gid" label="GID" width="200" />
+       <el-table-column prop="ip" label="IP" width="140" />
+       <el-table-column prop="env" label="环境" width="120" />
+       <el-table-column prop="app" label="应用" width="140" />
+-      <el-table-column label="级别" width="110">
+-        <template #default="{ row }">
+-          {{ row?.tags?.level || '' }}
+-        </template>
+-      </el-table-column>
+-      <el-table-column label="拦截点" width="260">
++      <el-table-column label="级别" width="90">
+         <template #default="{ row }">
+-          {{ row?.tags?.point || '' }}
++          <el-tag
++            size="small"
++            :type="row?.tags?.level === 'ERROR' ? 'danger' : row?.tags?.level === 'WARN' ? 'warning' : row?.tags?.level === 'DEBUG' ? 'info' : 'primary'"
++          >
++            {{ row?.tags?.level || '' }}
++          </el-tag>
+         </template>
+       </el-table-column>
+-      <el-table-column label="日志" min-width="360">
++      <el-table-column label="日志内容" min-width="400">
+         <template #default="{ row }">
+-          {{ row?.tags?.log || '' }}
++          {{ row?.tags?.msg || '' }}
+         </template>
+       </el-table-column>
+     </el-table>
+ 
+-    <template #footer>
++    <div class="footer">
+       <el-pagination
+         background
+         layout="prev, pager, next"
+@@ -135,21 +127,24 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
+         :current-page="pageNum"
+         @current-change="(p:number) => load(p)"
+       />
+-    </template>
+-  </PageShell>
++    </div>
++  </div>
+ </template>
+ 
+ <style scoped>
++.tab-content {
++  display: flex;
++  flex-direction: column;
++  gap: var(--space-4);
++}
+ .filters{
+-  display:grid;
+-  grid-template-columns: repeat(3, minmax(0, 1fr));
++  display:flex;
++  flex-wrap: wrap;
+   gap: 0 var(--space-3);
+ }
+-
+-@media (max-width: 1200px){
+-  .filters{
+-    grid-template-columns: repeat(2, minmax(0, 1fr));
+-  }
++.footer{
++  display:flex;
++  justify-content:flex-end;
+ }
+ </style>
+ 
+diff --git a/lt-ui/bee-apm-ui-web/src/ui/views/MethodView.vue b/lt-ui/bee-apm-ui-web/src/ui/views/query/MethodTab.vue
+similarity index 64%
+rename from lt-ui/bee-apm-ui-web/src/ui/views/MethodView.vue
+rename to lt-ui/bee-apm-ui-web/src/ui/views/query/MethodTab.vue
+index 89443ad..792b769 100644
+--- a/lt-ui/bee-apm-ui-web/src/ui/views/MethodView.vue
++++ b/lt-ui/bee-apm-ui-web/src/ui/views/query/MethodTab.vue
+@@ -2,13 +2,12 @@
+ import { onMounted, reactive, ref, watch } from 'vue'
+ import { ElMessage } from 'element-plus'
+ 
+-import { fetchMethodList, type MethodRow } from '../../api/method'
+-import { useTimeRangeStore } from '../../stores/timeRange'
+-import PageShell from '../components/PageShell.vue'
+-import { useGroups } from '../composables/useGroups'
++import { fetchMethodList, type MethodRow } from '../../../api/method'
++import { useTimeRangeStore } from '../../../stores/timeRange'
++
++const props = defineProps<{ env: string; app: string }>()
+ 
+ const timeRange = useTimeRangeStore()
+-const { envOptions, appOptions, loading: groupsLoading, reload: reloadGroups } = useGroups()
+ 
+ const loading = ref(false)
+ const rows = ref<MethodRow[]>([])
+@@ -16,8 +15,6 @@ const pageNum = ref(1)
+ const pageTotal = ref(0)
+ 
+ const form = reactive({
+-  env: '',
+-  app: '',
+   sort: 'time' as 'time' | 'spend' | '',
+   gid: '',
+   ip: '',
+@@ -33,8 +30,8 @@ async function load(p = 1) {
+   loading.value = true
+   try {
+     const data = await fetchMethodList({
+-      env: form.env || undefined,
+-      app: form.app || undefined,
++      env: props.env || undefined,
++      app: props.app || undefined,
+       sort: form.sort,
+       gid: form.gid || undefined,
+       ip: form.ip || undefined,
+@@ -55,34 +52,20 @@ async function load(p = 1) {
+ }
+ 
+ onMounted(async () => {
+-  await reloadGroups()
+   await load(1)
+ })
+-watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
+-  await reloadGroups()
++watch(() => [timeRange.beginTime, timeRange.endTime, props.env, props.app], async () => {
+   await load(1)
+ })
++
++defineExpose({ load })
+ </script>
+ 
+ <template>
+-  <PageShell title="方法查询">
+-    <template #actions>
+-      <el-button :loading="loading || groupsLoading" type="primary" @click="load(1)">查询</el-button>
+-    </template>
+-
+-    <template #filters>
++  <div class="tab-content">
++    <div class="tab-filters">
+       <el-form label-width="64px">
+         <div class="filters">
+-          <el-form-item label="环境">
+-            <el-select v-model="form.env" placeholder="全部" clearable filterable :teleported="false">
+-              <el-option v-for="o in envOptions" :key="String(o.value)" :label="o.name" :value="String(o.value)" />
+-            </el-select>
+-          </el-form-item>
+-          <el-form-item label="应用">
+-            <el-select v-model="form.app" placeholder="全部" clearable filterable :teleported="false">
+-              <el-option v-for="o in appOptions" :key="String(o.value)" :label="o.name" :value="String(o.value)" />
+-            </el-select>
+-          </el-form-item>
+           <el-form-item label="排序">
+             <el-select v-model="form.sort" placeholder="排序" style="width: 140px" :teleported="false">
+               <el-option label="时间" value="time" />
+@@ -90,14 +73,17 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
+             </el-select>
+           </el-form-item>
+           <el-form-item label="gId">
+-            <el-input v-model="form.gid" placeholder="gid" clearable />
++            <el-input v-model="form.gid" placeholder="gid" clearable @keyup.enter="load(1)" />
+           </el-form-item>
+           <el-form-item label="IP">
+-            <el-input v-model="form.ip" placeholder="ip" clearable />
++            <el-input v-model="form.ip" placeholder="ip" clearable @keyup.enter="load(1)" />
++          </el-form-item>
++          <el-form-item>
++            <el-button :loading="loading" type="primary" @click="load(1)">查询</el-button>
+           </el-form-item>
+         </div>
+       </el-form>
+-    </template>
++    </div>
+ 
+     <el-table :data="rows" border stripe v-loading="loading">
+       <el-table-column prop="id" label="ID" width="220" fixed />
+@@ -114,7 +100,7 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
+       </el-table-column>
+     </el-table>
+ 
+-    <template #footer>
++    <div class="footer">
+       <el-pagination
+         background
+         layout="prev, pager, next"
+@@ -122,21 +108,24 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
+         :current-page="pageNum"
+         @current-change="(p:number) => load(p)"
+       />
+-    </template>
+-  </PageShell>
++    </div>
++  </div>
+ </template>
+ 
+ <style scoped>
++.tab-content {
++  display: flex;
++  flex-direction: column;
++  gap: var(--space-4);
++}
+ .filters{
+-  display:grid;
+-  grid-template-columns: repeat(3, minmax(0, 1fr));
++  display:flex;
++  flex-wrap: wrap;
+   gap: 0 var(--space-3);
+ }
+-
+-@media (max-width: 1200px){
+-  .filters{
+-    grid-template-columns: repeat(2, minmax(0, 1fr));
+-  }
++.footer{
++  display:flex;
++  justify-content:flex-end;
+ }
+ </style>
+ 
+diff --git a/lt-ui/bee-apm-ui-web/src/ui/views/RequestView.vue b/lt-ui/bee-apm-ui-web/src/ui/views/query/RequestTab.vue
+similarity index 78%
+rename from lt-ui/bee-apm-ui-web/src/ui/views/RequestView.vue
+rename to lt-ui/bee-apm-ui-web/src/ui/views/query/RequestTab.vue
+index 347649b..54fe56e 100644
+--- a/lt-ui/bee-apm-ui-web/src/ui/views/RequestView.vue
++++ b/lt-ui/bee-apm-ui-web/src/ui/views/query/RequestTab.vue
+@@ -2,18 +2,17 @@
+ import { onMounted, reactive, ref, watch } from 'vue'
+ import { ElMessage } from 'element-plus'
+ 
+-import { fetchRequestList, type RequestRow } from '../../api/request'
+-import { queryById } from '../../api/common'
+-import { fetchCallTree, fetchTopology } from '../../api/requestExtras'
+-import { useTimeRangeStore } from '../../stores/timeRange'
+-import PageShell from '../components/PageShell.vue'
+-import JsonDialog from '../components/JsonDialog.vue'
+-import CallTreeDrawer from '../components/CallTreeDrawer.vue'
+-import TopologyDrawer from '../components/TopologyDrawer.vue'
+-import { useGroups } from '../composables/useGroups'
++import { fetchRequestList, type RequestRow } from '../../../api/request'
++import { queryById } from '../../../api/common'
++import { fetchCallTree, fetchTopology } from '../../../api/requestExtras'
++import { useTimeRangeStore } from '../../../stores/timeRange'
++import JsonDialog from '../../components/JsonDialog.vue'
++import CallTreeDrawer from '../../components/CallTreeDrawer.vue'
++import TopologyDrawer from '../../components/TopologyDrawer.vue'
++
++const props = defineProps<{ env: string; app: string }>()
+ 
+ const timeRange = useTimeRangeStore()
+-const { envOptions, appOptions, loading: groupsLoading, reload: reloadGroups } = useGroups()
+ 
+ const loading = ref(false)
+ const rows = ref<RequestRow[]>([])
+@@ -21,8 +20,6 @@ const pageNum = ref(1)
+ const pageTotal = ref(0)
+ 
+ const form = reactive({
+-  env: '',
+-  app: '',
+   sort: 'time' as 'time' | 'spend' | '',
+   entry: '',
+   gid: '',
+@@ -130,8 +127,8 @@ async function load(p = 1) {
+   loading.value = true
+   try {
+     const data = await fetchRequestList({
+-      env: form.env || undefined,
+-      app: form.app || undefined,
++      env: props.env || undefined,
++      app: props.app || undefined,
+       sort: form.sort,
+       entry: form.entry || undefined,
+       gid: form.gid || undefined,
+@@ -153,34 +150,20 @@ async function load(p = 1) {
+ }
+ 
+ onMounted(async () => {
+-  await reloadGroups()
+   await load(1)
+ })
+-watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
+-  await reloadGroups()
++watch(() => [timeRange.beginTime, timeRange.endTime, props.env, props.app], async () => {
+   await load(1)
+ })
++
++defineExpose({ load })
+ </script>
+ 
+ <template>
+-  <PageShell title="请求查询">
+-    <template #actions>
+-      <el-button :loading="loading || groupsLoading" type="primary" @click="load(1)">查询</el-button>
+-    </template>
+-
+-    <template #filters>
++  <div class="tab-content">
++    <div class="tab-filters">
+       <el-form label-width="64px">
+         <div class="filters">
+-          <el-form-item label="环境">
+-            <el-select v-model="form.env" placeholder="全部" clearable filterable :teleported="false">
+-              <el-option v-for="o in envOptions" :key="String(o.value)" :label="o.name" :value="String(o.value)" />
+-            </el-select>
+-          </el-form-item>
+-          <el-form-item label="应用">
+-            <el-select v-model="form.app" placeholder="全部" clearable filterable :teleported="false">
+-              <el-option v-for="o in appOptions" :key="String(o.value)" :label="o.name" :value="String(o.value)" />
+-            </el-select>
+-          </el-form-item>
+           <el-form-item label="排序">
+             <el-select v-model="form.sort" placeholder="排序" style="width: 140px" :teleported="false">
+               <el-option label="时间" value="time" />
+@@ -194,14 +177,17 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
+             </el-select>
+           </el-form-item>
+           <el-form-item label="gId">
+-            <el-input v-model="form.gid" placeholder="gid" clearable />
++            <el-input v-model="form.gid" placeholder="gid" clearable @keyup.enter="load(1)" />
+           </el-form-item>
+           <el-form-item label="IP">
+-            <el-input v-model="form.ip" placeholder="ip" clearable />
++            <el-input v-model="form.ip" placeholder="ip" clearable @keyup.enter="load(1)" />
++          </el-form-item>
++          <el-form-item>
++            <el-button :loading="loading" type="primary" @click="load(1)">查询</el-button>
+           </el-form-item>
+         </div>
+       </el-form>
+-    </template>
++    </div>
+ 
+     <el-table :data="rows" border stripe v-loading="loading">
+       <el-table-column prop="id" label="ID" width="220" fixed />
+@@ -226,7 +212,7 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
+     </el-table-column>
+     </el-table>
+ 
+-    <template #footer>
++    <div class="footer">
+       <el-pagination
+         background
+         layout="prev, pager, next"
+@@ -234,25 +220,28 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
+         :current-page="pageNum"
+         @current-change="(p:number) => load(p)"
+       />
+-    </template>
++    </div>
+ 
+     <JsonDialog v-model="dialogOpen" :title="dialogTitle" :text="dialogText" />
+     <CallTreeDrawer v-model="callTreeOpen" :loading="callTreeLoading" :data="callTreeData" :onParams="openParamsByCallTreeNode" />
+     <TopologyDrawer v-model="topologyOpen" :loading="topologyLoading" :data="topologyData" />
+-  </PageShell>
++  </div>
+ </template>
+ 
+ <style scoped>
++.tab-content {
++  display: flex;
++  flex-direction: column;
++  gap: var(--space-4);
++}
+ .filters{
+-  display:grid;
+-  grid-template-columns: repeat(3, minmax(0, 1fr));
++  display:flex;
++  flex-wrap: wrap;
+   gap: 0 var(--space-3);
+ }
+-
+-@media (max-width: 1200px){
+-  .filters{
+-    grid-template-columns: repeat(2, minmax(0, 1fr));
+-  }
++.footer{
++  display:flex;
++  justify-content:flex-end;
+ }
+ </style>
+ 
+diff --git a/lt-ui/bee-apm-ui-web/src/ui/views/SqlView.vue b/lt-ui/bee-apm-ui-web/src/ui/views/query/SqlTab.vue
+similarity index 66%
+rename from lt-ui/bee-apm-ui-web/src/ui/views/SqlView.vue
+rename to lt-ui/bee-apm-ui-web/src/ui/views/query/SqlTab.vue
+index 96ffa63..3e9b19c 100644
+--- a/lt-ui/bee-apm-ui-web/src/ui/views/SqlView.vue
++++ b/lt-ui/bee-apm-ui-web/src/ui/views/query/SqlTab.vue
+@@ -2,13 +2,12 @@
+ import { onMounted, reactive, ref, watch } from 'vue'
+ import { ElMessage } from 'element-plus'
+ 
+-import PageShell from '../components/PageShell.vue'
+-import { useGroups } from '../composables/useGroups'
+-import { useTimeRangeStore } from '../../stores/timeRange'
+-import { fetchSqlList, type SqlRow } from '../../api/sql'
++import { useTimeRangeStore } from '../../../stores/timeRange'
++import { fetchSqlList, type SqlRow } from '../../../api/sql'
++
++const props = defineProps<{ env: string; app: string }>()
+ 
+ const timeRange = useTimeRangeStore()
+-const { envOptions, appOptions, loading: groupsLoading, reload: reloadGroups } = useGroups()
+ 
+ const loading = ref(false)
+ const rows = ref<SqlRow[]>([])
+@@ -16,8 +15,6 @@ const pageNum = ref(1)
+ const pageTotal = ref(0)
+ 
+ const form = reactive({
+-  env: '',
+-  app: '',
+   sort: 'time' as 'time' | 'spend' | 'tags.count' | '',
+   gid: '',
+   ip: '',
+@@ -33,8 +30,8 @@ async function load(p = 1) {
+   loading.value = true
+   try {
+     const data = await fetchSqlList({
+-      env: form.env || undefined,
+-      app: form.app || undefined,
++      env: props.env || undefined,
++      app: props.app || undefined,
+       sort: form.sort,
+       gid: form.gid || undefined,
+       ip: form.ip || undefined,
+@@ -55,34 +52,20 @@ async function load(p = 1) {
+ }
+ 
+ onMounted(async () => {
+-  await reloadGroups()
+   await load(1)
+ })
+-watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
+-  await reloadGroups()
++watch(() => [timeRange.beginTime, timeRange.endTime, props.env, props.app], async () => {
+   await load(1)
+ })
++
++defineExpose({ load })
+ </script>
+ 
+ <template>
+-  <PageShell title="SQL 查询">
+-    <template #actions>
+-      <el-button :loading="loading || groupsLoading" type="primary" @click="load(1)">查询</el-button>
+-    </template>
+-
+-    <template #filters>
++  <div class="tab-content">
++    <div class="tab-filters">
+       <el-form label-width="64px">
+         <div class="filters">
+-          <el-form-item label="环境">
+-            <el-select v-model="form.env" placeholder="全部" clearable filterable :teleported="false">
+-              <el-option v-for="o in envOptions" :key="String(o.value)" :label="o.name" :value="String(o.value)" />
+-            </el-select>
+-          </el-form-item>
+-          <el-form-item label="应用">
+-            <el-select v-model="form.app" placeholder="全部" clearable filterable :teleported="false">
+-              <el-option v-for="o in appOptions" :key="String(o.value)" :label="o.name" :value="String(o.value)" />
+-            </el-select>
+-          </el-form-item>
+           <el-form-item label="排序">
+             <el-select v-model="form.sort" placeholder="排序" style="width: 160px" :teleported="false">
+               <el-option label="时间" value="time" />
+@@ -91,14 +74,17 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
+             </el-select>
+           </el-form-item>
+           <el-form-item label="gId">
+-            <el-input v-model="form.gid" placeholder="gid" clearable />
++            <el-input v-model="form.gid" placeholder="gid" clearable @keyup.enter="load(1)" />
+           </el-form-item>
+           <el-form-item label="IP">
+-            <el-input v-model="form.ip" placeholder="ip" clearable />
++            <el-input v-model="form.ip" placeholder="ip" clearable @keyup.enter="load(1)" />
++          </el-form-item>
++          <el-form-item>
++            <el-button :loading="loading" type="primary" @click="load(1)">查询</el-button>
+           </el-form-item>
+         </div>
+       </el-form>
+-    </template>
++    </div>
+ 
+     <el-table :data="rows" border stripe v-loading="loading">
+       <el-table-column prop="id" label="ID" width="220" fixed />
+@@ -120,7 +106,7 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
+       </el-table-column>
+     </el-table>
+ 
+-    <template #footer>
++    <div class="footer">
+       <el-pagination
+         background
+         layout="prev, pager, next"
+@@ -128,21 +114,24 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
+         :current-page="pageNum"
+         @current-change="(p:number) => load(p)"
+       />
+-    </template>
+-  </PageShell>
++    </div>
++  </div>
+ </template>
+ 
+ <style scoped>
++.tab-content {
++  display: flex;
++  flex-direction: column;
++  gap: var(--space-4);
++}
+ .filters{
+-  display:grid;
+-  grid-template-columns: repeat(3, minmax(0, 1fr));
++  display:flex;
++  flex-wrap: wrap;
+   gap: 0 var(--space-3);
+ }
+-
+-@media (max-width: 1200px){
+-  .filters{
+-    grid-template-columns: repeat(2, minmax(0, 1fr));
+-  }
++.footer{
++  display:flex;
++  justify-content:flex-end;
+ }
+ </style>
+ 
+diff --git a/lt-ui/bee-apm-ui-web/src/ui/views/TxView.vue b/lt-ui/bee-apm-ui-web/src/ui/views/query/TxTab.vue
+similarity index 67%
+rename from lt-ui/bee-apm-ui-web/src/ui/views/TxView.vue
+rename to lt-ui/bee-apm-ui-web/src/ui/views/query/TxTab.vue
+index b8a4692..0867244 100644
+--- a/lt-ui/bee-apm-ui-web/src/ui/views/TxView.vue
++++ b/lt-ui/bee-apm-ui-web/src/ui/views/query/TxTab.vue
+@@ -2,13 +2,12 @@
+ import { onMounted, reactive, ref, watch } from 'vue'
+ import { ElMessage } from 'element-plus'
+ 
+-import PageShell from '../components/PageShell.vue'
+-import { useGroups } from '../composables/useGroups'
+-import { useTimeRangeStore } from '../../stores/timeRange'
+-import { fetchTxList, type TxRow } from '../../api/tx'
++import { useTimeRangeStore } from '../../../stores/timeRange'
++import { fetchTxList, type TxRow } from '../../../api/tx'
++
++const props = defineProps<{ env: string; app: string }>()
+ 
+ const timeRange = useTimeRangeStore()
+-const { envOptions, appOptions, loading: groupsLoading, reload: reloadGroups } = useGroups()
+ 
+ const loading = ref(false)
+ const rows = ref<TxRow[]>([])
+@@ -16,8 +15,6 @@ const pageNum = ref(1)
+ const pageTotal = ref(0)
+ 
+ const form = reactive({
+-  env: '',
+-  app: '',
+   sort: 'time' as 'time' | 'spend' | 'tags.count' | '',
+   gid: '',
+   ip: '',
+@@ -33,8 +30,8 @@ async function load(p = 1) {
+   loading.value = true
+   try {
+     const data = await fetchTxList({
+-      env: form.env || undefined,
+-      app: form.app || undefined,
++      env: props.env || undefined,
++      app: props.app || undefined,
+       sort: form.sort,
+       gid: form.gid || undefined,
+       ip: form.ip || undefined,
+@@ -55,34 +52,20 @@ async function load(p = 1) {
+ }
+ 
+ onMounted(async () => {
+-  await reloadGroups()
+   await load(1)
+ })
+-watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
+-  await reloadGroups()
++watch(() => [timeRange.beginTime, timeRange.endTime, props.env, props.app], async () => {
+   await load(1)
+ })
++
++defineExpose({ load })
+ </script>
+ 
+ <template>
+-  <PageShell title="事务查询">
+-    <template #actions>
+-      <el-button :loading="loading || groupsLoading" type="primary" @click="load(1)">查询</el-button>
+-    </template>
+-
+-    <template #filters>
++  <div class="tab-content">
++    <div class="tab-filters">
+       <el-form label-width="64px">
+         <div class="filters">
+-          <el-form-item label="环境">
+-            <el-select v-model="form.env" placeholder="全部" clearable filterable :teleported="false">
+-              <el-option v-for="o in envOptions" :key="String(o.value)" :label="o.name" :value="String(o.value)" />
+-            </el-select>
+-          </el-form-item>
+-          <el-form-item label="应用">
+-            <el-select v-model="form.app" placeholder="全部" clearable filterable :teleported="false">
+-              <el-option v-for="o in appOptions" :key="String(o.value)" :label="o.name" :value="String(o.value)" />
+-            </el-select>
+-          </el-form-item>
+           <el-form-item label="排序">
+             <el-select v-model="form.sort" placeholder="排序" style="width: 160px" :teleported="false">
+               <el-option label="时间" value="time" />
+@@ -91,14 +74,17 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
+             </el-select>
+           </el-form-item>
+           <el-form-item label="gId">
+-            <el-input v-model="form.gid" placeholder="gid" clearable />
++            <el-input v-model="form.gid" placeholder="gid" clearable @keyup.enter="load(1)" />
+           </el-form-item>
+           <el-form-item label="IP">
+-            <el-input v-model="form.ip" placeholder="ip" clearable />
++            <el-input v-model="form.ip" placeholder="ip" clearable @keyup.enter="load(1)" />
++          </el-form-item>
++          <el-form-item>
++            <el-button :loading="loading" type="primary" @click="load(1)">查询</el-button>
+           </el-form-item>
+         </div>
+       </el-form>
+-    </template>
++    </div>
+ 
+     <el-table :data="rows" border stripe v-loading="loading">
+       <el-table-column prop="id" label="ID" width="220" fixed />
+@@ -120,7 +106,7 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
+       </el-table-column>
+     </el-table>
+ 
+-    <template #footer>
++    <div class="footer">
+       <el-pagination
+         background
+         layout="prev, pager, next"
+@@ -128,21 +114,24 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
+         :current-page="pageNum"
+         @current-change="(p:number) => load(p)"
+       />
+-    </template>
+-  </PageShell>
++    </div>
++  </div>
+ </template>
+ 
+ <style scoped>
++.tab-content {
++  display: flex;
++  flex-direction: column;
++  gap: var(--space-4);
++}
+ .filters{
+-  display:grid;
+-  grid-template-columns: repeat(3, minmax(0, 1fr));
++  display:flex;
++  flex-wrap: wrap;
+   gap: 0 var(--space-3);
+ }
+-
+-@media (max-width: 1200px){
+-  .filters{
+-    grid-template-columns: repeat(2, minmax(0, 1fr));
+-  }
++.footer{
++  display:flex;
++  justify-content:flex-end;
+ }
+ </style>
+ 

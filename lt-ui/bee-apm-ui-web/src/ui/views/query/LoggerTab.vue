@@ -2,23 +2,21 @@
 import { onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 
-import PageShell from '../components/PageShell.vue'
-import { useGroups } from '../composables/useGroups'
-import { useTimeRangeStore } from '../../stores/timeRange'
-import { fetchSqlList, type SqlRow } from '../../api/sql'
+import { fetchLoggerList, type LoggerRow } from '../../../api/logger'
+import { useTimeRangeStore } from '../../../stores/timeRange'
+
+const props = defineProps<{ env: string; app: string }>()
 
 const timeRange = useTimeRangeStore()
-const { envOptions, appOptions, loading: groupsLoading, reload: reloadGroups } = useGroups()
 
 const loading = ref(false)
-const rows = ref<SqlRow[]>([])
+const rows = ref<LoggerRow[]>([])
 const pageNum = ref(1)
 const pageTotal = ref(0)
 
 const form = reactive({
-  env: '',
-  app: '',
-  sort: 'time' as 'time' | 'spend' | 'tags.count' | '',
+  sort: 'time' as 'time' | '',
+  level: '',
   gid: '',
   ip: '',
 })
@@ -32,10 +30,11 @@ async function load(p = 1) {
   pageNum.value = p
   loading.value = true
   try {
-    const data = await fetchSqlList({
-      env: form.env || undefined,
-      app: form.app || undefined,
+    const data = await fetchLoggerList({
+      env: props.env || undefined,
+      app: props.app || undefined,
       sort: form.sort,
+      level: form.level || undefined,
       gid: form.gid || undefined,
       ip: form.ip || undefined,
       pageNum: pageNum.value,
@@ -55,50 +54,46 @@ async function load(p = 1) {
 }
 
 onMounted(async () => {
-  await reloadGroups()
   await load(1)
 })
-watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
-  await reloadGroups()
+watch(() => [timeRange.beginTime, timeRange.endTime, props.env, props.app], async () => {
   await load(1)
 })
+
+defineExpose({ load })
 </script>
 
 <template>
-  <PageShell title="SQL 查询">
-    <template #actions>
-      <el-button :loading="loading || groupsLoading" type="primary" @click="load(1)">查询</el-button>
-    </template>
-
-    <template #filters>
+  <div class="tab-content">
+    <div class="tab-filters">
       <el-form label-width="64px">
         <div class="filters">
-          <el-form-item label="环境">
-            <el-select v-model="form.env" placeholder="全部" clearable filterable :teleported="false">
-              <el-option v-for="o in envOptions" :key="String(o.value)" :label="o.name" :value="String(o.value)" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="应用">
-            <el-select v-model="form.app" placeholder="全部" clearable filterable :teleported="false">
-              <el-option v-for="o in appOptions" :key="String(o.value)" :label="o.name" :value="String(o.value)" />
-            </el-select>
-          </el-form-item>
           <el-form-item label="排序">
-            <el-select v-model="form.sort" placeholder="排序" style="width: 160px" :teleported="false">
+            <el-select v-model="form.sort" placeholder="排序" style="width: 140px" :teleported="false">
               <el-option label="时间" value="time" />
-              <el-option label="耗时" value="spend" />
-              <el-option label="结果数量" value="tags.count" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="级别">
+            <el-select v-model="form.level" placeholder="全部" style="width: 140px" clearable :teleported="false">
+              <el-option label="全部" value="" />
+              <el-option label="DEBUG" value="DEBUG" />
+              <el-option label="INFO" value="INFO" />
+              <el-option label="WARN" value="WARN" />
+              <el-option label="ERROR" value="ERROR" />
             </el-select>
           </el-form-item>
           <el-form-item label="gId">
-            <el-input v-model="form.gid" placeholder="gid" clearable />
+            <el-input v-model="form.gid" placeholder="gid" clearable @keyup.enter="load(1)" />
           </el-form-item>
           <el-form-item label="IP">
-            <el-input v-model="form.ip" placeholder="ip" clearable />
+            <el-input v-model="form.ip" placeholder="ip" clearable @keyup.enter="load(1)" />
+          </el-form-item>
+          <el-form-item>
+            <el-button :loading="loading" type="primary" @click="load(1)">查询</el-button>
           </el-form-item>
         </div>
       </el-form>
-    </template>
+    </div>
 
     <el-table :data="rows" border stripe v-loading="loading">
       <el-table-column prop="id" label="ID" width="220" fixed />
@@ -107,20 +102,24 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
       <el-table-column prop="ip" label="IP" width="140" />
       <el-table-column prop="env" label="环境" width="120" />
       <el-table-column prop="app" label="应用" width="140" />
-      <el-table-column prop="spend" label="耗时(ms)" width="110" />
-      <el-table-column label="结果数" width="110">
+      <el-table-column label="级别" width="90">
         <template #default="{ row }">
-          {{ row?.tags?.count ?? '' }}
+          <el-tag
+            size="small"
+            :type="row?.tags?.level === 'ERROR' ? 'danger' : row?.tags?.level === 'WARN' ? 'warning' : row?.tags?.level === 'DEBUG' ? 'info' : 'primary'"
+          >
+            {{ row?.tags?.level || '' }}
+          </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="SQL" min-width="320">
+      <el-table-column label="日志内容" min-width="400">
         <template #default="{ row }">
-          {{ row?.tags?.sql || '' }}
+          {{ row?.tags?.msg || '' }}
         </template>
       </el-table-column>
     </el-table>
 
-    <template #footer>
+    <div class="footer">
       <el-pagination
         background
         layout="prev, pager, next"
@@ -128,21 +127,24 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
         :current-page="pageNum"
         @current-change="(p:number) => load(p)"
       />
-    </template>
-  </PageShell>
+    </div>
+  </div>
 </template>
 
 <style scoped>
+.tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
 .filters{
-  display:grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display:flex;
+  flex-wrap: wrap;
   gap: 0 var(--space-3);
 }
-
-@media (max-width: 1200px){
-  .filters{
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.footer{
+  display:flex;
+  justify-content:flex-end;
 }
 </style>
 

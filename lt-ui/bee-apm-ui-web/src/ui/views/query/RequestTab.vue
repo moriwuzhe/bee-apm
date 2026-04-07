@@ -2,18 +2,17 @@
 import { onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 
-import { fetchRequestList, type RequestRow } from '../../api/request'
-import { queryById } from '../../api/common'
-import { fetchCallTree, fetchTopology } from '../../api/requestExtras'
-import { useTimeRangeStore } from '../../stores/timeRange'
-import PageShell from '../components/PageShell.vue'
-import JsonDialog from '../components/JsonDialog.vue'
-import CallTreeDrawer from '../components/CallTreeDrawer.vue'
-import TopologyDrawer from '../components/TopologyDrawer.vue'
-import { useGroups } from '../composables/useGroups'
+import { fetchRequestList, type RequestRow } from '../../../api/request'
+import { queryById } from '../../../api/common'
+import { fetchCallTree, fetchTopology } from '../../../api/requestExtras'
+import { useTimeRangeStore } from '../../../stores/timeRange'
+import JsonDialog from '../../components/JsonDialog.vue'
+import CallTreeDrawer from '../../components/CallTreeDrawer.vue'
+import TopologyDrawer from '../../components/TopologyDrawer.vue'
+
+const props = defineProps<{ env: string; app: string }>()
 
 const timeRange = useTimeRangeStore()
-const { envOptions, appOptions, loading: groupsLoading, reload: reloadGroups } = useGroups()
 
 const loading = ref(false)
 const rows = ref<RequestRow[]>([])
@@ -21,8 +20,6 @@ const pageNum = ref(1)
 const pageTotal = ref(0)
 
 const form = reactive({
-  env: '',
-  app: '',
   sort: 'time' as 'time' | 'spend' | '',
   entry: '',
   gid: '',
@@ -130,8 +127,8 @@ async function load(p = 1) {
   loading.value = true
   try {
     const data = await fetchRequestList({
-      env: form.env || undefined,
-      app: form.app || undefined,
+      env: props.env || undefined,
+      app: props.app || undefined,
       sort: form.sort,
       entry: form.entry || undefined,
       gid: form.gid || undefined,
@@ -153,34 +150,20 @@ async function load(p = 1) {
 }
 
 onMounted(async () => {
-  await reloadGroups()
   await load(1)
 })
-watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
-  await reloadGroups()
+watch(() => [timeRange.beginTime, timeRange.endTime, props.env, props.app], async () => {
   await load(1)
 })
+
+defineExpose({ load })
 </script>
 
 <template>
-  <PageShell title="请求查询">
-    <template #actions>
-      <el-button :loading="loading || groupsLoading" type="primary" @click="load(1)">查询</el-button>
-    </template>
-
-    <template #filters>
+  <div class="tab-content">
+    <div class="tab-filters">
       <el-form label-width="64px">
         <div class="filters">
-          <el-form-item label="环境">
-            <el-select v-model="form.env" placeholder="全部" clearable filterable :teleported="false">
-              <el-option v-for="o in envOptions" :key="String(o.value)" :label="o.name" :value="String(o.value)" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="应用">
-            <el-select v-model="form.app" placeholder="全部" clearable filterable :teleported="false">
-              <el-option v-for="o in appOptions" :key="String(o.value)" :label="o.name" :value="String(o.value)" />
-            </el-select>
-          </el-form-item>
           <el-form-item label="排序">
             <el-select v-model="form.sort" placeholder="排序" style="width: 140px" :teleported="false">
               <el-option label="时间" value="time" />
@@ -194,14 +177,17 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
             </el-select>
           </el-form-item>
           <el-form-item label="gId">
-            <el-input v-model="form.gid" placeholder="gid" clearable />
+            <el-input v-model="form.gid" placeholder="gid" clearable @keyup.enter="load(1)" />
           </el-form-item>
           <el-form-item label="IP">
-            <el-input v-model="form.ip" placeholder="ip" clearable />
+            <el-input v-model="form.ip" placeholder="ip" clearable @keyup.enter="load(1)" />
+          </el-form-item>
+          <el-form-item>
+            <el-button :loading="loading" type="primary" @click="load(1)">查询</el-button>
           </el-form-item>
         </div>
       </el-form>
-    </template>
+    </div>
 
     <el-table :data="rows" border stripe v-loading="loading">
       <el-table-column prop="id" label="ID" width="220" fixed />
@@ -226,7 +212,7 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
     </el-table-column>
     </el-table>
 
-    <template #footer>
+    <div class="footer">
       <el-pagination
         background
         layout="prev, pager, next"
@@ -234,25 +220,28 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
         :current-page="pageNum"
         @current-change="(p:number) => load(p)"
       />
-    </template>
+    </div>
 
     <JsonDialog v-model="dialogOpen" :title="dialogTitle" :text="dialogText" />
     <CallTreeDrawer v-model="callTreeOpen" :loading="callTreeLoading" :data="callTreeData" :onParams="openParamsByCallTreeNode" />
     <TopologyDrawer v-model="topologyOpen" :loading="topologyLoading" :data="topologyData" />
-  </PageShell>
+  </div>
 </template>
 
 <style scoped>
+.tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
 .filters{
-  display:grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display:flex;
+  flex-wrap: wrap;
   gap: 0 var(--space-3);
 }
-
-@media (max-width: 1200px){
-  .filters{
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.footer{
+  display:flex;
+  justify-content:flex-end;
 }
 </style>
 

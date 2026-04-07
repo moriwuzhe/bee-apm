@@ -2,23 +2,20 @@
 import { onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 
-import { fetchMethodList, type MethodRow } from '../../api/method'
-import { useTimeRangeStore } from '../../stores/timeRange'
-import PageShell from '../components/PageShell.vue'
-import { useGroups } from '../composables/useGroups'
+import { useTimeRangeStore } from '../../../stores/timeRange'
+import { fetchTxList, type TxRow } from '../../../api/tx'
+
+const props = defineProps<{ env: string; app: string }>()
 
 const timeRange = useTimeRangeStore()
-const { envOptions, appOptions, loading: groupsLoading, reload: reloadGroups } = useGroups()
 
 const loading = ref(false)
-const rows = ref<MethodRow[]>([])
+const rows = ref<TxRow[]>([])
 const pageNum = ref(1)
 const pageTotal = ref(0)
 
 const form = reactive({
-  env: '',
-  app: '',
-  sort: 'time' as 'time' | 'spend' | '',
+  sort: 'time' as 'time' | 'spend' | 'tags.count' | '',
   gid: '',
   ip: '',
 })
@@ -32,9 +29,9 @@ async function load(p = 1) {
   pageNum.value = p
   loading.value = true
   try {
-    const data = await fetchMethodList({
-      env: form.env || undefined,
-      app: form.app || undefined,
+    const data = await fetchTxList({
+      env: props.env || undefined,
+      app: props.app || undefined,
       sort: form.sort,
       gid: form.gid || undefined,
       ip: form.ip || undefined,
@@ -55,49 +52,39 @@ async function load(p = 1) {
 }
 
 onMounted(async () => {
-  await reloadGroups()
   await load(1)
 })
-watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
-  await reloadGroups()
+watch(() => [timeRange.beginTime, timeRange.endTime, props.env, props.app], async () => {
   await load(1)
 })
+
+defineExpose({ load })
 </script>
 
 <template>
-  <PageShell title="方法查询">
-    <template #actions>
-      <el-button :loading="loading || groupsLoading" type="primary" @click="load(1)">查询</el-button>
-    </template>
-
-    <template #filters>
+  <div class="tab-content">
+    <div class="tab-filters">
       <el-form label-width="64px">
         <div class="filters">
-          <el-form-item label="环境">
-            <el-select v-model="form.env" placeholder="全部" clearable filterable :teleported="false">
-              <el-option v-for="o in envOptions" :key="String(o.value)" :label="o.name" :value="String(o.value)" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="应用">
-            <el-select v-model="form.app" placeholder="全部" clearable filterable :teleported="false">
-              <el-option v-for="o in appOptions" :key="String(o.value)" :label="o.name" :value="String(o.value)" />
-            </el-select>
-          </el-form-item>
           <el-form-item label="排序">
-            <el-select v-model="form.sort" placeholder="排序" style="width: 140px" :teleported="false">
+            <el-select v-model="form.sort" placeholder="排序" style="width: 160px" :teleported="false">
               <el-option label="时间" value="time" />
               <el-option label="耗时" value="spend" />
+              <el-option label="SQL执行次数" value="tags.count" />
             </el-select>
           </el-form-item>
           <el-form-item label="gId">
-            <el-input v-model="form.gid" placeholder="gid" clearable />
+            <el-input v-model="form.gid" placeholder="gid" clearable @keyup.enter="load(1)" />
           </el-form-item>
           <el-form-item label="IP">
-            <el-input v-model="form.ip" placeholder="ip" clearable />
+            <el-input v-model="form.ip" placeholder="ip" clearable @keyup.enter="load(1)" />
+          </el-form-item>
+          <el-form-item>
+            <el-button :loading="loading" type="primary" @click="load(1)">查询</el-button>
           </el-form-item>
         </div>
       </el-form>
-    </template>
+    </div>
 
     <el-table :data="rows" border stripe v-loading="loading">
       <el-table-column prop="id" label="ID" width="220" fixed />
@@ -107,14 +94,19 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
       <el-table-column prop="env" label="环境" width="120" />
       <el-table-column prop="app" label="应用" width="140" />
       <el-table-column prop="spend" label="耗时(ms)" width="110" />
-      <el-table-column label="方法" min-width="260">
+      <el-table-column label="SQL执行" width="110">
         <template #default="{ row }">
-          {{ row?.tags?.method || '' }}
+          {{ row?.tags?.count ?? '' }}
+        </template>
+      </el-table-column>
+      <el-table-column label="事务方法" min-width="320">
+        <template #default="{ row }">
+          {{ row?.tags?.point || '' }}
         </template>
       </el-table-column>
     </el-table>
 
-    <template #footer>
+    <div class="footer">
       <el-pagination
         background
         layout="prev, pager, next"
@@ -122,21 +114,24 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
         :current-page="pageNum"
         @current-change="(p:number) => load(p)"
       />
-    </template>
-  </PageShell>
+    </div>
+  </div>
 </template>
 
 <style scoped>
+.tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
 .filters{
-  display:grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display:flex;
+  flex-wrap: wrap;
   gap: 0 var(--space-3);
 }
-
-@media (max-width: 1200px){
-  .filters{
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.footer{
+  display:flex;
+  justify-content:flex-end;
 }
 </style>
 

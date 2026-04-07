@@ -14,7 +14,8 @@ $appOpts = @(
   '--server.port=8081',
   "--spring.web.resources.static-locations=file:$uiDir",
   '--spring.web.resources.cache.cachecontrol.no-store=true',
-  '--spring.web.resources.cache.cachecontrol.max-age=0'
+  '--spring.web.resources.cache.cachecontrol.max-age=0',
+  '--seed.enabled=true'
 )
 
 Write-Host "[INFO] BASE_DIR=$baseDir"

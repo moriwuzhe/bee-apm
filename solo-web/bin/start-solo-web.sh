@@ -9,7 +9,7 @@ if [ ! -f "$SERVER_JAR" ]; then
 fi
 
 JAVA_OPTS="-Xms256m -Xmx1024m"
-APP_OPTS="--server.port=8081 --spring.web.resources.static-locations=file:$BASE_DIR/ui/ --spring.web.resources.cache.cachecontrol.no-store=true --spring.web.resources.cache.cachecontrol.max-age=0"
+APP_OPTS="--server.port=8081 --spring.web.resources.static-locations=file:$BASE_DIR/ui/ --spring.web.resources.cache.cachecontrol.no-store=true --spring.web.resources.cache.cachecontrol.max-age=0 --seed.enabled=true"
 
 echo "[INFO] BASE_DIR=$BASE_DIR"
 echo "[INFO] SERVER_JAR=$SERVER_JAR"

@@ -570,31 +570,54 @@ async function openReplayDebug(row: AgentConnection) {
           <el-tag :type="row.writable ? 'success' : 'warning'">{{ row.writable ? '是' : '否' }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="1180">
+      <el-table-column label="操作" width="260">
         <template #default="{ row }">
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openThreadDump(row)">线程栈</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openJvmInfo(row)">JVM</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="doGc(row)">GC</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openSysProps(row)">属性</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openEnv(row)">Env</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openInputArgs(row)">Args</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openClassLoading(row)">Class</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openMemory(row)">Mem</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openGcStats(row)">GCStat</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openThreadsSummary(row)">Threads</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openDeadlocks(row)">Deadlock</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openTopThreadsCpu(row)">TopCPU</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openJdwpEnable(row)">JDWP</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openJdwpStatus(row)">JDWP状态</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openWatchAdd(row)">WatchAdd</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openWatchDump(row)">WatchDump</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openWatchList(row)">WatchList</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openWatchClear(row)">WatchClear</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openDebugAdd(row)">DebugAdd</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openDebugDump(row)">DebugDump</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openDebugList(row)">DebugList</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openDebugClear(row)">DebugClear</el-button>
-          <el-button size="small" :disabled="!row.active || !row.writable" @click="openReplayDebug(row)">回放Debug</el-button>
+          <el-dropdown trigger="click">
+            <el-button size="small" :disabled="!row.active || !row.writable">基础</el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openJvmInfo(row)">JVM</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="doGc(row)">GC</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openGcStats(row)">GCStat</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openMemory(row)">Mem</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openSysProps(row)">属性</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openEnv(row)">Env</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openInputArgs(row)">Args</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openClassLoading(row)">Class</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+
+          <el-dropdown trigger="click">
+            <el-button size="small" :disabled="!row.active || !row.writable">线程</el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openThreadDump(row)">线程栈</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openThreadsSummary(row)">Threads</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openDeadlocks(row)">Deadlock</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openTopThreadsCpu(row)">TopCPU</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+
+          <el-dropdown trigger="click">
+            <el-button size="small" :disabled="!row.active || !row.writable">调试</el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openJdwpEnable(row)">JDWP</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openJdwpStatus(row)">JDWP状态</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openWatchAdd(row)">WatchAdd</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openWatchDump(row)">WatchDump</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openWatchList(row)">WatchList</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openWatchClear(row)">WatchClear</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openDebugAdd(row)">DebugAdd</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openDebugDump(row)">DebugDump</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openDebugList(row)">DebugList</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openDebugClear(row)">DebugClear</el-dropdown-item>
+                <el-dropdown-item :disabled="!row.active || !row.writable" @click="openReplayDebug(row)">回放Debug</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </template>
       </el-table-column>
     </el-table>

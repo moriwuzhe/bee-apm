@@ -6,7 +6,7 @@ import { useRouter } from 'vue-router'
 import PageShell from '../components/PageShell.vue'
 import { useGroups } from '../composables/useGroups'
 import { useTimeRangeStore } from '../../stores/timeRange'
-import { fetchAppInfoList, type AppInfoRow } from '../../api/app'
+import { fetchAppInfoList, seedAll, type AppInfoRow } from '../../api/app'
 
 const timeRange = useTimeRangeStore()
 const { envOptions, appOptions, loading: groupsLoading, reload: reloadGroups } = useGroups()
@@ -67,6 +67,24 @@ function goDiagnostic(row: any) {
   router.push({ path: `/apps/${encodeURIComponent(String(row?.app || ''))}/diagnostic`, query: toDiagQuery(row) })
 }
 
+async function doSeed() {
+  loading.value = true
+  try {
+    const r: any = await seedAll({ hours: 6, apps: 3, instPerApp: 2, reqPerApp: 240 })
+    if (String(r?.code) !== '0') {
+      ElMessage.error(r?.msg || '生成失败')
+      return
+    }
+    ElMessage.success('已生成演示数据')
+    await reloadGroups()
+    await load(1)
+  } catch (e: any) {
+    ElMessage.error(e?.message || '生成失败')
+  } finally {
+    loading.value = false
+  }
+}
+
 async function load(p = 1) {
   pageNum.value = p
   loading.value = true
@@ -110,6 +128,7 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
   <PageShell title="应用列表">
     <template #actions>
       <el-button :loading="loading || groupsLoading" type="primary" @click="load(1)">查询</el-button>
+      <el-button :loading="loading" @click="doSeed">生成演示数据</el-button>
     </template>
 
     <template #filters>

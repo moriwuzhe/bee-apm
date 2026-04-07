@@ -34,8 +34,15 @@ public class GatewayHandler extends AbstractHandler {
             String traceId = getFirstHeader(headers, "traceId");
             String parentSpanId = getFirstHeader(headers, "spanId");
             
+            if (traceId != null) {
+                org.xi.lt.agent.common.LtTraceContext.setGId(traceId);
+            }
+            if (parentSpanId != null) {
+                org.xi.lt.agent.common.LtTraceContext.setPId(parentSpanId);
+            }
+            
             // 创建网关入口Span
-            Span span = SpanManager.createEntrySpan("gateway", traceId, parentSpanId);
+            Span span = SpanManager.createEntrySpan("gateway");
             span.addTag("gateway_route_id", (String) exchange.getAttribute("org.springframework.cloud.gateway.support.ServerWebExchangeUtils.gatewayRouteId"));
             span.addTag("request_method", request.getMethodValue());
             span.addTag("request_path", request.getPath().value());

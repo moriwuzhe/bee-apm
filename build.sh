@@ -16,7 +16,7 @@ cp -r dist/* /workspace/lt-server-apm/server-web/src/main/resources/static/
 # 3. Build Backend
 echo "--> Building Backend & Agent (Maven)..."
 cd /workspace
-export MAVEN_OPTS="-Djava.net.preferIPv4Stack=true"
+export MAVEN_OPTS="-Djava.net.preferIPv4Stack=true -Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=18080 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=18080"
 mvn clean package -DskipTests
 
 echo "--> Build Completed!"

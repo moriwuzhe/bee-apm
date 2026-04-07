@@ -46,7 +46,7 @@ public class HeartbeatTask {
 
     private static void sendControlPlaneHeartbeat() {
         try {
-            String serverUrl = LtConfig.me().getStr("control.server.url", "http://127.0.0.1:8080");
+            String serverUrl = org.xi.lt.agent.config.ConfigUtils.me().getStr("control.server.url", "http://127.0.0.1:8080");
             URL url = new URL(serverUrl + "/api/agent/heartbeat");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
@@ -56,7 +56,7 @@ public class HeartbeatTask {
             conn.setReadTimeout(3000);
 
             String jsonPayload = String.format("{\"app\":\"%s\",\"inst\":\"%s\",\"ip\":\"%s\",\"version\":\"%s\",\"configVersion\":\"%s\"}",
-                    LtConfig.me().getApp(), LtConfig.me().getInst(), LtConfig.me().getIp(), Version.VERSION, LtConfig.me().getStr("config.version", "0"));
+                    LtConfig.me().getApp(), LtConfig.me().getInst(), LtConfig.me().getIp(), Version.VERSION, org.xi.lt.agent.config.ConfigUtils.me().getStr("config.version", "0"));
 
             try (OutputStream os = conn.getOutputStream()) {
                 os.write(jsonPayload.getBytes(StandardCharsets.UTF_8));

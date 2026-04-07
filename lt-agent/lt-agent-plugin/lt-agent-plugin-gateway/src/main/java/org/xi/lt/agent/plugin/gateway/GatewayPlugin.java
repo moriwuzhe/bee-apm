@@ -41,7 +41,7 @@ public class GatewayPlugin extends AbstractPlugin {
                     public ElementMatcher<MethodDescription> buildMethodsMatcher() {
                         return named("handle")
                                 .and(takesArguments(1))
-                                .and(returns(isSubTypeOf("reactor.core.publisher.Mono")))
+                                .and(returns(hasSuperType(named("reactor.core.publisher.Mono"))))
                                 .and(not(isStatic()));
                     }
                 },
@@ -58,7 +58,7 @@ public class GatewayPlugin extends AbstractPlugin {
                     public ElementMatcher<MethodDescription> buildMethodsMatcher() {
                         return named("getHandlerInternal")
                                 .and(takesArguments(1))
-                                .and(returns(isSubTypeOf("reactor.core.publisher.Mono")))
+                                .and(returns(hasSuperType(named("reactor.core.publisher.Mono"))))
                                 .and(not(isStatic()));
                     }
                 }

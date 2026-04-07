@@ -23,7 +23,7 @@
         <!-- Spring Cloud Gateway -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-gateway-core</artifactId>
+            <artifactId>spring-cloud-gateway-server</artifactId>
             <version>3.0.3</version>
             <scope>provided</scope>
             <optional>true</optional>
@@ -57,9 +57,9 @@
                     <execution>
                         <phase>package</phase>
                         <configuration>
-                            <tasks>
+                            <target>
                                 <copy file="${project.build.directory}/${project.build.finalName}.jar" tofile="${project.parent.basedir}/../plugins/${project.build.finalName}.jar" />
-                            </tasks>
+                            </target>
                         </configuration>
                         <goals>
                             <goal>run</goal>

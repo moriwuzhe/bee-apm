@@ -57,11 +57,11 @@
                             <goal>run</goal>
                         </goals>
                         <configuration>
-                            <tasks>
+                            <target>
                                 <mkdir dir="${project.basedir}/../../packages"/>
                                 <copy file="${project.build.directory}/${file.name}.jar"
                                       tofile="${project.basedir}/../../packages/${file.name}.jar" overwrite="true"/>
-                            </tasks>
+                            </target>
                         </configuration>
                     </execution>
                 </executions>

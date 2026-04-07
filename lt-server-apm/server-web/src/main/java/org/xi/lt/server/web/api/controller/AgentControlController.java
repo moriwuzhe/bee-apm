@@ -4,6 +4,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+
 @RestController
 @RequestMapping("/api/agent")
 public class AgentControlController {
@@ -86,6 +92,41 @@ public class AgentControlController {
         Map<String, Object> response = new HashMap<>();
         response.put("code", 0);
         return response;
+    }
+
+    @GetMapping("/download")
+    public ResponseEntity<Resource> downloadAgentZip() {
+        // Assume packages dir is in the working directory root (usually where server is run)
+        // Adjust this path logic according to actual deployment structure if needed.
+        java.io.File file = new java.io.File("packages/lt-agent.zip");
+        if (!file.exists()) {
+            // fallback for IDE or different running dir
+            file = new java.io.File("../../packages/lt-agent.zip"); 
+            if(!file.exists()) {
+                file = new java.io.File("/workspace/packages/lt-agent.zip");
+            }
+        }
+        
+        Resource resource = new FileSystemResource(file);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"lt-agent.zip\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(resource);
+    }
+    
+    @GetMapping(value = "/install.sh", produces = "text/plain;charset=UTF-8")
+    public ResponseEntity<Resource> downloadInstallScript() {
+        java.io.File file = new java.io.File("packages/install.sh");
+        if (!file.exists()) {
+            file = new java.io.File("../../packages/install.sh"); 
+            if(!file.exists()) {
+                file = new java.io.File("/workspace/packages/install.sh");
+            }
+        }
+        
+        Resource resource = new FileSystemResource(file);
+        return ResponseEntity.ok().body(resource);
     }
 
     public static class AgentInstanceInfo {

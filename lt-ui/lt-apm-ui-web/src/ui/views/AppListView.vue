@@ -19,6 +19,7 @@ const pageNum = ref(1)
 const pageTotal = ref(0)
 
 const configDialogVisible = ref(false)
+const installDialogVisible = ref(false)
 const configApp = ref('')
 const configContent = ref('')
 const configSaving = ref(false)
@@ -137,6 +138,7 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
 <template>
   <PageShell title="应用列表">
     <template #actions>
+      <el-button type="success" @click="installDialogVisible = true">Agent 下载与安装</el-button>
       <el-button :loading="loading || groupsLoading" type="primary" @click="load(1)">查询</el-button>
     </template>
 
@@ -218,6 +220,31 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
         <el-button @click="configDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="configSaving" @click="saveConfig">下发配置</el-button>
       </span>
+    </template>
+  </el-dialog>
+
+  <!-- Install Guide Dialog -->
+  <el-dialog v-model="installDialogVisible" title="Agent 下载与安装指引" width="650px" append-to-body>
+    <div style="line-height: 1.6;">
+      <p><b>方式一：一键自动安装 (推荐)</b></p>
+      <p>在业务服务器上执行以下命令，即可自动下载并解压配置Agent：</p>
+      <div style="background:#282c34;color:#abb2bf;padding:12px;border-radius:4px;font-family:monospace;margin:8px 0;word-break:break-all;">
+        curl -sSL http://&lt;your-server-ip&gt;:8080/api/agent/install.sh | bash -s -- &lt;您的应用名&gt; http://&lt;your-server-ip&gt;:8080
+      </div>
+      <p style="margin-top:20px;"><b>方式二：手动下载安装</b></p>
+      <p>1. <a href="/api/agent/download" target="_blank" style="color:#409EFF;text-decoration:none;">点击下载 lt-agent.zip 包</a></p>
+      <p>2. 解压到业务服务器目录（例如 `/opt/lt-monitor/agent`）</p>
+      <p>3. 修改 <code>config.yml</code>，填入您的 <code>app: 应用名</code> 和 <code>control.server.url: 服务端地址</code></p>
+      
+      <el-divider />
+      <p><b>最后：修改应用启动参数</b></p>
+      <p>无论哪种方式，安装完成后，都需要在您的 Java 应用启动脚本中添加以下参数并重启：</p>
+      <div style="background:#282c34;color:#abb2bf;padding:12px;border-radius:4px;font-family:monospace;margin:8px 0;word-break:break-all;">
+        -javaagent:/opt/lt-monitor/agent/lt-agent.jar -DltConfig=/opt/lt-monitor/agent
+      </div>
+    </div>
+    <template #footer>
+      <el-button type="primary" @click="installDialogVisible = false">知道了</el-button>
     </template>
   </el-dialog>
 </template>

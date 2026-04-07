@@ -15,10 +15,19 @@ import org.xi.lt.server.web.api.util.TimeParseUtils;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.bucket.terms.Terms;
+import org.xi.lt.server.web.api.es.EsSearchService;
+import java.util.ArrayList;
+import java.util.List;
+
 @RestController
 public class DashboardApiController {
     @Autowired
     private EsClientHolder es;
+    
+    @Autowired
+    private EsSearchService esSearchService;
 
     @PostMapping("/api/dashboard/stat")
     public Map<String, Object> stat(@RequestBody Map<String, Object> req) {
@@ -40,6 +49,90 @@ public class DashboardApiController {
         result.put("inst", countDistinctInst(beginMs, endMs, env, app, ip));
         r.put("result", result);
         return r;
+    }
+
+    @PostMapping("/api/dashboard/topology")
+    public Map<String, Object> globalTopology(@RequestBody Map<String, Object> req) {
+        long beginMs = TimeParseUtils.parseMillis(asString(req.get("beginTime")));
+        long endMs = TimeParseUtils.parseMillis(asString(req.get("endTime")));
+        
+        Map<String, Object> result = new HashMap<>();
+        List<Map<String, Object>> nodes = new ArrayList<>();
+        List<Map<String, Object>> edges = new ArrayList<>();
+        
+        try {
+            // Aggregate from lt-topology-*
+            SearchRequest sr = new SearchRequest("lt-topology-*");
+            SearchSourceBuilder ssb = new SearchSourceBuilder();
+            BoolQueryBuilder q = QueryBuilders.boolQuery()
+                    .must(QueryBuilders.rangeQuery("time").gte(beginMs).lte(endMs));
+            
+            ssb.query(q);
+            ssb.size(0); // We only care about aggregations
+            
+            // Group by from_to (which stores caller->callee relationship)
+            ssb.aggregation(AggregationBuilders.terms("from_to").field("from_to.keyword").size(1000));
+            sr.source(ssb);
+            
+            SearchResponse resp = es.getClient().search(sr);
+            Terms fromToTerms = resp.getAggregations() == null ? null : resp.getAggregations().get("from_to");
+            
+            Map<String, String> nodeMap = new HashMap<>();
+            if (fromToTerms != null) {
+                for (Terms.Bucket bucket : fromToTerms.getBuckets()) {
+                    String fromTo = bucket.getKeyAsString(); // format: callerInst|calleeInst or similar, let's parse it
+                    long times = bucket.getDocCount();
+                    
+                    // Simple split logic. Usually "caller_app -> callee_app" or similar
+                    String[] parts = fromTo.split("->");
+                    if (parts.length == 2) {
+                        String from = parts[0].trim();
+                        String to = parts[1].trim();
+                        
+                        if (!nodeMap.containsKey(from)) {
+                            nodeMap.put(from, from);
+                            nodes.add(createNode(from));
+                        }
+                        if (!nodeMap.containsKey(to)) {
+                            nodeMap.put(to, to);
+                            nodes.add(createNode(to));
+                        }
+                        
+                        Map<String, Object> edge = new HashMap<>();
+                        edge.put("from", from);
+                        edge.put("to", to);
+                        edge.put("times", times);
+                        edge.put("label", times + " requests");
+                        edges.add(edge);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // log error
+        }
+        
+        result.put("nodes", nodes);
+        result.put("edges", edges);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", "0");
+        response.put("result", result);
+        return response;
+    }
+    
+    private Map<String, Object> createNode(String name) {
+        Map<String, Object> node = new HashMap<>();
+        node.put("id", name);
+        node.put("label", name);
+        // Simple heuristic for styling
+        if (name.toLowerCase().contains("mysql") || name.toLowerCase().contains("db")) {
+            node.put("group", "db");
+            node.put("image", "/assets/db.png");
+        } else {
+            node.put("group", "app");
+            node.put("image", "/assets/app.png");
+        }
+        return node;
     }
 
     private long count(String index, String type, long beginMs, long endMs, String env, String app, String ip) {

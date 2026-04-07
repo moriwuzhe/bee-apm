@@ -10,8 +10,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <modules>
-        <module>lt-monitor-test-web</module>
-        <module>lt-monitor-sb-demo</module>
+        <module>lt-apm-test-web</module>
+        <module>lt-apm-sb-demo</module>
     </modules>
     <dependencies>
 

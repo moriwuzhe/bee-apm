@@ -7,6 +7,11 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 /**
  * Lt-APM 测试应用启动类
  * @author Test
@@ -36,5 +41,27 @@ public class TestDemoApplication {
     public String slowTest() throws InterruptedException {
         Thread.sleep(500);
         return "Slow Response";
+    }
+
+    /**
+     * 测试接口：模拟JDK HttpURLConnection请求
+     */
+    @GetMapping("/jdk-http")
+    public String jdkHttp() {
+        StringBuilder result = new StringBuilder();
+        try {
+            URL url = new URL("http://127.0.0.1:8082/test");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String line;
+            while ((line = rd.readLine()) != null) {
+                result.append(line);
+            }
+            rd.close();
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
+        }
+        return "JDK HTTP Result: " + result.toString();
     }
 }

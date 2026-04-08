@@ -42,6 +42,7 @@
         <module>lt-agent-plugin-apollo</module>
         <module>lt-agent-plugin-xxljob</module>
         <module>lt-agent-plugin-shardingjdbc</module>
+        <module>lt-agent-plugin-jdkhttp</module>
     </modules>
     <dependencies>
         <dependency>

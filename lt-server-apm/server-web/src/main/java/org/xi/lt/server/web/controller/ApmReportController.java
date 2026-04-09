@@ -18,11 +18,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.xi.lt.common.model.apm.Span;
+import org.xi.lt.server.web.service.TailBasedSamplingService;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,6 +43,9 @@ public class ApmReportController {
 
     private RestClient restClient;
     private RestHighLevelClient restHighLevelClient;
+
+    @Autowired
+    private TailBasedSamplingService samplingService;
 
     @Value("${apm.es.enabled:true}")
     private boolean esEnabled;
@@ -68,18 +73,20 @@ public class ApmReportController {
         log.info("收到APM上报数据，共{}条Span", spanList.size());
         try {
             if (!spanList.isEmpty()) {
-                BulkRequest bulkRequest = new BulkRequest();
+                Map<String, List<Map<String, Object>>> groupedSpans = new HashMap<>();
                 for (Span span : spanList) {
-                    IndexRequest indexRequest = new IndexRequest(INDEX_NAME, TYPE_NAME, span.getSpanId());
-                    indexRequest.source(JSON.parseObject(JSON.toJSONString(span), Map.class));
-                    bulkRequest.add(indexRequest);
+                    Map<String, Object> map = JSON.parseObject(JSON.toJSONString(span), Map.class);
+                    String gid = span.getGid();
+                    groupedSpans.computeIfAbsent(gid, k -> new ArrayList<>()).add(map);
                 }
-                restHighLevelClient.bulk(bulkRequest);
-                log.info("{}条Span数据成功存入ES", spanList.size());
+                
+                for (Map.Entry<String, List<Map<String, Object>>> entry : groupedSpans.entrySet()) {
+                    samplingService.addSpans(entry.getKey(), entry.getValue());
+                }
             }
             return "success";
         } catch (Exception e) {
-            log.error("Span数据保存失败", e);
+            log.error("Span数据放入尾部采样缓冲区失败", e);
             return "error";
         }
     }
@@ -96,12 +103,13 @@ public class ApmReportController {
         }
         log.info("收到单条Span上报：traceId={}, name={}", span.getTraceId(), span.getOperationName());
         try {
-            IndexRequest indexRequest = new IndexRequest(INDEX_NAME, TYPE_NAME, span.getSpanId());
-            indexRequest.source(JSON.parseObject(JSON.toJSONString(span), Map.class));
-            restHighLevelClient.index(indexRequest);
+            Map<String, Object> map = JSON.parseObject(JSON.toJSONString(span), Map.class);
+            List<Map<String, Object>> list = new ArrayList<>();
+            list.add(map);
+            samplingService.addSpans(span.getGid(), list);
             return "success";
         } catch (Exception e) {
-            log.error("单条Span保存失败", e);
+            log.error("单条Span放入尾部采样缓冲区失败", e);
             return "error";
         }
     }

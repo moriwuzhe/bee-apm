@@ -12,8 +12,11 @@ import org.xi.lt.common.grpc.LtApmReportServiceGrpc;
 import org.xi.lt.common.grpc.ReportReply;
 import org.xi.lt.common.grpc.SpanBatchRequest;
 import org.xi.lt.common.grpc.SpanRequest;
+import org.xi.lt.server.web.service.TailBasedSamplingService;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @GrpcService
@@ -22,13 +25,15 @@ public class LtApmReportServiceImpl extends LtApmReportServiceGrpc.LtApmReportSe
     private static final Logger log = LoggerFactory.getLogger(LtApmReportServiceImpl.class);
 
     @Autowired
-    private RestHighLevelClient restHighLevelClient;
+    private TailBasedSamplingService samplingService;
 
     @Override
     public void reportSpanBatch(SpanBatchRequest request, StreamObserver<ReportReply> responseObserver) {
         try {
             if (request.getSpansCount() > 0) {
-                BulkRequest bulkRequest = new BulkRequest();
+                // 根据GID分组进行尾部采样投递
+                Map<String, List<Map<String, Object>>> groupedSpans = new HashMap<>();
+                
                 for (SpanRequest span : request.getSpansList()) {
                     Map<String, Object> map = new HashMap<>();
                     map.put("id", span.getId());
@@ -46,12 +51,14 @@ public class LtApmReportServiceImpl extends LtApmReportServiceGrpc.LtApmReportSe
                         map.put("tags", span.getTagsMap());
                     }
                     
-                    IndexRequest indexRequest = new IndexRequest("lt_apm_span", "span");
-                    indexRequest.source(map);
-                    bulkRequest.add(indexRequest);
+                    String gid = span.getGid();
+                    groupedSpans.computeIfAbsent(gid, k -> new ArrayList<>()).add(map);
                 }
                 
-                restHighLevelClient.bulk(bulkRequest);
+                // 将数据投递给采样服务
+                for (Map.Entry<String, List<Map<String, Object>>> entry : groupedSpans.entrySet()) {
+                    samplingService.addSpans(entry.getKey(), entry.getValue());
+                }
             }
             
             ReportReply reply = ReportReply.newBuilder().setSuccess(true).setMessage("OK").build();
@@ -68,8 +75,35 @@ public class LtApmReportServiceImpl extends LtApmReportServiceGrpc.LtApmReportSe
 
     @Override
     public void reportSpan(SpanRequest request, StreamObserver<ReportReply> responseObserver) {
-        ReportReply reply = ReportReply.newBuilder().setSuccess(true).setMessage("OK").build();
-        responseObserver.onNext(reply);
-        responseObserver.onCompleted();
+        try {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", request.getId());
+            map.put("pid", request.getPid());
+            map.put("gid", request.getGid());
+            map.put("type", request.getType());
+            map.put("srcApp", request.getSrcApp());
+            map.put("cTag", request.getCTag());
+            map.put("time", request.getTime());
+            map.put("app", request.getApp());
+            map.put("env", request.getEnv());
+            map.put("ip", request.getIp());
+            map.put("spend", request.getSpend());
+            if (request.getTagsMap() != null && !request.getTagsMap().isEmpty()) {
+                map.put("tags", request.getTagsMap());
+            }
+            
+            List<Map<String, Object>> spanList = new ArrayList<>();
+            spanList.add(map);
+            samplingService.addSpans(request.getGid(), spanList);
+            
+            ReportReply reply = ReportReply.newBuilder().setSuccess(true).setMessage("OK").build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            log.error("Error processing single gRPC SpanRequest", e);
+            ReportReply reply = ReportReply.newBuilder().setSuccess(false).setMessage(e.getMessage()).build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        }
     }
 }

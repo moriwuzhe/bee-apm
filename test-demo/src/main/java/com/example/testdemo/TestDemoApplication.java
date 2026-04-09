@@ -39,6 +39,19 @@ public class TestDemoApplication {
         return "Hello Lt-APM!";
     }
 
+    @GetMapping("/error")
+    public String error() {
+        log.error("Processing /error request.");
+        throw new RuntimeException("Simulated error for Alert Engine!");
+    }
+
+    @GetMapping("/slow")
+    public String slow() throws InterruptedException {
+        log.info("Processing /slow request.");
+        Thread.sleep(1500); // 1.5s to trigger latency alert
+        return "Slow response";
+    }
+
     /**
      * 测试接口：模拟500ms慢请求
      */

@@ -390,6 +390,14 @@ public class DiagAgentClient {
                     sendResponse(ctx, d.header.id, WebDebugger.debugList());
                     return;
                 }
+                if (cmd.startsWith("startProfiler")) {
+                    sendResponse(ctx, d.header.id, handleStartProfiler(cmd));
+                    return;
+                }
+                if (cmd.startsWith("stopProfiler")) {
+                    sendResponse(ctx, d.header.id, handleStopProfiler(cmd));
+                    return;
+                }
             }
         }
 
@@ -794,6 +802,69 @@ public class DiagAgentClient {
         String[] parts = cmd.split(":", 2);
         if (parts.length < 2) return "Usage debugClear:<id>\n";
         return WebDebugger.debugClear(decode(parts[1]));
+    }
+
+    private static String handleStartProfiler(String cmd) {
+        String[] parts = cmd.split(":", 3);
+        String event = "cpu";
+        int duration = 30; // default 30 seconds
+        if (parts.length >= 2) {
+            event = parts[1];
+        }
+        if (parts.length >= 3) {
+            duration = parseInt(parts[2], 30);
+        }
+        
+        try {
+            Class<?> clazz = Class.forName("org.xi.lt.agent.common.AsyncProfilerUtil", true, Thread.currentThread().getContextClassLoader());
+            Boolean isLoaded = (Boolean) clazz.getMethod("isLoaded").invoke(null);
+            if (!isLoaded) {
+                return "Error: AsyncProfiler is not loaded in this JVM.";
+            }
+            
+            // start profiling
+            String result = (String) clazz.getMethod("execute", String.class).invoke(null, "start,event=" + event);
+            return "Profiler started. Event=" + event + ". Use stopProfiler to get the flame graph.\n" + result;
+        } catch (Throwable t) {
+            return "Error starting profiler: " + t.getMessage();
+        }
+    }
+
+    private static String handleStopProfiler(String cmd) {
+        try {
+            Class<?> clazz = Class.forName("org.xi.lt.agent.common.AsyncProfilerUtil", true, Thread.currentThread().getContextClassLoader());
+            Boolean isLoaded = (Boolean) clazz.getMethod("isLoaded").invoke(null);
+            if (!isLoaded) {
+                return "Error: AsyncProfiler is not loaded in this JVM.";
+            }
+            
+            // create temp file
+            java.io.File tempFile = java.io.File.createTempFile("lt-profiler-", ".html");
+            String path = tempFile.getAbsolutePath();
+            
+            // stop profiling and save to html
+            String executeResult = (String) clazz.getMethod("execute", String.class).invoke(null, "stop,file=" + path);
+            
+            // read html content
+            StringBuilder content = new StringBuilder();
+            try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(tempFile))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    content.append(line).append("\n");
+                }
+            }
+            
+            // clean up
+            tempFile.delete();
+            
+            if (content.length() == 0) {
+                return "Error: Flame graph file is empty.\n" + executeResult;
+            }
+            
+            return content.toString();
+        } catch (Throwable t) {
+            return "Error stopping profiler: " + t.getMessage();
+        }
     }
 
     private static String decode(String s) {

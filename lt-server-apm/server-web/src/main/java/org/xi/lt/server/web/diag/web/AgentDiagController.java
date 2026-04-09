@@ -254,4 +254,24 @@ public class AgentDiagController {
             return ApiResult.fail(e.getMessage());
         }
     }
+
+    @GetMapping("/diag/agent/startProfiler")
+    public ApiResult<String> startProfiler(@RequestParam("agentId") String agentId,
+                                           @RequestParam(value = "event", defaultValue = "cpu") String event,
+                                           @RequestParam(value = "duration", defaultValue = "30") Integer duration) {
+        try {
+            return ApiResult.ok(commandService.startProfiler(agentId, event, duration, 8000));
+        } catch (Exception e) {
+            return ApiResult.fail(e.getMessage());
+        }
+    }
+
+    @GetMapping("/diag/agent/stopProfiler")
+    public ApiResult<String> stopProfiler(@RequestParam("agentId") String agentId) {
+        try {
+            return ApiResult.ok(commandService.stopProfiler(agentId, 30000)); // stop might take longer to dump file
+        } catch (Exception e) {
+            return ApiResult.fail(e.getMessage());
+        }
+    }
 }

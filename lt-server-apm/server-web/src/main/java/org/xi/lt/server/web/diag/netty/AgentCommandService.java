@@ -154,7 +154,16 @@ public class AgentCommandService {
         return exec(agentId, "debugList", timeoutMs);
     }
 
-    private String exec(String agentId, String cmd, long timeoutMs) {
+    public String startProfiler(String agentId, String event, int duration, long timeoutMs) {
+        String cmd = "startProfiler:" + encode(event) + ":" + duration;
+        return exec(agentId, cmd, timeoutMs);
+    }
+
+    public String stopProfiler(String agentId, long timeoutMs) {
+        return exec(agentId, "stopProfiler", timeoutMs);
+    }
+
+    private String encode(String s) {agentId, String cmd, long timeoutMs) {
         AgentConnection conn = store.get(agentId);
         if (conn == null || !conn.isActive() || !conn.isWritable()) {
             throw new IllegalStateException("Agent not connected: " + agentId);

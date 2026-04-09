@@ -148,6 +148,16 @@ export async function debugList(agentId: string): Promise<string> {
   return unwrap(res.data) || ''
 }
 
+export async function startProfiler(agentId: string, event: string = 'cpu', duration: number = 30): Promise<string> {
+  const res = await diagHttp.get<ApiResult<string>>('/diag/agent/startProfiler', { params: { agentId, event, duration } })
+  return unwrap(res.data) || ''
+}
+
+export async function stopProfiler(agentId: string): Promise<string> {
+  const res = await diagHttp.get<ApiResult<string>>('/diag/agent/stopProfiler', { params: { agentId } })
+  return unwrap(res.data) || ''
+}
+
 export type ReplaySnapshot = {
   url?: string
   method?: string

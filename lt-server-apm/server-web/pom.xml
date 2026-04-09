@@ -51,6 +51,12 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         
+        <dependency>
+            <groupId>net.devh</groupId>
+            <artifactId>grpc-server-spring-boot-starter</artifactId>
+            <version>2.14.0.RELEASE</version>
+        </dependency>
+
         <!-- 公共模块依赖 -->
         <dependency>
             <groupId>org.xi.lt</groupId>

@@ -18,7 +18,8 @@ APM_OPTS="
 -javaagent:${AGENT_PATH}
 -Dlt.app.name=lt-monitor-test-demo
 -Dlt.agent.enable=true
--Dlt.reporter.type=console
+-Dlt.reporter.type=grpc
+-Dlt.agent.report.url=127.0.0.1:9090
 -Dlt.reporter.console.output=true
 -Dlt.plugin.dir=${PLUGINS_PATH}
 -Dlt.log.level=INFO

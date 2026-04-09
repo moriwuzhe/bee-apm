@@ -163,7 +163,7 @@ public class AgentCommandService {
         return exec(agentId, "stopProfiler", timeoutMs);
     }
 
-    private String encode(String s) {agentId, String cmd, long timeoutMs) {
+    private String exec(String agentId, String cmd, long timeoutMs) {
         AgentConnection conn = store.get(agentId);
         if (conn == null || !conn.isActive() || !conn.isWritable()) {
             throw new IllegalStateException("Agent not connected: " + agentId);
@@ -206,6 +206,7 @@ public class AgentCommandService {
     }
 
     private static String urlEncode(String s) {
+        private String encode(String s) {
         if (s == null) return "";
         try {
             return URLEncoder.encode(s, "UTF-8");

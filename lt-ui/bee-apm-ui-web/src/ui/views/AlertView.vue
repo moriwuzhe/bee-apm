@@ -3,7 +3,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import PageShell from '../components/PageShell.vue'
 import { fetchAlerts, type AlertRow } from '../../api/alert'
-import { fetchAppNames } from '../../api/request'
+import { fetchGroupList } from '../../api/common'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -18,7 +18,10 @@ const query = reactive({
 
 async function loadApps() {
   try {
-    apps.value = await fetchAppNames()
+    const end = new Date().getTime()
+    const begin = end - 24 * 3600 * 1000 // Last 24 hours
+    const list = await fetchGroupList({ group: 'app', beginTime: String(begin), endTime: String(end) })
+    apps.value = list.map(item => item.name)
   } catch (e: any) {
     ElMessage.error(e.message || '加载应用列表失败')
   }

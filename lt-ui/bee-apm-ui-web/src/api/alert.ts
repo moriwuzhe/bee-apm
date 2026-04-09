@@ -1,4 +1,4 @@
-import request from './request'
+import { http } from './http'
 
 export interface AlertRow {
   id: string
@@ -11,6 +11,7 @@ export interface AlertRow {
   status: string
 }
 
-export function fetchAlerts(app?: string, limit: number = 100) {
-  return request.get<AlertRow[]>('/api/alert/list', { params: { app, limit } })
+export async function fetchAlerts(app?: string, limit: number = 100) {
+  const res = await http.get<{ result: AlertRow[] }>('/alert/list', { params: { app, limit } })
+  return res.data && res.data.result ? res.data.result : []
 }

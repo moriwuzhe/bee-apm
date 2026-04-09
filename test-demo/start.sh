@@ -31,4 +31,5 @@ mvn clean package -DskipTests
 
 # 启动测试应用
 echo "启动测试应用，挂载Lt-APM Agent..."
-java ${JAVA_OPTS} ${APM_OPTS} -jar target/lt-monitor-test-demo-1.0.0.jar
+APP_OPTS="--server.port=8082"
+java ${JAVA_OPTS} ${APM_OPTS} -jar target/lt-monitor-test-demo-1.0.0.jar ${APP_OPTS}

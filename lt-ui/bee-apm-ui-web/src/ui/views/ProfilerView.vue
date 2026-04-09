@@ -36,7 +36,7 @@ async function handleStart() {
   profiling.value = true
   flameGraphHtml.value = ''
   try {
-    const res = await startProfiler(selectedAgentId.value, eventType.value, duration.value)
+    await startProfiler(selectedAgentId.value, eventType.value, duration.value)
     ElMessage.success('已下发开始指令，正在采集...')
     
     // 自动等待 duration 秒后停止并获取结果

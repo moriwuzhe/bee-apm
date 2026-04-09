@@ -101,9 +101,9 @@ public class AgentCommandService {
         int n = limit;
         if (n < 1) n = 1;
         if (n > 500) n = 500;
-        String c = urlEncode(className);
-        String m = urlEncode(methodName);
-        String p = urlEncode(paramTypes == null ? "" : paramTypes);
+        String c = encode(className);
+        String m = encode(methodName);
+        String p = encode(paramTypes == null ? "" : paramTypes);
         return exec(agentId, "watchAdd:" + c + ":" + m + ":" + n + ":" + p, timeoutMs);
     }
 
@@ -129,11 +129,11 @@ public class AgentCommandService {
         int sd = stackDepth;
         if (sd < 0) sd = 0;
         if (sd > 60) sd = 60;
-        String c = urlEncode(className);
-        String m = urlEncode(methodName);
-        String w = urlEncode(when);
-        String f = urlEncode(contains == null ? "" : contains);
-        String p = urlEncode(paramTypes == null ? "" : paramTypes);
+        String c = encode(className);
+        String m = encode(methodName);
+        String w = encode(when);
+        String f = encode(contains == null ? "" : contains);
+        String p = encode(paramTypes == null ? "" : paramTypes);
         return exec(agentId, "debugAdd:" + c + ":" + m + ":" + w + ":" + n + ":" + sd + ":" + f + ":" + p, timeoutMs);
     }
 
@@ -141,12 +141,12 @@ public class AgentCommandService {
         int n = maxLines;
         if (n < 1) n = 1;
         if (n > 2000) n = 2000;
-        String d = urlEncode(id);
+        String d = encode(id);
         return exec(agentId, "debugDump:" + d + ":" + n, timeoutMs);
     }
 
     public String debugClear(String agentId, String id, long timeoutMs) {
-        String d = urlEncode(id);
+        String d = encode(id);
         return exec(agentId, "debugClear:" + d, timeoutMs);
     }
 
@@ -205,8 +205,7 @@ public class AgentCommandService {
         return body.toString(StandardCharsets.UTF_8);
     }
 
-    private static String urlEncode(String s) {
-        private String encode(String s) {
+    private String encode(String s) {
         if (s == null) return "";
         try {
             return URLEncoder.encode(s, "UTF-8");

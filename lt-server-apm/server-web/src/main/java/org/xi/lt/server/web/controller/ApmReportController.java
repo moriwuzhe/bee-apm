@@ -15,6 +15,7 @@ import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.xi.lt.common.model.apm.Span;
@@ -76,7 +77,7 @@ public class ApmReportController {
                 Map<String, List<Map<String, Object>>> groupedSpans = new HashMap<>();
                 for (Span span : spanList) {
                     Map<String, Object> map = JSON.parseObject(JSON.toJSONString(span), Map.class);
-                    String gid = span.getGid();
+                    String gid = span.getTraceId();
                     groupedSpans.computeIfAbsent(gid, k -> new ArrayList<>()).add(map);
                 }
                 
@@ -106,7 +107,7 @@ public class ApmReportController {
             Map<String, Object> map = JSON.parseObject(JSON.toJSONString(span), Map.class);
             List<Map<String, Object>> list = new ArrayList<>();
             list.add(map);
-            samplingService.addSpans(span.getGid(), list);
+            samplingService.addSpans(span.getTraceId(), list);
             return "success";
         } catch (Exception e) {
             log.error("单条Span放入尾部采样缓冲区失败", e);

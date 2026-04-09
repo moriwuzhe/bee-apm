@@ -3,7 +3,6 @@ package org.xi.lt.server.web.alert;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -60,7 +59,7 @@ public class AlertEngineService {
             sourceBuilder.size(100);
 
             searchRequest.source(sourceBuilder);
-            SearchResponse response = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+            SearchResponse response = restHighLevelClient.search(searchRequest);
 
             SearchHit[] hits = response.getHits().getHits();
             for (SearchHit hit : hits) {
@@ -112,7 +111,7 @@ public class AlertEngineService {
 
             IndexRequest indexRequest = new IndexRequest("lt_apm_alert", "alert");
             indexRequest.source(alertDoc);
-            restHighLevelClient.index(indexRequest, RequestOptions.DEFAULT);
+            restHighLevelClient.index(indexRequest);
         } catch (Exception e) {
             log.error("Failed to save alert to ES", e);
         }

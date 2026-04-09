@@ -2,7 +2,6 @@ package org.xi.lt.server.web.alert;
 
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
@@ -50,7 +49,7 @@ public class AlertController {
             sourceBuilder.size(limit);
             
             searchRequest.source(sourceBuilder);
-            SearchResponse response = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+            SearchResponse response = restHighLevelClient.search(searchRequest);
 
             List<Map<String, Object>> result = new ArrayList<>();
             for (SearchHit hit : response.getHits().getHits()) {

@@ -56,6 +56,16 @@ public class LoggerHandler extends AbstractHandler {
             if (arg == null) {
                 continue;
             }
+            
+            // 自动为字符串类型的日志消息加上 TraceId 前缀
+            if (i == 0 && arg instanceof String) {
+                String gid = LtTraceContext.getGId();
+                if (gid != null && !gid.isEmpty() && !((String) arg).startsWith("[traceId=")) {
+                    arg = "[traceId=" + gid + "] " + arg;
+                    allArguments[0] = arg; // 修改入参以影响底层的日志输出
+                }
+            }
+
             if (arg instanceof Throwable) {
                 logBuff.append(parseThrowable((Throwable) arg));
             } else if (LtUtils.isPrimitive(arg)) {

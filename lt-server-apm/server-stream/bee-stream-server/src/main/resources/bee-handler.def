@@ -1,0 +1,3 @@
+json=org.xi.lt.server.core.handler.JsonStreamHandler
+store=org.xi.lt.server.core.handler.StoreStreamHandler
+

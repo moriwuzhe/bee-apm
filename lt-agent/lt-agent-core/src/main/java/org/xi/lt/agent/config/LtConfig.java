@@ -17,6 +17,8 @@ public class LtConfig extends AbstractLtConfig {
     private String inst;
     private String app;
     private String env;
+    private String project;
+    private String secret;
     private String ip;
     private String port;
     private int heartbeatPeriod;
@@ -65,6 +67,8 @@ public class LtConfig extends AbstractLtConfig {
         inst = System.getProperty(SysPropKey.LT_INST, "unknown");
         app = System.getProperty(SysPropKey.LT_APP, "unknown");
         env = System.getProperty(SysPropKey.LT_ENV, "unknown");
+        project = System.getProperty("lt.project", "default");
+        secret = System.getProperty("lt.secret", "");
         port = System.getProperty(SysPropKey.LT_PORT, "0");
         ip = System.getProperty(SysPropKey.LT_IP);
         heartbeatPeriod = ConfigUtils.me().getInt("heartbeat.period", 60);
@@ -104,6 +108,18 @@ public class LtConfig extends AbstractLtConfig {
 
     public String getEnv() {
         return env;
+    }
+
+    public String getProject() {
+        return project;
+    }
+
+    public String getSecret() {
+        return secret;
+    }
+
+    public String getIp() {
+        return ip;
     }
 
     public int getHeartbeatPeriod() {

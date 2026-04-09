@@ -40,6 +40,13 @@ public class RemotingBuilder {
         header.setVersion(RemotingHeader.PROTOCOL_VERSION);
         header.setAgentVersion(RemotingHeader.AGENT_VERSION);
         header.setFlag(RemotingHeader.DEFAULT_FLAG);
+        
+        // Populate project auth headers from config
+        java.util.Map<String, String> props = new java.util.HashMap<>();
+        props.put("lt.project", org.xi.lt.agent.config.LtConfig.me().getProject());
+        props.put("lt.secret", org.xi.lt.agent.config.LtConfig.me().getSecret());
+        header.setProperties(props);
+        
         return header;
     }
 

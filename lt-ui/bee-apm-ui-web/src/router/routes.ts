@@ -15,6 +15,8 @@ import DiagnosticView from '../ui/views/DiagnosticView.vue'
 import OnlineDebugView from '../ui/views/OnlineDebugView.vue'
 import ProfilerView from '../ui/views/ProfilerView.vue'
 import AlertView from '../ui/views/AlertView.vue'
+import ProjectView from '../ui/views/ProjectView.vue'
+import ApplicationView from '../ui/views/ApplicationView.vue'
 import NotFoundView from '../ui/views/NotFoundView.vue'
 
 export const routes: RouteRecordRaw[] = [
@@ -63,7 +65,24 @@ export const routes: RouteRecordRaw[] = [
       { path: 'diagnostic', name: 'diagnostic', component: DiagnosticView, meta: { title: '诊断', nav: false, icon: Tools, order: 80 } },
       { path: 'online-debug', name: 'online-debug', component: OnlineDebugView, meta: { title: '线上调试', nav: true, icon: Tools, order: 90 } },
       { path: 'profiler', name: 'profiler', component: ProfilerView, meta: { title: '性能剖析(火焰图)', nav: true, icon: Tools, order: 100 } },
-      { path: 'alert', name: 'alert', component: AlertView, meta: { title: '智能告警', nav: true, icon: Bell, order: 110 } },
+      {
+        path: 'alert',
+        name: 'alert',
+        component: AlertView,
+        meta: { title: '智能告警', nav: true, icon: Bell, order: 25 },
+      },
+      {
+        path: 'project',
+        name: 'project',
+        component: ProjectView,
+        meta: { title: '项目管理', nav: true, icon: Tickets, order: 30 },
+      },
+      {
+        path: 'application',
+        name: 'application',
+        component: ApplicationView,
+        meta: { title: '应用管理', nav: true, icon: Connection, order: 31 },
+      },
     ],
   },
   {

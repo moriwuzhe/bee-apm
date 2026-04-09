@@ -23,6 +23,8 @@ APM_OPTS="
 -Dlt.reporter.console.output=true
 -Dlt.plugin.dir=${PLUGINS_PATH}
 -Dlt.log.level=INFO
+-Dlt.project=default
+-Dlt.secret=d8d1d87c-17e9-482a-a92c-8abdbdf9c536
 "
 
 # 编译测试项目

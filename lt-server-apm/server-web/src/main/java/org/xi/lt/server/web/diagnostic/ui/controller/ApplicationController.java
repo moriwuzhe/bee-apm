@@ -1,63 +1,41 @@
-/*
- * Copyright (C) 2019 Qunar, Inc.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 package org.xi.lt.server.web.diagnostic.ui.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
-
-import org.xi.lt.server.web.diagnostic.application.api.ApplicationService;
-import org.xi.lt.server.web.diagnostic.application.api.pojo.Application;
+import org.springframework.web.bind.annotation.*;
 import org.xi.lt.server.web.diagnostic.serverside.bean.ApiResult;
 import org.xi.lt.server.web.diagnostic.serverside.util.ResultHelper;
-import org.xi.lt.server.web.diagnostic.ui.security.LoginContext;
+import org.xi.lt.server.web.diagnostic.ui.dao.ApplicationDao;
+import org.xi.lt.server.web.diagnostic.ui.model.Application;
 
-/**
- * @author leix.xie
- * @date 2019/7/2 20:07
- * @describe
- */
-@Controller
-@RequestMapping("api/application/")
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/application")
 public class ApplicationController {
 
     @Autowired
-    private ApplicationService applicationService;
+    private ApplicationDao applicationDao;
 
-    @ResponseBody
-    @RequestMapping("list")
-    public ApiResult getAppList() {
-        String userCode = LoginContext.getLoginContext().getLoginUser();
-        return ResultHelper.success(this.applicationService.getAllApplications(userCode));
+    @GetMapping("/list")
+    public ApiResult list(@RequestParam(required = false) String projectCode) {
+        if (projectCode != null && !projectCode.isEmpty()) {
+            return ResultHelper.success(applicationDao.findByProjectCode(projectCode));
+        }
+        return ResultHelper.success(applicationDao.findAll());
     }
 
-    @ResponseBody
-    @RequestMapping("owner")
-    public ApiResult getAppOwner(final String appCode) {
-        return ResultHelper.success(this.applicationService.getAppOwner(appCode));
-    }
+    @PostMapping("/create")
+    public ApiResult create(@RequestBody Application application) {
+        if (application.getAppCode() == null || application.getAppName() == null || application.getProjectCode() == null) {
+            return ResultHelper.fail(-1, "projectCode, appCode, and appName are required");
+        }
+        
+        Application existing = applicationDao.findByAppCode(application.getAppCode());
+        if (existing != null) {
+            return ResultHelper.fail(-1, "appCode already exists");
+        }
 
-    @ResponseBody
-    @RequestMapping("save")
-    public ApiResult save(Application application) {
-        String loginUser = LoginContext.getLoginContext().getLoginUser();
-        boolean admin = LoginContext.getLoginContext().isAdmin();
-        return ResultHelper.success(this.applicationService.save(application, loginUser, admin));
+        applicationDao.insert(application);
+        return ResultHelper.success(null);
     }
 }

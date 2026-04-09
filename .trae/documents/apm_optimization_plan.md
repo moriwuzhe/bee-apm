@@ -42,6 +42,31 @@
   - 在全新打造的前端工作台中检索实例 A 的请求，配置好调试点并一键回放至实例 B。
   - 验证：实例 B 成功执行重放，前端正确且美观地结构化展示了实例 B 的局部变量和调用栈，同时业务数据未被二次修改（隔离生效）。
 
+### 阶段四：统一可观测性闭环 (Trace & Logs 深度融合)
+- **步骤 7：Agent 端日志组件增强 (MDC 注入)**
+  - **文件**：`lt-agent/lt-agent-plugin-logger/` (Log4j2/Logback 拦截器)。
+  - **改造**：在请求入口处（如 Servlet / Dubbo Provider 拦截器），自动将当前链路的 `TraceId` 注入到当前线程的 MDC (Mapped Diagnostic Context) 中。确保应用打印的每一行日志都自动带有 `[traceId=xxx]` 前缀。
+- **步骤 8：前后端链路联动查询**
+  - **改造**：修改后端 `LoggerApiController`，支持直接按 `traceId` 检索日志。在前端 `RequestView.vue` 和 `OnlineDebugView.vue` 中，为每条 Trace 增加“查看关联日志”按钮，实现 Trace 到日志的一键跳转体验。
+
+### 阶段五：高性能通信与智能采样 (gRPC & Smart Sampling)
+- **步骤 9：引入 gRPC + Protobuf 通信协议**
+  - **改造**：在 `lt-common` 中定义标准化指标与 Trace 的 proto 文件。新增 `lt-agent-reporter-grpc` 模块替换现有的 HTTP Reporter，降低序列化 CPU 消耗和网络 I/O 延迟。
+- **步骤 10：Server 端尾部采样策略 (Tail-based Sampling)**
+  - **改造**：在 Server 端 `lt-stream-server` (或网关层) 建立内存级 Trace 缓存窗口。当请求结束时，如果链路包含 Error 异常、超过耗时阈值（慢请求）或携带特殊的 `X-APM-Debug` 头，则全量落盘持久化至 ES；否则（正常请求）按设定的极低比例（如 1%）进行采样，大幅降低 ES 存储压力。
+
+### 阶段六：持续性能剖析 (Continuous Profiling) 与火焰图
+- **步骤 11：Agent 端集成 Async-Profiler 或 JFR**
+  - **改造**：在 Agent 核心控制指令中增加 `startProfiling` 和 `stopProfiling`。通过 JNI 动态加载 `async-profiler` 或通过 JMX 开启 JFR，定时采集 CPU 周期和内存分配的性能剖析数据。
+- **步骤 12：UI 端火焰图 (Flame Graph) 可视化**
+  - **改造**：后端增加解析和聚合 JFR/collapsed 格式数据的 API。前端引入 `d3-flame-graph` 等组件，直观展示方法调用的 CPU 耗时热点和内存分配热点，补齐全链路排障的最后一环（精准定位耗时的慢代码行）。
+
+### 阶段七：智能告警引擎与 AIOps 基础
+- **步骤 13：构建告警规则引擎**
+  - **改造**：在 Server 端增加定时调度任务（如基于 Quartz 或 XXL-JOB），周期性地利用 ES Aggregation 统计应用或接口级别的 TPS、错误率和 TP99 耗时。
+- **步骤 14：多渠道告警触达机制**
+  - **改造**：支持通过 Webhook 将异常指标或激增的错误推送到钉钉、飞书或邮件。后续可引入基础的指数平滑或孤立森林算法，实现脱离固定阈值的异常检测（Anomaly Detection）。
+
 ## 4. 假设与前置条件 (Assumptions & Decisions)
 - **业务环境配合**：假设用户的基础设施（如 K8s 或普通虚机集群）支持部署专门接收重放流量的隔离节点或影子节点。
 - **技术栈一致性**：前端新增的工作台将严格遵循当前项目使用的 Vue 3 + TypeScript + Element Plus 技术栈。

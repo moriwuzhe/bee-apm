@@ -243,11 +243,12 @@ watch(() => route.query, async () => {
           {{ row?.tags?.url || '' }}
         </template>
       </el-table-column>
-    <el-table-column label="操作" width="220" fixed="right" align="center">
+    <el-table-column label="操作" width="280" fixed="right" align="center">
       <template #default="{ row }">
         <el-button link type="primary" @click="openQueryById(row, 'bee-request-body', '入参')">入参</el-button>
         <el-button link type="primary" @click="openQueryById(row, 'bee-response-body', '回参')">回参</el-button>
         <el-button link type="primary" @click="openTopology(row)">拓扑</el-button>
+        <el-button link type="primary" @click="$router.push({ name: 'logger', query: { gid: row.gid } })">日志</el-button>
         <el-button link type="primary" @click="openCallTree(row)">链路</el-button>
       </template>
     </el-table-column>

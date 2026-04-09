@@ -60,6 +60,8 @@ public class ServletHandler extends AbstractHandler {
                 span.addTag(Const.KEY_REQ_WRAPPER, wrapper);
             }
             SpanManager.createTopologySpan(request.getHeader(HeaderKey.SRC_APP), LtConfig.me().getApp());
+            MdcAdapterUtils.init(null);
+            MdcAdapterUtils.put("traceId", span.getGid());
             return span;
         }
         return null;
@@ -98,6 +100,7 @@ public class ServletHandler extends AbstractHandler {
                 collectResponseBody(span, response);
             }
             flush(response);
+            MdcAdapterUtils.remove("traceId");
             return result;
         }
         flush(response);

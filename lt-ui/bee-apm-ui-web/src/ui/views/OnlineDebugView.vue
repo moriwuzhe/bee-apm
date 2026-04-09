@@ -218,7 +218,12 @@ onMounted(() => {
 
         <!-- 结果展示 -->
         <el-card shadow="never" class="result-card" v-if="debugResult || debugRunning">
-          <template #header>调试结果 (快照 & 调用栈)</template>
+          <template #header>
+            <div class="card-header">
+              <span>调试结果 (快照 & 调用栈)</span>
+              <el-button v-if="debugResult" size="small" type="primary" link @click="$router.push({ name: 'logger', query: { gid: selectedRequest?.gid } })">查看关联日志</el-button>
+            </div>
+          </template>
           <div class="code-viewer" v-loading="debugRunning" element-loading-text="正在等待流量回放与快照抓取...">
             <pre v-if="debugResult">{{ debugResult }}</pre>
             <div v-else class="empty-text">等待结果返回...</div>

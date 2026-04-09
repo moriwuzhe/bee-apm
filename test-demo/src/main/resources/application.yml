@@ -48,3 +48,9 @@ xxl:
     executor:
       appname: test-demo
       port: 9999
+
+logging:
+  level:
+    root: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [traceId=%X{traceId}] %logger{36} - %msg%n"

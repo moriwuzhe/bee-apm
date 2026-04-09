@@ -31,14 +31,20 @@ public class LoggerApiController {
         String app = asString(req.get("app"));
         String gid = asString(req.get("gid"));
         String ip = asString(req.get("ip"));
+        String content = asString(req.get("content"));
 
         BoolQueryBuilder q = QueryBuilders.boolQuery()
-                .must(QueryBuilders.termQuery("type.keyword", "log"))
-                .must(QueryBuilders.rangeQuery("time").gte(beginMs).lte(endMs));
-        if (!env.isEmpty()) q.must(QueryBuilders.termQuery("env.keyword", env));
-        if (!app.isEmpty()) q.must(QueryBuilders.termQuery("app.keyword", app));
-        if (!gid.isEmpty()) q.must(QueryBuilders.termQuery("gid.keyword", gid));
-        if (!ip.isEmpty()) q.must(QueryBuilders.termQuery("ip.keyword", ip));
+                .must(QueryBuilders.termQuery("type.keyword", "log"));
+        if (beginMs > 0 && endMs > 0) {
+            q.must(QueryBuilders.rangeQuery("time").gte(beginMs).lte(endMs));
+        }
+        if (!env.isEmpty()) q.must(QueryBuilders.termQuery("env", env));
+        if (!app.isEmpty()) q.must(QueryBuilders.termQuery("app", app));
+        if (!gid.isEmpty()) q.must(QueryBuilders.termQuery("gid", gid));
+        if (!ip.isEmpty()) q.must(QueryBuilders.termQuery("inst", ip));
+        if (!content.isEmpty()) {
+            q.must(QueryBuilders.wildcardQuery("tags.log", "*" + content + "*"));
+        }
 
         try {
             EsSearchService.PageSearchResult r = es.searchPage("lt-logger-*", q, "time", SortOrder.DESC, (pageNum - 1) * PAGE_SIZE, PAGE_SIZE);

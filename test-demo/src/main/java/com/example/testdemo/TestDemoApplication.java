@@ -6,6 +6,8 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -21,6 +23,8 @@ import java.net.URL;
 @EnableFeignClients
 public class TestDemoApplication {
 
+    private static final Logger log = LoggerFactory.getLogger(TestDemoApplication.class);
+
     public static void main(String[] args) {
         SpringApplication.run(TestDemoApplication.class, args);
         System.out.println("Lt-APM Test Demo started successfully!");
@@ -31,6 +35,7 @@ public class TestDemoApplication {
      */
     @GetMapping("/test")
     public String test() {
+        log.info("Processing /test request. This log should automatically include the TraceId.");
         return "Hello Lt-APM!";
     }
 

@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "org.xi.lt.common.grpc";
+option java_outer_classname = "LtSpanProto";
+
+service LtApmReportService {
+  rpc reportSpan (SpanRequest) returns (ReportReply) {}
+  rpc reportSpanBatch (SpanBatchRequest) returns (ReportReply) {}
+}
+
+message SpanRequest {
+  string id = 1;
+  string pid = 2;
+  string gid = 3;
+  string type = 4;
+  string srcApp = 5;
+  string cTag = 6;
+  string time = 7;
+  string app = 8;
+  string env = 9;
+  string ip = 10;
+  int32 spend = 11;
+  map<string, string> tags = 12;
+}
+
+message SpanBatchRequest {
+  repeated SpanRequest spans = 1;
+}
+
+message ReportReply {
+  bool success = 1;
+  string message = 2;
+}

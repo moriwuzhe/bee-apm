@@ -23,6 +23,8 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <compiler.version>1.8</compiler.version>
+        <grpc.version>1.51.0</grpc.version>
+        <protobuf.version>3.21.7</protobuf.version>
     </properties>
 
     <build>

@@ -12,6 +12,7 @@ import LoggerView from '../ui/views/LoggerView.vue'
 import AppListView from '../ui/views/AppListView.vue'
 import AppDetailView from '../ui/views/AppDetailView.vue'
 import DiagnosticView from '../ui/views/DiagnosticView.vue'
+import OnlineDebugView from '../ui/views/OnlineDebugView.vue'
 import NotFoundView from '../ui/views/NotFoundView.vue'
 
 export const routes: RouteRecordRaw[] = [
@@ -58,6 +59,7 @@ export const routes: RouteRecordRaw[] = [
       { path: 'tx', name: 'tx', component: TxView, meta: { title: '事务查询', nav: false, icon: Connection, order: 60 } },
       { path: 'logger', name: 'logger', component: LoggerView, meta: { title: 'Logger查询', nav: false, icon: Tickets, order: 70 } },
       { path: 'diagnostic', name: 'diagnostic', component: DiagnosticView, meta: { title: '诊断', nav: false, icon: Tools, order: 80 } },
+      { path: 'online-debug', name: 'online-debug', component: OnlineDebugView, meta: { title: '线上调试', nav: true, icon: Tools, order: 90 } },
     ],
   },
   {

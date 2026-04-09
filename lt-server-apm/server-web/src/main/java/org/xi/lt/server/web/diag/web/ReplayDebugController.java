@@ -37,12 +37,7 @@ public class ReplayDebugController {
 
             String baseUrl = req.targetBaseUrl;
             if (baseUrl == null || baseUrl.trim().isEmpty()) {
-                String ip = snap.getIp();
-                String port = snap.getPort();
-                if (ip == null || ip.trim().isEmpty() || port == null || port.trim().isEmpty()) {
-                    return ApiResult.fail("TargetBaseUrlRequired");
-                }
-                baseUrl = "http://" + ip.trim() + ":" + port.trim();
+                return ApiResult.fail("TargetBaseUrlRequired: For safety, please explicitly select a target node to replay the traffic to avoid affecting production data.");
             }
 
             int limit = req.limit == null ? 20 : req.limit;

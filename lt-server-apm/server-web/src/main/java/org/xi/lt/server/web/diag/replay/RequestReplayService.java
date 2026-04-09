@@ -85,6 +85,7 @@ public class RequestReplayService {
         String method = snapshot.getMethod() == null ? "GET" : snapshot.getMethod().trim().toUpperCase();
         String bodyStr = snapshot.getBody() == null ? "" : snapshot.getBody();
         Request.Builder rb = new Request.Builder().url(fullUrl);
+        rb.addHeader("X-APM-Replay-Traffic", "true");
         for (Map.Entry<String, String> e : headers.entrySet()) {
             if (e.getKey() == null || e.getKey().trim().isEmpty()) continue;
             if (e.getValue() == null) continue;

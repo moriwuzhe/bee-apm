@@ -77,7 +77,6 @@ public class ServletAdvice {
                             @Advice.Origin("#t") String className,
                             @Advice.Origin("#m") String methodName,
                             @Advice.AllArguments Object[] args,
-                            @Advice.Return Object result,
                             @Advice.Thrown Throwable t) {
         if (handler == null) {
             return;
@@ -108,7 +107,7 @@ public class ServletAdvice {
         }
         
         if (request != null && response != null) {
-            handler.after(className, methodName, new Object[]{request, response}, result, t, null);
+            handler.after(className, methodName, new Object[]{request, response}, null, t, null);
         }
     }
 

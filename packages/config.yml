@@ -127,9 +127,6 @@ plugins:
         enable: true       #开关，是否采集
         spend: -1           #耗时阀值
         enableParam: true  #参数采集开关
-    jdkhttp:
-        enable: true
-        spend: -1
     logger:
         enable: true    #开关，是否采集,默认true
         errorRate: false #开关，error及以上级别是否使用采样率,默认false

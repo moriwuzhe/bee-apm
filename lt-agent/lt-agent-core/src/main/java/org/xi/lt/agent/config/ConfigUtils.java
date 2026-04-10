@@ -99,7 +99,14 @@ public class ConfigUtils {
     private Object parseValue(String key) {
         try {
             readWriteLock.readLock().lock();
-            return JSONPath.eval(config, "$." + key);
+            Object value = System.getProperty("lt." + key);
+            if (value != null) {
+                return value;
+            }
+            if (config != null) {
+                return JSONPath.eval(config, "$." + key);
+            }
+            return null;
         } finally {
             readWriteLock.readLock().unlock();
         }

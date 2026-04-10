@@ -14,8 +14,8 @@ import org.xi.lt.server.web.diag.netty.AgentConnectionStore;
 import org.xi.lt.server.web.diag.remoting.protocol.Datagram;
 import org.xi.lt.server.web.diag.remoting.protocol.RemotingBuilder;
 import org.xi.lt.server.web.diag.remoting.protocol.payload.RawStringPayloadHolder;
-import org.xi.lt.server.web.diagnostic.ui.dao.ProjectDao;
-import org.xi.lt.server.web.diagnostic.ui.model.Project;
+import org.xi.lt.server.web.api.dao.ProjectDao;
+import org.xi.lt.server.web.api.model.Project;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;

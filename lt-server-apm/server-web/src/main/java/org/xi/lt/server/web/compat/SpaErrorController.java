@@ -5,19 +5,26 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 @Controller
 public class SpaErrorController implements ErrorController {
 
     @RequestMapping("/error")
-    public String handleError(HttpServletRequest request) {
+    public String handleError(HttpServletRequest request, HttpServletResponse response) {
         String uri = (String) request.getAttribute("javax.servlet.error.request_uri");
-        if (uri != null && (uri.startsWith("/api/") || uri.startsWith("/diag/") || uri.startsWith("/assets/"))) {
+        if (uri != null && (uri.startsWith("/api/") || uri.startsWith("/diag/") || uri.startsWith("/assets/") || uri.startsWith("/diag-api/"))) {
             // Let APIs and missing static assets fail
-            return "forward:/index.html"; // We could return 404, but just in case, forward to index.html
+            return null; // Return default error page / JSON for API
         }
-        // Forward to index.html for SPA routes
-        return "forward:/index.html";
+        
+        Object status = request.getAttribute("javax.servlet.error.status_code");
+        if (status != null && Integer.valueOf(status.toString()) == 404) {
+            // Forward to index.html for SPA routes and reset status to 200
+            response.setStatus(200);
+            return "forward:/index.html";
+        }
+        return null;
     }
 
 }

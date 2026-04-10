@@ -1,11 +1,11 @@
-package org.xi.lt.server.web.diagnostic.ui.dao.impl;
+package org.xi.lt.server.web.api.dao.impl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
-import org.xi.lt.server.web.diagnostic.ui.dao.ApplicationDao;
-import org.xi.lt.server.web.diagnostic.ui.model.Application;
+import org.xi.lt.server.web.api.dao.ApplicationDao;
+import org.xi.lt.server.web.api.model.Application;
 
 import java.util.List;
 

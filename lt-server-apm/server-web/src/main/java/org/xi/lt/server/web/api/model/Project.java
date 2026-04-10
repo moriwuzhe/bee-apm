@@ -1,4 +1,4 @@
-package org.xi.lt.server.web.diagnostic.ui.model;
+package org.xi.lt.server.web.api.model;
 
 import java.util.Date;
 

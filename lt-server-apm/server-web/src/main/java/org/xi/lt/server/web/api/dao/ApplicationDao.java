@@ -1,6 +1,6 @@
-package org.xi.lt.server.web.diagnostic.ui.dao;
+package org.xi.lt.server.web.api.dao;
 
-import org.xi.lt.server.web.diagnostic.ui.model.Application;
+import org.xi.lt.server.web.api.model.Application;
 import java.util.List;
 
 public interface ApplicationDao {

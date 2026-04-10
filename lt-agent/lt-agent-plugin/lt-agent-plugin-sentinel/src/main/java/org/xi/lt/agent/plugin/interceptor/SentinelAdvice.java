@@ -16,7 +16,7 @@ public class SentinelAdvice {
 
     @Advice.OnMethodEnter
     public static void onEnter(
-            @Advice.This Object target,
+            @Advice.This(optional = true) Object target,
             @Advice.Origin("#m") String methodName,
             @Advice.Origin("#t") String className,
             @Advice.AllArguments Object[] allArguments) {
@@ -28,7 +28,7 @@ public class SentinelAdvice {
             } else if (methodName.equals("exit") && className.contains("Entry")) {
                 // 流量退出
                 handler.beforeExit(className, methodName, allArguments, new Object[]{target});
-            } else if (BlockException.class.isAssignableFrom((Class<?>) target)) {
+            } else if (target != null && BlockException.class.isAssignableFrom(target.getClass())) {
                 // 流量控制异常构造
                 handler.onBlockException(className, methodName, allArguments, new Object[]{target});
             }

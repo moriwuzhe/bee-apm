@@ -25,7 +25,7 @@ public class ServletAdvice {
     public static void enter(@Advice.Local("handler") IHandler handler,
                              @Advice.Origin("#t") String className,
                              @Advice.Origin("#m") String methodName,
-                             @Advice.AllArguments Object[] args) {
+                             @Advice.AllArguments(readOnly = false, typing = Assigner.Typing.DYNAMIC) Object[] args) {
         handler = HandlerLoader.load("org.xi.lt.agent.plugin.handler.ServletHandler");
         HttpServletRequest request = null;
         HttpServletResponse response = null;

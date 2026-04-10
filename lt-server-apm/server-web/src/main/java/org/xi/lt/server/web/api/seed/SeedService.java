@@ -40,7 +40,7 @@ public class SeedService {
         String[] envs = new String[]{"preprod", "prod"};
 
         for (int ai = 0; ai < a; ai += 1) {
-            String app = ai == 0 ? "bee-preprod-demo" : ("demo-app-" + (ai + 1));
+            String app = ai == 0 ? "lt-preprod-demo" : ("demo-app-" + (ai + 1));
             String env = envs[ai % envs.length];
             for (int ii = 0; ii < i; ii += 1) {
                 String inst = "inst" + (ii + 1);
@@ -72,7 +72,7 @@ public class SeedService {
             Map<String, Object> tags = new HashMap<>();
             tags.put("version", "1.0." + (Math.abs(app.hashCode()) % 10));
             doc.put("tags", tags);
-            add(bulk, "bee-heartbeat-" + day, doc.get("id").toString(), doc);
+            add(bulk, "lt-heartbeat-" + day, doc.get("id").toString(), doc);
         }
     }
 
@@ -106,7 +106,7 @@ public class SeedService {
             tags.put("srcApp", "gateway");
             tags.put("srcInst", "gw1");
             req.put("tags", tags);
-            add(bulk, "bee-request-" + day, rid, req);
+            add(bulk, "lt-request-" + day, rid, req);
 
             Map<String, Object> reqb = base(env, app, inst, ip, port, t);
             reqb.put("type", "reqb");
@@ -115,7 +115,7 @@ public class SeedService {
             Map<String, Object> reqbTags = new HashMap<>();
             reqbTags.put("body", "{\"k\":\"v\",\"n\":" + k + "}");
             reqb.put("tags", reqbTags);
-            add(bulk, "bee-request-body-" + day, rid, reqb);
+            add(bulk, "lt-request-body-" + day, rid, reqb);
 
             Map<String, Object> reqh = base(env, app, inst, ip, port, t);
             reqh.put("type", "reqh");
@@ -124,7 +124,7 @@ public class SeedService {
             Map<String, Object> reqhTags = new HashMap<>();
             reqhTags.put("headers", "{\"Content-Type\":\"application/json\"}");
             reqh.put("tags", reqhTags);
-            add(bulk, "bee-request-headers-" + day, rid, reqh);
+            add(bulk, "lt-request-headers-" + day, rid, reqh);
 
             Map<String, Object> rp = base(env, app, inst, ip, port, t);
             rp.put("type", "rp");
@@ -133,7 +133,7 @@ public class SeedService {
             Map<String, Object> rpTags = new HashMap<>();
             rpTags.put("param", "{}");
             rp.put("tags", rpTags);
-            add(bulk, "bee-request-param-" + day, rid, rp);
+            add(bulk, "lt-request-param-" + day, rid, rp);
 
             Map<String, Object> resb = base(env, app, inst, ip, port, t + 1);
             resb.put("type", "resb");
@@ -142,7 +142,7 @@ public class SeedService {
             Map<String, Object> resbTags = new HashMap<>();
             resbTags.put("body", "{\"code\":0,\"msg\":\"ok\"}");
             resb.put("tags", resbTags);
-            add(bulk, "bee-response-body-" + day, rid, resb);
+            add(bulk, "lt-response-body-" + day, rid, resb);
 
             String pid = "P" + uuid32();
             Map<String, Object> proc = base(env, app, inst, ip, port, t + 2);
@@ -154,7 +154,7 @@ public class SeedService {
             Map<String, Object> procTags = new HashMap<>();
             procTags.put("method", app + ".Service.method" + (k % 8));
             proc.put("tags", procTags);
-            add(bulk, "bee-process-" + day, pid, proc);
+            add(bulk, "lt-process-" + day, pid, proc);
 
             String sid = "S" + uuid32();
             Map<String, Object> sql = base(env, app, inst, ip, port, t + 3);
@@ -167,7 +167,7 @@ public class SeedService {
             sqlTags.put("sql", "select * from t_demo where id=" + (k % 50));
             sqlTags.put("count", String.valueOf((k % 5) + 1));
             sql.put("tags", sqlTags);
-            add(bulk, "bee-sql-" + day, sid, sql);
+            add(bulk, "lt-sql-" + day, sid, sql);
 
             String txid = "T" + uuid32();
             Map<String, Object> tx = base(env, app, inst, ip, port, t + 4);
@@ -180,7 +180,7 @@ public class SeedService {
             txTags.put("count", String.valueOf((k % 3) + 1));
             txTags.put("point", app + ".TxService.txPoint" + (k % 6));
             tx.put("tags", txTags);
-            add(bulk, "bee-tx-" + day, txid, tx);
+            add(bulk, "lt-tx-" + day, txid, tx);
 
             String lid = "L" + uuid32();
             Map<String, Object> log = base(env, app, inst, ip, port, t + 5);
@@ -194,7 +194,7 @@ public class SeedService {
             logTags.put("point", app + ".LogPoint");
             logTags.put("log", "demo log " + k + " url=" + url);
             log.put("tags", logTags);
-            add(bulk, "bee-logger-" + day, lid, log);
+            add(bulk, "lt-logger-" + day, lid, log);
 
             if (k % 12 == 0) {
                 String eid = "E" + uuid32();
@@ -208,7 +208,7 @@ public class SeedService {
                 errTags.put("point", app + ".ErrorPoint");
                 errTags.put("log", "java.lang.RuntimeException: demo error " + k);
                 err.put("tags", errTags);
-                add(bulk, "bee-error-" + day, eid, err);
+                add(bulk, "lt-error-" + day, eid, err);
             }
         }
     }

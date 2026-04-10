@@ -8,7 +8,7 @@ BASE_DIR=$(cd $(dirname $0)/.. && pwd)
 AGENT_PATH="${BASE_DIR}/packages/lt-agent.jar"
 
 # 插件目录
-PLUGINS_PATH="${BASE_DIR}/plugins/"
+PLUGINS_PATH="${BASE_DIR}/packages/plugins/"
 
 # Java启动参数
 JAVA_OPTS="-Xms512m -Xmx512m"

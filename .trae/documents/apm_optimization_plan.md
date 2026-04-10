@@ -15,7 +15,7 @@
 
 ### 阶段一：前端交互与展示样式优化 (主流 APM 风格)
 - **步骤 1：重构“线上调试”工作台视图 (Online Debug Workspace)**
-  - **文件**：新建 `lt-ui/bee-apm-ui-web/src/ui/views/OnlineDebugView.vue`。
+  - **文件**：新建 `lt-ui/lt-monitor-ui-web/src/ui/views/OnlineDebugView.vue`。
   - **左侧面板 (流量集)**：列表化展示从 ES 拉取的历史请求快照（支持按耗时、接口、时间过滤），支持一键选中作为回放数据源。
   - **中间面板 (观测点配置)**：提供更友好的类名、方法名级联输入界面（未来可演进为代码结构树），直观配置 `ENTER / EXIT / THROW` 观测点和参数过滤条件。
   - **右侧/底侧面板 (堆栈与变量快照)**：引入结构化的树状组件或高级 JSON Viewer 展示 `debugDump` 返回的调用栈深度、入参、出参及方法耗时，彻底替代现有的纯文本 `textarea` 弹窗。

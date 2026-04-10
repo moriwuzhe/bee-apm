@@ -118,10 +118,6 @@ public class LtConfig extends AbstractLtConfig {
         return secret;
     }
 
-    public String getIp() {
-        return ip;
-    }
-
     public int getHeartbeatPeriod() {
         return heartbeatPeriod;
     }

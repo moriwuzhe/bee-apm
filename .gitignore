@@ -21,7 +21,7 @@ plugins/
 package/reporter/
 boot-plugins/
 lt*.jar
-bee*.jar
+lt*.jar
 
 # Logs
 *.log

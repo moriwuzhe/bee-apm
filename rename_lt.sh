@@ -1,5 +1,4 @@
 #!/bin/bash
-# A script to replace "lt" with "lt" in various forms across the project.
 
 find /workspace -type f -not -path "*/.git/*" -not -path "*/node_modules/*" -not -path "*/target/*" -not -path "*/build/*" -not -path "*/dist/*" -not -name "*.jar" -not -name "*.png" -not -name "*.jpg" -not -name "*.ico" -not -name "*.ttf" -not -name "*.woff" -not -name "*.eot" -not -name "*.svg" -not -name "pnpm-lock.yaml" -not -name "package-lock.json" | while read -r file; do
     sed -i 's/net\.ltmonitor/org\.xi\.lt/g' "$file"

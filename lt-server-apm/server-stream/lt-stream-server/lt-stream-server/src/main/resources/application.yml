@@ -1,0 +1,38 @@
+server:
+  port: 7001
+
+lt:
+  handlers:
+    flow: json>store
+  store:
+    name: elasticsearch
+    elasticsearch:
+      config:
+        url: http://127.0.0.1:9200
+        multiThreaded: true
+        readTimeout: 30000
+        maxTotalConnection: 100
+        defaultMaxTotalConnectionPerRoute: 20
+      indices:
+        default: lt-default
+        proc: lt-process
+        para: lt-process-param
+        sql: lt-sql
+        sqlp: lt-sql-param
+        req: lt-request
+        rp: lt-request-param
+        tx: lt-tx
+        log: lt-logger
+        err: lt-error
+        reqb: lt-request-body
+        reqh: lt-request-headers
+        resb: lt-response-body
+        hb: lt-heartbeat
+        topo: lt-topology
+        jvm: lt-jvm
+
+logging:
+  level:
+    org.xi.lt: INFO
+    root: WARN
+

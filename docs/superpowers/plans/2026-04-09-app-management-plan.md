@@ -9,7 +9,7 @@
 - We introduce `Project` and `Application` domain models, DAOs, and REST controllers.
 - `AgentConnectionStore` in Netty server will intercept connection requests to validate the secret key against the H2 database.
 - The Agent `lt-agent-core` will be modified to accept `lt.project` and `lt.secret` JVM arguments and pass them to the server during connection.
-- The UI (`bee-apm-ui-web`) will add pages to manage Projects and Applications, replacing or augmenting the hardcoded agent list.
+- The UI (`lt-monitor-ui-web`) will add pages to manage Projects and Applications, replacing or augmenting the hardcoded agent list.
 
 **Tech Stack:** Spring Boot, JDBC Template, H2 Database, Netty, Vue3, Element Plus.
 
@@ -100,11 +100,11 @@ Inject `ProjectDao`. If `projectDao.findByProjectCode(project)` is null or secre
 ### Task 5: Frontend UI Development
 
 **Files:**
-- Modify: `/workspace/lt-ui/bee-apm-ui-web/src/router/index.ts`
-- Modify: `/workspace/lt-ui/bee-apm-ui-web/src/ui/layout/Sidebar.vue`
-- Create: `/workspace/lt-ui/bee-apm-ui-web/src/ui/views/ProjectView.vue`
-- Create: `/workspace/lt-ui/bee-apm-ui-web/src/ui/views/ApplicationView.vue`
-- Create: `/workspace/lt-ui/bee-apm-ui-web/src/api/project.ts`
+- Modify: `/workspace/lt-ui/lt-monitor-ui-web/src/router/index.ts`
+- Modify: `/workspace/lt-ui/lt-monitor-ui-web/src/ui/layout/Sidebar.vue`
+- Create: `/workspace/lt-ui/lt-monitor-ui-web/src/ui/views/ProjectView.vue`
+- Create: `/workspace/lt-ui/lt-monitor-ui-web/src/ui/views/ApplicationView.vue`
+- Create: `/workspace/lt-ui/lt-monitor-ui-web/src/api/project.ts`
 
 - [ ] **Step 1: Add API client functions**
 Create `project.ts` with Axios calls for fetching/creating projects and apps.

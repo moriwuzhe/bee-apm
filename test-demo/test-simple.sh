@@ -11,7 +11,7 @@ if [ ! -f "${AGENT_JAR}" ]; then
 fi
 
 # 检查插件目录是否存在
-PLUGINS_DIR="${BASE_DIR}/lt-agent/plugins"
+PLUGINS_DIR="${BASE_DIR}/packages/plugins"
 if [ ! -d "${PLUGINS_DIR}" ]; then
     echo "Error: Plugins dir not found at ${PLUGINS_DIR}"
     exit 1

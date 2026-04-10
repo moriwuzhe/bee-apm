@@ -3,8 +3,8 @@ package org.xi.lt.agent.reporter.grpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
-import org.xi.lt.agent.annotation.LtPlugin;
-import org.xi.lt.agent.annotation.LtPluginType;
+import org.xi.lt.common.annotation.LtPlugin;
+import org.xi.lt.common.annotation.LtPluginType;
 import org.xi.lt.agent.log.ILog;
 import org.xi.lt.agent.log.LogFactory;
 import org.xi.lt.agent.model.Span;
@@ -30,7 +30,7 @@ public class GrpcReporter extends AbstractReporter {
     private LtApmReportServiceGrpc.LtApmReportServiceStub asyncStub;
 
     @Override
-    public void init() {
+    public int init() {
         String serverUrl = System.getProperty("lt.agent.report.url");
         if (serverUrl == null || serverUrl.isEmpty()) {
             serverUrl = "127.0.0.1:9090";
@@ -50,6 +50,15 @@ public class GrpcReporter extends AbstractReporter {
                 
         asyncStub = LtApmReportServiceGrpc.newStub(channel);
         log.info("GrpcReporter initialized. Connected to " + host + ":" + port);
+        return 1;
+    }
+
+    @Override
+    public int report(Span span) {
+        if (span == null) {
+            return 0;
+        }
+        return report(java.util.Collections.singletonList(span));
     }
 
     @Override
@@ -65,14 +74,14 @@ public class GrpcReporter extends AbstractReporter {
                     .setId(span.getId() == null ? "" : span.getId())
                     .setPid(span.getPid() == null ? "" : span.getPid())
                     .setGid(span.getGid() == null ? "" : span.getGid())
-                    .setType(span.getType() == null ? "" : span.getType().name())
-                    .setSrcApp(span.getSrcApp() == null ? "" : span.getSrcApp())
-                    .setCTag(span.getcTag() == null ? "" : span.getcTag())
-                    .setTime(span.getTime() == null ? "" : span.getTime())
+                    .setType(span.getType() == null ? "" : span.getType())
+                    .setSrcApp(span.getTag("srcApp") == null ? "" : String.valueOf(span.getTag("srcApp")))
+                    .setCTag(span.getTag("cTag") == null ? "" : String.valueOf(span.getTag("cTag")))
+                    .setTime(span.getTime() == null ? "" : String.valueOf(span.getTime().getTime()))
                     .setApp(span.getApp() == null ? "" : span.getApp())
                     .setEnv(span.getEnv() == null ? "" : span.getEnv())
                     .setIp(span.getIp() == null ? "" : span.getIp())
-                    .setSpend((int) span.getSpend());
+                    .setSpend(span.getSpend() == null ? 0 : span.getSpend().intValue());
 
             if (span.getTags() != null) {
                 for (Map.Entry<String, Object> entry : span.getTags().entrySet()) {

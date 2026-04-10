@@ -1,0 +1,1 @@
+java  -javaagent:D:\Java\myspace\lt-monitor\packages\lt-agent.jar -Dlt.app=dog -Dlt.env=dev -Dlt.inst=dog03 -Dlt.port=8103 -Dserver.port=8103 -Dlt.ip=192.168.137.13 -Dmax.counter=5 -Dremote.ports=8101_8102_8103_8104_8105_8106 -jar lt-monitor-sb-demo.jar

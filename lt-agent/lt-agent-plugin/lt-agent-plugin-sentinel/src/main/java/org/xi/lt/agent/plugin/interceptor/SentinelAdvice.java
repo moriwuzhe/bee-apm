@@ -28,9 +28,6 @@ public class SentinelAdvice {
             } else if (methodName.equals("exit") && className.contains("Entry")) {
                 // 流量退出
                 handler.beforeExit(className, methodName, allArguments, new Object[]{target});
-            } else if (target != null && BlockException.class.isAssignableFrom(target.getClass())) {
-                // 流量控制异常构造
-                handler.onBlockException(className, methodName, allArguments, new Object[]{target});
             }
         } catch (Exception e) {
             // 异常不影响业务
@@ -41,7 +38,7 @@ public class SentinelAdvice {
     public static void onExit(
             @Advice.Origin("#m") String methodName,
             @Advice.Origin("#t") String className,
-            @Advice.Return Object result,
+            @Advice.Return(readOnly = false, typing = net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC) Object result,
             @Advice.Thrown Throwable t,
             @Advice.AllArguments Object[] allArguments) {
         try {

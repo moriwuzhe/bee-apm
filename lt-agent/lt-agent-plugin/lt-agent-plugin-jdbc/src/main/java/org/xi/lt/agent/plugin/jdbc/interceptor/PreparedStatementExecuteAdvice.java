@@ -22,7 +22,7 @@ public class PreparedStatementExecuteAdvice {
                             @Advice.Origin("#t") String className,
                             @Advice.Origin("#m") String methodName,
                             @Advice.AllArguments Object[] allParams,
-                            @Advice.Return Object result,
+                            @Advice.Return(readOnly = false, typing = net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC) Object result,
                             @Advice.Thrown Throwable t,
                             @Advice.This Object instance) {
         handler.after(className, methodName, allParams, result, t, new Object[]{instance});

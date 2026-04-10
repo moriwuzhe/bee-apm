@@ -43,7 +43,7 @@ public class XxlJobAdvice {
     public static void onExit(
             @Advice.Origin("#m") String methodName,
             @Advice.Origin("#t") String className,
-            @Advice.Return Object result,
+            @Advice.Return(readOnly = false, typing = net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC) Object result,
             @Advice.Thrown Throwable t,
             @Advice.AllArguments Object[] allArguments,
             @Advice.This Object target) {

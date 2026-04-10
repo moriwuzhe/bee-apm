@@ -17,7 +17,7 @@ public class GatewayAdvice {
     public static void onExit(
             @Advice.Origin("#m") String methodName,
             @Advice.Origin("#t") String className,
-            @Advice.Return Object result,
+            @Advice.Return(readOnly = false, typing = net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC) Object result,
             @Advice.AllArguments Object[] allArguments) {
         try {
             if (result instanceof Mono && allArguments.length > 0 && allArguments[0] instanceof ServerWebExchange) {

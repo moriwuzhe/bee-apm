@@ -42,7 +42,7 @@ public class SpringMvcAdvice {
     public static void exit(@Advice.Local("handler") IHandler handler,
                             @Advice.Origin("#t") String className,
                             @Advice.Origin("#m") String methodName,
-                            @Advice.Return Object result,
+                            @Advice.Return(readOnly = false, typing = net.bytebuddy.implementation.bytecode.assign.Assigner.Typing.DYNAMIC) Object result,
                             @Advice.Thrown Throwable t) {
         if (handler == null) {
             return;

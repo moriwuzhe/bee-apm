@@ -23,9 +23,12 @@ public class StoreStreamHandler extends AbstractStreamHandler {
     @Override
     public void handle(Stream stream) throws Exception {
         Object obj = stream.getSource();
+        System.out.println("StoreStreamHandler received: " + obj);
         if(obj.getClass().isArray()){
+            System.out.println("StoreStreamHandler saving array");
             store.save((Object[])obj);
         }else {
+            System.out.println("StoreStreamHandler saving single");
             store.save(obj);
         }
     }

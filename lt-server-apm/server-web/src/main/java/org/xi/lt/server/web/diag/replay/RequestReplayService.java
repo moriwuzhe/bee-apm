@@ -17,7 +17,6 @@ import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.xi.lt.common.utils.HttpUtils;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -114,7 +113,7 @@ public class RequestReplayService {
             req = rb.method(method, b).build();
         }
 
-        try (Response resp = HttpUtils.getHttpClient().newCall(req).execute()) {
+        try (Response resp = new okhttp3.OkHttpClient().newCall(req).execute()) {
             String respBody = resp.body() == null ? "" : resp.body().string();
             if (responseMaxChars > 0 && respBody.length() > responseMaxChars) {
                 respBody = respBody.substring(0, responseMaxChars) + "...";

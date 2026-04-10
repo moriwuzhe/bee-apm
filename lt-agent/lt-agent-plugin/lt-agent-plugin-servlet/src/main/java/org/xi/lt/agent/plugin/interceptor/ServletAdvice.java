@@ -53,14 +53,17 @@ public class ServletAdvice {
         
         if (request != null && response != null) {
             Span span = handler.before(className, methodName, new Object[]{request, response}, null);
-            if (span != null && span.getTag(Const.KEY_RESP_WRAPPER) != null && args.length >= 2 && args[1] instanceof HttpServletResponse) {
-                //修改resp参数
-                args[1] = span.getTag(Const.KEY_RESP_WRAPPER);
+            if (span != null) {
+                if (span.getTag(Const.KEY_RESP_WRAPPER) != null && args.length >= 2 && args[1] instanceof HttpServletResponse) {
+                    //修改resp参数
+                    args[1] = span.getTag(Const.KEY_RESP_WRAPPER);
+                }
                 span.removeTag(Const.KEY_RESP_WRAPPER);
-            }
-            if (span != null && span.getTag(Const.KEY_REQ_WRAPPER) != null && args.length >= 1 && args[0] instanceof HttpServletRequest) {
-                //修改req参数
-                args[0] = span.getTag(Const.KEY_REQ_WRAPPER);
+                
+                if (span.getTag(Const.KEY_REQ_WRAPPER) != null && args.length >= 1 && args[0] instanceof HttpServletRequest) {
+                    //修改req参数
+                    args[0] = span.getTag(Const.KEY_REQ_WRAPPER);
+                }
                 span.removeTag(Const.KEY_REQ_WRAPPER);
             }
         }

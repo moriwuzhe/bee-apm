@@ -63,45 +63,45 @@ public class JestUtils {
     }
 
     private static HttpClientConfig.Builder buildConfig(HttpClientConfig.Builder builder, Properties esConfig) {
-        Integer defaultMaxTotalConnectionPerRoute = (Integer) esConfig.get("defaultMaxTotalConnectionPerRoute");
+        Object defaultMaxTotalConnectionPerRoute = esConfig.get("defaultMaxTotalConnectionPerRoute");
         if (defaultMaxTotalConnectionPerRoute != null) {
-            builder = builder.defaultMaxTotalConnectionPerRoute(defaultMaxTotalConnectionPerRoute);
+            builder = builder.defaultMaxTotalConnectionPerRoute(Integer.parseInt(String.valueOf(defaultMaxTotalConnectionPerRoute)));
         }
-        Integer maxTotalConnection = (Integer) esConfig.get("maxTotalConnection");
+        Object maxTotalConnection = esConfig.get("maxTotalConnection");
         if (maxTotalConnection != null) {
-            builder = builder.maxTotalConnection(maxTotalConnection);
+            builder = builder.maxTotalConnection(Integer.parseInt(String.valueOf(maxTotalConnection)));
         }
-        Integer connTimeout = (Integer) esConfig.get("connTimeout");
+        Object connTimeout = esConfig.get("connTimeout");
         if (connTimeout != null) {
-            builder = builder.maxTotalConnection(connTimeout);
+            builder = builder.connTimeout(Integer.parseInt(String.valueOf(connTimeout)));
         }
-        Integer maxConnectionIdleTime = (Integer) esConfig.get("maxConnectionIdleTime");
+        Object maxConnectionIdleTime = esConfig.get("maxConnectionIdleTime");
         if (maxConnectionIdleTime != null) {
-            builder = builder.maxTotalConnection(maxConnectionIdleTime);
+            builder = builder.maxConnectionIdleTime(Integer.parseInt(String.valueOf(maxConnectionIdleTime)), TimeUnit.SECONDS);
         }
-        String defaultSchemeForDiscoveredNodes = (String) esConfig.get("defaultSchemeForDiscoveredNodes");
-        if (StringUtils.isNotBlank(defaultSchemeForDiscoveredNodes)) {
-            builder = builder.defaultSchemeForDiscoveredNodes(defaultSchemeForDiscoveredNodes);
+        Object defaultSchemeForDiscoveredNodes = esConfig.get("defaultSchemeForDiscoveredNodes");
+        if (defaultSchemeForDiscoveredNodes != null && StringUtils.isNotBlank(String.valueOf(defaultSchemeForDiscoveredNodes))) {
+            builder = builder.defaultSchemeForDiscoveredNodes(String.valueOf(defaultSchemeForDiscoveredNodes));
         }
-        Boolean discoveryEnabled = (Boolean) esConfig.get("discoveryEnabled");
+        Object discoveryEnabled = esConfig.get("discoveryEnabled");
         if (discoveryEnabled != null) {
-            builder = builder.discoveryEnabled(discoveryEnabled);
+            builder = builder.discoveryEnabled(Boolean.parseBoolean(String.valueOf(discoveryEnabled)));
         }
-        String discoveryFilter = (String) esConfig.get("discoveryFilter");
-        if (StringUtils.isNotBlank(discoveryFilter)) {
-            builder = builder.discoveryFilter(discoveryFilter);
+        Object discoveryFilter = esConfig.get("discoveryFilter");
+        if (discoveryFilter != null && StringUtils.isNotBlank(String.valueOf(discoveryFilter))) {
+            builder = builder.discoveryFilter(String.valueOf(discoveryFilter));
         }
-        Integer discoveryFrequency = (Integer) esConfig.get("discoveryFrequency");
+        Object discoveryFrequency = esConfig.get("discoveryFrequency");
         if (discoveryFrequency != null) {
-            builder = builder.discoveryFrequency(discoveryFrequency, TimeUnit.MILLISECONDS);
+            builder = builder.discoveryFrequency(Long.parseLong(String.valueOf(discoveryFrequency)), TimeUnit.MILLISECONDS);
         }
-        Boolean multiThreaded = (Boolean) esConfig.get("multiThreaded");
+        Object multiThreaded = esConfig.get("multiThreaded");
         if (multiThreaded != null) {
-            builder = builder.multiThreaded(multiThreaded);
+            builder = builder.multiThreaded(Boolean.parseBoolean(String.valueOf(multiThreaded)));
         }
-        Integer readTimeout = (Integer) esConfig.get("readTimeout");
+        Object readTimeout = esConfig.get("readTimeout");
         if (readTimeout != null) {
-            builder = builder.readTimeout(readTimeout);
+            builder = builder.readTimeout(Integer.parseInt(String.valueOf(readTimeout)));
         }
         return builder;
     }
@@ -112,6 +112,7 @@ public class JestUtils {
             if (datas == null || datas.length == 0) {
                 return;
             }
+            System.out.println("JestUtils.insert called with " + datas.length + " items");
             List<BulkableAction> bulkList = new ArrayList<>();
             for (Object item : datas) {
                 JSONObject data = (JSONObject) item;

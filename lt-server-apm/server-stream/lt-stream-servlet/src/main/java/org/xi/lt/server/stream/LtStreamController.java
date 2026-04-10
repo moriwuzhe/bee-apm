@@ -21,10 +21,13 @@ public class LtStreamController {
     @RequestMapping("/stream")
     @ResponseBody
     public String stream(@RequestBody String body){
+        System.out.println("LtStreamController received: " + body);
         try {
             HandlerFactory.getInstance().executeFirstHandler(new Stream(body));
             return "ok";
         }catch (Exception e){
+            System.out.println("LtStreamController exception: " + e.getMessage());
+            e.printStackTrace();
             logger.error("",e);
         }
         return "fail";

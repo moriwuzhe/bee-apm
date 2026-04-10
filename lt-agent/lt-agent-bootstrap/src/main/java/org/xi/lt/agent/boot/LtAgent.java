@@ -38,8 +38,13 @@ public class LtAgent {
         initialize();
         List<AbstractPlugin> plugins = PluginLoader.loadPlugins();
 
+        String rootPath = LtUtils.getJarDirPath();
+        File spyJar = new File(rootPath + "/lt-agent-spy.jar");
         AgentBuilder agentBuilder = new AgentBuilder.Default()
                 .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
+                .with(AgentBuilder.LocationStrategy.ForClassLoader.STRONG.withFallbackTo(
+                        net.bytebuddy.dynamic.ClassFileLocator.ForJarFile.of(spyJar)
+                ))
                 .with(buildListener())
                 .disableClassFormatChanges()
                 .ignore(ElementMatchers.<TypeDescription>none().and(ElementMatchers.nameStartsWith("org.xi.lt.agent.")));

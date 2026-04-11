@@ -71,18 +71,18 @@ public class DashboardApiController {
             ssb.size(0); // We only care about aggregations
             
             // Group by from_to (which stores caller->callee relationship)
-            ssb.aggregation(AggregationBuilders.terms("from_to").field("from_to.keyword").size(1000));
+            ssb.aggregation(AggregationBuilders.terms("from_to").field("tags.from_to.keyword").size(1000));
             sr.source(ssb);
             
             SearchResponse resp = es.getClient().search(sr);
             Terms fromToTerms = resp.getAggregations() == null ? null : resp.getAggregations().get("from_to");
-            
+
             Map<String, String> nodeMap = new HashMap<>();
             if (fromToTerms != null) {
                 for (Terms.Bucket bucket : fromToTerms.getBuckets()) {
                     String fromTo = bucket.getKeyAsString(); // format: callerInst|calleeInst or similar, let's parse it
                     long times = bucket.getDocCount();
-                    
+
                     // Simple split logic. Usually "caller_app -> callee_app" or similar
                     String[] parts = fromTo.split("->");
                     if (parts.length == 2) {

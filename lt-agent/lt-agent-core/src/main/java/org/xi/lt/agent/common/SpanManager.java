@@ -104,6 +104,7 @@ public class SpanManager {
         Span span = new Span(SpanType.TOPOLOGY);
         span.setGid(LtTraceContext.getGId());
         span.addTag("from", fromApp);
+        span.addTag("from_to", fromApp + " -> " + toApp);
         span.setApp(toApp);
         span.setId(IdHelper.id());
         ReporterFactory.report(span);

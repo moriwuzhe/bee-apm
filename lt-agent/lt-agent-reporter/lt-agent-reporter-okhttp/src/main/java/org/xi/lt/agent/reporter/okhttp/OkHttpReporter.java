@@ -44,7 +44,6 @@ public class OkHttpReporter extends AbstractReporter {
     public int init() {
         // 从配置中获取上报地址
         serverUrl = System.getProperty("lt.agent.report.url", "http://127.0.0.1:8080/apm/report");
-        System.out.println("OkHttpReporter initialized with serverUrl: " + serverUrl);
         return 0;
     }
 }

@@ -49,7 +49,12 @@ public class ServletConfig extends AbstractLtConfig {
         enableReqBody = enable & ConfigUtils.me().getBoolean("plugins.servlet.enableReqBody", false);
         enableReqHeaders = enable & ConfigUtils.me().getBoolean("plugins.servlet.enableReqHeaders", false);
         enableRespBody = enable & ConfigUtils.me().getBoolean("plugins.servlet.enableRespBody", false);
-        urlSuffixExcludeList = Arrays.asList(ConfigUtils.me().getStr("plugins.servlet.excludeUrlSuffix", "").split(","));
+        String excludeUrlSuffixStr = ConfigUtils.me().getStr("plugins.servlet.excludeUrlSuffix", "");
+        if (excludeUrlSuffixStr != null && !excludeUrlSuffixStr.trim().isEmpty()) {
+            urlSuffixExcludeList = Arrays.asList(excludeUrlSuffixStr.split(","));
+        } else {
+            urlSuffixExcludeList = new java.util.ArrayList<String>();
+        }
         //http入口的耗时要小于等于方法的耗时，否则会造成调用链断开
         long processSpend = ConfigUtils.me().getInt("plugins.process.spend", -1);
         spend = ConfigUtils.me().getInt("plugins.servlet.spend", -1);

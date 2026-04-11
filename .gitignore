@@ -44,3 +44,19 @@ package/
 /start-es.sh
 /TestHttp.java
 /TestServlet.java
+
+# Local runtime artifacts
+/tmp_*.log
+/tmp_*.txt
+/*.log
+/*.lck
+*.pid
+
+# Elasticsearch runtime data (local only)
+/elasticsearch-5.6.10/data/
+/elasticsearch-5.6.10/logs/
+
+# Local packaging outputs (generated)
+/packages/plugins/
+/packages/reporter/
+/packages/config-local.yml

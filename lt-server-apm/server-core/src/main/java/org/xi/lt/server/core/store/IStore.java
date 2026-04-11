@@ -15,4 +15,12 @@ public interface IStore {
      * @param stream
      */
     void save(Object ... stream);
+
+    /**
+     * Clean old data based on retention days
+     * @param retentionDays Number of days to retain data
+     */
+    default void clean(int retentionDays) {
+        // default no-op
+    }
 }

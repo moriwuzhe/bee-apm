@@ -21,4 +21,9 @@ public class ElasticSearchStore implements IStore {
     public void save(Object... datas) {
         JestUtils.inst().insert(datas);
     }
+
+    @Override
+    public void clean(int retentionDays) {
+        JestUtils.inst().cleanOldIndices(retentionDays);
+    }
 }

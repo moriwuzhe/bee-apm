@@ -4,7 +4,53 @@ import com.alibaba.fastjson.JSONObject;
 import io.searchbox.action.BulkableAction;
 import io.searchbox.client.JestClient;
 import io.searchbox.client.JestClientFactory;
+import io.searchbox.indices.DeleteIndex;
 import io.searchbox.client.JestResult;
+
+    public void cleanOldIndices(int retentionDays) {
+        try {
+            if (retentionDays <= 0) {
+                return;
+            }
+            Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.DAY_OF_MONTH, -retentionDays);
+            String thresholdDateStr = DateFormatUtils.format(calendar.getTime(), "yyyy.MM.dd");
+            
+            // Get all indices
+            io.searchbox.indices.aliases.GetAliases getAliases = new io.searchbox.indices.aliases.GetAliases.Builder().build();
+            JestResult result = jestClient.execute(getAliases);
+            if (result.isSucceeded()) {
+                Set<String> indices = result.getJsonObject().keySet();
+                List<String> indicesToDelete = new ArrayList<>();
+                for (String indexName : indices) {
+                    if (indexName.startsWith(DEFAULT_INDEX_NAME.split("-")[0])) { // e.g. starts with "lt"
+                        String[] parts = indexName.split("-");
+                        if (parts.length >= 3) {
+                            String datePart = parts[parts.length - 1];
+                            if (datePart.matches("\\d{4}\\.\\d{2}\\.\\d{2}")) {
+                                if (datePart.compareTo(thresholdDateStr) < 0) {
+                                    indicesToDelete.add(indexName);
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                if (!indicesToDelete.isEmpty()) {
+                    logger.info("Deleting old indices: {}", indicesToDelete);
+                    for (String indexName : indicesToDelete) {
+                        DeleteIndex deleteIndex = new DeleteIndex.Builder(indexName).build();
+                        JestResult deleteResult = jestClient.execute(deleteIndex);
+                        if (!deleteResult.isSucceeded()) {
+                            logger.error("Failed to delete index {}: {}", indexName, deleteResult.getErrorMessage());
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error cleaning old indices", e);
+        }
+    }
 import io.searchbox.client.config.HttpClientConfig;
 import io.searchbox.core.Bulk;
 import io.searchbox.core.Index;
@@ -136,7 +182,6 @@ public class JestUtils {
             if (datas == null || datas.length == 0) {
                 return;
             }
-            System.out.println("JestUtils.insert called with " + datas.length + " items");
             List<BulkableAction> bulkList = new ArrayList<>();
             for (Object item : datas) {
                 JSONObject data = (JSONObject) item;

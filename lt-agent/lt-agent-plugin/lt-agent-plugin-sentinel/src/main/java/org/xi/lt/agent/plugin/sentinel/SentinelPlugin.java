@@ -59,20 +59,6 @@ public class SentinelPlugin extends AbstractPlugin {
                                 .and(takesArguments(0).or(takesArguments(1)))
                                 .and(not(isStatic()));
                     }
-                },
-                // 拦截流量控制异常抛出
-                new InterceptPoint() {
-                    @Override
-                    public ElementMatcher<TypeDescription> buildTypesMatcher() {
-                        return hasSuperType(named("com.alibaba.csp.sentinel.slots.block.BlockException"))
-                                .and(not(isInterface()));
-                    }
-
-                    @Override
-                    public ElementMatcher<MethodDescription> buildMethodsMatcher() {
-                        return isConstructor()
-                                .and(takesArguments(1).or(takesArguments(2)).or(takesArguments(3)));
-                    }
                 }
         };
     }

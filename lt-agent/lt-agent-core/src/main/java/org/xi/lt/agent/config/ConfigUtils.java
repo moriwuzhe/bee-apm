@@ -99,7 +99,14 @@ public class ConfigUtils {
     private Object parseValue(String key) {
         try {
             readWriteLock.readLock().lock();
-            return JSONPath.eval(config, "$." + key);
+            Object value = System.getProperty("lt." + key);
+            if (value != null) {
+                return value;
+            }
+            if (config != null) {
+                return JSONPath.eval(config, "$." + key);
+            }
+            return null;
         } finally {
             readWriteLock.readLock().unlock();
         }
@@ -118,11 +125,18 @@ public class ConfigUtils {
     }
 
     public Integer getInt(String key) {
-        return (Integer) parseValue(key);
+        Object val = parseValue(key);
+        if (val == null) {
+            return null;
+        }
+        if (val instanceof Integer) {
+            return (Integer) val;
+        }
+        return Integer.parseInt(val.toString());
     }
 
     public Long getLong(String key) {
-        Object val = getVal(key);
+        Object val = parseValue(key);
         if (val != null) {
             return Long.parseLong(val.toString());
         }
@@ -154,8 +168,14 @@ public class ConfigUtils {
     }
 
     public Boolean getBoolean(String key) {
-        Boolean b = (Boolean) parseValue(key);
-        return b;
+        Object val = parseValue(key);
+        if (val == null) {
+            return null;
+        }
+        if (val instanceof Boolean) {
+            return (Boolean) val;
+        }
+        return Boolean.parseBoolean(val.toString());
     }
 
     public Boolean getBoolean(String key, Boolean def) {

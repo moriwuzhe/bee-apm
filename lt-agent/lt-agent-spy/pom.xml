@@ -18,11 +18,6 @@
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>org.xi.lt</groupId>
-            <artifactId>lt-common</artifactId>
-            <version>${project.version}</version>
-        </dependency>
     </dependencies>
 
     <build>

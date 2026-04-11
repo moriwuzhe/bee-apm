@@ -54,7 +54,7 @@ public class ServletHandler extends AbstractHandler {
                 //在ServletAdvice里取出来要清除掉
                 span.addTag(Const.KEY_RESP_WRAPPER, wrapper);
             }
-            if (ServletConfig.me().isEnableReqBody() && !resp.getClass().getSimpleName().equals(Const.CLASS_LT_HTTP_SERVLET_REQUEST_RAPPER)) {
+            if (ServletConfig.me().isEnableReqBody() && !request.getClass().getSimpleName().equals(Const.CLASS_LT_HTTP_SERVLET_REQUEST_RAPPER)) {
                 LtHttpServletRequestWrapper wrapper = new LtHttpServletRequestWrapper(request);
                 //在ServletAdvice里取出来要清除掉
                 span.addTag(Const.KEY_REQ_WRAPPER, wrapper);
@@ -84,11 +84,14 @@ public class ServletHandler extends AbstractHandler {
             span.addTag("method", request.getMethod());
             calculateSpend(span);
             if (span.getSpend() > ServletConfig.me().getSpend()) {
+                log.info("Reporting REQUEST span: " + span.getId() + " with spend: " + span.getSpend());
                 //返回gid，用于跟踪
                 response.setHeader(HeaderKey.GID, span.getGid());
                 //返回id，用于跟踪
                 response.setHeader(HeaderKey.ID, span.getId());
                 LtConfig.me().fillEnvInfo(span);
+                span.removeTag(Const.KEY_REQ_WRAPPER);
+                span.removeTag(Const.KEY_RESP_WRAPPER);
                 ReporterFactory.report(span);
                 //采集参数
                 collectRequestParameter(span, request);

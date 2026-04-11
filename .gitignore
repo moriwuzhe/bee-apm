@@ -34,3 +34,13 @@ dist/
 .pnpm-store/
 /package/
 package/
+
+# Local Dev Bundles
+/elasticsearch-5.6.10/
+/elasticsearch-5.6.10.tar.gz
+/jdk8/
+/src.zip
+/settings.xml
+/start-es.sh
+/TestHttp.java
+/TestServlet.java

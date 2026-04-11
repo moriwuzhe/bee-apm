@@ -84,11 +84,14 @@ public class ServletHandler extends AbstractHandler {
             span.addTag("method", request.getMethod());
             calculateSpend(span);
             if (span.getSpend() > ServletConfig.me().getSpend()) {
+                log.info("Reporting REQUEST span: " + span.getId() + " with spend: " + span.getSpend());
                 //返回gid，用于跟踪
                 response.setHeader(HeaderKey.GID, span.getGid());
                 //返回id，用于跟踪
                 response.setHeader(HeaderKey.ID, span.getId());
                 LtConfig.me().fillEnvInfo(span);
+                span.removeTag(Const.KEY_REQ_WRAPPER);
+                span.removeTag(Const.KEY_RESP_WRAPPER);
                 ReporterFactory.report(span);
                 //采集参数
                 collectRequestParameter(span, request);

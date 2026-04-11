@@ -30,14 +30,13 @@ public class ServletPlugin extends AbstractPlugin {
                     @Override
                     public ElementMatcher<TypeDescription> buildTypesMatcher() {
                         ElementMatcher.Junction<TypeDescription> matcher = ElementMatchers.hasSuperType(ElementMatchers.named("javax.servlet.http.HttpServlet"))
-                                .and(ElementMatchers.not(ElementMatchers.<TypeDescription>isAbstract()))
-                                // 匹配Spring Controller
-                                .or(ElementMatchers.isAnnotatedWith(ElementMatchers.named("org.springframework.web.bind.annotation.RestController")))
-                                .or(ElementMatchers.isAnnotatedWith(ElementMatchers.named("org.springframework.stereotype.Controller")));
+                                .and(ElementMatchers.not(ElementMatchers.<TypeDescription>isAbstract()));
                         //排除不想被拦截的servlet
                         List<String> excludeClassPrefixList = ConfigUtils.me().getList("plugins.servlet.excludeClassPrefix");
-                        for (int i = 0; excludeClassPrefixList != null && i < excludeClassPrefixList.size(); i++) {
-                            matcher = matcher.and(ElementMatchers.not(ElementMatchers.<TypeDescription>nameStartsWith(excludeClassPrefixList.get(i))));
+                        if (excludeClassPrefixList != null && !excludeClassPrefixList.isEmpty()) {
+                            for (String excludeClassPrefix : excludeClassPrefixList) {
+                                matcher = matcher.and(ElementMatchers.not(ElementMatchers.<TypeDescription>nameStartsWith(excludeClassPrefix)));
+                            }
                         }
                         return matcher;
                     }
@@ -51,14 +50,7 @@ public class ServletPlugin extends AbstractPlugin {
                                 .and(ElementMatchers.takesArgument(1, ElementMatchers.named("javax.servlet.http.HttpServletResponse")))
                                 .and(ElementMatchers.<MethodDescription>nameStartsWith("do"));
                         
-                        // 匹配Spring Controller的请求注解方法
-                        ElementMatcher.Junction<MethodDescription> springMatcher = ElementMatchers.isAnnotatedWith(ElementMatchers.named("org.springframework.web.bind.annotation.RequestMapping"))
-                                .or(ElementMatchers.isAnnotatedWith(ElementMatchers.named("org.springframework.web.bind.annotation.GetMapping")))
-                                .or(ElementMatchers.isAnnotatedWith(ElementMatchers.named("org.springframework.web.bind.annotation.PostMapping")))
-                                .or(ElementMatchers.isAnnotatedWith(ElementMatchers.named("org.springframework.web.bind.annotation.PutMapping")))
-                                .or(ElementMatchers.isAnnotatedWith(ElementMatchers.named("org.springframework.web.bind.annotation.DeleteMapping")));
-                        
-                        return servletMatcher.or(springMatcher);
+                        return servletMatcher;
                     }
                 }
         };

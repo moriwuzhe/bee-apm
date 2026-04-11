@@ -59,7 +59,31 @@ public class JestUtils {
         JestClientFactory factory = new JestClientFactory();
         factory.setHttpClientConfig(builder.build());
         jestClient = factory.getObject();
-
+        
+        try {
+            String template = "{\n" +
+                    "  \"template\": \"lt-*\",\n" +
+                    "  \"mappings\": {\n" +
+                    "    \"_default_\": {\n" +
+                    "      \"properties\": {\n" +
+                    "        \"time\": {\n" +
+                    "          \"type\": \"date\",\n" +
+                    "          \"format\": \"yyyy-MM-dd HH:mm:ss.SSS||yyyy-MM-dd HH:mm:ss||epoch_millis\"\n" +
+                    "        }\n" +
+                    "      }\n" +
+                    "    }\n" +
+                    "  }\n" +
+                    "}";
+            io.searchbox.indices.template.PutTemplate putTemplate = new io.searchbox.indices.template.PutTemplate.Builder("lt_template", template).build();
+            JestResult result = jestClient.execute(putTemplate);
+            if (!result.isSucceeded()) {
+                logger.error("Failed to create template lt_template: " + result.getErrorMessage());
+            } else {
+                logger.info("Successfully created template lt_template.");
+            }
+        } catch (Exception e) {
+            logger.error("Error creating template", e);
+        }
     }
 
     private static HttpClientConfig.Builder buildConfig(HttpClientConfig.Builder builder, Properties esConfig) {

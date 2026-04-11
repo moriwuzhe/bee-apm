@@ -28,63 +28,71 @@ public class ServletHandler extends AbstractHandler {
 
     @Override
     public Span before(String className, String methodName, Object[] allArguments, Object[] extVal) {
-        if (!ServletConfig.me().isEnable()) {
+        try {
+            if (!ServletConfig.me().isEnable()) {
+                return null;
+            }
+            HttpServletRequest request = (HttpServletRequest) allArguments[0];
+            HttpServletResponse resp = (HttpServletResponse) allArguments[1];
+            String url = request.getRequestURL().toString();
+            if (ServletConfig.me().isExcludeUrlSuffix(url)) {
+                return null;
+            }
+            Span currSpan = SpanManager.getCurrentSpan();
+            if (currSpan == null || !currSpan.getType().equals(SpanType.REQUEST)) {
+                LtTraceContext.setGId(request.getHeader(HeaderKey.GID));
+                LtTraceContext.setPId(request.getHeader(HeaderKey.PID));
+                LtTraceContext.setCTag(request.getHeader(HeaderKey.CTAG));
+                Span span = SpanManager.createEntrySpan(SpanType.REQUEST);
+                String srcApp = request.getHeader(HeaderKey.SRC_APP);
+                if (srcApp == null) {
+                    srcApp = "nvl";
+                }
+                span.addTag("srcApp", srcApp);
+                span.addTag("srcInst", request.getHeader(HeaderKey.SRC_INST));
+                if (ServletConfig.me().isEnableRespBody() && !resp.getClass().getSimpleName().equals(Const.CLASS_LT_HTTP_SERVLET_RESPONSE_WRAPPER)) {
+                    LtHttpServletResponseWrapper wrapper = new LtHttpServletResponseWrapper(resp);
+                    //在ServletAdvice里取出来要清除掉
+                    span.addTag(Const.KEY_RESP_WRAPPER, wrapper);
+                }
+                if (ServletConfig.me().isEnableReqBody() && !request.getClass().getSimpleName().equals(Const.CLASS_LT_HTTP_SERVLET_REQUEST_RAPPER)) {
+                    LtHttpServletRequestWrapper wrapper = new LtHttpServletRequestWrapper(request);
+                    //在ServletAdvice里取出来要清除掉
+                    span.addTag(Const.KEY_REQ_WRAPPER, wrapper);
+                }
+                SpanManager.createTopologySpan(request.getHeader(HeaderKey.SRC_APP), LtConfig.me().getApp());
+                MdcAdapterUtils.init(null);
+                MdcAdapterUtils.put("traceId", span.getGid());
+                return span;
+            }
+            return null;
+        } catch (Throwable e) {
+            log.error("ServletHandler before ERROR", e);
             return null;
         }
-        HttpServletRequest request = (HttpServletRequest) allArguments[0];
-        HttpServletResponse resp = (HttpServletResponse) allArguments[1];
-        String url = request.getRequestURL().toString();
-        if (ServletConfig.me().isExcludeUrlSuffix(url)) {
-            return null;
-        }
-        Span currSpan = SpanManager.getCurrentSpan();
-        if (currSpan == null || !currSpan.getType().equals(SpanType.REQUEST)) {
-            LtTraceContext.setGId(request.getHeader(HeaderKey.GID));
-            LtTraceContext.setPId(request.getHeader(HeaderKey.PID));
-            LtTraceContext.setCTag(request.getHeader(HeaderKey.CTAG));
-            Span span = SpanManager.createEntrySpan(SpanType.REQUEST);
-            String srcApp = request.getHeader(HeaderKey.SRC_APP);
-            if (srcApp == null) {
-                srcApp = "nvl";
-            }
-            span.addTag("srcApp", srcApp);
-            span.addTag("srcInst", request.getHeader(HeaderKey.SRC_INST));
-            if (ServletConfig.me().isEnableRespBody() && !resp.getClass().getSimpleName().equals(Const.CLASS_LT_HTTP_SERVLET_RESPONSE_WRAPPER)) {
-                LtHttpServletResponseWrapper wrapper = new LtHttpServletResponseWrapper(resp);
-                //在ServletAdvice里取出来要清除掉
-                span.addTag(Const.KEY_RESP_WRAPPER, wrapper);
-            }
-            if (ServletConfig.me().isEnableReqBody() && !request.getClass().getSimpleName().equals(Const.CLASS_LT_HTTP_SERVLET_REQUEST_RAPPER)) {
-                LtHttpServletRequestWrapper wrapper = new LtHttpServletRequestWrapper(request);
-                //在ServletAdvice里取出来要清除掉
-                span.addTag(Const.KEY_REQ_WRAPPER, wrapper);
-            }
-            SpanManager.createTopologySpan(request.getHeader(HeaderKey.SRC_APP), LtConfig.me().getApp());
-            MdcAdapterUtils.init(null);
-            MdcAdapterUtils.put("traceId", span.getGid());
-            return span;
-        }
-        return null;
     }
 
     @Override
     public Object after(String className, String methodName, Object[] allArguments, Object result, Throwable t, Object[] extVal) {
-        Span currSpan = SpanManager.getCurrentSpan();
-        HttpServletResponse response = (HttpServletResponse) allArguments[1];
-        // 测试阶段强制所有请求都上报
-        if (!ServletConfig.me().isEnable()) {
-            flush(response);
-            return null;
-        }
-        if (currSpan != null && currSpan.getType().equals(SpanType.REQUEST)) {
-            Span span = SpanManager.getExitSpan();
+        try {
+            if (extVal == null || extVal.length == 0 || extVal[0] == null || !(extVal[0] instanceof Span)) {
+                HttpServletResponse response = (HttpServletResponse) allArguments[1];
+                if (!ServletConfig.me().isEnable()) {
+                    flush(response);
+                }
+                return result;
+            }
+            
+            Span span = (Span) extVal[0];
+            SpanManager.getExitSpan();
+            
+            HttpServletResponse response = (HttpServletResponse) allArguments[1];
             HttpServletRequest request = (HttpServletRequest) allArguments[0];
-            span.addTag("url", request.getRequestURL());
+            span.addTag("url", request.getRequestURL().toString());
             span.addTag("remote", request.getRemoteAddr());
             span.addTag("method", request.getMethod());
             calculateSpend(span);
             if (span.getSpend() > ServletConfig.me().getSpend()) {
-                log.info("Reporting REQUEST span: " + span.getId() + " with spend: " + span.getSpend());
                 //返回gid，用于跟踪
                 response.setHeader(HeaderKey.GID, span.getGid());
                 //返回id，用于跟踪
@@ -105,9 +113,10 @@ public class ServletHandler extends AbstractHandler {
             flush(response);
             MdcAdapterUtils.remove("traceId");
             return result;
+        } catch (Throwable e) {
+            log.error("ServletHandler after ERROR", e);
+            return result;
         }
-        flush(response);
-        return null;
     }
 
     private void flush(HttpServletResponse response) {

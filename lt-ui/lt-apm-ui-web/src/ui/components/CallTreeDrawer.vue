@@ -10,6 +10,7 @@ type CallTreeNode = {
   app?: string
   spend?: number
   children?: CallTreeNode[]
+  timeStartOffset?: number
 }
 
 const props = defineProps<{
@@ -31,7 +32,28 @@ function nodeKey(n: any) {
   return JSON.stringify([n.gid, n.time, n.type, n.text, n.spend])
 }
 
-const tableData = computed(() => (Array.isArray(props.data) ? props.data : []))
+const tableData = computed(() => {
+  if (!Array.isArray(props.data) || props.data.length === 0) return []
+  // Add a simple linear time offset for visual waterfall simulation if the backend doesn't provide absolute timestamp differences.
+  // In a real scenario, this should be calculated using actual absolute timestamps (span start time - trace start time).
+  let currentOffset = 0
+  const assignOffsets = (nodes: CallTreeNode[], parentOffset: number) => {
+    nodes.forEach(node => {
+      node.timeStartOffset = parentOffset
+      if (node.children && node.children.length > 0) {
+        assignOffsets(node.children, parentOffset + Math.max((node.spend || 0) * 0.1, 2))
+      }
+      currentOffset += 2
+    })
+  }
+  assignOffsets(props.data, 0)
+  return props.data
+})
+
+const maxTotalTime = computed(() => {
+  if (tableData.value.length === 0) return 100
+  return tableData.value[0].spend || 100
+})
 </script>
 
 <template>
@@ -50,7 +72,7 @@ const tableData = computed(() => (Array.isArray(props.data) ? props.data : []))
       :tree-props="{ children: 'children' }"
       default-expand-all
     >
-      <el-table-column label="链路" min-width="520">
+      <el-table-column label="链路" min-width="420">
         <template #default="{ row }">
           <span :class="row.type === 'req' ? 't-req' : row.type === 'sql' ? 't-sql' : ''">{{ row.text || '' }}</span>
           <span class="sep">|</span>
@@ -58,7 +80,22 @@ const tableData = computed(() => (Array.isArray(props.data) ? props.data : []))
         </template>
       </el-table-column>
 
-      <el-table-column prop="spend" label="耗时(ms)" width="110" />
+      <el-table-column label="耗时瀑布图(ms)" min-width="250">
+        <template #default="{ row }">
+          <div class="waterfall-container">
+            <div class="waterfall-bar" 
+                 :style="{ 
+                   left: `${Math.min((row.timeStartOffset / maxTotalTime) * 100, 95)}%`, 
+                   width: `${Math.max((row.spend / maxTotalTime) * 100, 1)}%`,
+                   backgroundColor: row.type === 'sql' ? '#e6a23c' : (row.type === 'req' ? '#409eff' : '#909399')
+                 }">
+            </div>
+            <span class="waterfall-label" :style="{ left: `calc(${Math.min((row.timeStartOffset / maxTotalTime) * 100, 95)}% + ${Math.max((row.spend / maxTotalTime) * 100, 1)}% + 5px)` }">
+              {{ row.spend }}ms
+            </span>
+          </div>
+        </template>
+      </el-table-column>
 
       <el-table-column label="操作" width="110" align="center">
         <template #default="{ row }">
@@ -87,6 +124,32 @@ const tableData = computed(() => (Array.isArray(props.data) ? props.data : []))
 .t-sql{
   color: #c05d06;
   font-weight: 700;
+}
+
+.waterfall-container {
+  position: relative;
+  height: 24px;
+  width: 100%;
+  background: #f5f7fa;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.waterfall-bar {
+  position: absolute;
+  top: 4px;
+  height: 16px;
+  border-radius: 2px;
+  min-width: 2px;
+}
+
+.waterfall-label {
+  position: absolute;
+  top: 4px;
+  font-size: 12px;
+  line-height: 16px;
+  color: #606266;
+  white-space: nowrap;
 }
 </style>
 

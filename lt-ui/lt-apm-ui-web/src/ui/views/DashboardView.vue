@@ -52,21 +52,26 @@ async function renderTopology() {
         id: n.id,
         label: n.label,
         group: n.group,
-        shape: n.image ? 'image' : 'dot',
+        shape: n.image ? 'circularImage' : 'dot',
         image: n.image || undefined,
-        size: n.image ? 25 : 15,
-        font: { color: '#fff', size: 14 }
+        size: n.image ? 30 : 15,
+        font: { color: '#fff', size: 14, background: 'rgba(0,0,0,0.7)' },
+        borderWidth: 2,
+        color: { border: '#409EFF', background: '#1c1c1c', highlight: { border: '#67C23A', background: '#1c1c1c' } },
+        shadow: { enabled: true, color: 'rgba(64,158,255,0.8)', size: 10, x: 0, y: 0 }
       })))
       
       const edges = new vis.DataSet(data.edges.map((e, index) => ({
         id: 'edge_' + index,
         from: e.from,
         to: e.to,
-        label: e.label,
+        label: e.label + ' times',
         arrows: 'to',
-        font: { color: '#999', size: 12, align: 'horizontal' },
-        color: { color: '#555', highlight: '#409EFF' },
-        smooth: { enabled: true, type: 'continuous', roundness: 0.5 }
+        font: { color: '#a0cfff', size: 12, align: 'horizontal', background: 'rgba(0,0,0,0.5)' },
+        color: { color: '#409EFF', highlight: '#67C23A', hover: '#E6A23C' },
+        width: Math.min(Math.max(parseInt(e.label) / 10, 1), 5), // dynamic edge width based on traffic
+        smooth: { enabled: true, type: 'continuous', roundness: 0.5 },
+        shadow: { enabled: true, color: 'rgba(64,158,255,0.5)', size: 5, x: 0, y: 0 }
       })))
       
       const options = {

@@ -231,13 +231,20 @@ watch(() => route.query, async () => {
     </template>
 
     <el-table :data="rows" border stripe v-loading="loading">
-      <el-table-column prop="id" label="ID" width="220" fixed />
-      <el-table-column prop="time" label="时间" width="110" :formatter="(r:any)=>formatTime(r.time)" fixed />
-      <el-table-column prop="gid" label="GID" width="200" />
+      <el-table-column prop="id" label="ID" width="180" fixed />
+      <el-table-column prop="time" label="时间" width="160" :formatter="(r:any)=>formatTime(r.time)" fixed />
+      <el-table-column prop="gid" label="GID" width="180" />
+      <el-table-column label="状态" width="80" align="center">
+        <template #default="{ row }">
+          <el-tag :type="row.error ? 'danger' : 'success'" size="small">
+            {{ row.error ? 'Error' : 'OK' }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column prop="ip" label="IP" width="140" />
-      <el-table-column prop="env" label="环境" width="120" />
+      <el-table-column prop="env" label="环境" width="100" />
       <el-table-column prop="app" label="应用" width="140" />
-      <el-table-column prop="spend" label="耗时(ms)" width="110" />
+      <el-table-column prop="spend" label="耗时(ms)" width="90" />
       <el-table-column label="URL" min-width="260">
         <template #default="{ row }">
           {{ row?.tags?.url || '' }}

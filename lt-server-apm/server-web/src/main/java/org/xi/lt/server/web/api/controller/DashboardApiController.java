@@ -124,13 +124,17 @@ public class DashboardApiController {
         Map<String, Object> node = new HashMap<>();
         node.put("id", name);
         node.put("label", name);
+
+        String appSvg = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='48' height='48'%3E%3Crect width='24' height='24' rx='4' fill='%23409EFF'/%3E%3Cpath d='M12 4L4 8l8 4 8-4-8-4zM4 16l8 4 8-4M4 12l8 4 8-4' fill='none' stroke='%23fff' stroke-width='1.5'/%3E%3C/svg%3E";
+        String dbSvg = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='48' height='48'%3E%3Crect width='24' height='24' rx='4' fill='%23E6A23C'/%3E%3Cpath d='M12 5C7.58 5 4 6.79 4 9s3.58 4 8 4 8-1.79 8-4-3.58-4-8-4zm0 9c-4.42 0-8-1.79-8-4v3c0 2.21 3.58 4 8 4s8-1.79 8-4v-3c0 2.21-3.58 4-8 4z' fill='%23fff'/%3E%3C/svg%3E";
+
         // Simple heuristic for styling
-        if (name.toLowerCase().contains("mysql") || name.toLowerCase().contains("db")) {
+        if (name.toLowerCase().contains("mysql") || name.toLowerCase().contains("db") || name.toLowerCase().contains("redis")) {
             node.put("group", "db");
-            node.put("image", "/assets/db.png");
+            node.put("image", dbSvg);
         } else {
             node.put("group", "app");
-            node.put("image", "/assets/app.png");
+            node.put("image", appSvg);
         }
         return node;
     }

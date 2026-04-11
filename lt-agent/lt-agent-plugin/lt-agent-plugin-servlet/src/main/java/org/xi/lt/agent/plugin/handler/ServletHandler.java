@@ -80,7 +80,7 @@ public class ServletHandler extends AbstractHandler {
                 if (!ServletConfig.me().isEnable()) {
                     flush(response);
                 }
-                return null;
+                return result;
             }
             
             Span span = (Span) extVal[0];
@@ -88,7 +88,7 @@ public class ServletHandler extends AbstractHandler {
             
             HttpServletResponse response = (HttpServletResponse) allArguments[1];
             HttpServletRequest request = (HttpServletRequest) allArguments[0];
-            span.addTag("url", request.getRequestURL());
+            span.addTag("url", request.getRequestURL().toString());
             span.addTag("remote", request.getRemoteAddr());
             span.addTag("method", request.getMethod());
             calculateSpend(span);

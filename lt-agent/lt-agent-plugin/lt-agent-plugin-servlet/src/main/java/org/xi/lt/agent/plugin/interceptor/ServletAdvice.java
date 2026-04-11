@@ -39,6 +39,18 @@ public class ServletAdvice {
             }
         }
 
+        if (request == null || response == null) {
+            try {
+                ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+                if (attributes != null) {
+                    request = attributes.getRequest();
+                    response = attributes.getResponse();
+                }
+            } catch (Throwable e) {
+                // Ignore
+            }
+        }
+
         if (request != null && response != null) {
             try {
                 span = handler.before(className, methodName, new Object[]{request, response}, null);
@@ -81,6 +93,18 @@ public class ServletAdvice {
             if (args[0] instanceof HttpServletRequest && args[1] instanceof HttpServletResponse) {
                 request = (HttpServletRequest) args[0];
                 response = (HttpServletResponse) args[1];
+            }
+        }
+
+        if (request == null || response == null) {
+            try {
+                ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+                if (attributes != null) {
+                    request = attributes.getRequest();
+                    response = attributes.getResponse();
+                }
+            } catch (Throwable e) {
+                // Ignore
             }
         }
 

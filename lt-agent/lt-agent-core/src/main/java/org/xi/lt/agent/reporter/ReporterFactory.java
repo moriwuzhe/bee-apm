@@ -83,7 +83,9 @@ public class ReporterFactory {
             List<Span> list = new ArrayList<Span>(batchSize);
             queue.drainTo(list, batchSize);
             reporter.report(list);
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            System.err.println("doReport Throwable: " + e);
+            e.printStackTrace();
             log.error("", e);
         }
     }

@@ -34,17 +34,12 @@ public class ProcessPlugin extends AbstractPlugin {
                     new InterceptPoint() {
                         @Override
                         public ElementMatcher<TypeDescription> buildTypesMatcher() {
-                            return MatchKit.buildTypesMatcher(null, null)
-                                    .and(ElementMatchers.not(ElementMatchers.isInterface()))
-                                    .and(ElementMatchers.not(ElementMatchers.hasSuperType(ElementMatchers.named("javax.servlet.http.HttpServlet"))))
-                                    .and(ElementMatchers.not(ElementMatchers.<TypeDescription>nameContains("$$EnhancerBySpringCGLIB$$")))
-                                    .and(ElementMatchers.not(ElementMatchers.<TypeDescription>nameContains("$$EnhancerByCGLIB$$")));
-
+                            return ElementMatchers.none();
                         }
 
                         @Override
                         public ElementMatcher<MethodDescription> buildMethodsMatcher() {
-                            return MatchKit.buildMethodsMatcher(null, null);
+                            return ElementMatchers.none();
                         }
                     }
             };

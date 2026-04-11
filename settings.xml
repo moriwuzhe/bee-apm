@@ -1,4 +1,20 @@
 <settings>
+  <proxies>
+    <proxy>
+      <id>localproxy</id>
+      <active>true</active>
+      <protocol>http</protocol>
+      <host>127.0.0.1</host>
+      <port>18080</port>
+    </proxy>
+    <proxy>
+      <id>localproxyhttps</id>
+      <active>true</active>
+      <protocol>https</protocol>
+      <host>127.0.0.1</host>
+      <port>18080</port>
+    </proxy>
+  </proxies>
   <mirrors>
     <mirror>
       <id>aliyun</id>

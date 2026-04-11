@@ -54,7 +54,7 @@ public class ServletHandler extends AbstractHandler {
                 //在ServletAdvice里取出来要清除掉
                 span.addTag(Const.KEY_RESP_WRAPPER, wrapper);
             }
-            if (ServletConfig.me().isEnableReqBody() && !resp.getClass().getSimpleName().equals(Const.CLASS_LT_HTTP_SERVLET_REQUEST_RAPPER)) {
+            if (ServletConfig.me().isEnableReqBody() && !request.getClass().getSimpleName().equals(Const.CLASS_LT_HTTP_SERVLET_REQUEST_RAPPER)) {
                 LtHttpServletRequestWrapper wrapper = new LtHttpServletRequestWrapper(request);
                 //在ServletAdvice里取出来要清除掉
                 span.addTag(Const.KEY_REQ_WRAPPER, wrapper);

@@ -28,6 +28,7 @@ public class DiagAgentNettyServer {
 
     @PostConstruct
     public void start() throws InterruptedException {
+        Runtime.getRuntime().addShutdownHook(new Thread(this::stop));
         boss = new NioEventLoopGroup(1);
         worker = new NioEventLoopGroup();
         ServerBootstrap b = new ServerBootstrap();

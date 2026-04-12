@@ -1,1 +1,1 @@
-java  -javaagent:D:\Java\myspace\lt-monitor\packages\lt-agent.jar -Dlt.app=test -Dlt.env=dev -Dlt.inst=test01 -Dlt.port=8101 -Dserver.port=8101 -Dlt.ip=192.168.137.11 -Dmax.counter=6 -Dremote.ports=8101_8102_8103_8104_8105_8106 -jar lt-monitor-sb-demo.jar
+java  -javaagent:D:\git_repository\bee-apm\packages\lt-agent.jar -Dlt.app=test -Dlt.env=dev -Dlt.inst=test01 -Dlt.port=8101 -Dserver.port=8101 -Dlt.ip=192.168.137.11 -Dmax.counter=6 -Dremote.ports=8101_8102_8103_8104_8105_8106 -jar lt-monitor-sb-demo.jar

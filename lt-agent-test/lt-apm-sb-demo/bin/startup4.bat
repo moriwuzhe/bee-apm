@@ -1,0 +1,1 @@
+java  -javaagent:D:\Java\myspace\lt-monitor\packages\lt-agent.jar -Dlt.app=duck -Dlt.env=dev -Dlt.inst=duck04 -Dlt.port=8104 -Dserver.port=8104 -Dlt.ip=192.168.137.14 -Dmax.counter=6 -Dremote.ports=8101_8102_8103_8104_8105_8106 -jar lt-monitor-sb-demo.jar

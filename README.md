@@ -1,17 +1,17 @@
-# BeeAPM
-BeeAPM是一个分布式跟踪和应用性能监控系统。
+# LT监控系统
+LT监控系统是一个分布式跟踪和应用性能监控系统。
 该系统应用JavaAgent技术，使用[bytebuddy](https://github.com/raphw/byte-buddy)（基于ASM的框架）进行字节码植入，从而对java应用程序进行相关数据采集和性能监控，
 对应用无侵入。
 ## 源码
-github：https://github.com/hao117/bee-apm
+github：https://github.com/hao117/lt-monitor
 
-gitee ：https://gitee.com/beetle082/bee-apm
+gitee ：https://gitee.com/lttle082/lt-monitor
 
 ## 联系
 ```
 QQ群: 961882872
-EMAIL: beetle082@163.com
-微信：shui117 （请备注BeeAPM，拉进微信群）
+EMAIL: lttle082@163.com
+微信：shui117 （请备注LT监控系统，拉进微信群）
 ```
 
 ## 部署
@@ -97,7 +97,7 @@ EMAIL: beetle082@163.com
 ### APM UI端
 开发中。。。
 支持调用链展示，采集数据查询，报表等
-![](./docs/pic/beeapm.png)
+![](./docs/pic/ltmonitor.png)
 ![](./docs/pic/request.png)
 ![](./docs/pic/link.png)
 ![](./docs/pic/topo.png)

@@ -1,0 +1,71 @@
+package org.xi.lt.server.core.handler;
+
+import org.xi.lt.server.core.common.ConfigHolder;
+import org.xi.lt.server.core.common.ServiceProviderLoader;
+import org.xi.lt.server.core.common.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+/**
+ * @author yuan
+ * @date 2018/08/27
+ */
+public class HandlerFactory {
+    private static final Logger logger = LoggerFactory.getLogger(HandlerFactory.class);
+    static HandlerFactory instance;
+    static List<IStreamHandler> handlerList;
+    public static synchronized HandlerFactory getInstance(){
+        if(instance == null){
+            synchronized (HandlerFactory.class){
+                if(instance == null){
+                    instance = new HandlerFactory();
+                }
+            }
+        }
+        return instance;
+    }
+    public HandlerFactory(){
+        init();
+    }
+    public void init(){
+        try {
+            handlerList = new ArrayList<>();
+            String[] handlerNames = ConfigHolder.getProperty("lt.handlers.flow", "").split(">");
+            ServiceProviderLoader loader = new ServiceProviderLoader("lt-handler.def");
+            IStreamHandler prevHandler = null;
+            for (String name : handlerNames) {
+                logger.error("load handler : " + name);
+                IStreamHandler handler = loader.load(name);
+                handler.init();
+                if(prevHandler != null){
+                    prevHandler.setNextStreamHandler(handler);
+                }
+                handlerList.add(handler);
+                prevHandler = handler;
+            }
+        }catch (Exception e){
+            logger.error("handler初始化失败，应用退出",e);
+            System.exit(0);
+        }
+    }
+
+    public List<IStreamHandler> getHandlerList(){
+        return handlerList;
+    }
+
+    public void executeFirstHandler(Stream stream) throws Exception {
+        executeHandler(stream,getHandlerList().get(0));
+    }
+
+    public void executeHandler(Stream stream,IStreamHandler handler) throws Exception {
+        if(stream != null && stream.getSource() != null){
+            handler.handle(stream);
+            IStreamHandler nextHandler = handler.getNextStreamHandler();
+            if(nextHandler != null){
+                executeHandler(stream,nextHandler);
+            }
+        }
+    }
+}

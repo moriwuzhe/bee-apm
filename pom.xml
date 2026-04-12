@@ -4,27 +4,30 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>net.beeapm</groupId>
-    <artifactId>beeapm</artifactId>
+    <groupId>org.xi.lt</groupId>
+    <artifactId>lt-monitor</artifactId>
     <version>1.0.0</version>
     <packaging>pom</packaging>
-    <name>beeapm</name>
-    <url>http://www.beeapm.net</url>
+    <name>LT-Monitor</name>
+    <description>LT一站式Java应用监控&amp;诊断平台</description>
 
     <modules>
-        <module>bee-apm-agent</module>
-        <module>bee-apm-server</module>
-        <module>bee-apm-ui</module>
-        <module>bee-apm-agent-test</module>
-        <module>bee-plugin-annotation</module>
+        <module>lt-common</module>
+        <module>lt-agent</module>
+        <module>lt-server-apm</module>
+        <module>lt-agent-test</module>
     </modules>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <compiler.version>1.6</compiler.version>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <compiler.version>1.8</compiler.version>
+        <grpc.version>1.51.0</grpc.version>
+        <protobuf.version>3.21.7</protobuf.version>
     </properties>
 
     <build>
-        <finalName>beeapm</finalName>
+        <finalName>lt-monitor</finalName>
     </build>
 </project>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>lt-monitor</artifactId>
+        <groupId>org.xi.lt</groupId>
+        <version>1.0.0</version>
+    </parent>
+    <version>1.0.0</version>
+    <artifactId>lt-server-apm</artifactId>
+    <packaging>pom</packaging>
+    <name>LT-Server-APM</name>
+    <description>APM服务模块</description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <compiler.version>1.8</compiler.version>
+        <lt-server-version>1.0.0</lt-server-version>
+    </properties>
+
+    <modules>
+        <module>server-core</module>
+        <module>server-store</module>
+        <module>server-stream</module>
+        <module>server-web</module>
+    </modules>
+
+
+    <build>
+        <finalName>lt-monitor-server</finalName>
+    </build>
+</project>

@@ -27,44 +27,44 @@ reporter:
             bootstrap.servers: 192.168.137.100:9092
             linger.ms: 200
         topic: #配置span type和kafka topic映射关系
-            default: bee-default #配置默认topic，没有配置映射关系的，数据写到该topic
-            proc: bee-process
-            para: bee-process-param
-            sql: bee-sql
-            sqlp: bee-sql-param
-            req: bee-request
-            rp: bee-request-param
-            tx: bee-tx
-            log: bee-logger
-            err: bee-error
-            reqb: bee-request-body
-            reqh: bee-request-headers
-            resb: bee-response-body
-            hb: bee-heartbeat
-            topo: bee-topology
-            jvm: bee-jvm
+            default: lt-default #配置默认topic，没有配置映射关系的，数据写到该topic
+            proc: lt-process
+            para: lt-process-param
+            sql: lt-sql
+            sqlp: lt-sql-param
+            req: lt-request
+            rp: lt-request-param
+            tx: lt-tx
+            log: lt-logger
+            err: lt-error
+            reqb: lt-request-body
+            reqh: lt-request-headers
+            resb: lt-response-body
+            hb: lt-heartbeat
+            topo: lt-topology
+            jvm: lt-jvm
     rocketmq:
         #rocketmq配置值项，项名称和值请参考rocketmq文档
         nameSrvAddr: 192.168.2.244:9876
         instanceName: rmq-instance
         producerGroup: rmq-group
         topic: #配置span type和kafka topic映射关系
-            default: bee-default #配置默认topic，没有配置映射关系的，数据写到该topic
-            proc: bee-process
-            para: bee-process-param
-            sql: bee-sql
-            sqlp: bee-sql-param
-            req: bee-request
-            rp: bee-request-param
-            tx: bee-tx
-            log: bee-logger
-            err: bee-error
-            reqb: bee-request-body
-            reqh: bee-request-headers
-            respb: bee-response-body
-            hb: bee-heartbeat
-            topo: bee-topology
-            jvm: bee-jvm
+            default: lt-default #配置默认topic，没有配置映射关系的，数据写到该topic
+            proc: lt-process
+            para: lt-process-param
+            sql: lt-sql
+            sqlp: lt-sql-param
+            req: lt-request
+            rp: lt-request-param
+            tx: lt-tx
+            log: lt-logger
+            err: lt-error
+            reqb: lt-request-body
+            reqh: lt-request-headers
+            respb: lt-response-body
+            hb: lt-heartbeat
+            topo: lt-topology
+            jvm: lt-jvm
 sampling:
     rate: 100000 #采样率，万分几，默认全采集,比如100就是100/10000的采样
 id:
@@ -100,12 +100,12 @@ plugins:
             excludePointMatches: #正则表达式，排除的采集点的参数不被采集，可以配置到方法级别，优先级别高于includePointPrefix
                 - com.asiainfo.rule.*
             includePointMatches:  #正则表达式，包含的采集点的参数才被采集，可以配置到方法级别，不配置的话默认都采集，前提在interceptPoints的前提下
-                - net.beeapm.demo.*
+                - org.xi.lt.demo.*
         error:
             enable: true
             #白名单配置，不在白名单的不采集，该前缀是在interceptPoint的前提下，支持到方法级别(fullClassName.methodName)
             includeErrorPointPrefix:
-                - net.beeapm.demo
+                - org.xi.lt.demo
             #黑名单配置，优先级别最高，该前缀是在interceptPoint的前提下，支持到方法级别(fullClassName.methodName)
             excludeErrorPointPrefix:
         #采集范围配置，请根据自己的情况，调整下采集范围
@@ -113,10 +113,10 @@ plugins:
             -
                 typeMatch:  #类匹配规则
                     include: #包含规则named,nameStartsWith,nameEndsWith,nameContains,nameMatches,hasSuperType,hasAnnotation
-                        nameStartsWith: net.beeapm.demo
+                        nameStartsWith: org.xi.lt.demo
                     exclude: #排除规则named,nameStartsWith,nameEndsWith,nameContains,nameMatches,hasSuperType,hasAnnotation
                         nameContains: CGLIB
-                        nameStartsWith: org.apache.catalina,net.beeapm.demo.model.,net.beeapm.demo.common.,net.beeapm.demo.entity.
+                        nameStartsWith: org.apache.catalina,org.xi.lt.demo.model.,org.xi.lt.demo.common.,org.xi.lt.demo.entity.
                 methodMatch: #方法匹配规则
                     include: #包含规则named,nameStartsWith,nameEndsWith,nameContains,nameMatches,isAnnotatedWith
                         named:
@@ -133,7 +133,7 @@ plugins:
         defLevel: debug #默认级别，默认值为debug
         points:
         #日志采集点配置，规则为包名和日志级别，如a.b.c|debug，日志级别可不配置，为默认defLevel级别
-            - net.beeapm.demo|trace
+            - org.xi.lt.demo|trace
         loggerClass: #要埋点的目标logger类数组
 
     servlet:

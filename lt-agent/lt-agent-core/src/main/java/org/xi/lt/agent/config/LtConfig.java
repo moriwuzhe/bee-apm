@@ -1,0 +1,136 @@
+package org.xi.lt.agent.config;
+
+import org.xi.lt.agent.common.LtUtils;
+import org.xi.lt.agent.common.SysPropKey;
+import org.xi.lt.agent.log.LogLevel;
+import org.xi.lt.agent.model.Span;
+
+/**
+ * 以后增加配置动态加载
+ * @author yuan
+ */
+public class LtConfig extends AbstractLtConfig {
+    private LogLevel logLevel;
+    private Boolean isLogConsole;
+    private int rate;
+    private static LtConfig config;
+    private String inst;
+    private String app;
+    private String env;
+    private String project;
+    private String secret;
+    private String ip;
+    private String port;
+    private int heartbeatPeriod;
+    private int jvmPeriod;
+
+    public static LtConfig me() {
+        if (config == null) {
+            synchronized (LtConfig.class) {
+                if (config == null) {
+                    config = new LtConfig();
+                    LtConfigFactory.me().registryConfig("lt", config);
+                }
+            }
+        }
+        return config;
+    }
+
+    @Override
+    public void clear() {
+        config = null;
+    }
+
+    private LtConfig() {
+        initConfig();
+    }
+
+    @Override
+    public void initConfig() {
+        String level = ConfigUtils.me().getStr("logger.level", "error");
+        if (level.equalsIgnoreCase(LogLevel.TRACE.name())) {
+            logLevel = LogLevel.TRACE;
+        } else if (level.equalsIgnoreCase(LogLevel.DEBUG.name())) {
+            logLevel = LogLevel.DEBUG;
+        } else if (level.equalsIgnoreCase(LogLevel.INFO.name())) {
+            logLevel = LogLevel.INFO;
+        } else if (level.equalsIgnoreCase(LogLevel.WARN.name())) {
+            logLevel = LogLevel.WARN;
+        } else if (level.equalsIgnoreCase(LogLevel.ERROR.name())) {
+            logLevel = LogLevel.ERROR;
+        } else if (level.equalsIgnoreCase(LogLevel.OFF.name())) {
+            logLevel = LogLevel.OFF;
+        }
+        isLogConsole = ConfigUtils.me().getBoolean("logger.console", false);
+
+        rate = ConfigUtils.me().getInt("sampling.rate", 10000);
+        inst = System.getProperty(SysPropKey.LT_INST, "unknown");
+        app = System.getProperty(SysPropKey.LT_APP, "unknown");
+        env = System.getProperty(SysPropKey.LT_ENV, "unknown");
+        project = System.getProperty("lt.project", "default");
+        secret = System.getProperty("lt.secret", "");
+        port = System.getProperty(SysPropKey.LT_PORT, "0");
+        ip = System.getProperty(SysPropKey.LT_IP);
+        heartbeatPeriod = ConfigUtils.me().getInt("heartbeat.period", 60);
+        jvmPeriod = ConfigUtils.me().getInt("jvm.period", 60);
+        if (ip == null) {
+            ip = LtUtils.getLocalIp();
+        }
+    }
+
+    public LogLevel getLogLevel() {
+        return logLevel;
+    }
+
+    public boolean isLogConsole() {
+        return isLogConsole;
+    }
+
+    public int getRate() {
+        return rate;
+    }
+
+    public String getInst() {
+        return inst;
+    }
+
+    public String getApp() {
+        return app;
+    }
+
+    public String getIp() {
+        return ip;
+    }
+
+    public String getPort() {
+        return port;
+    }
+
+    public String getEnv() {
+        return env;
+    }
+
+    public String getProject() {
+        return project;
+    }
+
+    public String getSecret() {
+        return secret;
+    }
+
+    public int getHeartbeatPeriod() {
+        return heartbeatPeriod;
+    }
+
+    public int getJvmPeriod() {
+        return jvmPeriod;
+    }
+
+    public void fillEnvInfo(Span span){
+        span.setIp(getIp());
+        span.setPort(getPort());
+        span.setInst(getInst());
+        span.setApp(getApp());
+        span.setEnv(getEnv());
+    }
+}

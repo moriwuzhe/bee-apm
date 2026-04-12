@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>lt-agent-plugin</artifactId>
+        <groupId>org.xi.lt</groupId>
+        <version>1.0.0</version>
+    </parent>
+    <artifactId>lt-agent-plugin-httpclient3x</artifactId>
+    <packaging>jar</packaging>
+
+    <properties>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>commons-httpclient</groupId>
+  			<artifactId>commons-httpclient</artifactId>
+  			<version>3.1</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+    <build>
+        <finalName>lt-agent-plugin-httpclient3x</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.3</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <configuration>
+                            <target>
+                                <copy file="${project.build.directory}/${project.build.finalName}.jar" tofile="${project.parent.basedir}/../plugins/${project.build.finalName}.jar" />
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

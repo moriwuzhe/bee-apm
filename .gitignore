@@ -1,17 +1,66 @@
+# IDE & Editor
 .idea/
-.svn/
-target/
-*.class
+.vscode/
 *.iml
 .classpath
 .project
 .settings/
-*.log
+*.swp
+*~
+.DS_Store
+
+# Version Control
+.svn/
+
+# Build & Compilation
+target/
+*.class
 dependency-reduced-pom.xml
 weaving-class/
 plugins/
 package/reporter/
+boot-plugins/
+lt*.jar
+lt*.jar
+
+# Logs
+*.log
+
+# Frontend
 node_modules/
 dist/
-boot-plugins/
-bee*.jar
+/**/node_modules/
+.npm-cache/
+.pnpm-store/
+/package/
+package/
+
+# Local Dev Bundles
+/elasticsearch-5.6.10/
+/elasticsearch-5.6.10.tar.gz
+/jdk8/
+/src.zip
+/settings.xml
+/start-es.sh
+/TestHttp.java
+/TestServlet.java
+
+# Local runtime artifacts
+/tmp_*.log
+/tmp_*.txt
+/*.log
+/*.lck
+*.pid
+
+
+# Local downloads
+/.local/
+
+# Elasticsearch runtime data (local only)
+/elasticsearch-5.6.10/data/
+/elasticsearch-5.6.10/logs/
+
+# Local packaging outputs (generated)
+/packages/plugins/
+/packages/reporter/
+/packages/config-local.yml

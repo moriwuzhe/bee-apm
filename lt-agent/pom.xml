@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>lt-monitor</artifactId>
+        <groupId>org.xi.lt</groupId>
+        <version>1.0.0</version>
+    </parent>
+    <artifactId>lt-agent</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+    <name>LT-Agent</name>
+    <description>采集&amp;诊断Agent模块</description>
+
+    <modules>
+        <module>lt-agent-bootstrap</module>
+        <module>lt-agent-spy</module>
+        <module>lt-agent-core</module>
+        <module>lt-agent-plugin</module>
+        <module>lt-agent-reporter</module>
+        <module>lt-agent-boot-plugin</module>
+
+    </modules>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>1.8</java.version>
+        <shade.package>org.xi.lt.agent.dependencies</shade.package>
+        <lt.agent.version>1.0.0</lt.agent.version>
+    </properties>
+
+    <build>
+        <finalName>lt-monitor-agent</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

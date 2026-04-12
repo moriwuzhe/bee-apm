@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>lt-server-apm</artifactId>
+        <groupId>org.xi.lt</groupId>
+        <version>1.0.0</version>
+    </parent>
+    <artifactId>lt-monitor-server-store</artifactId>
+    <packaging>pom</packaging>
+    <name>lt-monitor-server-store</name>
+    <url>http://www.ltmonitor.net</url>
+
+    <modules>
+        <module>lt-store-elasticsearch</module>
+        <module>lt-store-mysql</module>
+    </modules>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <compiler.version>1.8</compiler.version>
+    </properties>
+
+    <dependencies>
+    </dependencies>
+    <build>
+        <finalName>lt-monitor-server-store</finalName>
+    </build>
+</project>

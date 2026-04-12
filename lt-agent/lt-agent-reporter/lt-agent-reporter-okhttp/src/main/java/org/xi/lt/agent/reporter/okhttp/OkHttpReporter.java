@@ -2,6 +2,7 @@ package org.xi.lt.agent.reporter.okhttp;
 
 import org.xi.lt.common.annotation.LtPlugin;
 import org.xi.lt.common.annotation.LtPluginType;
+import org.xi.lt.agent.config.ConfigUtils;
 import org.xi.lt.agent.model.Span;
 import org.xi.lt.common.utils.HttpUtils;
 import org.xi.lt.common.utils.JsonUtils;
@@ -42,8 +43,10 @@ public class OkHttpReporter extends AbstractReporter {
 
     @Override
     public int init() {
-        // 从配置中获取上报地址
-        serverUrl = System.getProperty("lt.agent.report.url", "http://127.0.0.1:8080/apm/report");
+        serverUrl = ConfigUtils.me().getStr(
+                "reporter.serverUrl",
+                System.getProperty("lt.agent.report.url", "http://127.0.0.1:8080/apm/report")
+        );
         return 0;
     }
 }

@@ -79,7 +79,7 @@ public class ServletAdvice {
                             @Advice.Origin("#t") String className,
                             @Advice.Origin("#m") String methodName,
                             @Advice.AllArguments Object[] args,
-                            @Advice.Return(typing = Assigner.Typing.DYNAMIC, optional = true) Object result,
+                            @Advice.Return(typing = Assigner.Typing.DYNAMIC) Object result,
                             @Advice.Thrown Throwable t) {
         if (handler == null) {
             return;

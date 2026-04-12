@@ -23,6 +23,21 @@ public class LoggerPlugin extends AbstractPlugin {
 
     @Override
     public InterceptPoint[] buildInterceptPoint() {
+        if (!org.xi.lt.agent.config.ConfigUtils.me().getBoolean("plugins.logger.enable", true)) {
+            return new InterceptPoint[]{
+                    new InterceptPoint() {
+                        @Override
+                        public ElementMatcher<TypeDescription> buildTypesMatcher() {
+                            return ElementMatchers.none();
+                        }
+
+                        @Override
+                        public ElementMatcher<MethodDescription> buildMethodsMatcher() {
+                            return ElementMatchers.none();
+                        }
+                    }
+            };
+        }
         return new InterceptPoint[]{
                 new InterceptPoint() {
                     @Override

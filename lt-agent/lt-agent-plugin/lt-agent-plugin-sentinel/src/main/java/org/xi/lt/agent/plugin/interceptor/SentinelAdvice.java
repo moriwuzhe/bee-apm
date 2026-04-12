@@ -16,7 +16,7 @@ public class SentinelAdvice {
 
     @Advice.OnMethodEnter
     public static void onEnter(
-            @Advice.This(optional = true) Object target,
+            @Advice.This Object target,
             @Advice.Origin("#m") String methodName,
             @Advice.Origin("#t") String className,
             @Advice.AllArguments Object[] allArguments) {

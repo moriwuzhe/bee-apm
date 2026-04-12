@@ -2,11 +2,11 @@ package org.xi.lt.server.web.service;
 
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.client.RestHighLevelClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.xi.lt.server.web.infrastructure.es.EsClientHolder;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -23,8 +23,8 @@ import java.util.concurrent.*;
 public class TailBasedSamplingService {
     private static final Logger log = LoggerFactory.getLogger(TailBasedSamplingService.class);
     
-    @Autowired(required = false)
-    private RestHighLevelClient restHighLevelClient;
+    @Autowired
+    private EsClientHolder es;
     
     private final ConcurrentHashMap<String, TraceBuffer> traceBufferMap = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -53,12 +53,35 @@ public class TailBasedSamplingService {
      * @param gid 链路全局唯一ID
      * @param spanDocs Span转换为ES Source的Map
      */
-    public void addSpans(String gid, List<Map<String, Object>> spanDocs) {
-        if (restHighLevelClient == null) return;
+    public void addSpans(String gid, List<?> spanDocs) {
+        if (es == null || es.getClient() == null) return;
         
+        if (spanDocs == null || spanDocs.isEmpty()) {
+            return;
+        }
+
+        List direct = new ArrayList();
+        List sampled = new ArrayList();
+        for (Object o : spanDocs) {
+            Map doc = o instanceof Map ? (Map) o : null;
+            Object typeObj = doc == null ? null : doc.get("type");
+            String type = typeObj == null ? "" : String.valueOf(typeObj);
+            if ("hb".equals(type) || "jvm".equals(type) || "topo".equals(type)) {
+                direct.add(doc);
+            } else {
+                sampled.add(doc);
+            }
+        }
+        if (!direct.isEmpty()) {
+            flushDirectly(direct);
+        }
+        if (sampled.isEmpty()) {
+            return;
+        }
+
         if (gid == null || gid.isEmpty()) {
             // 没有gid的数据无法做链路聚合，直接写入
-            flushDirectly(spanDocs);
+            flushDirectly(sampled);
             return;
         }
         
@@ -66,8 +89,14 @@ public class TailBasedSamplingService {
             if (v == null) {
                 v = new TraceBuffer();
             }
-            for (Map<String, Object> doc : spanDocs) {
+            for (Object x : sampled) {
+                Map doc = x instanceof Map ? (Map) x : null;
                 v.spans.add(doc);
+                Object typeObj = doc == null ? null : doc.get("type");
+                String type = typeObj == null ? "" : String.valueOf(typeObj);
+                if ("req".equals(type)) {
+                    v.hasReq = true;
+                }
                 // 评估是否有Error
                 Object tagsObj = doc.get("tags");
                 if (tagsObj instanceof Map) {
@@ -116,11 +145,17 @@ public class TailBasedSamplingService {
         for (String gid : expiredGids) {
             TraceBuffer buffer = traceBufferMap.remove(gid);
             if (buffer != null) {
-                // 核心采样逻辑：出错的 100% 留，慢请求的 100% 留，正常的 1% 留
-                boolean shouldKeep = buffer.hasError || buffer.maxSpend >= SLOW_THRESHOLD_MS || Math.random() < BASE_SAMPLE_RATE;
+                // 核心采样逻辑：
+                // - 含 req 的链路：100% 保留（UI 依赖请求入口）
+                // - 出错的：100% 保留
+                // - 慢请求：100% 保留
+                // - 其他：按基础采样率保留
+                boolean shouldKeep = buffer.hasReq || buffer.hasError || buffer.maxSpend >= SLOW_THRESHOLD_MS || Math.random() < BASE_SAMPLE_RATE;
                 
                 if (shouldKeep) {
-                    for (Map<String, Object> doc : buffer.spans) {
+                    for (Object o : buffer.spans) {
+                        if (!(o instanceof Map)) continue;
+                        Map doc = (Map) o;
                         IndexRequest indexRequest = new IndexRequest("lt_apm_span", "span");
                         if (doc.containsKey("id")) {
                             indexRequest.id(doc.get("id").toString());
@@ -137,7 +172,7 @@ public class TailBasedSamplingService {
         
         if (keepCount > 0) {
             try {
-                restHighLevelClient.bulk(bulkRequest);
+                es.getClient().bulk(bulkRequest);
             } catch (Exception e) {
                 log.error("Failed to flush sampled spans to ES", e);
             }
@@ -147,10 +182,12 @@ public class TailBasedSamplingService {
         }
     }
 
-    private void flushDirectly(List<Map<String, Object>> spanDocs) {
+    private void flushDirectly(List<?> spanDocs) {
         if (spanDocs == null || spanDocs.isEmpty()) return;
         BulkRequest bulkRequest = new BulkRequest();
-        for (Map<String, Object> doc : spanDocs) {
+        for (Object o : spanDocs) {
+            if (!(o instanceof Map)) continue;
+            Map doc = (Map) o;
             IndexRequest indexRequest = new IndexRequest("lt_apm_span", "span");
             if (doc.containsKey("id")) {
                 indexRequest.id(doc.get("id").toString());
@@ -159,17 +196,19 @@ public class TailBasedSamplingService {
             bulkRequest.add(indexRequest);
         }
         try {
-            restHighLevelClient.bulk(bulkRequest);
+            es.getClient().bulk(bulkRequest);
         } catch (Exception e) {
             log.error("Failed to flush spans to ES directly", e);
         }
     }
 
     private void flushAll() {
-        if (restHighLevelClient == null) return;
+        if (es == null || es.getClient() == null) return;
         BulkRequest bulkRequest = new BulkRequest();
         for (TraceBuffer buffer : traceBufferMap.values()) {
-            for (Map<String, Object> doc : buffer.spans) {
+            for (Object o : buffer.spans) {
+                if (!(o instanceof Map)) continue;
+                Map doc = (Map) o;
                 IndexRequest indexRequest = new IndexRequest("lt_apm_span", "span");
                 if (doc.containsKey("id")) {
                     indexRequest.id(doc.get("id").toString());
@@ -180,7 +219,7 @@ public class TailBasedSamplingService {
         }
         if (bulkRequest.numberOfActions() > 0) {
             try {
-                restHighLevelClient.bulk(bulkRequest);
+                es.getClient().bulk(bulkRequest);
             } catch (Exception e) {
                 log.error("Failed to flush all spans on shutdown", e);
             }
@@ -190,8 +229,9 @@ public class TailBasedSamplingService {
 
     private static class TraceBuffer {
         long createTime = System.currentTimeMillis();
-        List<Map<String, Object>> spans = new ArrayList<>();
+        List spans = new ArrayList();
         boolean hasError = false;
+        boolean hasReq = false;
         long maxSpend = 0;
     }
 }

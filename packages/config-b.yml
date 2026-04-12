@@ -1,0 +1,20 @@
+logger:
+  console: true
+  level: error
+heartbeat:
+  period: 30
+jvm:
+  period: 60
+reporter:
+  name: okhttp
+  log: false
+  serverUrl: http://127.0.0.1:8081/apm/report
+plugins:
+  servlet:
+    enable: true
+  process:
+    enable: false
+  jdbc:
+    enable: true
+  logger:
+    enable: false

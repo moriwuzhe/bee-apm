@@ -28,6 +28,21 @@ public class ProcessPlugin extends AbstractPlugin {
 
     @Override
     public InterceptPoint[] buildInterceptPoint() {
+        if (!ConfigUtils.me().getBoolean("plugins.process.enable", true)) {
+            return new InterceptPoint[]{
+                    new InterceptPoint() {
+                        @Override
+                        public ElementMatcher<TypeDescription> buildTypesMatcher() {
+                            return ElementMatchers.none();
+                        }
+
+                        @Override
+                        public ElementMatcher<MethodDescription> buildMethodsMatcher() {
+                            return ElementMatchers.none();
+                        }
+                    }
+            };
+        }
         List<Map<String, Map<String, Map<String, String>>>> list = (List<Map<String, Map<String, Map<String, String>>>>) ConfigUtils.me().getVal("plugins.process.interceptPoints");
         if (list == null || list.isEmpty()) {
             return new InterceptPoint[]{

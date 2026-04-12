@@ -39,7 +39,13 @@ public class ReporterFactory {
         scheduledExecutorService = new ScheduledThreadPoolExecutor(threadNum, new LtThreadFactory(REPORTER_THREAD_NAME));
         if (reporterMap == null) {
             // 优先使用配置的reporter，默认用okhttp
-            reporterName = ConfigUtils.me().getStr("reporter.type", ConfigUtils.me().getStr("type", "okhttp"));
+            reporterName = ConfigUtils.me().getStr(
+                    "reporter.type",
+                    ConfigUtils.me().getStr(
+                            "reporter.name",
+                            ConfigUtils.me().getStr("type", ConfigUtils.me().getStr("name", "okhttp"))
+                    )
+            );
             reporterMap = ReporterLoader.loadReporters();
             reporter = reporterMap.get(reporterName);
             if (reporter == null) {
@@ -47,7 +53,22 @@ public class ReporterFactory {
                 reporter = new ConsoleReporter();
             }
             // 读取上报地址配置
-            String serverUrl = ConfigUtils.me().getStr("reporter.serverUrl", ConfigUtils.me().getStr("agent.report.url", ConfigUtils.me().getStr("serverUrl", "http://127.0.0.1:8080/apm/report")));
+            String serverUrl = ConfigUtils.me().getStr("reporter.serverUrl", null);
+            if (LtUtils.isBlank(serverUrl)) {
+                Object urlListObj = ConfigUtils.me().getVal("reporter.okhttp.url");
+                if (urlListObj instanceof List && !((List) urlListObj).isEmpty()) {
+                    Object first = ((List) urlListObj).get(0);
+                    if (first != null) {
+                        serverUrl = String.valueOf(first);
+                    }
+                }
+            }
+            if (LtUtils.isBlank(serverUrl)) {
+                serverUrl = ConfigUtils.me().getStr(
+                        "agent.report.url",
+                        ConfigUtils.me().getStr("serverUrl", "http://127.0.0.1:8080/apm/report")
+                );
+            }
             System.setProperty("lt.agent.report.url", serverUrl);
             reporter.init();
             initQueue();

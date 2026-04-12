@@ -150,9 +150,6 @@
                     <source>${compiler.version}</source>
                     <target>${compiler.version}</target>
                     <encoding>${project.build.sourceEncoding}</encoding>
-                    <excludes>
-                        <exclude>org/xi/lt/server/web/diagnostic/**</exclude>
-                    </excludes>
                 </configuration>
             </plugin>
         </plugins>

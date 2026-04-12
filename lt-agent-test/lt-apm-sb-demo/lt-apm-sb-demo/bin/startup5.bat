@@ -1,1 +1,0 @@
-java  -javaagent:D:\Java\myspace\lt-monitor\packages\lt-agent.jar -Dlt.app=hello -Dlt.env=dev -Dlt.inst=hello05 -Dlt.port=8105 -Dserver.port=8105 -Dlt.ip=192.168.137.15 -Dmax.counter=5 -Dremote.ports=8101_8102_8103_8104_8105_8106 -jar lt-monitor-sb-demo.jar

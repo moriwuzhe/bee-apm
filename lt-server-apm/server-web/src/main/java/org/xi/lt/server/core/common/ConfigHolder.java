@@ -19,12 +19,17 @@ public class ConfigHolder {
         while (iterator.hasNext()) {
             PropertySource<?> ps = iterator.next();
             if (ps.getName().startsWith("applicationConfig")) {
-                Map<String, OriginTrackedValue> source = (Map<String, OriginTrackedValue>) ps.getSource();
+                Map source = (Map) ps.getSource();
                 if (source != null) {
-                    Iterator<Map.Entry<String, OriginTrackedValue>> valIt = source.entrySet().iterator();
+                    Iterator valIt = source.entrySet().iterator();
                     while (valIt.hasNext()) {
-                        Map.Entry<String, OriginTrackedValue> entry = valIt.next();
-                        properties.put(entry.getKey(), entry.getValue().getValue());
+                        Map.Entry entry = (Map.Entry) valIt.next();
+                        Object v = entry.getValue();
+                        if (v instanceof OriginTrackedValue) {
+                            properties.put(entry.getKey(), ((OriginTrackedValue) v).getValue());
+                        } else {
+                            properties.put(entry.getKey(), v);
+                        }
                     }
                 }
             }

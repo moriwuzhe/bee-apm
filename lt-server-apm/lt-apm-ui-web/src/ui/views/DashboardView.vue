@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import * as echarts from 'echarts'
 import { fetchDashboardStat, fetchGlobalTopology, type DashboardStat } from '../../api/dashboard'
 import { useTimeRangeStore } from '../../stores/timeRange'
 
@@ -20,6 +21,14 @@ const stat = ref<DashboardStat>({
 
 const visContainer = ref<HTMLElement | null>(null)
 let network: any = null
+
+// ECharts containers
+const reqChartRef = ref<HTMLElement | null>(null)
+const spendChartRef = ref<HTMLElement | null>(null)
+const errorChartRef = ref<HTMLElement | null>(null)
+let reqChart: echarts.ECharts | null = null
+let spendChart: echarts.ECharts | null = null
+let errorChart: echarts.ECharts | null = null
 
 async function reload() {
   loading.value = true
@@ -115,6 +124,72 @@ function stopAutoRefresh() {
   }
 }
 
+function initCharts() {
+  if (reqChartRef.value) {
+    reqChart = echarts.init(reqChartRef.value)
+    renderReqChart()
+  }
+  if (spendChartRef.value) {
+    spendChart = echarts.init(spendChartRef.value)
+    renderSpendChart()
+  }
+  if (errorChartRef.value) {
+    errorChart = echarts.init(errorChartRef.value)
+    renderErrorChart()
+  }
+}
+
+function renderReqChart() {
+  if (!reqChart) return
+  // Mock data for now - replace with real API data later
+  const mockData = Array.from({ length: 12 }, (_, i) => ({
+    time: `10:${String(i).padStart(2, '0')}`,
+    value: Math.floor(Math.random() * 1000) + 500
+  }))
+  
+  reqChart.setOption({
+    title: { text: '请求量趋势', left: 'center', textStyle: { fontSize: 14 } },
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: mockData.map(d => d.time) },
+    yAxis: { type: 'value' },
+    series: [{ data: mockData.map(d => d.value), type: 'line', smooth: true, areaStyle: { opacity: 0.3 } }]
+  })
+}
+
+function renderSpendChart() {
+  if (!spendChart) return
+  // Mock data for now - replace with real API data later
+  const mockData = Array.from({ length: 12 }, (_, i) => ({
+    time: `10:${String(i).padStart(2, '0')}`,
+    value: Math.floor(Math.random() * 500) + 100
+  }))
+  
+  spendChart.setOption({
+    title: { text: '响应时间趋势', left: 'center', textStyle: { fontSize: 14 } },
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: mockData.map(d => d.time) },
+    yAxis: { type: 'value' },
+    series: [{ data: mockData.map(d => d.value), type: 'line', smooth: true, areaStyle: { opacity: 0.3 }, color: '#E6A23C' }]
+  })
+}
+
+function renderErrorChart() {
+  if (!errorChart) return
+  // Mock data for now - replace with real API data later
+  const mockData = Array.from({ length: 12 }, (_, i) => ({
+    time: `10:${String(i).padStart(2, '0')}`,
+    value: Math.floor(Math.random() * 50) + 5
+  }))
+  
+  errorChart.setOption({
+    title: { text: '错误率趋势', left: 'center', textStyle: { fontSize: 14 } },
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: mockData.map(d => d.time) },
+    yAxis: { type: 'value' },
+    series: [{ data: mockData.map(d => d.value), type: 'line', smooth: true, areaStyle: { opacity: 0.3 }, color: '#F56C6C' }]
+  })
+}
+
 watch(autoRefreshEnabled, () => {
   startAutoRefresh()
 })
@@ -127,6 +202,9 @@ onMounted(() => {
   reload()
   renderTopology()
   startAutoRefresh()
+  setTimeout(() => {
+    initCharts()
+  }, 100)
 })
 
 watch(() => [timeRange.beginTime, timeRange.endTime], () => {
@@ -137,6 +215,9 @@ watch(() => [timeRange.beginTime, timeRange.endTime], () => {
 onUnmounted(() => {
   stopAutoRefresh()
   if (network) network.destroy()
+  if (reqChart) reqChart.dispose()
+  if (spendChart) spendChart.dispose()
+  if (errorChart) errorChart.dispose()
 })
 </script>
 
@@ -172,6 +253,19 @@ onUnmounted(() => {
       <el-card class="kpi" shadow="never" v-loading="loading">
         <div class="kpi-label">采集量</div>
         <div class="kpi-value">{{ stat.log }}</div>
+      </el-card>
+    </div>
+
+    <!-- Trend Charts -->
+    <div class="charts-grid">
+      <el-card shadow="never" class="chart-card">
+        <div ref="reqChartRef" class="chart-container"></div>
+      </el-card>
+      <el-card shadow="never" class="chart-card">
+        <div ref="spendChartRef" class="chart-container"></div>
+      </el-card>
+      <el-card shadow="never" class="chart-card">
+        <div ref="errorChartRef" class="chart-container"></div>
       </el-card>
     </div>
 
@@ -242,6 +336,27 @@ onUnmounted(() => {
 .text-danger { color: var(--el-color-danger); }
 .text-primary { color: var(--el-color-primary); }
 
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+@media (max-width: 1200px) {
+  .charts-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+}
+
+.chart-card {
+  height: 300px;
+}
+
+.chart-container {
+  width: 100%;
+  height: 100%;
+}
+
 .topology-card {
   height: 500px;
   display: flex;
@@ -258,4 +373,3 @@ onUnmounted(() => {
   background-color: #1e1e1e;
 }
 </style>
-

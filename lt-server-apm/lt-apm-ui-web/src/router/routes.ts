@@ -57,12 +57,7 @@ export const routes: RouteRecordRaw[] = [
           { path: 'diagnostic', name: 'app-diagnostic', component: DiagnosticView, meta: { title: '诊断', nav: false } },
         ],
       },
-      { path: 'request', name: 'request', component: RequestView, meta: { title: '请求查询', nav: false, icon: Link, order: 30 } },
-      { path: 'method', name: 'method', component: MethodView, meta: { title: '方法查询', nav: false, icon: Link, order: 40 } },
-      { path: 'sql', name: 'sql', component: SqlView, meta: { title: 'SQL查询', nav: false, icon: Coin, order: 50 } },
-      { path: 'tx', name: 'tx', component: TxView, meta: { title: '事务查询', nav: false, icon: Connection, order: 60 } },
-      { path: 'logger', name: 'logger', component: LoggerView, meta: { title: 'Logger查询', nav: false, icon: Tickets, order: 70 } },
-      { path: 'diagnostic', name: 'diagnostic', component: DiagnosticView, meta: { title: '诊断', nav: false, icon: Tools, order: 80 } },
+      // 查询类页面只在应用详情页的标签页中，不单独在侧边栏显示
       { path: 'online-debug', name: 'online-debug', component: OnlineDebugView, meta: { title: '线上调试', nav: true, icon: Tools, order: 90 } },
       { path: 'profiler', name: 'profiler', component: ProfilerView, meta: { title: '性能剖析(火焰图)', nav: true, icon: Tools, order: 100 } },
       {

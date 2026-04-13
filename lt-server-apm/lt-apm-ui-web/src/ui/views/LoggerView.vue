@@ -123,6 +123,16 @@ watch(() => route.query, async () => {
   applyRouteQuery()
   await load(1)
 })
+
+function tableRowClassName({ row }: { row: LoggerRow }) {
+  if (row?.tags?.level === 'error' || row?.tags?.level === 'fatal') {
+    return 'error-row'
+  }
+  if (row?.tags?.level === 'warm') {
+    return 'warning-row'
+  }
+  return ''
+}
 </script>
 
 <template>
@@ -173,7 +183,7 @@ watch(() => route.query, async () => {
       </el-form>
     </template>
 
-    <el-table :data="rows" border stripe v-loading="loading">
+    <el-table :data="rows" border stripe v-loading="loading" :row-class-name="tableRowClassName">
       <el-table-column prop="id" label="ID" width="200" fixed />
       <el-table-column prop="time" label="时间" width="110" :formatter="(r:any)=>formatTime(r.time)" fixed />
       <el-table-column prop="gid" label="GID" width="200" />
@@ -182,7 +192,7 @@ watch(() => route.query, async () => {
       <el-table-column prop="app" label="应用" width="140" />
       <el-table-column label="级别" width="110">
         <template #default="{ row }">
-          {{ row?.tags?.level || '' }}
+          <span :class="{ 'text-error': row?.tags?.level === 'error' || row?.tags?.level === 'fatal', 'text-warning': row?.tags?.level === 'warm' }">{{ row?.tags?.level || '' }}</span>
         </template>
       </el-table-column>
       <el-table-column label="拦截点" width="260">
@@ -226,6 +236,24 @@ watch(() => route.query, async () => {
   display:flex;
   align-items:center;
   gap: var(--space-3);
+}
+
+:deep(.error-row) {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+}
+
+:deep(.warning-row) {
+  background-color: rgba(245, 158, 11, 0.1) !important;
+}
+
+.text-error {
+  color: var(--el-color-danger);
+  font-weight: bold;
+}
+
+.text-warning {
+  color: var(--el-color-warning);
+  font-weight: bold;
 }
 </style>
 

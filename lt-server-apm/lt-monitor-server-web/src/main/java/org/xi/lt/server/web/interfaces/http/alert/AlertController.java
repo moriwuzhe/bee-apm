@@ -17,7 +17,7 @@ import org.xi.lt.server.domain.model.alert.AlertRow;
 import org.xi.lt.server.infrastructure.es.EsClientHolder;
 import org.xi.lt.server.web.shared.api.ApiResult;
 import org.xi.lt.server.web.shared.util.ResultHelper;
-import org.xi.lt.server.web.shared.util.ObjectFieldUtils;
+import org.xi.lt.server.core.util.ObjectFieldUtils;
 
 import java.util.ArrayList;
 import java.util.List;

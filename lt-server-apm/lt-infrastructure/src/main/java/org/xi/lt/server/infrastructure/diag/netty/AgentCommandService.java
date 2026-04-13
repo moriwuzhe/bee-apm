@@ -4,9 +4,9 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.xi.lt.server.web.infrastructure.diag.remoting.protocol.Datagram;
-import org.xi.lt.server.web.infrastructure.diag.remoting.protocol.RemotingBuilder;
-import org.xi.lt.server.web.infrastructure.diag.remoting.protocol.payload.RawStringPayloadHolder;
+import org.xi.lt.server.infrastructure.diag.remoting.protocol.Datagram;
+import org.xi.lt.server.infrastructure.diag.remoting.protocol.RemotingBuilder;
+import org.xi.lt.server.infrastructure.diag.remoting.protocol.payload.RawStringPayloadHolder;
 
 import java.nio.charset.StandardCharsets;
 import java.net.URLEncoder;

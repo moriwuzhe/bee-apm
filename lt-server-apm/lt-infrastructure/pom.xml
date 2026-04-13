@@ -47,6 +47,13 @@
             <version>1.0.0</version>
         </dependency>
 
+        <!-- Server Core 模块依赖 -->
+        <dependency>
+            <groupId>org.xi.lt</groupId>
+            <artifactId>lt-monitor-server-core</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
         <!-- SpringBoot依赖 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -66,11 +73,32 @@
             <artifactId>elasticsearch-rest-high-level-client</artifactId>
         </dependency>
 
+        <!-- Jest Elasticsearch 客户端 -->
+        <dependency>
+            <groupId>io.searchbox</groupId>
+            <artifactId>jest</artifactId>
+            <version>5.3.4</version>
+        </dependency>
+
         <!-- MySQL依赖 -->
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
             <version>5.1.49</version>
+        </dependency>
+
+        <!-- Spring JDBC -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+            <version>2.7.12</version>
+        </dependency>
+
+        <!-- Druid 数据库连接池 -->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid</artifactId>
+            <version>1.2.18</version>
         </dependency>
 
         <!-- H2数据库依赖 -->

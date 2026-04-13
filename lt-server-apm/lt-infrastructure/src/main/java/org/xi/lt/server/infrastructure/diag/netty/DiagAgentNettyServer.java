@@ -9,7 +9,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.xi.lt.server.web.infrastructure.diag.netty.handler.DiagAgentChannelInitializer;
+import org.xi.lt.server.infrastructure.diag.netty.handler.DiagAgentChannelInitializer;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;

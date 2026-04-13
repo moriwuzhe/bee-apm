@@ -5,8 +5,8 @@ import io.netty.channel.socket.SocketChannel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import org.xi.lt.server.web.infrastructure.diag.remoting.coder.AgentDecoder;
-import org.xi.lt.server.web.infrastructure.diag.remoting.coder.AgentEncoder;
+import org.xi.lt.server.infrastructure.diag.remoting.coder.AgentDecoder;
+import org.xi.lt.server.infrastructure.diag.remoting.coder.AgentEncoder;
 
 @Component
 public class DiagAgentChannelInitializer extends ChannelInitializer<SocketChannel> {

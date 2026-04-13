@@ -87,11 +87,12 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
+                <version>3.3.1</version>
                 <configuration>
                     <archive>
                         <manifestEntries>
                             <Build-Date>${maven.build.timestamp}</Build-Date>
-                            <Build-Version>${version}</Build-Version>
+                            <Build-Version>${project.version}</Build-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>

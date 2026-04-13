@@ -2,13 +2,15 @@
 defineProps<{
   rows?: number
   columns?: number
+  cellHeight?: string
+  rowGap?: string
 }>()
 </script>
 
 <template>
-  <div class="skeleton-loader">
+  <div class="skeleton-loader" :style="{ rowGap: rowGap || 'var(--space-3)' }">
     <div v-for="i in (rows || 5)" :key="i" class="skeleton-row">
-      <div v-for="j in (columns || 4)" :key="j" class="skeleton-cell" />
+      <div v-for="j in (columns || 4)" :key="j" class="skeleton-cell" :style="{ height: cellHeight || '32px' }" />
     </div>
   </div>
 </template>
@@ -17,7 +19,6 @@ defineProps<{
 .skeleton-loader {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
 }
 
 .skeleton-row {
@@ -26,7 +27,6 @@ defineProps<{
 }
 
 .skeleton-cell {
-  height: 32px;
   flex: 1;
   border-radius: 4px;
   background: linear-gradient(90deg, var(--el-fill-color-light) 25%, var(--el-fill-color-lighter) 37%, var(--el-fill-color-light) 63%);

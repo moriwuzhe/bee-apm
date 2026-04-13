@@ -12,6 +12,7 @@ import PageShell from '../components/PageShell.vue'
 import JsonDialog from '../components/JsonDialog.vue'
 import CallTreeDrawer from '../components/CallTreeDrawer.vue'
 import TopologyDrawer from '../components/TopologyDrawer.vue'
+import SkeletonLoader from '../components/SkeletonLoader.vue'
 import { useGroups } from '../composables/useGroups'
 
 const timeRange = useTimeRangeStore()
@@ -310,7 +311,8 @@ watch(() => route.query, async () => {
       </el-form>
     </template>
 
-    <el-table :data="rows" border stripe v-loading="loading" :row-class-name="tableRowClassName">
+    <SkeletonLoader v-if="loading" :rows="8" :columns="10" />
+    <el-table v-else :data="rows" border stripe :row-class-name="tableRowClassName">
       <el-table-column prop="id" label="ID" width="180" fixed />
       <el-table-column prop="time" label="时间" width="160" :formatter="(r:any)=>formatTime(r.time)" fixed />
       <el-table-column prop="gid" label="GID" width="180" />

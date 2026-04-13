@@ -186,6 +186,16 @@ function startAutoRefresh() {
   }
 }
 
+function tableRowClassName({ row }: { row: RequestRow }) {
+  if (row.error) {
+    return 'error-row'
+  }
+  if (row.spend && row.spend > 1000) {
+    return 'slow-row'
+  }
+  return ''
+}
+
 function stopAutoRefresh() {
   if (refreshTimer) {
     clearInterval(refreshTimer)
@@ -273,7 +283,7 @@ watch(() => route.query, async () => {
       </el-form>
     </template>
 
-    <el-table :data="rows" border stripe v-loading="loading">
+    <el-table :data="rows" border stripe v-loading="loading" :row-class-name="tableRowClassName">
       <el-table-column prop="id" label="ID" width="180" fixed />
       <el-table-column prop="time" label="时间" width="160" :formatter="(r:any)=>formatTime(r.time)" fixed />
       <el-table-column prop="gid" label="GID" width="180" />
@@ -287,7 +297,11 @@ watch(() => route.query, async () => {
       <el-table-column prop="ip" label="IP" width="140" />
       <el-table-column prop="env" label="环境" width="100" />
       <el-table-column prop="app" label="应用" width="140" />
-      <el-table-column prop="spend" label="耗时(ms)" width="90" />
+      <el-table-column prop="spend" label="耗时(ms)" width="90">
+        <template #default="{ row }">
+          <span :class="{ 'text-danger': row.spend > 1000 }">{{ row.spend }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="URL" min-width="260">
         <template #default="{ row }">
           {{ row?.tags?.url || '' }}
@@ -336,6 +350,19 @@ watch(() => route.query, async () => {
   display:flex;
   align-items:center;
   gap: var(--space-3);
+}
+
+:deep(.error-row) {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+}
+
+:deep(.slow-row) {
+  background-color: rgba(245, 158, 11, 0.1) !important;
+}
+
+.text-danger {
+  color: var(--el-color-danger);
+  font-weight: bold;
 }
 </style>
 

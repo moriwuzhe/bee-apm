@@ -123,6 +123,16 @@ watch(() => route.query, async () => {
   applyRouteQuery()
   await load(1)
 })
+
+function tableRowClassName({ row }: { row: MethodRow }) {
+  if (row.error) {
+    return 'error-row'
+  }
+  if (row.spend && row.spend > 1000) {
+    return 'slow-row'
+  }
+  return ''
+}
 </script>
 
 <template>
@@ -169,14 +179,18 @@ watch(() => route.query, async () => {
       </el-form>
     </template>
 
-    <el-table :data="rows" border stripe v-loading="loading">
+    <el-table :data="rows" border stripe v-loading="loading" :row-class-name="tableRowClassName">
       <el-table-column prop="id" label="ID" width="220" fixed />
       <el-table-column prop="time" label="时间" width="110" :formatter="(r:any)=>formatTime(r.time)" fixed />
       <el-table-column prop="gid" label="GID" width="200" />
       <el-table-column prop="ip" label="IP" width="140" />
       <el-table-column prop="env" label="环境" width="120" />
       <el-table-column prop="app" label="应用" width="140" />
-      <el-table-column prop="spend" label="耗时(ms)" width="110" />
+      <el-table-column prop="spend" label="耗时(ms)" width="110">
+        <template #default="{ row }">
+          <span :class="{ 'text-danger': row.spend > 1000 }">{{ row.spend }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="方法" min-width="260">
         <template #default="{ row }">
           {{ row?.tags?.method || '' }}
@@ -213,6 +227,19 @@ watch(() => route.query, async () => {
   display:flex;
   align-items:center;
   gap: var(--space-3);
+}
+
+:deep(.error-row) {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+}
+
+:deep(.slow-row) {
+  background-color: rgba(245, 158, 11, 0.1) !important;
+}
+
+.text-danger {
+  color: var(--el-color-danger);
+  font-weight: bold;
 }
 </style>
 

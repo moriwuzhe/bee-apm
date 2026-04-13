@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute } from 'vue-router'
+import * as XLSX from 'xlsx'
 
 import { fetchRequestList, type RequestRow } from '../../api/request'
 import { queryById } from '../../api/common'
@@ -46,6 +47,31 @@ const callTreeData = ref<any[]>([])
 const topologyOpen = ref(false)
 const topologyLoading = ref(false)
 const topologyData = ref<any | null>(null)
+
+function exportToExcel() {
+  if (!rows.value || rows.value.length === 0) {
+    ElMessage.warning('没有数据可导出')
+    return
+  }
+  
+  const data = rows.value.map(row => ({
+    ID: row.id,
+    时间: formatTime(row.time),
+    GID: row.gid,
+    状态: row.error ? 'Error' : 'OK',
+    IP: row.ip,
+    环境: row.env,
+    应用: row.app,
+    耗时: row.spend,
+    URL: row?.tags?.url || ''
+  }))
+  
+  const ws = XLSX.utils.json_to_sheet(data)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, '请求数据')
+  XLSX.writeFile(wb, `请求数据_${new Date().toISOString().slice(0,10)}.xlsx`)
+  ElMessage.success('导出成功')
+}
 
 function formatTime(v: string) {
   if (!v) return ''
@@ -244,6 +270,7 @@ watch(() => route.query, async () => {
           <el-option label="30秒" :value="30000" />
           <el-option label="1分钟" :value="60000" />
         </el-select>
+        <el-button :disabled="!rows?.length" type="success" @click="exportToExcel">导出Excel</el-button>
         <el-button :loading="loading || groupsLoading" type="primary" @click="load(1)">查询</el-button>
       </div>
     </template>

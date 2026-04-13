@@ -2,15 +2,15 @@ package org.xi.lt.server.web.application.usecase.request;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.xi.lt.server.web.domain.model.PageSearchResult;
-import org.xi.lt.server.web.domain.model.SortDirection;
-import org.xi.lt.server.web.domain.model.query.SpanPageQuery;
-import org.xi.lt.server.web.domain.model.request.CallTreeNode;
-import org.xi.lt.server.web.domain.model.request.TopologyEdge;
-import org.xi.lt.server.web.domain.model.request.TopologyGraph;
-import org.xi.lt.server.web.domain.model.request.TopologyNode;
-import org.xi.lt.server.web.domain.model.span.SpanView;
-import org.xi.lt.server.web.domain.repository.SpanQueryRepository;
+import org.xi.lt.server.domain.model.PageSearchResult;
+import org.xi.lt.server.domain.model.SortDirection;
+import org.xi.lt.server.domain.model.query.SpanPageQuery;
+import org.xi.lt.server.domain.model.request.CallTreeNode;
+import org.xi.lt.server.domain.model.request.TopologyEdge;
+import org.xi.lt.server.domain.model.request.TopologyGraph;
+import org.xi.lt.server.domain.model.request.TopologyNode;
+import org.xi.lt.server.domain.model.span.SpanView;
+import org.xi.lt.server.domain.repository.SpanQueryRepository;
 import org.xi.lt.server.web.interfaces.http.api.dto.RequestGidTimeRequest;
 import org.xi.lt.server.web.interfaces.http.api.dto.RequestListRequest;
 import org.xi.lt.server.web.shared.api.ApiResult;
@@ -164,27 +164,27 @@ public class RequestUseCase {
         return node;
     }
 
-    private String buildSpanText(String type, org.xi.lt.server.web.domain.model.span.tags.SpanTags tags) {
+    private String buildSpanText(String type, org.xi.lt.server.domain.model.span.tags.SpanTags tags) {
         if (tags == null) return type;
-        if (tags instanceof org.xi.lt.server.web.domain.model.span.tags.ReqTags) {
-            org.xi.lt.server.web.domain.model.span.tags.ReqTags req = (org.xi.lt.server.web.domain.model.span.tags.ReqTags) tags;
+        if (tags instanceof org.xi.lt.server.domain.model.span.tags.ReqTags) {
+            org.xi.lt.server.domain.model.span.tags.ReqTags req = (org.xi.lt.server.domain.model.span.tags.ReqTags) tags;
             return (safe(req.getMethod()) + " " + safe(req.getUrl())).trim();
         }
-        if (tags instanceof org.xi.lt.server.web.domain.model.span.tags.MethTags) {
-            return safe(((org.xi.lt.server.web.domain.model.span.tags.MethTags) tags).getMethod());
+        if (tags instanceof org.xi.lt.server.domain.model.span.tags.MethTags) {
+            return safe(((org.xi.lt.server.domain.model.span.tags.MethTags) tags).getMethod());
         }
-        if (tags instanceof org.xi.lt.server.web.domain.model.span.tags.SqlTags) {
-            return safe(((org.xi.lt.server.web.domain.model.span.tags.SqlTags) tags).getSql());
+        if (tags instanceof org.xi.lt.server.domain.model.span.tags.SqlTags) {
+            return safe(((org.xi.lt.server.domain.model.span.tags.SqlTags) tags).getSql());
         }
-        if (tags instanceof org.xi.lt.server.web.domain.model.span.tags.TxTags) {
-            return safe(((org.xi.lt.server.web.domain.model.span.tags.TxTags) tags).getTx());
+        if (tags instanceof org.xi.lt.server.domain.model.span.tags.TxTags) {
+            return safe(((org.xi.lt.server.domain.model.span.tags.TxTags) tags).getTx());
         }
-        if (tags instanceof org.xi.lt.server.web.domain.model.span.tags.LogTags) {
-            org.xi.lt.server.web.domain.model.span.tags.LogTags log = (org.xi.lt.server.web.domain.model.span.tags.LogTags) tags;
+        if (tags instanceof org.xi.lt.server.domain.model.span.tags.LogTags) {
+            org.xi.lt.server.domain.model.span.tags.LogTags log = (org.xi.lt.server.domain.model.span.tags.LogTags) tags;
             return (safe(log.getLevel()) + " " + safe(log.getMsg())).trim();
         }
-        if (tags instanceof org.xi.lt.server.web.domain.model.span.tags.ErrorTags) {
-            return safe(((org.xi.lt.server.web.domain.model.span.tags.ErrorTags) tags).getError());
+        if (tags instanceof org.xi.lt.server.domain.model.span.tags.ErrorTags) {
+            return safe(((org.xi.lt.server.domain.model.span.tags.ErrorTags) tags).getError());
         }
         return type;
     }
@@ -197,8 +197,8 @@ public class RequestUseCase {
         String inst = safe(r.getInst());
         String srcApp = "";
         String srcInst = "";
-        if (r.getTags() instanceof org.xi.lt.server.web.domain.model.span.tags.ReqTags) {
-            org.xi.lt.server.web.domain.model.span.tags.ReqTags req = (org.xi.lt.server.web.domain.model.span.tags.ReqTags) r.getTags();
+        if (r.getTags() instanceof org.xi.lt.server.domain.model.span.tags.ReqTags) {
+            org.xi.lt.server.domain.model.span.tags.ReqTags req = (org.xi.lt.server.domain.model.span.tags.ReqTags) r.getTags();
             srcApp = safe(req.getSrcApp());
             srcInst = safe(req.getSrcInst());
         }

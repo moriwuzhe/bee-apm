@@ -2,12 +2,12 @@ package org.xi.lt.server.web.application.usecase.dashboard;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.xi.lt.server.web.domain.model.dashboard.DashboardStatResult;
-import org.xi.lt.server.web.domain.model.dashboard.FromToCount;
-import org.xi.lt.server.web.domain.model.graph.GraphData;
-import org.xi.lt.server.web.domain.model.graph.GraphEdge;
-import org.xi.lt.server.web.domain.model.graph.GraphNode;
-import org.xi.lt.server.web.domain.repository.DashboardQueryRepository;
+import org.xi.lt.server.domain.model.dashboard.DashboardStatResult;
+import org.xi.lt.server.domain.model.dashboard.FromToCount;
+import org.xi.lt.server.domain.model.graph.GraphData;
+import org.xi.lt.server.domain.model.graph.GraphEdge;
+import org.xi.lt.server.domain.model.graph.GraphNode;
+import org.xi.lt.server.domain.repository.DashboardQueryRepository;
 import org.xi.lt.server.web.interfaces.http.api.dto.DashboardStatRequest;
 import org.xi.lt.server.web.interfaces.http.api.dto.DashboardTopologyRequest;
 import org.xi.lt.server.web.shared.api.ApiResult;

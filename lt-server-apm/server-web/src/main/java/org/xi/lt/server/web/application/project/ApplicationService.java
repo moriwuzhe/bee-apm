@@ -2,8 +2,8 @@ package org.xi.lt.server.web.application.project;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.xi.lt.server.web.domain.repository.ApplicationDao;
-import org.xi.lt.server.web.domain.model.Application;
+import org.xi.lt.server.domain.repository.ApplicationDao;
+import org.xi.lt.server.domain.model.Application;
 
 import java.util.List;
 

@@ -2,12 +2,12 @@ package org.xi.lt.server.web.application.usecase.app;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.xi.lt.server.web.domain.model.PageSearchResult;
-import org.xi.lt.server.web.domain.model.SortDirection;
-import org.xi.lt.server.web.domain.model.app.AppInstanceView;
-import org.xi.lt.server.web.domain.model.query.SpanPageQuery;
-import org.xi.lt.server.web.domain.model.span.SpanView;
-import org.xi.lt.server.web.domain.repository.SpanQueryRepository;
+import org.xi.lt.server.domain.model.PageSearchResult;
+import org.xi.lt.server.domain.model.SortDirection;
+import org.xi.lt.server.domain.model.app.AppInstanceView;
+import org.xi.lt.server.domain.model.query.SpanPageQuery;
+import org.xi.lt.server.domain.model.span.SpanView;
+import org.xi.lt.server.domain.repository.SpanQueryRepository;
 import org.xi.lt.server.web.interfaces.http.api.dto.AppInfoListRequest;
 import org.xi.lt.server.web.shared.model.PageResult;
 import org.xi.lt.server.web.shared.util.TimeParseUtils;
@@ -54,8 +54,8 @@ public class AppInfoUseCase {
                 out.setIp(row.getIp());
                 out.setEnv(row.getEnv());
                 out.setTime(row.getTime());
-                if (row.getTags() instanceof org.xi.lt.server.web.domain.model.span.tags.HeartbeatTags) {
-                    out.setTags((org.xi.lt.server.web.domain.model.span.tags.HeartbeatTags) row.getTags());
+                if (row.getTags() instanceof org.xi.lt.server.domain.model.span.tags.HeartbeatTags) {
+                    out.setTags((org.xi.lt.server.domain.model.span.tags.HeartbeatTags) row.getTags());
                 }
                 out.setOnline(true);
                 rows.add(out);

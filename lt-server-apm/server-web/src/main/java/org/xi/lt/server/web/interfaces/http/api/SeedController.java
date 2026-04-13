@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.xi.lt.server.web.application.seed.SeedService;
-import org.xi.lt.server.web.domain.model.seed.SeedResult;
+import org.xi.lt.server.domain.model.seed.SeedResult;
 import org.xi.lt.server.web.interfaces.http.api.dto.SeedAllRequest;
 import org.xi.lt.server.web.shared.api.ApiResult;
 import org.xi.lt.server.web.shared.util.ResultHelper;

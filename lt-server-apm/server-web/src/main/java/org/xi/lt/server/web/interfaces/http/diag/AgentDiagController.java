@@ -4,9 +4,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.xi.lt.server.web.infrastructure.diag.netty.AgentCommandService;
-import org.xi.lt.server.web.infrastructure.diag.netty.AgentConnection;
-import org.xi.lt.server.web.infrastructure.diag.netty.AgentConnectionStore;
+import org.xi.lt.server.infrastructure.diag.netty.AgentCommandService;
+import org.xi.lt.server.infrastructure.diag.netty.AgentConnection;
+import org.xi.lt.server.infrastructure.diag.netty.AgentConnectionStore;
 import org.xi.lt.server.web.shared.api.ApiResult;
 import org.xi.lt.server.web.shared.util.ResultHelper;
 

@@ -7,8 +7,8 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.xi.lt.server.web.domain.model.seed.SeedResult;
-import org.xi.lt.server.web.infrastructure.es.EsClientHolder;
+import org.xi.lt.server.domain.model.seed.SeedResult;
+import org.xi.lt.server.infrastructure.es.EsClientHolder;
 
 import java.time.Instant;
 import java.time.ZoneId;

@@ -4,10 +4,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import org.xi.lt.server.web.infrastructure.diag.netty.AgentCommandService;
-import org.xi.lt.server.web.infrastructure.diag.replay.RequestReplayService;
-import org.xi.lt.server.web.infrastructure.diag.replay.RequestReplayService.ReplayResult;
-import org.xi.lt.server.web.infrastructure.diag.replay.RequestReplayService.RequestSnapshot;
+import org.xi.lt.server.infrastructure.diag.netty.AgentCommandService;
+import org.xi.lt.server.infrastructure.diag.replay.RequestReplayService;
+import org.xi.lt.server.infrastructure.diag.replay.RequestReplayService.ReplayResult;
+import org.xi.lt.server.infrastructure.diag.replay.RequestReplayService.RequestSnapshot;
 import org.xi.lt.server.web.shared.api.ApiResult;
 import org.xi.lt.server.web.shared.util.ResultHelper;
 
@@ -176,7 +176,7 @@ public class ReplayDebugController {
         public String ip;
         public String port;
         public String body;
-        public java.util.List<org.xi.lt.server.web.domain.model.common.KeyValue> headers;
+        public java.util.List<org.xi.lt.server.domain.model.common.KeyValue> headers;
         public Object params;
 
         RequestSnapshot toSnapshot() {
@@ -188,7 +188,7 @@ public class ReplayDebugController {
             s.setBody(body);
             if (headers != null && !headers.isEmpty()) {
                 java.util.LinkedHashMap m = new java.util.LinkedHashMap();
-                for (org.xi.lt.server.web.domain.model.common.KeyValue kv : headers) {
+                for (org.xi.lt.server.domain.model.common.KeyValue kv : headers) {
                     if (kv == null) continue;
                     String k = kv.getName();
                     if (k == null || k.isEmpty()) continue;

@@ -13,7 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.xi.lt.server.web.infrastructure.es.EsClientHolder;
+import org.xi.lt.server.infrastructure.es.EsClientHolder;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -62,7 +62,7 @@ public class AlertEngineService {
 
             SearchHit[] hits = response.getHits().getHits();
             for (SearchHit hit : hits) {
-                org.xi.lt.server.web.domain.model.span.SpanView v = org.xi.lt.server.web.infrastructure.es.SpanViewMapper.fromSource(hit.getSourceAsMap());
+                org.xi.lt.server.domain.model.span.SpanView v = org.xi.lt.server.infrastructure.es.SpanViewMapper.fromSource(hit.getSourceAsMap());
                 String app = v.getApp();
                 String gid = v.getGid();
                 long spend = v.getSpend() == null ? 0 : v.getSpend();
@@ -70,14 +70,14 @@ public class AlertEngineService {
                 String url = "";
                 boolean hasError = Boolean.TRUE.equals(v.getError());
                 
-                org.xi.lt.server.web.domain.model.span.tags.SpanTags tagsObj = v.getTags();
-                if (tagsObj instanceof org.xi.lt.server.web.domain.model.span.tags.ReqTags) {
-                    url = ((org.xi.lt.server.web.domain.model.span.tags.ReqTags) tagsObj).getUrl();
-                } else if (tagsObj instanceof org.xi.lt.server.web.domain.model.span.tags.ErrorTags) {
-                    url = ((org.xi.lt.server.web.domain.model.span.tags.ErrorTags) tagsObj).getUrl();
+                org.xi.lt.server.domain.model.span.tags.SpanTags tagsObj = v.getTags();
+                if (tagsObj instanceof org.xi.lt.server.domain.model.span.tags.ReqTags) {
+                    url = ((org.xi.lt.server.domain.model.span.tags.ReqTags) tagsObj).getUrl();
+                } else if (tagsObj instanceof org.xi.lt.server.domain.model.span.tags.ErrorTags) {
+                    url = ((org.xi.lt.server.domain.model.span.tags.ErrorTags) tagsObj).getUrl();
                     hasError = true;
-                } else if (tagsObj instanceof org.xi.lt.server.web.domain.model.span.tags.DefaultTags) {
-                    Object errVal = ((org.xi.lt.server.web.domain.model.span.tags.DefaultTags) tagsObj).getOthers().get("error");
+                } else if (tagsObj instanceof org.xi.lt.server.domain.model.span.tags.DefaultTags) {
+                    Object errVal = ((org.xi.lt.server.domain.model.span.tags.DefaultTags) tagsObj).getOthers().get("error");
                     if (Boolean.TRUE.equals(errVal) || "true".equals(String.valueOf(errVal))) {
                         hasError = true;
                     }

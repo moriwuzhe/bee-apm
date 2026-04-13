@@ -2,8 +2,8 @@ package org.xi.lt.server.web.application.usecase.common;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.xi.lt.server.web.domain.model.common.KeyValue;
-import org.xi.lt.server.web.domain.repository.CommonQueryRepository;
+import org.xi.lt.server.domain.model.common.KeyValue;
+import org.xi.lt.server.domain.repository.CommonQueryRepository;
 import org.xi.lt.server.web.interfaces.http.api.dto.CommonGetGroupListRequest;
 import org.xi.lt.server.web.interfaces.http.api.dto.CommonQueryByIdRequest;
 import org.xi.lt.server.web.shared.api.ApiResult;

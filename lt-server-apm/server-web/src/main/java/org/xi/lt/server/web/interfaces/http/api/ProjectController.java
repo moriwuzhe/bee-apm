@@ -3,7 +3,7 @@ package org.xi.lt.server.web.interfaces.http.api;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.xi.lt.server.web.application.project.ProjectService;
-import org.xi.lt.server.web.domain.model.Project;
+import org.xi.lt.server.domain.model.Project;
 import org.xi.lt.server.web.shared.api.ApiResult;
 import org.xi.lt.server.web.shared.util.ResultHelper;
 

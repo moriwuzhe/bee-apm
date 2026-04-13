@@ -312,7 +312,7 @@ watch(() => route.query, async () => {
     </template>
 
     <SkeletonLoader v-if="loading" :rows="8" :columns="10" />
-    <el-table v-else :data="rows" border stripe :row-class-name="tableRowClassName">
+    <el-table v-else :data="rows" border stripe :row-class-name="tableRowClassName" height="600" row-key="id">
       <el-table-column prop="id" label="ID" width="180" fixed />
       <el-table-column prop="time" label="时间" width="160" :formatter="(r:any)=>formatTime(r.time)" fixed />
       <el-table-column prop="gid" label="GID" width="180" />

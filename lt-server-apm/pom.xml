@@ -22,9 +22,9 @@
     </properties>
 
     <modules>
-        <module>server-core</module>
+        <module>lt-monitor-server-core</module>
         <module>lt-infrastructure</module>
-        <module>server-web</module>
+        <module>lt-monitor-server-web</module>
     </modules>
 
 

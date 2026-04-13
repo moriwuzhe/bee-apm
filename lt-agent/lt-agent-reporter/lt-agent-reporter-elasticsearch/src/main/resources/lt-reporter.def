@@ -1,0 +1,1 @@
+elasticsearch=org.xi.lt.agent.reporter.elasticsearch.ElasticSearchReporter

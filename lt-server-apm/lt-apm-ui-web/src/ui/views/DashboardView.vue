@@ -7,6 +7,9 @@ import { useTimeRangeStore } from '../../stores/timeRange'
 const timeRange = useTimeRangeStore()
 const loading = ref(false)
 const topoLoading = ref(false)
+const autoRefreshEnabled = ref(true)
+const autoRefreshInterval = ref(10000) // 10 seconds
+let refreshTimer: any = null
 
 const stat = ref<DashboardStat>({
   req: 0,
@@ -95,9 +98,35 @@ async function renderTopology() {
   }
 }
 
+function startAutoRefresh() {
+  stopAutoRefresh()
+  if (autoRefreshEnabled.value) {
+    refreshTimer = setInterval(() => {
+      reload()
+      renderTopology()
+    }, autoRefreshInterval.value)
+  }
+}
+
+function stopAutoRefresh() {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
+}
+
+watch(autoRefreshEnabled, () => {
+  startAutoRefresh()
+})
+
+watch(autoRefreshInterval, () => {
+  startAutoRefresh()
+})
+
 onMounted(() => {
   reload()
   renderTopology()
+  startAutoRefresh()
 })
 
 watch(() => [timeRange.beginTime, timeRange.endTime], () => {
@@ -106,6 +135,7 @@ watch(() => [timeRange.beginTime, timeRange.endTime], () => {
 })
 
 onUnmounted(() => {
+  stopAutoRefresh()
   if (network) network.destroy()
 })
 </script>
@@ -114,7 +144,16 @@ onUnmounted(() => {
   <div class="dashboard-container">
     <div class="page-head">
       <div class="title">仪表盘</div>
-      <el-button :loading="loading" type="primary" @click="reload">刷新</el-button>
+      <div class="controls">
+        <el-switch v-model="autoRefreshEnabled" active-text="自动刷新" inactive-text="自动刷新" />
+        <el-select v-model="autoRefreshInterval" placeholder="刷新间隔" style="width: 120px" :disabled="!autoRefreshEnabled">
+          <el-option label="5秒" :value="5000" />
+          <el-option label="10秒" :value="10000" />
+          <el-option label="30秒" :value="30000" />
+          <el-option label="1分钟" :value="60000" />
+        </el-select>
+        <el-button :loading="loading" type="primary" @click="reload">刷新</el-button>
+      </div>
     </div>
 
     <div class="grid">
@@ -164,6 +203,12 @@ onUnmounted(() => {
   font-size: 18px;
   font-weight: 800;
   color: var(--text);
+}
+
+.controls{
+  display:flex;
+  align-items:center;
+  gap: var(--space-3);
 }
 
 .grid{

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from 'vue'
+import { onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 
@@ -17,6 +17,9 @@ const loading = ref(false)
 const rows = ref<AppInfoRow[]>([])
 const pageNum = ref(1)
 const pageTotal = ref(0)
+const autoRefreshEnabled = ref(true)
+const autoRefreshInterval = ref(10000) // 10 seconds
+let refreshTimer: any = null
 
 const configDialogVisible = ref(false)
 const installDialogVisible = ref(false)
@@ -126,10 +129,40 @@ async function load(p = 1) {
   }
 }
 
+function startAutoRefresh() {
+  stopAutoRefresh()
+  if (autoRefreshEnabled.value) {
+    refreshTimer = setInterval(() => {
+      load(1)
+    }, autoRefreshInterval.value)
+  }
+}
+
+function stopAutoRefresh() {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
+}
+
+watch(autoRefreshEnabled, () => {
+  startAutoRefresh()
+})
+
+watch(autoRefreshInterval, () => {
+  startAutoRefresh()
+})
+
 onMounted(async () => {
   await reloadGroups()
   await load(1)
+  startAutoRefresh()
 })
+
+onUnmounted(() => {
+  stopAutoRefresh()
+})
+
 watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
   await reloadGroups()
   await load(1)
@@ -139,8 +172,17 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
 <template>
   <PageShell title="应用列表">
     <template #actions>
-      <el-button type="success" @click="installDialogVisible = true">Agent 下载与安装</el-button>
-      <el-button :loading="loading || groupsLoading" type="primary" @click="load(1)">查询</el-button>
+      <div class="actions">
+        <el-switch v-model="autoRefreshEnabled" active-text="自动刷新" inactive-text="自动刷新" />
+        <el-select v-model="autoRefreshInterval" placeholder="刷新间隔" style="width: 120px" :disabled="!autoRefreshEnabled">
+          <el-option label="5秒" :value="5000" />
+          <el-option label="10秒" :value="10000" />
+          <el-option label="30秒" :value="30000" />
+          <el-option label="1分钟" :value="60000" />
+        </el-select>
+        <el-button type="success" @click="installDialogVisible = true">Agent 下载与安装</el-button>
+        <el-button :loading="loading || groupsLoading" type="primary" @click="load(1)">查询</el-button>
+      </div>
     </template>
 
     <template #filters>
@@ -261,6 +303,12 @@ watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
   .filters{
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+.actions{
+  display:flex;
+  align-items:center;
+  gap: var(--space-3);
 }
 </style>
 

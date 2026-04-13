@@ -23,8 +23,7 @@
 
     <modules>
         <module>server-core</module>
-        <module>server-store</module>
-        <module>server-stream</module>
+        <module>lt-infrastructure</module>
         <module>server-web</module>
     </modules>
 

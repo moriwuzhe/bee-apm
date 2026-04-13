@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import PageShell from '../components/PageShell.vue'
 import { fetchAlerts, type AlertRow } from '../../api/alert'
@@ -15,6 +15,9 @@ const query = reactive({
   app: '',
   limit: 100,
 })
+const autoRefreshEnabled = ref(true)
+const autoRefreshInterval = ref(10000) // 10 seconds
+let refreshTimer: any = null
 
 async function loadApps() {
   try {
@@ -50,9 +53,38 @@ function goToTrace(gid: string) {
   }
 }
 
+function startAutoRefresh() {
+  stopAutoRefresh()
+  if (autoRefreshEnabled.value) {
+    refreshTimer = setInterval(() => {
+      loadAlerts()
+    }, autoRefreshInterval.value)
+  }
+}
+
+function stopAutoRefresh() {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
+}
+
+watch(autoRefreshEnabled, () => {
+  startAutoRefresh()
+})
+
+watch(autoRefreshInterval, () => {
+  startAutoRefresh()
+})
+
 onMounted(() => {
   loadApps()
   loadAlerts()
+  startAutoRefresh()
+})
+
+onUnmounted(() => {
+  stopAutoRefresh()
 })
 </script>
 
@@ -70,6 +102,17 @@ onMounted(() => {
             </el-form-item>
             <el-form-item label="最近条数">
               <el-input-number v-model="query.limit" :min="10" :max="500" style="width: 100px" @change="loadAlerts" />
+            </el-form-item>
+            <el-form-item>
+              <el-switch v-model="autoRefreshEnabled" active-text="自动刷新" inactive-text="自动刷新" size="small" />
+            </el-form-item>
+            <el-form-item>
+              <el-select v-model="autoRefreshInterval" placeholder="刷新间隔" style="width: 120px" :disabled="!autoRefreshEnabled" size="small">
+                <el-option label="5秒" :value="5000" />
+                <el-option label="10秒" :value="10000" />
+                <el-option label="30秒" :value="30000" />
+                <el-option label="1分钟" :value="60000" />
+              </el-select>
             </el-form-item>
             <el-form-item>
               <el-button type="primary" icon="Refresh" @click="loadAlerts" :loading="loading">刷新</el-button>

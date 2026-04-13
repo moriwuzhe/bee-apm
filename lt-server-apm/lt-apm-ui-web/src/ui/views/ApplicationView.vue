@@ -1,11 +1,14 @@
 <template>
   <div class="application-container">
-    <div class="header">
-      <h2>应用管理</h2>
-      <el-button type="primary" @click="showCreateDialog = true">新建应用</el-button>
+    <div class="page-head">
+      <div class="title">应用管理</div>
+      <div class="controls">
+        <el-button :loading="loading" type="primary" @click="loadData">刷新</el-button>
+        <el-button type="primary" @click="showCreateDialog = true">新建应用</el-button>
+      </div>
     </div>
 
-    <el-table :data="applications" border style="width: 100%">
+    <el-table :data="applications" border stripe v-loading="loading" style="width: 100%">
       <el-table-column prop="appCode" label="应用编码" width="180" />
       <el-table-column prop="appName" label="应用名称" width="180" />
       <el-table-column prop="projectCode" label="所属项目编码" width="180" />
@@ -46,6 +49,7 @@ import { fetchApplications, createApplication, fetchProjects, type Application, 
 
 const applications = ref<Application[]>([])
 const projects = ref<Project[]>([])
+const loading = ref(false)
 const showCreateDialog = ref(false)
 const formRef = ref()
 const form = ref({
@@ -62,11 +66,14 @@ const rules = {
 }
 
 const loadData = async () => {
+  loading.value = true
   try {
     applications.value = await fetchApplications()
     projects.value = await fetchProjects()
   } catch (e: any) {
     ElMessage.error(e.message || '加载失败')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -94,12 +101,26 @@ onMounted(() => {
 
 <style scoped>
 .application-container {
-  padding: 20px;
-}
-.header {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.page-head {
+  display: flex;
   align-items: center;
-  margin-bottom: 20px;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 </style>

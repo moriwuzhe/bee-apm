@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute } from 'vue-router'
 
@@ -22,6 +22,9 @@ const loading = ref(false)
 const rows = ref<RequestRow[]>([])
 const pageNum = ref(1)
 const pageTotal = ref(0)
+const autoRefreshEnabled = ref(true)
+const autoRefreshInterval = ref(10000) // 10 seconds
+let refreshTimer: any = null
 
 const form = reactive({
   env: '',
@@ -174,15 +177,46 @@ const subtitle = computed(() => {
   return parts.join('  ')
 })
 
+function startAutoRefresh() {
+  stopAutoRefresh()
+  if (autoRefreshEnabled.value) {
+    refreshTimer = setInterval(() => {
+      load(1)
+    }, autoRefreshInterval.value)
+  }
+}
+
+function stopAutoRefresh() {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
+}
+
+watch(autoRefreshEnabled, () => {
+  startAutoRefresh()
+})
+
+watch(autoRefreshInterval, () => {
+  startAutoRefresh()
+})
+
 onMounted(async () => {
   applyRouteQuery()
   await reloadGroups()
   await load(1)
+  startAutoRefresh()
 })
+
+onUnmounted(() => {
+  stopAutoRefresh()
+})
+
 watch(() => [timeRange.beginTime, timeRange.endTime], async () => {
   await reloadGroups()
   await load(1)
 })
+
 watch(() => route.query, async () => {
   applyRouteQuery()
   await load(1)
@@ -192,7 +226,16 @@ watch(() => route.query, async () => {
 <template>
   <PageShell title="请求查询" :subtitle="subtitle || undefined">
     <template #actions>
-      <el-button :loading="loading || groupsLoading" type="primary" @click="load(1)">查询</el-button>
+      <div class="actions">
+        <el-switch v-model="autoRefreshEnabled" active-text="自动刷新" inactive-text="自动刷新" />
+        <el-select v-model="autoRefreshInterval" placeholder="刷新间隔" style="width: 120px" :disabled="!autoRefreshEnabled">
+          <el-option label="5秒" :value="5000" />
+          <el-option label="10秒" :value="10000" />
+          <el-option label="30秒" :value="30000" />
+          <el-option label="1分钟" :value="60000" />
+        </el-select>
+        <el-button :loading="loading || groupsLoading" type="primary" @click="load(1)">查询</el-button>
+      </div>
     </template>
 
     <template #filters>
@@ -287,6 +330,12 @@ watch(() => route.query, async () => {
   .filters{
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+.actions{
+  display:flex;
+  align-items:center;
+  gap: var(--space-3);
 }
 </style>
 

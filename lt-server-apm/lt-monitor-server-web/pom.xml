@@ -68,6 +68,13 @@
             <version>2.14.0.RELEASE</version>
         </dependency>
 
+        <!-- Domain 模块依赖 -->
+        <dependency>
+            <groupId>org.xi.lt</groupId>
+            <artifactId>lt-domain</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
         <!-- 公共模块依赖 -->
         <dependency>
             <groupId>org.xi.lt</groupId>

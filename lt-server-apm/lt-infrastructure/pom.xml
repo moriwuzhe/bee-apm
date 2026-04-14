@@ -47,6 +47,13 @@
             <version>1.0.0</version>
         </dependency>
 
+        <!-- Domain 模块依赖 -->
+        <dependency>
+            <groupId>org.xi.lt</groupId>
+            <artifactId>lt-domain</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
         <!-- Server Core 模块依赖 -->
         <dependency>
             <groupId>org.xi.lt</groupId>

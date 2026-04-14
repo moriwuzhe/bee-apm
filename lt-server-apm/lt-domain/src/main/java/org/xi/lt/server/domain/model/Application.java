@@ -8,6 +8,8 @@ public class Application {
     private String appCode;
     private String appName;
     private String description;
+    private String appType; // "self-built" or "agent-attached"
+    private String appSecretKey;
     private Date createTime;
     private Date updateTime;
 
@@ -26,6 +28,12 @@ public class Application {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public String getAppType() { return appType; }
+    public void setAppType(String appType) { this.appType = appType; }
+
+    public String getAppSecretKey() { return appSecretKey; }
+    public void setAppSecretKey(String appSecretKey) { this.appSecretKey = appSecretKey; }
 
     public Date getCreateTime() { return createTime; }
     public void setCreateTime(Date createTime) { this.createTime = createTime; }

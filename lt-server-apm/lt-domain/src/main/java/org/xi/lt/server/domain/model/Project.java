@@ -8,6 +8,8 @@ public class Project {
     private String projectName;
     private String secretKey;
     private String description;
+    private String teamId;
+    private String teamName;
     private Date createTime;
     private Date updateTime;
 
@@ -26,6 +28,12 @@ public class Project {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public String getTeamId() { return teamId; }
+    public void setTeamId(String teamId) { this.teamId = teamId; }
+
+    public String getTeamName() { return teamName; }
+    public void setTeamName(String teamName) { this.teamName = teamName; }
 
     public Date getCreateTime() { return createTime; }
     public void setCreateTime(Date createTime) { this.createTime = createTime; }

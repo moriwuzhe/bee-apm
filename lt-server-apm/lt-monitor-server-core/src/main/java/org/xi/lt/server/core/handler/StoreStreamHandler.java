@@ -2,7 +2,7 @@ package org.xi.lt.server.core.handler;
 
 import org.xi.lt.common.annotation.LtPlugin;
 import org.xi.lt.server.core.common.Stream;
-import org.xi.lt.server.core.store.IStore;
+import org.xi.lt.server.domain.repository.IStore;
 import org.xi.lt.server.core.store.StoreFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

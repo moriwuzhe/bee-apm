@@ -1,7 +1,8 @@
 package org.xi.lt.server.core.store;
 
-import com.alibaba.fastjson.JSON;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.xi.lt.common.annotation.LtPlugin;
+import org.xi.lt.server.domain.repository.IStore;
 
 /**
  * @author yuan
@@ -9,6 +10,8 @@ import org.xi.lt.common.annotation.LtPlugin;
  */
 @LtPlugin(type = "STORE", name = "console")
 public class ConsoleStore implements IStore {
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     @Override
     public void init() {
 
@@ -20,7 +23,11 @@ public class ConsoleStore implements IStore {
             return;
         }
         for(Object item : streams){
-            System.out.println("[console]==============>"+JSON.toJSONString(item));
+            try {
+                System.out.println("[console]==============>" + OBJECT_MAPPER.writeValueAsString(item));
+            } catch (Exception e) {
+                System.out.println("[console]==============>" + item);
+            }
         }
     }
 }

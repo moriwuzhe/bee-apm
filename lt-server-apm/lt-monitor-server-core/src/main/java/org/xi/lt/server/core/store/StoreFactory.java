@@ -1,14 +1,10 @@
 package org.xi.lt.server.core.store;
 
-import org.xi.lt.server.core.common.ConfigHolder;
-import org.xi.lt.server.core.common.ServiceProviderLoader;
-import org.xi.lt.server.core.handler.IStreamHandler;
-import org.xi.lt.server.domain.repository.IStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.logging.SocketHandler;
+import org.xi.lt.server.core.common.ConfigHolder;
+import org.xi.lt.server.core.common.ServiceProviderLoader;
+import org.xi.lt.server.domain.repository.IStore;
 
 /**
  * @author yuan
@@ -16,7 +12,7 @@ import java.util.logging.SocketHandler;
  */
 public class StoreFactory {
     private static Logger logger = LoggerFactory.getLogger(StoreFactory.class);
-    static StoreFactory instance;
+    static volatile StoreFactory instance;
     static IStore store;
 
     public StoreFactory() {

@@ -1,4 +1,4 @@
-package org.xi.lt.server.infrastructure.stream.server;
+package org.xi.lt.server.infrastructure;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

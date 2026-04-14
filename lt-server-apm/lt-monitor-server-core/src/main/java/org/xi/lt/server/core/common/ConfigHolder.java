@@ -20,18 +20,31 @@ public class ConfigHolder {
         MutablePropertySources mps = environment.getPropertySources();
         Iterator<PropertySource<?>> iterator = mps.iterator();
         while (iterator.hasNext()) {
-            PropertySource ps = iterator.next();
-            if (ps.getName().startsWith("applicationConfig")) {
-                Map<String, OriginTrackedValue> source = (Map<String, OriginTrackedValue>) ps.getSource();
-                if (source != null) {
-                    Iterator valIt = source.entrySet().iterator();
-                    while (valIt.hasNext()) {
-                        Map.Entry<String, OriginTrackedValue> entry = (Map.Entry<String, OriginTrackedValue>) valIt.next();
-                        properties.put(entry.getKey(), entry.getValue().getValue());
+            PropertySource<?> ps = iterator.next();
+            Object source = ps.getSource();
+            if (source instanceof Map) {
+                ((Map<?, ?>) source).forEach((key, value) -> {
+                    if (value instanceof OriginTrackedValue) {
+                        properties.put(key, ((OriginTrackedValue) value).getValue());
+                    } else {
+                        properties.put(key, value);
                     }
-                }
+                });
             }
         }
+//        while (iterator.hasNext()) {
+//            PropertySource ps = iterator.next();
+//            if (ps.getName().startsWith("application")) {
+//                Map<String, OriginTrackedValue> source = (Map<String, OriginTrackedValue>) ps.getSource();
+//                if (source != null) {
+//                    Iterator valIt = source.entrySet().iterator();
+//                    while (valIt.hasNext()) {
+//                        Map.Entry<String, OriginTrackedValue> entry = (Map.Entry<String, OriginTrackedValue>) valIt.next();
+//                        properties.put(entry.getKey(), entry.getValue().getValue());
+//                    }
+//                }
+//            }
+//        }
     }
 
     public static String getProperty(String key) {

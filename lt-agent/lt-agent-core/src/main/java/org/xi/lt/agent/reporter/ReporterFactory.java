@@ -64,11 +64,12 @@ public class ReporterFactory {
                 }
             }
             if (LtUtils.isBlank(serverUrl)) {
-                serverUrl = ConfigUtils.me().getStr(
-                        "agent.report.url",
-                        ConfigUtils.me().getStr("serverUrl", "http://127.0.0.1:8080/apm/report")
-                );
+                serverUrl = ConfigUtils.me().getStr("agent.report.url");
             }
+            if (LtUtils.isBlank(serverUrl)) {
+                serverUrl = ConfigUtils.me().getStr("serverUrl", "http://127.0.0.1:8081/apm/report");
+            }
+
             System.setProperty("lt.agent.report.url", serverUrl);
             reporter.init();
             initQueue();

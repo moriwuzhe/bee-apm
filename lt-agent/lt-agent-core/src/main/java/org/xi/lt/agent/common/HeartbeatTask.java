@@ -46,7 +46,7 @@ public class HeartbeatTask {
 
     private static void sendControlPlaneHeartbeat() {
         try {
-            String serverUrl = org.xi.lt.agent.config.ConfigUtils.me().getStr("control.server.url", "http://127.0.0.1:8080");
+            String serverUrl = org.xi.lt.agent.config.ConfigUtils.me().getStr("control.server.url", "http://127.0.0.1:8081");
             URL url = new URL(serverUrl + "/api/agent/heartbeat");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");

@@ -28,7 +28,7 @@ public class AlertEngineService {
     private EsClientHolder esClientHolder;
 
     // 每分钟执行一次告警规则评估
-    @Scheduled(cron = "0 * * * * ?")
+//    @Scheduled(cron = "0 * * * * ?")
     public void evaluateRules() {
         log.info("Starting intelligent alert rule evaluation...");
         

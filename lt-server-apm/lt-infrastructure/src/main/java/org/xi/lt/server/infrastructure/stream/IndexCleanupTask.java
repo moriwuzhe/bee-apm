@@ -1,4 +1,4 @@
-package org.xi.lt.server.infrastructure.stream.server;
+package org.xi.lt.server.infrastructure.stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

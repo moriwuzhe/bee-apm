@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute } from 'vue-router'
+import * as XLSX from 'xlsx'
 
 import PageShell from '../components/PageShell.vue'
 import { useGroups } from '../composables/useGroups'
@@ -133,6 +134,31 @@ function tableRowClassName({ row }: { row: TxRow }) {
   }
   return ''
 }
+
+function exportToExcel() {
+  if (!rows.value || rows.value.length === 0) {
+    ElMessage.warning('没有数据可导出')
+    return
+  }
+  
+  const data = rows.value.map(row => ({
+    ID: row.id,
+    时间: formatTime(row.time),
+    GID: row.gid,
+    IP: row.ip,
+    环境: row.env,
+    应用: row.app,
+    耗时: row.spend,
+    SQL执行次数: row?.tags?.count ?? '',
+    事务方法: row?.tags?.point || ''
+  }))
+  
+  const ws = XLSX.utils.json_to_sheet(data)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, '事务数据')
+  XLSX.writeFile(wb, `事务数据_${new Date().toISOString().slice(0,10)}.xlsx`)
+  ElMessage.success('导出成功')
+}
 </script>
 
 <template>
@@ -146,6 +172,7 @@ function tableRowClassName({ row }: { row: TxRow }) {
           <el-option label="30秒" :value="30000" />
           <el-option label="1分钟" :value="60000" />
         </el-select>
+        <el-button :disabled="!rows?.length" type="success" @click="exportToExcel">导出Excel</el-button>
         <el-button :loading="loading || groupsLoading" type="primary" @click="load(1)">查询</el-button>
       </div>
     </template>

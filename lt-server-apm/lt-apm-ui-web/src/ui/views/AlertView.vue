@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import * as XLSX from 'xlsx'
 import PageShell from '../components/PageShell.vue'
 import { fetchAlerts, type AlertRow } from '../../api/alert'
 import { fetchGroupList } from '../../api/common'
@@ -83,6 +84,29 @@ onMounted(() => {
   startAutoRefresh()
 })
 
+function exportToExcel() {
+  if (!alerts.value || alerts.value.length === 0) {
+    ElMessage.warning('没有数据可导出')
+    return
+  }
+  
+  const data = alerts.value.map(row => ({
+    发生时间: formatDate(row.time),
+    应用名: row.app,
+    告警类型: row.alertType,
+    故障接口: row.url,
+    告警详情: row.message,
+    状态: row.status,
+    GID: row.gid
+  }))
+  
+  const ws = XLSX.utils.json_to_sheet(data)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, '告警数据')
+  XLSX.writeFile(wb, `告警数据_${new Date().toISOString().slice(0,10)}.xlsx`)
+  ElMessage.success('导出成功')
+}
+
 onUnmounted(() => {
   stopAutoRefresh()
 })
@@ -115,6 +139,7 @@ onUnmounted(() => {
               </el-select>
             </el-form-item>
             <el-form-item>
+              <el-button :disabled="!alerts?.length" type="success" @click="exportToExcel">导出Excel</el-button>
               <el-button type="primary" icon="Refresh" @click="loadAlerts" :loading="loading">刷新</el-button>
             </el-form-item>
           </el-form>

@@ -8,7 +8,7 @@ import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.utility.JavaModule;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
-import com.alibaba.fastjson2.JSON;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public final class WebDebugger {
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final Map<String, String> KEY_TO_ID = new ConcurrentHashMap<>();
     private static final Map<String, Watch> ID_TO_WATCH = new ConcurrentHashMap<>();
     private static final Map<String, CopyOnWriteArrayList<String>> KEY_TO_DEBUG_IDS = new ConcurrentHashMap<>();
@@ -585,7 +586,7 @@ public final class WebDebugger {
         }
         String s;
         try {
-            s = JSON.toJSONString(o);
+            s = OBJECT_MAPPER.writeValueAsString(o);
         } catch (Throwable t) {
             try {
                 s = String.valueOf(o);

@@ -16,7 +16,6 @@ import org.xi.lt.server.infrastructure.diag.remoting.protocol.RemotingBuilder;
 import org.xi.lt.server.infrastructure.diag.remoting.protocol.payload.RawStringPayloadHolder;
 import org.xi.lt.server.domain.repository.ProjectDao;
 import org.xi.lt.server.domain.model.Project;
-import org.xi.lt.server.web.shared.util.ObjectFieldUtils;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -48,8 +47,8 @@ public class DiagAgentChannelHandler extends SimpleChannelInboundHandler<Datagra
                 
                 // 鉴权拦截: 验证 projectCode 和 secretKey
                 Object props = msg.getHeader().getProperties();
-                String projectCode = ObjectFieldUtils.getString(props, "lt.project");
-                String secretKey = ObjectFieldUtils.getString(props, "lt.secret");
+                String projectCode = getString(props, "lt.project");
+                String secretKey = getString(props, "lt.secret");
 
                 if (projectCode == null || projectCode.isEmpty() || secretKey == null || secretKey.isEmpty()) {
                     log.warn("Agent Connection Rejected: missing project or secret. AgentId: {}", agentId);
@@ -99,5 +98,21 @@ public class DiagAgentChannelHandler extends SimpleChannelInboundHandler<Datagra
         }
         InetSocketAddress address = (InetSocketAddress) channel.remoteAddress();
         return address.getAddress().getHostAddress();
+    }
+
+    private static String getString(Object obj, String key) {
+        if (obj == null || key == null) return null;
+        if (obj instanceof java.util.Map) {
+            Object val = ((java.util.Map) obj).get(key);
+            return val != null ? String.valueOf(val) : null;
+        }
+        try {
+            java.lang.reflect.Field field = obj.getClass().getDeclaredField(key);
+            field.setAccessible(true);
+            Object val = field.get(obj);
+            return val != null ? String.valueOf(val) : null;
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 }

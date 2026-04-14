@@ -2,7 +2,7 @@ package org.xi.lt.server.infrastructure.store;
 
 import org.xi.lt.common.annotation.LtPlugin;
 import org.xi.lt.common.annotation.LtPluginType;
-import org.xi.lt.server.core.store.IStore;
+import org.xi.lt.server.domain.repository.IStore;
 import org.xi.lt.server.infrastructure.store.mysql.MysqlUtils;
 /**
  * @author kaddddd

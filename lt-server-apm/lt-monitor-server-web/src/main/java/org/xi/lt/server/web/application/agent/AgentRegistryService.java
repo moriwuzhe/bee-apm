@@ -7,12 +7,14 @@ import org.xi.lt.server.domain.model.agent.AgentPullConfigResult;
 import org.xi.lt.server.domain.model.agent.AgentInstanceInfo;
 import org.xi.lt.server.domain.repository.AgentInstanceRepository;
 import org.xi.lt.server.domain.repository.AgentConfigRepository;
+import org.xi.lt.server.domain.repository.AgentInstanceConfigRepository;
 import org.xi.lt.server.domain.repository.ApplicationRepository;
 import org.xi.lt.server.domain.repository.ProjectRepository;
 import org.xi.lt.server.domain.model.config.Application;
 import org.xi.lt.server.domain.model.config.Project;
 import org.xi.lt.server.web.application.plugin.PluginRegistryService;
 import org.xi.lt.server.web.interfaces.http.api.dto.AgentConfigUpdateRequest;
+import org.xi.lt.server.web.interfaces.http.api.dto.AgentInstanceConfigUpdateRequest;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +34,9 @@ public class AgentRegistryService {
 
     @Autowired
     private AgentConfigRepository agentConfigRepository;
+
+    @Autowired
+    private AgentInstanceConfigRepository agentInstanceConfigRepository;
 
     @Autowired
     private ApplicationRepository applicationRepository;
@@ -159,10 +164,25 @@ public class AgentRegistryService {
         return response;
     }
 
-    public AgentPullConfigResult pullConfig(String app) {
+    public AgentPullConfigResult pullConfig(String app, String inst) {
         AgentPullConfigResult response = new AgentPullConfigResult();
         
-        // 从数据库获取配置
+        // 优先查找实例级配置
+        String instanceConfig = null;
+        String instanceVersion = null;
+        if (inst != null && !inst.isEmpty()) {
+            instanceConfig = agentInstanceConfigRepository.findConfigByAppCodeAndInstId(app, inst);
+            instanceVersion = agentInstanceConfigRepository.findConfigVersionByAppCodeAndInstId(app, inst);
+        }
+        
+        // 如果有实例级配置，使用实例级配置
+        if (instanceConfig != null) {
+            response.setConfig(instanceConfig);
+            response.setVersion(instanceVersion);
+            return response;
+        }
+        
+        // 否则使用应用级配置
         String config = agentConfigRepository.findConfigByAppCode(app);
         String version = agentConfigRepository.findConfigVersionByAppCode(app);
         
@@ -177,6 +197,13 @@ public class AgentRegistryService {
             response.setVersion("0");
         }
         return response;
+    }
+    
+    /**
+     * 为了保持向后兼容，保留只传 app 的方法
+     */
+    public AgentPullConfigResult pullConfig(String app) {
+        return pullConfig(app, null);
     }
 
     public List<AgentInstanceInfo> getInstances() {
@@ -219,5 +246,26 @@ public class AgentRegistryService {
     private void updateMemoryCache(AgentInstanceInfo info) {
         agentRegistry.computeIfAbsent(info.getApp(), k -> new ConcurrentHashMap<>())
                     .put(info.getInst(), info);
+    }
+
+    /**
+     * 更新实例级配置
+     */
+    public void updateInstanceConfig(AgentInstanceConfigUpdateRequest payload) {
+        String app = payload == null ? null : payload.getApp();
+        String inst = payload == null ? null : payload.getInst();
+        String config = payload == null ? null : payload.getConfig();
+        
+        if (app != null && inst != null && config != null) {
+            String newVersion = UUID.randomUUID().toString();
+            
+            // 检查是否已存在实例级配置
+            String existingVersion = agentInstanceConfigRepository.findConfigVersionByAppCodeAndInstId(app, inst);
+            if (existingVersion == null) {
+                agentInstanceConfigRepository.insert(app, inst, config, newVersion);
+            } else {
+                agentInstanceConfigRepository.update(app, inst, config, newVersion);
+            }
+        }
     }
 }

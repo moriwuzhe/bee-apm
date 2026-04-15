@@ -175,6 +175,42 @@ public final class DatabaseConstants {
         "SELECT * FROM " + TABLE_AGENT_CONFIG + 
         " WHERE " + AGENT_CFG_COL_APP_CODE + " = ?";
     
+    // ==================== Agent实例配置表 ====================
+    public static final String TABLE_AGENT_INSTANCE_CONFIG = "bistoury_agent_instance_config";
+    public static final String AGENT_INST_CFG_COL_ID = "id";
+    public static final String AGENT_INST_CFG_COL_APP_CODE = "app_code";
+    public static final String AGENT_INST_CFG_COL_INST_ID = "inst_id";
+    public static final String AGENT_INST_CFG_COL_CONFIG = "config";
+    public static final String AGENT_INST_CFG_COL_CONFIG_VERSION = "config_version";
+    public static final String AGENT_INST_CFG_COL_CREATE_TIME = "create_time";
+    public static final String AGENT_INST_CFG_COL_UPDATE_TIME = "update_time";
+    
+    // ==================== Agent实例配置 SQL模板 ====================
+    /**
+     * 插入Agent实例配置的SQL
+     */
+    public static final String SQL_INSERT_AGENT_INSTANCE_CONFIG = 
+        "INSERT INTO " + TABLE_AGENT_INSTANCE_CONFIG + 
+        " (" + AGENT_INST_CFG_COL_APP_CODE + ", " + AGENT_INST_CFG_COL_INST_ID + ", " + 
+        AGENT_INST_CFG_COL_CONFIG + ", " + AGENT_INST_CFG_COL_CONFIG_VERSION + ") " +
+        "VALUES (?, ?, ?, ?)";
+    
+    /**
+     * 更新Agent实例配置的SQL
+     */
+    public static final String SQL_UPDATE_AGENT_INSTANCE_CONFIG = 
+        "UPDATE " + TABLE_AGENT_INSTANCE_CONFIG + 
+        " SET " + AGENT_INST_CFG_COL_CONFIG + " = ?, " + AGENT_INST_CFG_COL_CONFIG_VERSION + " = ?, " +
+        AGENT_INST_CFG_COL_UPDATE_TIME + " = CURRENT_TIMESTAMP " +
+        " WHERE " + AGENT_INST_CFG_COL_APP_CODE + " = ? AND " + AGENT_INST_CFG_COL_INST_ID + " = ?";
+    
+    /**
+     * 根据应用代码和实例ID查询Agent实例配置
+     */
+    public static final String SQL_SELECT_AGENT_INSTANCE_CONFIG_BY_APP_AND_INST = 
+        "SELECT * FROM " + TABLE_AGENT_INSTANCE_CONFIG + 
+        " WHERE " + AGENT_INST_CFG_COL_APP_CODE + " = ? AND " + AGENT_INST_CFG_COL_INST_ID + " = ?";
+    
     // ==================== 插件信息表 ====================
     public static final String TABLE_PLUGIN_INFO = "bistoury_plugin_info";
     public static final String PLUGIN_COL_ID = "id";

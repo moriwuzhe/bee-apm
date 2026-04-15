@@ -13,6 +13,7 @@ import org.xi.lt.server.domain.model.agent.AgentHeartbeatResult;
 import org.xi.lt.server.domain.model.agent.AgentInstanceInfo;
 import org.xi.lt.server.domain.model.agent.AgentPullConfigResult;
 import org.xi.lt.server.web.interfaces.http.api.dto.AgentConfigUpdateRequest;
+import org.xi.lt.server.web.interfaces.http.api.dto.AgentInstanceConfigUpdateRequest;
 import org.xi.lt.server.web.shared.api.ApiResult;
 import org.xi.lt.server.web.shared.util.ResultHelper;
 
@@ -34,8 +35,8 @@ public class AgentControlController {
     }
 
     @GetMapping("/config/pull")
-    public ApiResult<AgentPullConfigResult> pullConfig(@RequestParam("app") String app, @RequestParam("inst") String inst) {
-        return ResultHelper.success("success", registryService.pullConfig(app));
+    public ApiResult<AgentPullConfigResult> pullConfig(@RequestParam("app") String app, @RequestParam(value = "inst", required = false) String inst) {
+        return ResultHelper.success("success", registryService.pullConfig(app, inst));
     }
 
     @GetMapping("/instances")
@@ -47,6 +48,13 @@ public class AgentControlController {
     @PostMapping("/config/update")
     public ApiResult<Void> updateConfig(@RequestBody AgentConfigUpdateRequest payload) {
         registryService.updateConfig(payload);
+        return ResultHelper.success("success", null);
+    }
+    
+    // For UI to update instance-level config
+    @PostMapping("/config/instance/update")
+    public ApiResult<Void> updateInstanceConfig(@RequestBody AgentInstanceConfigUpdateRequest payload) {
+        registryService.updateInstanceConfig(payload);
         return ResultHelper.success("success", null);
     }
 

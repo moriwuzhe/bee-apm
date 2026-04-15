@@ -17,6 +17,7 @@ import ProfilerView from '../ui/views/ProfilerView.vue'
 import AlertView from '../ui/views/AlertView.vue'
 import ProjectView from '../ui/views/ProjectView.vue'
 import ApplicationView from '../ui/views/ApplicationView.vue'
+import AgentView from '../ui/views/AgentView.vue'
 import NotFoundView from '../ui/views/NotFoundView.vue'
 
 export const routes: RouteRecordRaw[] = [
@@ -77,6 +78,12 @@ export const routes: RouteRecordRaw[] = [
         name: 'application',
         component: ApplicationView,
         meta: { title: '应用管理', nav: true, icon: Connection, order: 31 },
+      },
+      {
+        path: 'agent',
+        name: 'agent',
+        component: AgentView,
+        meta: { title: 'Agent管理', nav: true, icon: Connection, order: 32 },
       },
     ],
   },

@@ -7,7 +7,7 @@ import org.xi.lt.server.domain.model.dashboard.FromToCount;
 import org.xi.lt.server.domain.model.graph.GraphData;
 import org.xi.lt.server.domain.model.graph.GraphEdge;
 import org.xi.lt.server.domain.model.graph.GraphNode;
-import org.xi.lt.server.domain.repository.DashboardQueryRepository;
+import org.xi.lt.server.domain.repository.UnifiedDataStore;
 import org.xi.lt.server.web.interfaces.http.api.dto.DashboardStatRequest;
 import org.xi.lt.server.web.interfaces.http.api.dto.DashboardTopologyRequest;
 import org.xi.lt.server.web.shared.api.ApiResult;
@@ -20,7 +20,7 @@ import java.util.List;
 @Service
 public class DashboardUseCase {
     @Autowired
-    private DashboardQueryRepository repo;
+    private UnifiedDataStore unifiedDataStore;
 
     public ApiResult<DashboardStatResult> stat(DashboardStatRequest req) {
         long beginMs = TimeParseUtils.parseMillis(req == null ? null : req.getBeginTime());
@@ -30,10 +30,10 @@ public class DashboardUseCase {
         String ip = req == null ? "" : safe(req.getIp());
 
         DashboardStatResult result = new DashboardStatResult();
-        result.setReq(repo.countByType(beginMs, endMs, env, app, ip, "req"));
-        result.setLog(repo.countByType(beginMs, endMs, env, app, ip, "log"));
-        result.setError(repo.countByType(beginMs, endMs, env, app, ip, "err"));
-        result.setInst(repo.countDistinctInst(beginMs, endMs, env, app, ip));
+        result.setReq(unifiedDataStore.countByType(beginMs, endMs, env, app, ip, "req"));
+        result.setLog(unifiedDataStore.countByType(beginMs, endMs, env, app, ip, "log"));
+        result.setError(unifiedDataStore.countByType(beginMs, endMs, env, app, ip, "err"));
+        result.setInst(unifiedDataStore.countDistinctInst(beginMs, endMs, env, app, ip));
         return ResultHelper.success(result);
     }
 
@@ -45,7 +45,7 @@ public class DashboardUseCase {
         List<GraphNode> nodes = new ArrayList<>();
         List<GraphEdge> edges = new ArrayList<>();
 
-        List<FromToCount> fromTo = repo.topologyFromTo(beginMs, endMs);
+        List<FromToCount> fromTo = unifiedDataStore.topologyFromTo(beginMs, endMs);
         java.util.Set<String> nodeSet = new java.util.HashSet<>();
         for (FromToCount e : fromTo) {
             String from = e == null ? null : e.getFrom();

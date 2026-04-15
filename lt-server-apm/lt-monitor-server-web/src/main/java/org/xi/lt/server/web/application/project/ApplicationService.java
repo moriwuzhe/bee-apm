@@ -2,8 +2,8 @@ package org.xi.lt.server.web.application.project;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.xi.lt.server.domain.repository.ApplicationDao;
-import org.xi.lt.server.domain.model.Application;
+import org.xi.lt.server.domain.repository.ApplicationRepository;
+import org.xi.lt.server.domain.model.config.Application;
 
 import java.util.List;
 import java.util.UUID;
@@ -12,13 +12,13 @@ import java.util.UUID;
 public class ApplicationService {
 
     @Autowired
-    private ApplicationDao applicationDao;
+    private ApplicationRepository applicationRepository;
 
     public List<Application> list(String projectCode) {
         if (projectCode != null && !projectCode.isEmpty()) {
-            return applicationDao.findByProjectCode(projectCode);
+            return applicationRepository.findByProjectCode(projectCode);
         }
-        return applicationDao.findAll();
+        return applicationRepository.findAll();
     }
 
     public void create(Application application) {
@@ -26,7 +26,7 @@ public class ApplicationService {
             throw new IllegalArgumentException("projectCode, appCode, and appName are required");
         }
 
-        Application existing = applicationDao.findByAppCode(application.getAppCode());
+        Application existing = applicationRepository.findByAppCode(application.getAppCode());
         if (existing != null) {
             throw new IllegalArgumentException("appCode already exists");
         }
@@ -37,6 +37,6 @@ public class ApplicationService {
         if (application.getAppType() == null || application.getAppType().isEmpty()) {
             application.setAppType("self-built"); // default to self-built
         }
-        applicationDao.insert(application);
+        applicationRepository.insert(application);
     }
 }

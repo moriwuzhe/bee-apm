@@ -2,15 +2,15 @@ package org.xi.lt.server.web.application.usecase.request;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.xi.lt.server.domain.model.PageSearchResult;
-import org.xi.lt.server.domain.model.SortDirection;
+import org.xi.lt.server.domain.model.common.PageSearchResult;
+import org.xi.lt.server.domain.model.common.SortDirection;
 import org.xi.lt.server.domain.model.query.SpanPageQuery;
 import org.xi.lt.server.domain.model.request.CallTreeNode;
 import org.xi.lt.server.domain.model.request.TopologyEdge;
 import org.xi.lt.server.domain.model.request.TopologyGraph;
 import org.xi.lt.server.domain.model.request.TopologyNode;
 import org.xi.lt.server.domain.model.span.SpanView;
-import org.xi.lt.server.domain.repository.SpanQueryRepository;
+import org.xi.lt.server.domain.repository.UnifiedDataStore;
 import org.xi.lt.server.web.interfaces.http.api.dto.RequestGidTimeRequest;
 import org.xi.lt.server.web.interfaces.http.api.dto.RequestListRequest;
 import org.xi.lt.server.web.shared.api.ApiResult;
@@ -27,7 +27,7 @@ public class RequestUseCase {
     private static final int PAGE_SIZE = 20;
 
     @Autowired
-    private SpanQueryRepository spanRepo;
+    private UnifiedDataStore unifiedDataStore;
 
     public PageResult<SpanView> list(RequestListRequest req) {
         int pageNum = req == null || req.getPageNum() == null ? 1 : req.getPageNum();
@@ -66,7 +66,7 @@ public class RequestUseCase {
             q.setSortDirection(SortDirection.DESC);
             q.setFrom((pageNum - 1) * PAGE_SIZE);
             q.setSize(PAGE_SIZE);
-            PageSearchResult<SpanView> r = spanRepo.searchPage(q);
+            PageSearchResult<SpanView> r = unifiedDataStore.searchSpanPage(q);
             return new PageResult<>(r.getRows(), pageNum, (int) r.getTotal());
         } catch (Exception e) {
             return PageResult.empty(pageNum);
@@ -104,7 +104,7 @@ public class RequestUseCase {
     }
 
     private CallTreeNode buildCallTree(String gid, long beginMs, long endMs) throws Exception {
-        List<SpanView> spans = spanRepo.searchByGidAny(gid, beginMs, endMs, 10000);
+        List<SpanView> spans = unifiedDataStore.searchSpanByGidAny(gid, beginMs, endMs, 10000);
         if (spans.isEmpty()) return null;
 
         SpanView rootSpan = null;
@@ -189,7 +189,7 @@ public class RequestUseCase {
     }
 
     private TopologyGraph buildTopology(String gid, long beginMs, long endMs) throws Exception {
-        List<SpanView> reqs = spanRepo.searchByGid("req", gid, beginMs, endMs, 2000);
+        List<SpanView> reqs = unifiedDataStore.searchSpanByGid("req", gid, beginMs, endMs, 2000);
         if (reqs.isEmpty()) return new TopologyGraph();
         SpanView r = reqs.get(0);
         String app = safe(r.getApp());

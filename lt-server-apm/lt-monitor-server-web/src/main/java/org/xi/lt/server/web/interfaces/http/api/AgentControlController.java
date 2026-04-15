@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.xi.lt.server.web.application.agent.AgentRegistryService;
 import org.xi.lt.server.domain.model.agent.AgentHeartbeatResult;
-import org.xi.lt.server.domain.model.AgentInstanceInfo;
+import org.xi.lt.server.domain.model.agent.AgentInstanceInfo;
 import org.xi.lt.server.domain.model.agent.AgentPullConfigResult;
 import org.xi.lt.server.web.interfaces.http.api.dto.AgentConfigUpdateRequest;
 import org.xi.lt.server.web.shared.api.ApiResult;

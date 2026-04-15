@@ -1,11 +1,11 @@
 package org.xi.lt.server.web.interfaces.http.apm;
 
+import org.elasticsearch.client.RestHighLevelClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
-import org.xi.lt.server.infrastructure.es.EsClientHolder;
 import org.xi.lt.server.web.service.TailBasedSamplingService;
 
 import java.util.ArrayList;
@@ -33,8 +33,8 @@ public class ApmReportController {
     @Autowired
     private TailBasedSamplingService samplingService;
 
-    @Autowired
-    private EsClientHolder es;
+    @Autowired(required = false)
+    private RestHighLevelClient restHighLevelClient;
 
     @Value("${apm.es.enabled:true}")
     private boolean esEnabled;
@@ -46,7 +46,7 @@ public class ApmReportController {
      */
     @PostMapping("/report")
     public String report(@RequestBody Object payload) {
-        if (!esEnabled || es == null || es.getClient() == null) {
+        if (!esEnabled || restHighLevelClient == null) {
             return "disabled";
         }
 

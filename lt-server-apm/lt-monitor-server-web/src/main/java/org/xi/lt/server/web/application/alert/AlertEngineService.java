@@ -3,6 +3,7 @@ package org.xi.lt.server.web.application.alert;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
@@ -13,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.xi.lt.server.infrastructure.es.EsClientHolder;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,8 +24,8 @@ import java.util.UUID;
 public class AlertEngineService {
     private static final Logger log = LoggerFactory.getLogger(AlertEngineService.class);
 
-    @Autowired
-    private EsClientHolder esClientHolder;
+    @Autowired(required = false)
+    private RestHighLevelClient restHighLevelClient;
 
     // 每分钟执行一次告警规则评估
 //    @Scheduled(cron = "0 * * * * ?")
@@ -58,27 +58,31 @@ public class AlertEngineService {
             sourceBuilder.size(100);
 
             searchRequest.source(sourceBuilder);
-            SearchResponse response = esClientHolder.getClient().search(searchRequest);
+            SearchResponse response = restHighLevelClient.search(searchRequest);
 
             SearchHit[] hits = response.getHits().getHits();
             for (SearchHit hit : hits) {
-                org.xi.lt.server.domain.model.span.SpanView v = org.xi.lt.server.infrastructure.es.SpanViewMapper.fromSource(hit.getSourceAsMap());
-                String app = v.getApp();
-                String gid = v.getGid();
-                long spend = v.getSpend() == null ? 0 : v.getSpend();
+                // TODO: 转换逻辑需要根据实际数据结构调整
+                Map sourceMap = hit.getSourceAsMap();
+                String app = (String) sourceMap.get("app");
+                String gid = (String) sourceMap.get("gid");
+                Object spendObj = sourceMap.get("spend");
+                long spend = spendObj instanceof Number ? ((Number) spendObj).longValue() : 0;
                 
                 String url = "";
-                boolean hasError = Boolean.TRUE.equals(v.getError());
+                boolean hasError = Boolean.TRUE.equals(sourceMap.get("error"));
                 
-                org.xi.lt.server.domain.model.span.tags.SpanTags tagsObj = v.getTags();
-                if (tagsObj instanceof org.xi.lt.server.domain.model.span.tags.ReqTags) {
-                    url = ((org.xi.lt.server.domain.model.span.tags.ReqTags) tagsObj).getUrl();
-                } else if (tagsObj instanceof org.xi.lt.server.domain.model.span.tags.ErrorTags) {
-                    url = ((org.xi.lt.server.domain.model.span.tags.ErrorTags) tagsObj).getUrl();
-                    hasError = true;
-                } else if (tagsObj instanceof org.xi.lt.server.domain.model.span.tags.DefaultTags) {
-                    Object errVal = ((org.xi.lt.server.domain.model.span.tags.DefaultTags) tagsObj).getOthers().get("error");
+                // TODO: 简化tags处理
+                Object tagsObj = sourceMap.get("tags");
+                if (tagsObj instanceof Map) {
+                    Map tags = (Map) tagsObj;
+                    url = (String) tags.get("url");
+                    Object errVal = tags.get("error");
                     if (Boolean.TRUE.equals(errVal) || "true".equals(String.valueOf(errVal))) {
+                        hasError = true;
+                    }
+                    Object status = tags.get("status");
+                    if (status != null && status.toString().startsWith("5")) {
                         hasError = true;
                     }
                 }
@@ -114,7 +118,7 @@ public class AlertEngineService {
 
             IndexRequest indexRequest = new IndexRequest("lt_apm_alert", "alert");
             indexRequest.source(alertDoc);
-            esClientHolder.getClient().index(indexRequest);
+            restHighLevelClient.index(indexRequest);
         } catch (Exception e) {
             log.error("Failed to save alert to ES", e);
         }

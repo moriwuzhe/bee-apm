@@ -2,6 +2,7 @@ package org.xi.lt.server.web.interfaces.http.alert;
 
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
@@ -14,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.xi.lt.server.domain.model.alert.AlertRow;
-import org.xi.lt.server.infrastructure.es.EsClientHolder;
 import org.xi.lt.server.web.shared.api.ApiResult;
 import org.xi.lt.server.web.shared.util.ResultHelper;
 import org.xi.lt.server.core.util.ObjectFieldUtils;
@@ -27,8 +27,8 @@ import java.util.List;
 public class AlertController {
     private static final Logger log = LoggerFactory.getLogger(AlertController.class);
 
-    @Autowired
-    private EsClientHolder esClientHolder;
+    @Autowired(required = false)
+    private RestHighLevelClient restHighLevelClient;
 
     @GetMapping("/list")
     public ApiResult<List<AlertRow>> listAlerts(@RequestParam(required = false) String app,
@@ -47,7 +47,7 @@ public class AlertController {
             sourceBuilder.size(limit);
             
             searchRequest.source(sourceBuilder);
-            SearchResponse response = esClientHolder.getClient().search(searchRequest);
+            SearchResponse response = restHighLevelClient.search(searchRequest);
 
             List<AlertRow> result = new ArrayList<>();
             for (SearchHit hit : response.getHits().getHits()) {

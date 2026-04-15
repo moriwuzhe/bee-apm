@@ -1,0 +1,43 @@
+package org.xi.lt.server.domain.model.config;
+
+import java.util.Date;
+
+public class Project {
+    private Long id;
+    private String projectCode;
+    private String projectName;
+    private String secretKey;
+    private String description;
+    private String teamId;
+    private String teamName;
+    private Date createTime;
+    private Date updateTime;
+
+    // Getters and Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getProjectCode() { return projectCode; }
+    public void setProjectCode(String projectCode) { this.projectCode = projectCode; }
+
+    public String getProjectName() { return projectName; }
+    public void setProjectName(String projectName) { this.projectName = projectName; }
+
+    public String getSecretKey() { return secretKey; }
+    public void setSecretKey(String secretKey) { this.secretKey = secretKey; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public String getTeamId() { return teamId; }
+    public void setTeamId(String teamId) { this.teamId = teamId; }
+
+    public String getTeamName() { return teamName; }
+    public void setTeamName(String teamName) { this.teamName = teamName; }
+
+    public Date getCreateTime() { return createTime; }
+    public void setCreateTime(Date createTime) { this.createTime = createTime; }
+
+    public Date getUpdateTime() { return updateTime; }
+    public void setUpdateTime(Date updateTime) { this.updateTime = updateTime; }
+}

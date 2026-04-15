@@ -1,6 +1,6 @@
 package org.xi.lt.server.domain.model.query;
 
-import org.xi.lt.server.domain.model.SortDirection;
+import org.xi.lt.server.domain.model.common.SortDirection;
 
 public class SpanPageQuery {
     private String type;

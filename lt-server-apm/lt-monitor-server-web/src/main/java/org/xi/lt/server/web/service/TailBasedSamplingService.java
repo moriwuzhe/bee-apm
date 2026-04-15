@@ -2,11 +2,11 @@ package org.xi.lt.server.web.service;
 
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.xi.lt.server.infrastructure.es.EsClientHolder;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -23,8 +23,8 @@ import java.util.concurrent.*;
 public class TailBasedSamplingService {
     private static final Logger log = LoggerFactory.getLogger(TailBasedSamplingService.class);
     
-    @Autowired
-    private EsClientHolder es;
+    @Autowired(required = false)
+    private RestHighLevelClient restHighLevelClient;
     
     private final ConcurrentHashMap<String, TraceBuffer> traceBufferMap = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -54,7 +54,7 @@ public class TailBasedSamplingService {
      * @param spanDocs Span转换为ES Source的Map
      */
     public void addSpans(String gid, List<?> spanDocs) {
-        if (es == null || es.getClient() == null) return;
+        if (restHighLevelClient == null) return;
         
         if (spanDocs == null || spanDocs.isEmpty()) {
             return;
@@ -172,7 +172,7 @@ public class TailBasedSamplingService {
         
         if (keepCount > 0) {
             try {
-                es.getClient().bulk(bulkRequest);
+                restHighLevelClient.bulk(bulkRequest);
             } catch (Exception e) {
                 log.error("Failed to flush sampled spans to ES", e);
             }
@@ -196,14 +196,14 @@ public class TailBasedSamplingService {
             bulkRequest.add(indexRequest);
         }
         try {
-            es.getClient().bulk(bulkRequest);
+            restHighLevelClient.bulk(bulkRequest);
         } catch (Exception e) {
             log.error("Failed to flush spans to ES directly", e);
         }
     }
 
     private void flushAll() {
-        if (es == null || es.getClient() == null) return;
+        if (restHighLevelClient == null) return;
         BulkRequest bulkRequest = new BulkRequest();
         for (TraceBuffer buffer : traceBufferMap.values()) {
             for (Object o : buffer.spans) {
@@ -219,7 +219,7 @@ public class TailBasedSamplingService {
         }
         if (bulkRequest.numberOfActions() > 0) {
             try {
-                es.getClient().bulk(bulkRequest);
+                restHighLevelClient.bulk(bulkRequest);
             } catch (Exception e) {
                 log.error("Failed to flush all spans on shutdown", e);
             }

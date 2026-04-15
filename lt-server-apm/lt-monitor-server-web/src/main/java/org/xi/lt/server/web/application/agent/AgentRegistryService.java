@@ -3,7 +3,7 @@ package org.xi.lt.server.web.application.agent;
 import org.springframework.stereotype.Service;
 import org.xi.lt.server.domain.model.agent.AgentHeartbeatResult;
 import org.xi.lt.server.domain.model.agent.AgentPullConfigResult;
-import org.xi.lt.server.domain.model.AgentInstanceInfo;
+import org.xi.lt.server.domain.model.agent.AgentInstanceInfo;
 import org.xi.lt.server.web.interfaces.http.api.dto.AgentConfigUpdateRequest;
 
 import java.util.ArrayList;

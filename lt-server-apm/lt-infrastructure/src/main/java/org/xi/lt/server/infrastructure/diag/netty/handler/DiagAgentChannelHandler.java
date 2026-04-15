@@ -15,8 +15,8 @@ import org.xi.lt.server.infrastructure.diag.netty.AgentConnectionStore;
 import org.xi.lt.server.infrastructure.diag.remoting.protocol.Datagram;
 import org.xi.lt.server.infrastructure.diag.remoting.protocol.RemotingBuilder;
 import org.xi.lt.server.infrastructure.diag.remoting.protocol.payload.RawStringPayloadHolder;
-import org.xi.lt.server.domain.repository.ProjectDao;
-import org.xi.lt.server.domain.model.Project;
+import org.xi.lt.server.domain.repository.ProjectRepository;
+import org.xi.lt.server.domain.model.config.Project;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -36,7 +36,7 @@ public class DiagAgentChannelHandler extends SimpleChannelInboundHandler<Datagra
     private AgentCommandService commandService;
 
     @Autowired(required=false)
-    private ProjectDao projectDao;
+    private ProjectRepository projectRepository;
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Datagram msg) {
@@ -57,8 +57,8 @@ public class DiagAgentChannelHandler extends SimpleChannelInboundHandler<Datagra
                     return;
                 }
 
-                if (projectDao != null) {
-                    Project project = projectDao.findByProjectCode(projectCode);
+                if (projectRepository != null) {
+                    Project project = projectRepository.findByProjectCode(projectCode);
                     if (project == null || !secretKey.equals(project.getSecretKey())) {
                         log.warn("Agent Connection Rejected: invalid project or secret. AgentId: {}, Project: {}", agentId, projectCode);
                         ctx.close();

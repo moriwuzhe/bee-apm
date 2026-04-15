@@ -2,8 +2,8 @@ package org.xi.lt.server.web.application.project;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.xi.lt.server.domain.repository.ProjectDao;
-import org.xi.lt.server.domain.model.Project;
+import org.xi.lt.server.domain.repository.ProjectRepository;
+import org.xi.lt.server.domain.model.config.Project;
 
 import java.util.List;
 import java.util.UUID;
@@ -12,10 +12,10 @@ import java.util.UUID;
 public class ProjectService {
 
     @Autowired
-    private ProjectDao projectDao;
+    private ProjectRepository projectRepository;
 
     public List<Project> list() {
-        return projectDao.findAll();
+        return projectRepository.findAll();
     }
 
     public void create(Project project) {
@@ -23,7 +23,7 @@ public class ProjectService {
             throw new IllegalArgumentException("projectCode and projectName are required");
         }
 
-        Project existing = projectDao.findByProjectCode(project.getProjectCode());
+        Project existing = projectRepository.findByProjectCode(project.getProjectCode());
         if (existing != null) {
             throw new IllegalArgumentException("projectCode already exists");
         }
@@ -31,6 +31,6 @@ public class ProjectService {
         if (project.getSecretKey() == null || project.getSecretKey().isEmpty()) {
             project.setSecretKey(UUID.randomUUID().toString());
         }
-        projectDao.insert(project);
+        projectRepository.insert(project);
     }
 }

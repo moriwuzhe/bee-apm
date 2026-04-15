@@ -8,7 +8,6 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.xi.lt.server.domain.model.seed.SeedResult;
-import org.xi.lt.server.infrastructure.es.EsClientHolder;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -23,8 +22,8 @@ public class SeedService {
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyy.MM.dd");
     private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_INSTANT;
 
-    @Autowired
-    private EsClientHolder es;
+    @Autowired(required = false)
+    private RestHighLevelClient restHighLevelClient;
 
     public SeedResult seedAll(int hours, int apps, int instPerApp, int reqPerApp) throws Exception {
         int h = hours <= 0 ? 2 : Math.min(72, hours);
@@ -35,7 +34,6 @@ public class SeedService {
         long end = System.currentTimeMillis();
         long start = end - h * 60L * 60L * 1000L;
 
-        RestHighLevelClient client = es.getClient();
         BulkRequest bulk = new BulkRequest();
 
         String[] envs = new String[]{"preprod", "prod"};
@@ -52,7 +50,7 @@ public class SeedService {
             }
         }
 
-        BulkResponse resp = client.bulk(bulk);
+        BulkResponse resp = restHighLevelClient.bulk(bulk);
         SeedResult out = new SeedResult();
         out.setTookMs(resp.getTook() == null ? 0 : resp.getTook().getMillis());
         out.setHasFailures(resp.hasFailures());

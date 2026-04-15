@@ -22,7 +22,44 @@ lt:
   handlers:
     flow: json>store
   store:
-    name: h2
+    name: h2  # 可选: h2, elasticsearch, mysql
+    
+    # Elasticsearch 配置
+    elasticsearch:
+      urls: http://localhost:9200
+      username: 
+      password: 
+      indices:
+        default: lt-default
+        span: lt-apm-span
+        log: lt-apm-log
+      http:
+        max-total-connection: 100
+        default-max-per-route: 20
+        conn-timeout: 5000
+        read-timeout: 30000
+        max-connection-idle-time: 60
+      discovery:
+        enabled: false
+        frequency: 30000
+    
+    # MySQL 配置
+    mysql:
+      url: jdbc:mysql://localhost:3306/lt_apm?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+      username: root
+      password: 
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      pool:
+        initial-size: 5
+        min-idle: 5
+        max-active: 20
+        max-wait: 60000
+        time-between-eviction-runs-millis: 60000
+        min-evictable-idle-time-millis: 300000
+        validation-query: SELECT 1
+        test-while-idle: true
+        test-on-borrow: false
+        test-on-return: false
 
 diagnostic:
   zk:

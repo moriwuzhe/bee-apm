@@ -2,11 +2,11 @@ package org.xi.lt.server.web.application.usecase.logger;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.xi.lt.server.domain.model.PageSearchResult;
-import org.xi.lt.server.domain.model.SortDirection;
+import org.xi.lt.server.domain.model.common.PageSearchResult;
+import org.xi.lt.server.domain.model.common.SortDirection;
 import org.xi.lt.server.domain.model.query.SpanPageQuery;
 import org.xi.lt.server.domain.model.span.SpanView;
-import org.xi.lt.server.domain.repository.SpanQueryRepository;
+import org.xi.lt.server.domain.repository.UnifiedDataStore;
 import org.xi.lt.server.web.interfaces.http.api.dto.LoggerListRequest;
 import org.xi.lt.server.web.shared.model.PageResult;
 import org.xi.lt.server.web.shared.util.TimeParseUtils;
@@ -16,7 +16,7 @@ public class LoggerUseCase {
     private static final int PAGE_SIZE = 20;
 
     @Autowired
-    private SpanQueryRepository spanRepo;
+    private UnifiedDataStore unifiedDataStore;
 
     public PageResult<SpanView> list(LoggerListRequest req) {
         int pageNum = req == null || req.getPageNum() == null ? 1 : req.getPageNum();
@@ -43,7 +43,7 @@ public class LoggerUseCase {
         q.setSize(PAGE_SIZE);
 
         try {
-            PageSearchResult<SpanView> r = spanRepo.searchPage(q);
+            PageSearchResult<SpanView> r = unifiedDataStore.searchSpanPage(q);
             return new PageResult<>(r.getRows(), pageNum, (int) r.getTotal());
         } catch (Exception e) {
             return PageResult.empty(pageNum);

@@ -15,7 +15,7 @@ public class ApplicationDaoImpl implements ApplicationDao {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private static final String INSERT_SQL = "INSERT INTO bistoury_application (project_code, app_code, app_name, description) VALUES (?, ?, ?, ?)";
+    private static final String INSERT_SQL = "INSERT INTO bistoury_application (project_code, app_code, app_name, description, app_type, app_secret_key) VALUES (?, ?, ?, ?, ?, ?)";
     private static final String SELECT_BY_CODE = "SELECT * FROM bistoury_application WHERE app_code = ?";
     private static final String SELECT_BY_PROJECT = "SELECT * FROM bistoury_application WHERE project_code = ? ORDER BY id DESC";
     private static final String SELECT_ALL = "SELECT * FROM bistoury_application ORDER BY id DESC";
@@ -27,6 +27,8 @@ public class ApplicationDaoImpl implements ApplicationDao {
         a.setAppCode(rs.getString("app_code"));
         a.setAppName(rs.getString("app_name"));
         a.setDescription(rs.getString("description"));
+        a.setAppType(rs.getString("app_type"));
+        a.setAppSecretKey(rs.getString("app_secret_key"));
         a.setCreateTime(rs.getTimestamp("create_time"));
         a.setUpdateTime(rs.getTimestamp("update_time"));
         return a;
@@ -38,7 +40,9 @@ public class ApplicationDaoImpl implements ApplicationDao {
                 app.getProjectCode(), 
                 app.getAppCode(), 
                 app.getAppName(), 
-                app.getDescription());
+                app.getDescription(),
+                app.getAppType(),
+                app.getAppSecretKey());
     }
 
     @Override

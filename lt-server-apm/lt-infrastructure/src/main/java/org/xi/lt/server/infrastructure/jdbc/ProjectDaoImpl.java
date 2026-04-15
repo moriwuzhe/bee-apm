@@ -15,7 +15,7 @@ public class ProjectDaoImpl implements ProjectDao {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private static final String INSERT_SQL = "INSERT INTO bistoury_project (project_code, project_name, secret_key, description) VALUES (?, ?, ?, ?)";
+    private static final String INSERT_SQL = "INSERT INTO bistoury_project (project_code, project_name, secret_key, description, team_id, team_name) VALUES (?, ?, ?, ?, ?, ?)";
     private static final String SELECT_BY_CODE = "SELECT * FROM bistoury_project WHERE project_code = ?";
     private static final String SELECT_ALL = "SELECT * FROM bistoury_project ORDER BY id DESC";
 
@@ -26,6 +26,8 @@ public class ProjectDaoImpl implements ProjectDao {
         p.setProjectName(rs.getString("project_name"));
         p.setSecretKey(rs.getString("secret_key"));
         p.setDescription(rs.getString("description"));
+        p.setTeamId(rs.getString("team_id"));
+        p.setTeamName(rs.getString("team_name"));
         p.setCreateTime(rs.getTimestamp("create_time"));
         p.setUpdateTime(rs.getTimestamp("update_time"));
         return p;
@@ -37,7 +39,9 @@ public class ProjectDaoImpl implements ProjectDao {
                 project.getProjectCode(), 
                 project.getProjectName(), 
                 project.getSecretKey(), 
-                project.getDescription());
+                project.getDescription(),
+                project.getTeamId(),
+                project.getTeamName());
     }
 
     @Override

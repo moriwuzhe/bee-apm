@@ -6,6 +6,8 @@ export interface Project {
   projectName: string
   secretKey: string
   description: string
+  teamId?: string
+  teamName?: string
   createTime: number
   updateTime: number
 }
@@ -16,6 +18,8 @@ export interface Application {
   appCode: string
   appName: string
   description: string
+  appType?: string
+  appSecretKey?: string
   createTime: number
   updateTime: number
 }

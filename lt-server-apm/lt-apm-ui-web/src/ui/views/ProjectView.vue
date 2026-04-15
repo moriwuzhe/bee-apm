@@ -11,6 +11,7 @@
     <el-table :data="projects" border stripe v-loading="loading" style="width: 100%">
       <el-table-column prop="projectCode" label="项目编码" width="180" />
       <el-table-column prop="projectName" label="项目名称" width="180" />
+      <el-table-column prop="teamName" label="团队名称" width="150" />
       <el-table-column prop="secretKey" label="密钥 (Secret Key)" width="320">
         <template #default="{ row }">
           <el-tag type="success">{{ row.secretKey }}</el-tag>
@@ -26,6 +27,12 @@
         </el-form-item>
         <el-form-item label="项目名称" prop="projectName">
           <el-input v-model="form.projectName" placeholder="如: 电商业务线" />
+        </el-form-item>
+        <el-form-item label="团队ID" prop="teamId">
+          <el-input v-model="form.teamId" placeholder="如: team-001" />
+        </el-form-item>
+        <el-form-item label="团队名称" prop="teamName">
+          <el-input v-model="form.teamName" placeholder="如: 电商团队" />
         </el-form-item>
         <el-form-item label="描述" prop="description">
           <el-input type="textarea" v-model="form.description" />
@@ -53,6 +60,8 @@ const formRef = ref()
 const form = ref({
   projectCode: '',
   projectName: '',
+  teamId: '',
+  teamName: '',
   description: '',
 })
 
@@ -80,7 +89,7 @@ const submitCreate = async () => {
         await createProject(form.value)
         ElMessage.success('创建成功')
         showCreateDialog.value = false
-        form.value = { projectCode: '', projectName: '', description: '' }
+        form.value = { projectCode: '', projectName: '', teamId: '', teamName: '', description: '' }
         loadData()
       } catch (e: any) {
         ElMessage.error(e.message || '创建失败')

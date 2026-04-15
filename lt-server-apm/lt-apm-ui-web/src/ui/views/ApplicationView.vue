@@ -12,6 +12,18 @@
       <el-table-column prop="appCode" label="应用编码" width="180" />
       <el-table-column prop="appName" label="应用名称" width="180" />
       <el-table-column prop="projectCode" label="所属项目编码" width="180" />
+      <el-table-column prop="appType" label="应用类型" width="120">
+        <template #default="{ row }">
+          <el-tag :type="row.appType === 'agent-attached' ? 'primary' : 'info'">
+            {{ row.appType === 'agent-attached' ? 'Agent接入' : '自建' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="appSecretKey" label="应用密钥" width="280">
+        <template #default="{ row }">
+          <el-tag type="success">{{ row.appSecretKey }}</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column prop="description" label="描述" />
     </el-table>
 
@@ -27,6 +39,12 @@
         </el-form-item>
         <el-form-item label="应用名称" prop="appName">
           <el-input v-model="form.appName" placeholder="如: 订单服务" />
+        </el-form-item>
+        <el-form-item label="应用类型" prop="appType">
+          <el-select v-model="form.appType" placeholder="请选择应用类型">
+            <el-option label="自建" value="self-built" />
+            <el-option label="Agent接入" value="agent-attached" />
+          </el-select>
         </el-form-item>
         <el-form-item label="描述" prop="description">
           <el-input type="textarea" v-model="form.description" />
@@ -56,6 +74,7 @@ const form = ref({
   projectCode: '',
   appCode: '',
   appName: '',
+  appType: 'self-built',
   description: '',
 })
 
@@ -85,7 +104,7 @@ const submitCreate = async () => {
         await createApplication(form.value)
         ElMessage.success('创建成功')
         showCreateDialog.value = false
-        form.value = { projectCode: '', appCode: '', appName: '', description: '' }
+        form.value = { projectCode: '', appCode: '', appName: '', appType: 'self-built', description: '' }
         loadData()
       } catch (e: any) {
         ElMessage.error(e.message || '创建失败')

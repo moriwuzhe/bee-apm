@@ -6,6 +6,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class AgentHeartbeatResult {
     private boolean hasNewConfig;
     private String newConfigVersion;
+    private boolean hasNewPlugins;
+    private long pluginLastUpdateTime;
 
     public boolean isHasNewConfig() {
         return hasNewConfig;
@@ -21,5 +23,21 @@ public class AgentHeartbeatResult {
 
     public void setNewConfigVersion(String newConfigVersion) {
         this.newConfigVersion = newConfigVersion;
+    }
+
+    public boolean isHasNewPlugins() {
+        return hasNewPlugins;
+    }
+
+    public void setHasNewPlugins(boolean hasNewPlugins) {
+        this.hasNewPlugins = hasNewPlugins;
+    }
+
+    public long getPluginLastUpdateTime() {
+        return pluginLastUpdateTime;
+    }
+
+    public void setPluginLastUpdateTime(long pluginLastUpdateTime) {
+        this.pluginLastUpdateTime = pluginLastUpdateTime;
     }
 }

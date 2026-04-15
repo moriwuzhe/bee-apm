@@ -22,6 +22,12 @@ public class AgentControlController {
     @Autowired
     private AgentRegistryService registryService;
 
+    @PostMapping("/register")
+    public ApiResult<Void> register(@RequestBody AgentInstanceInfo info) {
+        registryService.register(info);
+        return ResultHelper.success("success", null);
+    }
+
     @PostMapping("/heartbeat")
     public ApiResult<AgentHeartbeatResult> heartbeat(@RequestBody AgentInstanceInfo info) {
         return ResultHelper.success("success", registryService.heartbeat(info));

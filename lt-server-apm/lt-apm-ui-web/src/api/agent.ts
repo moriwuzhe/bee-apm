@@ -2,6 +2,7 @@ import { http } from './http'
 
 export interface AgentInstanceInfo {
   id: number
+  projectCode?: string
   app: string
   inst: string
   ip: string
@@ -9,11 +10,14 @@ export interface AgentInstanceInfo {
   configVersion: string
   lastHeartbeatTime: number
   online: boolean
+  secretKey?: string
 }
 
 export interface AgentHeartbeatResult {
   hasNewConfig: boolean
   newConfigVersion?: string
+  hasNewPlugins?: boolean
+  pluginLastUpdateTime?: number
 }
 
 export interface AgentPullConfigResult {

@@ -28,7 +28,9 @@ public class ProjectService {
             throw new IllegalArgumentException("projectCode already exists");
         }
 
-        project.setSecretKey(UUID.randomUUID().toString());
+        if (project.getSecretKey() == null || project.getSecretKey().isEmpty()) {
+            project.setSecretKey(UUID.randomUUID().toString());
+        }
         projectDao.insert(project);
     }
 }

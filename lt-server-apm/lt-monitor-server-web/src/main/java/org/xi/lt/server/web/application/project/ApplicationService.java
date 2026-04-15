@@ -6,6 +6,7 @@ import org.xi.lt.server.domain.repository.ApplicationDao;
 import org.xi.lt.server.domain.model.Application;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class ApplicationService {
@@ -30,6 +31,12 @@ public class ApplicationService {
             throw new IllegalArgumentException("appCode already exists");
         }
 
+        if (application.getAppSecretKey() == null || application.getAppSecretKey().isEmpty()) {
+            application.setAppSecretKey(UUID.randomUUID().toString());
+        }
+        if (application.getAppType() == null || application.getAppType().isEmpty()) {
+            application.setAppType("self-built"); // default to self-built
+        }
         applicationDao.insert(application);
     }
 }

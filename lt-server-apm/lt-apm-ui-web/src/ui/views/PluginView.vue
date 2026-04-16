@@ -156,27 +156,28 @@ const uploadPlugin = async () => {
     return
   }
   
+  if (!uploadForm.value.file) {
+    ElMessage.warning('请选择插件文件')
+    return
+  }
+  
   uploading.value = true
   try {
-    // TODO: 这里需要实现文件上传逻辑
-    // 先使用 mock 数据注册插件信息
-    const mockPlugin: PluginInfo = {
-      id: Date.now(),
-      pluginCode: uploadForm.value.pluginCode,
-      pluginName: uploadForm.value.pluginName,
-      pluginType: uploadForm.value.pluginType,
-      version: uploadForm.value.version,
-      description: uploadForm.value.description,
-      fileName: uploadForm.value.file?.name || '',
-      fileSize: uploadForm.value.file?.size || 0,
-      fileMd5: '',
-      downloadUrl: '',
-      enabled: true,
-      createTime: new Date().toISOString(),
-      updateTime: new Date().toISOString()
-    }
+    const formData = new FormData()
+    formData.append('file', uploadForm.value.file)
+    formData.append('pluginCode', uploadForm.value.pluginCode)
+    formData.append('pluginName', uploadForm.value.pluginName)
+    formData.append('pluginType', uploadForm.value.pluginType || '')
+    formData.append('version', uploadForm.value.version)
+    formData.append('description', uploadForm.value.description || '')
     
-    await registerPlugin(mockPlugin)
+    // 使用 http 直接调用上传接口
+    const res = await http.post('/api/plugin/admin/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    
     ElMessage.success('插件上传成功')
     showUploadDialog.value = false
     resetUploadForm()
@@ -200,8 +201,20 @@ const toggleEnabled = async (plugin: PluginInfo) => {
 }
 
 const downloadPlugin = (plugin: PluginInfo) => {
-  ElMessage.info('下载功能待实现')
-  // TODO: 实现插件下载逻辑
+  if (!plugin.downloadUrl) {
+    ElMessage.warning('该插件暂无下载地址')
+    return
+  }
+  
+  // 创建一个临时的 a 标签来下载文件
+  const link = document.createElement('a')
+  link.href = plugin.downloadUrl
+  link.download = plugin.fileName || plugin.pluginCode + '-' + plugin.version + '.jar'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  
+  ElMessage.success('开始下载插件')
 }
 
 const updatePlugin = async () => {

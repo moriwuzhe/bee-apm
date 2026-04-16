@@ -105,6 +105,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { http } from '../../api/http'
 import { fetchAllPlugins, registerPlugin, updatePlugin as updatePluginApi, type PluginInfo } from '../../api/plugin'
 
 const plugins = ref<PluginInfo[]>([])
@@ -137,6 +138,22 @@ const loadData = async () => {
 
 const handleFileChange = (file: any) => {
   uploadForm.value.file = file.raw
+  
+  // 尝试从文件名自动提取信息
+  const fileName = file.name || ''
+  const nameParts = fileName.replace('.jar', '').replace('.zip', '').split('-')
+  
+  if (nameParts.length >= 2) {
+    // 假设文件名格式为: plugin-name-1.0.0.jar
+    const versionPart = nameParts[nameParts.length - 1]
+    if (/^\d+\.\d+\.\d+$/.test(versionPart)) {
+      uploadForm.value.version = versionPart
+      uploadForm.value.pluginName = nameParts.slice(0, nameParts.length - 1).join('-')
+      uploadForm.value.pluginCode = uploadForm.value.pluginName
+    }
+  }
+  
+  ElMessage.success('文件已选择，请完善其他信息')
 }
 
 const resetUploadForm = () => {
@@ -201,15 +218,13 @@ const toggleEnabled = async (plugin: PluginInfo) => {
 }
 
 const downloadPlugin = (plugin: PluginInfo) => {
-  if (!plugin.downloadUrl) {
-    ElMessage.warning('该插件暂无下载地址')
-    return
-  }
+  // 如果没有 downloadUrl，我们直接使用 /api/plugin/download?pluginCode=xxx
+  const downloadUrl = plugin.downloadUrl || `/api/plugin/download?pluginCode=${plugin.pluginCode}`
   
   // 创建一个临时的 a 标签来下载文件
   const link = document.createElement('a')
-  link.href = plugin.downloadUrl
-  link.download = plugin.fileName || plugin.pluginCode + '-' + plugin.version + '.jar'
+  link.href = downloadUrl
+  link.download = plugin.fileName || `${plugin.pluginCode}-${plugin.version}.jar`
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)

@@ -14,6 +14,8 @@ import org.xi.lt.agent.reporter.ReporterFactory;
 import java.util.Date;
 import java.util.concurrent.*;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -65,13 +67,51 @@ public class HeartbeatTask {
 
             int responseCode = conn.getResponseCode();
             if (responseCode == 200) {
-                // Here we would parse response to check hasNewConfig and pull it
-                // For simplicity, we can do it in the future
+                // 解析响应检查配置和插件更新
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
+                    String responseBody = response.toString();
+                    
+                    // 简单解析 JSON 检查插件更新
+                    boolean hasNewPlugins = responseBody.contains("\"hasNewPlugins\":true");
+                    long pluginLastUpdateTime = extractPluginLastUpdateTime(responseBody);
+                    
+                    if (hasNewPlugins) {
+                        org.xi.lt.agent.plugin.PluginUpdateManager.checkAndUpdatePlugins(hasNewPlugins, pluginLastUpdateTime);
+                    }
+                }
             }
             conn.disconnect();
         } catch (Exception e) {
             // Ignore control plane errors
         }
+    }
+    
+    /**
+     * 从响应中提取插件最后更新时间
+     */
+    private static long extractPluginLastUpdateTime(String responseBody) {
+        try {
+            String key = "\"pluginLastUpdateTime\":";
+            int index = responseBody.indexOf(key);
+            if (index != -1) {
+                int start = index + key.length();
+                int end = responseBody.indexOf(",", start);
+                if (end == -1) {
+                    end = responseBody.indexOf("}", start);
+                }
+                if (end != -1) {
+                    return Long.parseLong(responseBody.substring(start, end).trim());
+                }
+            }
+        } catch (Exception e) {
+            // 解析失败返回 0
+        }
+        return 0;
     }
 
 

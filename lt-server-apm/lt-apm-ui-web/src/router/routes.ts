@@ -18,6 +18,7 @@ import AlertView from '../ui/views/AlertView.vue'
 import ProjectView from '../ui/views/ProjectView.vue'
 import ApplicationView from '../ui/views/ApplicationView.vue'
 import AgentView from '../ui/views/AgentView.vue'
+import PluginView from '../ui/views/PluginView.vue'
 import NotFoundView from '../ui/views/NotFoundView.vue'
 
 export const routes: RouteRecordRaw[] = [
@@ -84,6 +85,12 @@ export const routes: RouteRecordRaw[] = [
         name: 'agent',
         component: AgentView,
         meta: { title: 'Agent管理', nav: true, icon: Connection, order: 32 },
+      },
+      {
+        path: 'plugin',
+        name: 'plugin',
+        component: PluginView,
+        meta: { title: '插件管理', nav: true, icon: Tools, order: 33 },
       },
     ],
   },

@@ -8,7 +8,7 @@ import org.xi.lt.server.domain.model.app.AppInstanceView;
 import org.xi.lt.server.domain.model.query.SpanPageQuery;
 import org.xi.lt.server.domain.model.span.SpanView;
 import org.xi.lt.server.domain.repository.UnifiedDataStore;
-import org.xi.lt.server.web.interfaces.http.api.dto.AppInfoListRequest;
+import org.xi.lt.server.web.interfaces.http.dto.AppInfoListRequest;
 import org.xi.lt.server.web.shared.model.PageResult;
 import org.xi.lt.server.web.shared.util.TimeParseUtils;
 

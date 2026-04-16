@@ -13,8 +13,8 @@ import org.xi.lt.server.domain.repository.ProjectRepository;
 import org.xi.lt.server.domain.model.config.Application;
 import org.xi.lt.server.domain.model.config.Project;
 import org.xi.lt.server.web.application.plugin.PluginRegistryService;
-import org.xi.lt.server.web.interfaces.http.api.dto.AgentConfigUpdateRequest;
-import org.xi.lt.server.web.interfaces.http.api.dto.AgentInstanceConfigUpdateRequest;
+import org.xi.lt.server.web.interfaces.http.dto.AgentConfigUpdateRequest;
+import org.xi.lt.server.web.interfaces.http.dto.AgentInstanceConfigUpdateRequest;
 
 import java.util.ArrayList;
 import java.util.List;

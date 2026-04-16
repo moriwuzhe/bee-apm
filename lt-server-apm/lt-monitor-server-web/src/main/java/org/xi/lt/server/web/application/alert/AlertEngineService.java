@@ -28,8 +28,14 @@ public class AlertEngineService {
     private RestHighLevelClient restHighLevelClient;
 
     // 每分钟执行一次告警规则评估
-//    @Scheduled(cron = "0 * * * * ?")
+    @Scheduled(cron = "0 * * * * ?")
     public void evaluateRules() {
+        // 检查ES客户端是否可用
+        if (restHighLevelClient == null) {
+            log.debug("Elasticsearch not available, skip alert evaluation");
+            return;
+        }
+        
         log.info("Starting intelligent alert rule evaluation...");
         
         long now = System.currentTimeMillis();
@@ -104,6 +110,12 @@ public class AlertEngineService {
 
     private void triggerAlert(String app, String url, String gid, String alertType, String message) {
         log.warn("ALERT TRIGGERED - [{}] App: {}, URL: {}, Trace: {} - {}", alertType, app, url, gid, message);
+        
+        // 检查ES客户端是否可用
+        if (restHighLevelClient == null) {
+            log.warn("Elasticsearch not available, skip saving alert");
+            return;
+        }
         
         try {
             Map alertDoc = new HashMap();

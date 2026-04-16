@@ -67,6 +67,14 @@ reporter:
             jvm: lt-jvm
 sampling:
     rate: 100000 #采样率，万分几，默认全采集,比如100就是100/10000的采样
+diag:
+    proxy:
+        host: 127.0.0.1  # 诊断代理服务器地址
+        port: 3333       # 诊断代理服务器端口
+        heartbeat: 30    # 心跳间隔(秒)
+agent:
+    register:
+        url: http://127.0.0.1:8081/apm/agent/register  # Agent HTTP注册地址
 id:
     zk:
         url: 192.168.137.100:2181
@@ -156,5 +164,11 @@ plugins:
                 - org.apache.tomcat.util
 #           nameContains:   #数组类型
 
-
+projectCode: default
+secretKey: d8d1d87c-17e9-482a-a92c-8abdbdf9c536
+secret: d8d1d87c-17e9-482a-a92c-8abdbdf9c536
+lt.app: test
+lt.env: dev
+lt.inst: test01
+lt.port: 8081
 

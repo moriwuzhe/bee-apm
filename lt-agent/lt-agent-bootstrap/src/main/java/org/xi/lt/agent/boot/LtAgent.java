@@ -138,9 +138,17 @@ public class LtAgent {
             diagClient = DiagAgentClient.tryCreate();
             if (diagClient != null) {
                 diagClient.start();
+                LogUtil.log("diag agent client started, will register to management platform via heartbeat");
+            } else {
+                LogUtil.log("diag agent client not enabled, please configure diag.proxy.host in config.yml");
             }
 
             LogUtil.setEmptyHandlerLog(LogFactory.getLog("EmptyHandler"));
+            
+            // HTTP 注册到管理平台
+            AgentHttpRegistrar.register();
+            
+            LogUtil.log("lt agent initialization completed successfully");
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
                 @Override
                 public void run() {

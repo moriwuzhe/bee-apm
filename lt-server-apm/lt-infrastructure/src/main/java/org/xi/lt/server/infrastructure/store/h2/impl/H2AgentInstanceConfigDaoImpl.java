@@ -9,6 +9,7 @@ import org.xi.lt.server.domain.repository.AgentInstanceConfigRepository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,10 +32,10 @@ public class H2AgentInstanceConfigDaoImpl implements AgentInstanceConfigReposito
     private static final RowMapper<Map<String, Object>> AGENT_INSTANCE_CONFIG_ROW_MAPPER = new RowMapper<Map<String, Object>>() {
         @Override
         public Map<String, Object> mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return Map.of(
-                "config", rs.getString(AGENT_INST_CFG_COL_CONFIG),
-                "configVersion", rs.getString(AGENT_INST_CFG_COL_CONFIG_VERSION)
-            );
+            HashMap<String, Object> mapRow = new HashMap<>();
+            mapRow.put("config", rs.getString(AGENT_INST_CFG_COL_CONFIG));
+            mapRow.put("configVersion", rs.getString(AGENT_INST_CFG_COL_CONFIG_VERSION));
+            return mapRow;
         }
     };
 

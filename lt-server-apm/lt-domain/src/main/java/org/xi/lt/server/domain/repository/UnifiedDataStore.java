@@ -1,5 +1,6 @@
 package org.xi.lt.server.domain.repository;
 
+import org.xi.lt.server.domain.model.alert.AlertRow;
 import org.xi.lt.server.domain.model.common.KeyValue;
 import org.xi.lt.server.domain.model.common.PageSearchResult;
 import org.xi.lt.server.domain.model.dashboard.FromToCount;
@@ -66,6 +67,17 @@ public interface UnifiedDataStore {
      * @throws Exception 查询异常
      */
     List<SpanView> searchSpanByGidAny(String gid, long beginMs, long endMs, int max) throws Exception;
+    
+    // ==================== Alert 查询相关 ====================
+    
+    /**
+     * 查询 Alert 列表
+     * @param app 应用名称（可选）
+     * @param limit 最大返回数量
+     * @return Alert 列表
+     * @throws Exception 查询异常
+     */
+    List<AlertRow> searchAlerts(String app, int limit) throws Exception;
     
     // ==================== Dashboard 查询相关 ====================
     

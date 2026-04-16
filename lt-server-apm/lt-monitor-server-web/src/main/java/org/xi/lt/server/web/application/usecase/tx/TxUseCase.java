@@ -7,7 +7,7 @@ import org.xi.lt.server.domain.model.common.SortDirection;
 import org.xi.lt.server.domain.model.query.SpanPageQuery;
 import org.xi.lt.server.domain.model.span.SpanView;
 import org.xi.lt.server.domain.repository.UnifiedDataStore;
-import org.xi.lt.server.web.interfaces.http.api.dto.TxListRequest;
+import org.xi.lt.server.web.interfaces.http.dto.TxListRequest;
 import org.xi.lt.server.web.shared.model.PageResult;
 import org.xi.lt.server.web.shared.util.TimeParseUtils;
 

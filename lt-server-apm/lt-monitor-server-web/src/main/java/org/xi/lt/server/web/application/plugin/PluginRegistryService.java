@@ -89,4 +89,24 @@ public class PluginRegistryService {
         // 更新缓存
         pluginCache.put(pluginInfo.getPluginCode(), pluginInfo);
     }
+
+    /**
+     * 获取插件的最后更新时间
+     * 返回所有插件中最新的 updateTime（毫秒时间戳）
+     */
+    public long getPluginLastUpdateTime() {
+        List<PluginInfo> plugins = getAllPlugins();
+        long lastUpdateTime = 0;
+        
+        for (PluginInfo plugin : plugins) {
+            if (plugin.getUpdateTime() != null) {
+                long updateTime = plugin.getUpdateTime().getTime();
+                if (updateTime > lastUpdateTime) {
+                    lastUpdateTime = updateTime;
+                }
+            }
+        }
+        
+        return lastUpdateTime;
+    }
 }

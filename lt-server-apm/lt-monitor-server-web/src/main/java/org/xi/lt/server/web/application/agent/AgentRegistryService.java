@@ -157,9 +157,13 @@ public class AgentRegistryService {
         }
         
         // 检查插件更新
-        // 这里简单处理，每次心跳都告诉Agent有新插件（实际生产中可以根据插件的最后更新时间来判断）
-        response.setHasNewPlugins(true);
-        response.setPluginLastUpdateTime(System.currentTimeMillis());
+        long pluginLastUpdateTime = pluginRegistryService.getPluginLastUpdateTime();
+        response.setPluginLastUpdateTime(pluginLastUpdateTime);
+        
+        // 如果 Agent 没有传入 pluginLastUpdateTime，或者插件更新时间比 Agent 传入的新，则告诉 Agent 有新插件
+        // 注意：这里我们假设 Agent 会传入 pluginLastUpdateTime（后续需要在 AgentInstanceInfo 中添加这个字段）
+        // 目前先简单处理：如果有插件，则告诉 Agent 有新插件
+        response.setHasNewPlugins(pluginLastUpdateTime > 0);
         
         return response;
     }

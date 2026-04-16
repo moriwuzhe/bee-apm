@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS bistoury_agent_instance (
   online BOOLEAN DEFAULT TRUE,
   create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY (app_code, inst_id)
+  UNIQUE (app_code, inst_id)
 );
 
 CREATE TABLE IF NOT EXISTS bistoury_agent_config (
@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS bistoury_agent_instance_config (
   config_version VARCHAR(64),
   create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY (app_code, inst_id)
+  UNIQUE (app_code, inst_id)
 );
 
 CREATE TABLE IF NOT EXISTS bistoury_plugin_info (

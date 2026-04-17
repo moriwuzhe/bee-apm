@@ -12,6 +12,13 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
+
+// FastJSON 解析
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 
 /**
  * 插件更新管理器
@@ -24,6 +31,26 @@ public class PluginUpdateManager {
 
     private static final String PLUGIN_DIR = "plugins/";
     private static long lastPluginUpdateTime = 0;
+
+    /**
+     * 插件信息内部类
+     */
+    public static class PluginInfo {
+        public String pluginCode;
+        public String pluginName;
+        public String version;
+        public String fileName;
+        public String fileMd5;
+        public boolean enabled;
+    }
+
+    /**
+     * 插件列表结果内部类
+     */
+    public static class PluginListResult {
+        public List<PluginInfo> plugins;
+        public long lastUpdateTime;
+    }
 
     static {
         // 确保插件目录存在
@@ -58,17 +85,118 @@ public class PluginUpdateManager {
                 return;
             }
 
-            // 2. 解析插件列表并下载插件
-            // 这里简化处理，实际应该解析JSON并逐个下载
-            LogUtil.log("插件列表获取成功: " + pluginListJson);
-            
-            // 3. 更新本地最后更新时间
+            // 2. 解析插件列表
+            PluginListResult pluginListResult = parsePluginList(pluginListJson);
+            if (pluginListResult == null || pluginListResult.plugins == null) {
+                LogUtil.log("解析插件列表失败");
+                return;
+            }
+
+            LogUtil.log("获取到 " + pluginListResult.plugins.size() + " 个插件");
+
+            // 3. 逐个下载启用的插件
+            int downloadedCount = 0;
+            for (PluginInfo plugin : pluginListResult.plugins) {
+                if (!plugin.enabled) {
+                    LogUtil.log("跳过禁用的插件: " + plugin.pluginCode);
+                    continue;
+                }
+
+                LogUtil.log("开始下载插件: " + plugin.pluginName + " v" + plugin.version);
+                
+                // 检查本地是否已有该插件且MD5匹配
+                if (isLocalPluginValid(plugin)) {
+                    LogUtil.log("本地插件已存在且校验通过，跳过下载: " + plugin.pluginCode);
+                    continue;
+                }
+
+                // 下载插件
+                boolean success = downloadPlugin(plugin.pluginCode, plugin.fileMd5);
+                if (success) {
+                    downloadedCount++;
+                    LogUtil.log("插件下载成功: " + plugin.pluginName);
+                } else {
+                    LogUtil.log("插件下载失败: " + plugin.pluginName);
+                }
+            }
+
+            // 4. 更新本地最后更新时间
             lastPluginUpdateTime = serverPluginLastUpdateTime;
             
-            LogUtil.log("插件更新完成");
+            LogUtil.log("插件更新完成！共下载 " + downloadedCount + " 个插件");
             
         } catch (Exception e) {
             LogUtil.log("插件更新失败", e);
+        }
+    }
+
+    /**
+     * 解析插件列表 JSON
+     */
+    private static PluginListResult parsePluginList(String json) {
+        try {
+            JSONObject root = JSON.parseObject(json);
+            
+            // 解析 data 字段
+            JSONObject dataNode = root.containsKey("data") ? root.getJSONObject("data") : 
+                                (root.containsKey("result") ? root.getJSONObject("result") : null);
+            
+            if (dataNode == null) {
+                return null;
+            }
+
+            PluginListResult result = new PluginListResult();
+            result.plugins = new ArrayList<>();
+
+            // 解析 plugins 数组
+            if (dataNode.containsKey("plugins")) {
+                JSONArray pluginsNode = dataNode.getJSONArray("plugins");
+                for (int i = 0; i < pluginsNode.size(); i++) {
+                    JSONObject pluginNode = pluginsNode.getJSONObject(i);
+                    PluginInfo plugin = new PluginInfo();
+                    plugin.pluginCode = pluginNode.containsKey("pluginCode") ? pluginNode.getString("pluginCode") : null;
+                    plugin.pluginName = pluginNode.containsKey("pluginName") ? pluginNode.getString("pluginName") : null;
+                    plugin.version = pluginNode.containsKey("version") ? pluginNode.getString("version") : null;
+                    plugin.fileName = pluginNode.containsKey("fileName") ? pluginNode.getString("fileName") : null;
+                    plugin.fileMd5 = pluginNode.containsKey("fileMd5") ? pluginNode.getString("fileMd5") : null;
+                    plugin.enabled = pluginNode.containsKey("enabled") ? pluginNode.getBoolean("enabled") : true;
+                    
+                    if (plugin.pluginCode != null) {
+                        result.plugins.add(plugin);
+                    }
+                }
+            }
+
+            // 解析 lastUpdateTime
+            if (dataNode.containsKey("lastUpdateTime")) {
+                result.lastUpdateTime = dataNode.getLongValue("lastUpdateTime");
+            }
+
+            return result;
+        } catch (Exception e) {
+            LogUtil.log("解析插件列表 JSON 失败", e);
+            return null;
+        }
+    }
+
+    /**
+     * 检查本地插件是否有效
+     */
+    private static boolean isLocalPluginValid(PluginInfo plugin) {
+        try {
+            if (plugin.fileName == null || plugin.fileMd5 == null) {
+                return false;
+            }
+
+            Path pluginPath = Paths.get(PLUGIN_DIR, plugin.fileName);
+            if (!Files.exists(pluginPath)) {
+                return false;
+            }
+
+            String localMd5 = calculateMD5(pluginPath);
+            return localMd5.equalsIgnoreCase(plugin.fileMd5);
+        } catch (Exception e) {
+            return false;
         }
     }
 

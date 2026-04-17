@@ -16,6 +16,7 @@ import OnlineDebugView from '../ui/views/OnlineDebugView.vue'
 import ProfilerView from '../ui/views/ProfilerView.vue'
 import AlertView from '../ui/views/AlertView.vue'
 import AlertManagementView from '../ui/views/AlertManagementView.vue'
+import AgentMonitorView from '../ui/views/AgentMonitorView.vue'
 import ProjectView from '../ui/views/ProjectView.vue'
 import ApplicationView from '../ui/views/ApplicationView.vue'
 import AgentView from '../ui/views/AgentView.vue'
@@ -75,6 +76,12 @@ export const routes: RouteRecordRaw[] = [
         name: 'alert-management',
         component: AlertManagementView,
         meta: { title: 'Agent告警', nav: true, icon: Bell, order: 26 },
+      },
+      {
+        path: 'agent-monitor',
+        name: 'agent-monitor',
+        component: AgentMonitorView,
+        meta: { title: '实时监控', nav: true, icon: DataLine, order: 27 },
       },
       {
         path: 'project',

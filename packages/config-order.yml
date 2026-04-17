@@ -1,0 +1,110 @@
+# Order 应用专属配置
+logger:
+    console: true
+    level: trace
+    fileSize: 10485760
+    fileNum: 3
+
+heartbeat:
+    period: 60
+
+jvm:
+    period: 60
+
+reporter:
+    queueSize: 200
+    threadNum: 2
+    idleSleep: 100
+    batchSize: 20
+    name: okhttp
+    log: true
+    okhttp:
+        connectTimeout: 30
+        writeTimeout: 10
+        readTimeout: 10
+        url:
+            - http://127.0.0.1:8081/stream
+
+sampling:
+    rate: 100000
+
+diag:
+    proxy:
+        host: 127.0.0.1
+        port: 3333
+        heartbeat: 30
+
+agent:
+    register:
+        url: http://127.0.0.1:8081/apm/agent/register
+
+# Order 应用专属配置
+projectCode: order
+secretKey: c399244a-b92a-414d-ab5f-d3e681c548bc
+secret: c399244a-b92a-414d-ab5f-d3e681c548bc
+
+lt.app: order
+lt.env: dev
+lt.inst: test01
+lt.port: 8081
+
+plugins:
+    process:
+        enable: true
+        spend: -1
+        enableMethodSign: true
+        param:
+            enable: true
+            excludeTypePrefix:
+                - javax.
+                - org.w3c
+                - org.springframework
+                - org.apache
+            includePointMatches:
+                - org.xi.lt.demo.*
+        error:
+            enable: true
+            includeErrorPointPrefix:
+                - org.xi.lt.demo
+        interceptPoints:
+            - typeMatch:
+                  include:
+                      nameStartsWith: org.xi.lt.demo
+                  exclude:
+                      nameContains: CGLIB
+              methodMatch:
+                  include:
+                      named:
+                  exclude:
+                      named:
+
+    jdbc:
+        enable: true
+        spend: -1
+        enableParam: true
+
+    logger:
+        enable: true
+        errorRate: false
+        defLevel: debug
+        points:
+            - org.xi.lt.demo|trace
+
+    servlet:
+        enable: true
+        enableReqParam: true
+        enableReqBody: true
+        enableReqHeaders: true
+        enableRespBody: true
+        spend: 1
+        excludeUrlSuffix: .html,.jsp,hello2
+
+    springTx:
+        enable: true
+        spend: 0
+
+    thread:
+        enable: true
+        excludeClass:
+            nameStartsWith:
+                - org.apache.tomcat.util

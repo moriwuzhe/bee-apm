@@ -53,6 +53,11 @@ public class DiagAgentClient {
 
     private final EventLoopGroup group = new NioEventLoopGroup(1);
     private volatile Channel channel;
+    
+    // 重连相关
+    private volatile int reconnectAttempts = 0;
+    private static final int MAX_RECONNECT_DELAY_SEC = 60; // 最大重连延迟 60 秒
+    private static final int BASE_RECONNECT_DELAY_SEC = 2; // 基础重连延迟 2 秒
 
     public static DiagAgentClient tryCreate() {
         String host = System.getProperty("diag.proxy.host", ConfigUtils.me().getStr("diag.proxy.host"));
@@ -139,13 +144,23 @@ public class DiagAgentClient {
     private void connect(Bootstrap bootstrap) {
         bootstrap.connect(host, port).addListener((ChannelFutureListener) future -> {
             if (!future.isSuccess()) {
+                LogUtil.log("diag agent connect failed, will retry. cause: " + future.cause().getMessage());
                 scheduleReconnect(bootstrap);
+            } else {
+                // 连接成功，重置重连计数
+                reconnectAttempts = 0;
+                LogUtil.log("diag agent connected successfully");
             }
         });
     }
 
     private void scheduleReconnect(Bootstrap bootstrap) {
-        group.schedule(() -> connect(bootstrap), 5, TimeUnit.SECONDS);
+        // 指数退避策略：2s, 4s, 8s, 16s, 32s, 60s, 60s, ...
+        reconnectAttempts++;
+        int delaySec = Math.min(BASE_RECONNECT_DELAY_SEC * (int) Math.pow(2, reconnectAttempts - 1), MAX_RECONNECT_DELAY_SEC);
+        
+        LogUtil.log("diag agent scheduling reconnect in " + delaySec + " seconds (attempt #" + reconnectAttempts + ")");
+        group.schedule(() -> connect(bootstrap), delaySec, TimeUnit.SECONDS);
     }
 
     private void sendHeartbeat(Channel ch) {

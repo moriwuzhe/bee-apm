@@ -108,11 +108,20 @@
               </template>
             </el-table-column>
             <el-table-column prop="version" label="版本" width="120" />
-            <el-table-column label="操作" width="200" fixed="right">
+            <el-table-column label="操作" width="120" fixed="right">
               <template #default="{ row }">
-                <el-button size="small" type="primary" @click="showJvmInfo(row)">JVM</el-button>
-                <el-button size="small" type="success" @click="showThreadDump(row)">线程</el-button>
-                <el-button size="small" type="warning" @click="showMemory(row)">内存</el-button>
+                <el-dropdown trigger="click" @command="(cmd: string) => handleDiagCommand(cmd, row)">
+                  <el-button type="primary" link size="small">
+                    诊断 <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                  </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item command="jvm">JVM信息</el-dropdown-item>
+                      <el-dropdown-item command="thread">线程Dump</el-dropdown-item>
+                      <el-dropdown-item command="memory">内存信息</el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
               </template>
             </el-table-column>
           </el-table>
@@ -121,17 +130,125 @@
     </el-tabs>
 
     <!-- 诊断结果对话框 -->
-    <el-dialog v-model="showDiagDialog" :title="diagDialogTitle" width="800px" append-to-body>
-      <el-input
-        v-model="diagResult"
-        type="textarea"
-        :rows="20"
-        readonly
-        style="font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 12px; line-height: 1.5;"
-      />
+    <el-dialog v-model="showDiagDialog" :title="diagDialogTitle" width="900px">
+      <!-- 图表模式 -->
+      <div v-if="diagMode === 'chart' && currentDiagType" class="diag-chart-content">
+        <!-- JVM信息图表 -->
+        <div v-if="currentDiagType === 'jvmInfo'" class="chart-container">
+          <el-row :gutter="16">
+            <el-col :span="8">
+              <el-card shadow="hover" class="stat-card">
+                <div class="stat-title">堆内存</div>
+                <div class="stat-value">{{ formatBytes(jvmData.heapUsed) }}</div>
+                <div class="stat-subtitle">/ {{ formatBytes(jvmData.heapMax) }}</div>
+                <el-progress :percentage="jvmData.heapPercent" :color="getProgressColor(jvmData.heapPercent)" />
+              </el-card>
+            </el-col>
+            <el-col :span="8">
+              <el-card shadow="hover" class="stat-card">
+                <div class="stat-title">非堆内存</div>
+                <div class="stat-value">{{ formatBytes(jvmData.nonHeapUsed) }}</div>
+                <div class="stat-subtitle">/ {{ formatBytes(jvmData.nonHeapMax) }}</div>
+                <el-progress :percentage="jvmData.nonHeapPercent" :color="getProgressColor(jvmData.nonHeapPercent)" />
+              </el-card>
+            </el-col>
+            <el-col :span="8">
+              <el-card shadow="hover" class="stat-card">
+                <div class="stat-title">线程数</div>
+                <div class="stat-value">{{ jvmData.threadCount }}</div>
+                <div class="stat-subtitle">峰值: {{ jvmData.peakThreadCount }}</div>
+              </el-card>
+            </el-col>
+          </el-row>
+          
+          <el-card shadow="never" style="margin-top: 16px;">
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">JVM名称:</span>
+                <span class="info-value">{{ jvmData.vmName }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">JVM版本:</span>
+                <span class="info-value">{{ jvmData.vmVersion }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">运行时长:</span>
+                <span class="info-value">{{ formatDuration(jvmData.uptimeMs) }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">启动时间:</span>
+                <span class="info-value">{{ formatTimestamp(jvmData.startTimeMs) }}</span>
+              </div>
+            </div>
+          </el-card>
+        </div>
+
+        <!-- 内存信息图表 -->
+        <div v-else-if="currentDiagType === 'memory'" class="chart-container">
+          <el-row :gutter="16" style="margin-bottom: 16px;">
+            <el-col :span="12">
+              <el-card shadow="hover">
+                <div class="chart-title">堆内存使用</div>
+                <el-progress type="dashboard" :percentage="memoryData.heapPercent" :color="getProgressColor(memoryData.heapPercent)">
+                  <template #default="{ percentage }">
+                    <span class="percentage-value">{{ percentage }}%</span>
+                    <span class="percentage-label">{{ formatBytes(memoryData.heapUsed) }} / {{ formatBytes(memoryData.heapMax) }}</span>
+                  </template>
+                </el-progress>
+              </el-card>
+            </el-col>
+            <el-col :span="12">
+              <el-card shadow="hover">
+                <div class="chart-title">非堆内存使用</div>
+                <el-progress type="dashboard" :percentage="memoryData.nonHeapPercent" :color="getProgressColor(memoryData.nonHeapPercent)">
+                  <template #default="{ percentage }">
+                    <span class="percentage-value">{{ percentage }}%</span>
+                    <span class="percentage-label">{{ formatBytes(memoryData.nonHeapUsed) }} / {{ formatBytes(memoryData.nonHeapMax) }}</span>
+                  </template>
+                </el-progress>
+              </el-card>
+            </el-col>
+          </el-row>
+          
+          <el-card shadow="never">
+            <div class="chart-title">内存池详情</div>
+            <el-table :data="memoryData.pools" border stripe size="small" max-height="300">
+              <el-table-column prop="name" label="内存池" min-width="150" />
+              <el-table-column prop="type" label="类型" width="80" />
+              <el-table-column label="已使用" width="120">
+                <template #default="{ row }">{{ formatBytes(row.used) }}</template>
+              </el-table-column>
+              <el-table-column label="已提交" width="120">
+                <template #default="{ row }">{{ formatBytes(row.committed) }}</template>
+              </el-table-column>
+              <el-table-column label="最大值" width="120">
+                <template #default="{ row }">{{ formatBytes(row.max) }}</template>
+              </el-table-column>
+              <el-table-column label="使用率" width="100">
+                <template #default="{ row }">
+                  <el-tag :type="getUsageLevel(row.percent)" size="small">{{ row.percent }}%</el-tag>
+                </template>
+              </el-table-column>
+            </el-table>
+          </el-card>
+        </div>
+
+        <!-- 其他文本模式 -->
+        <div v-else class="text-mode">
+          <el-input v-model="diagResult" type="textarea" :rows="25" readonly />
+        </div>
+      </div>
+
+      <!-- 文本模式 -->
+      <div v-else class="diag-text-content">
+        <el-input v-model="diagResult" type="textarea" :rows="25" readonly />
+      </div>
+
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="copyDiagResult">复制</el-button>
+          <el-button v-if="diagMode === 'chart' && currentDiagType" @click="switchToTextMode">查看原始数据</el-button>
+          <el-button v-else-if="canShowChart" @click="switchToChartMode">图表视图</el-button>
+          <el-button @click="copyDiagResult">复制结果</el-button>
           <el-button type="primary" @click="showDiagDialog = false">关闭</el-button>
         </span>
       </template>
@@ -173,7 +290,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Connection, CircleClose, Bell } from '@element-plus/icons-vue'
+import { Connection, CircleClose, Bell, ArrowDown } from '@element-plus/icons-vue'
 import { fetchApplications, createApplication, fetchProjects, type Application, type Project } from '../../api/project'
 import { http } from '../../api/http'
 
@@ -212,6 +329,52 @@ const alertedAgents = ref<string[]>([]) // 已告警的 Agent 列表
 const showDiagDialog = ref(false)
 const diagDialogTitle = ref('')
 const diagResult = ref('')
+const diagMode = ref<'chart' | 'text'>('chart')
+const currentDiagType = ref('')
+
+// JVM数据结构
+interface JvmData {
+  heapUsed: number
+  heapMax: number
+  heapPercent: number
+  nonHeapUsed: number
+  nonHeapMax: number
+  nonHeapPercent: number
+  threadCount: number
+  peakThreadCount: number
+  vmName: string
+  vmVersion: string
+  uptimeMs: number
+  startTimeMs: number
+}
+
+const jvmData = ref<JvmData>({
+  heapUsed: 0, heapMax: 0, heapPercent: 0,
+  nonHeapUsed: 0, nonHeapMax: 0, nonHeapPercent: 0,
+  threadCount: 0, peakThreadCount: 0,
+  vmName: '', vmVersion: '', uptimeMs: 0, startTimeMs: 0
+})
+
+// 内存数据结构
+interface MemoryData {
+  heapUsed: number
+  heapMax: number
+  heapPercent: number
+  nonHeapUsed: number
+  nonHeapMax: number
+  nonHeapPercent: number
+  pools: Array<{ name: string; type: string; used: number; committed: number; max: number; percent: number }>
+}
+
+const memoryData = ref<MemoryData>({
+  heapUsed: 0, heapMax: 0, heapPercent: 0,
+  nonHeapUsed: 0, nonHeapMax: 0, nonHeapPercent: 0,
+  pools: []
+})
+
+const canShowChart = computed(() => {
+  return ['jvmInfo', 'memory'].includes(currentDiagType.value)
+})
 
 const loadInstances = async () => {
   instancesLoading.value = true
@@ -252,6 +415,21 @@ const isAlerted = (row: AgentInstance) => {
   return alertedAgents.value.includes(row.app) && !row.online
 }
 
+// 处理诊断命令
+const handleDiagCommand = (cmd: string, row: AgentInstance) => {
+  switch (cmd) {
+    case 'jvm':
+      showJvmInfo(row)
+      break
+    case 'thread':
+      showThreadDump(row)
+      break
+    case 'memory':
+      showMemory(row)
+      break
+  }
+}
+
 const formatTimestamp = (ts: number) => {
   if (!ts) return '-'
   const date = new Date(ts)
@@ -272,10 +450,12 @@ const buildAgentId = (instance: AgentInstance) => {
 }
 
 // 执行诊断命令
-const executeDiag = async (title: string, agentId: string, apiCall: (id: string) => Promise<any>) => {
+const executeDiag = async (title: string, agentId: string, apiCall: (id: string) => Promise<any>, type?: string) => {
   diagDialogTitle.value = title
   diagResult.value = '正在执行...'
   showDiagDialog.value = true
+  currentDiagType.value = type || ''
+  diagMode.value = 'chart'
   
   try {
     const res = await apiCall(agentId)
@@ -286,6 +466,13 @@ const executeDiag = async (title: string, agentId: string, apiCall: (id: string)
       diagResult.value = '返回空字符串'
     } else {
       diagResult.value = result
+      
+      // 解析数据用于图表展示
+      if (type === 'jvmInfo') {
+        parseJvmData(result)
+      } else if (type === 'memory') {
+        parseMemoryData(result)
+      }
     }
   } catch (e: any) {
     const errorMsg = e.response?.data?.message || e.message || '未知错误'
@@ -293,10 +480,111 @@ const executeDiag = async (title: string, agentId: string, apiCall: (id: string)
   }
 }
 
+// 解析 JVM 数据
+const parseJvmData = (text: string) => {
+  try {
+    const lines = text.split('\n')
+    const data: any = {}
+    
+    lines.forEach(line => {
+      if (line.includes('Heap:')) {
+        data.heapUsed = extractNumber(line, 'used=')
+        data.heapMax = extractNumber(line, 'max=')
+      } else if (line.includes('NonHeap:')) {
+        data.nonHeapUsed = extractNumber(line, 'used=')
+        data.nonHeapMax = extractNumber(line, 'max=')
+      } else if (line.startsWith('VmName:')) {
+        data.vmName = line.split(':')[1]?.trim() || ''
+      } else if (line.startsWith('VmVersion:')) {
+        data.vmVersion = line.split(':')[1]?.trim() || ''
+      } else if (line.startsWith('UptimeMs:')) {
+        data.uptimeMs = parseInt(line.split(':')[1]?.trim() || '0')
+      } else if (line.startsWith('StartTimeMs:')) {
+        data.startTimeMs = parseInt(line.split(':')[1]?.trim() || '0')
+      } else if (line.startsWith('ThreadCount:')) {
+        data.threadCount = parseInt(line.split(':')[1]?.trim() || '0')
+      } else if (line.startsWith('PeakThreadCount:')) {
+        data.peakThreadCount = parseInt(line.split(':')[1]?.trim() || '0')
+      }
+    })
+    
+    jvmData.value = {
+      heapUsed: data.heapUsed || 0,
+      heapMax: data.heapMax || 0,
+      heapPercent: data.heapMax ? Math.round((data.heapUsed / data.heapMax) * 100) : 0,
+      nonHeapUsed: data.nonHeapUsed || 0,
+      nonHeapMax: data.nonHeapMax || 0,
+      nonHeapPercent: data.nonHeapMax ? Math.round((data.nonHeapUsed / data.nonHeapMax) * 100) : 0,
+      threadCount: data.threadCount || 0,
+      peakThreadCount: data.peakThreadCount || 0,
+      vmName: data.vmName || '',
+      vmVersion: data.vmVersion || '',
+      uptimeMs: data.uptimeMs || 0,
+      startTimeMs: data.startTimeMs || 0
+    }
+  } catch (e) {
+    console.error('Failed to parse JVM data:', e)
+  }
+}
+
+// 解析内存数据
+const parseMemoryData = (text: string) => {
+  try {
+    const lines = text.split('\n')
+    const pools: any[] = []
+    let heapUsed = 0, heapMax = 0, nonHeapUsed = 0, nonHeapMax = 0
+    
+    lines.forEach(line => {
+      if (line.startsWith('Heap:')) {
+        heapUsed = extractNumber(line, 'used=')
+        heapMax = extractNumber(line, 'max=')
+      } else if (line.startsWith('NonHeap:')) {
+        nonHeapUsed = extractNumber(line, 'used=')
+        nonHeapMax = extractNumber(line, 'max=')
+      } else if (line.startsWith('Pool:')) {
+        const match = line.match(/Pool: (.+?) \((.+?)\) (.+)/)
+        if (match) {
+          const name = match[1]
+          const type = match[2]
+          const used = extractNumber(match[3], 'used=')
+          const committed = extractNumber(match[3], 'committed=')
+          const max = extractNumber(match[3], 'max=')
+          const percent = max > 0 ? Math.round((used / max) * 100) : 0
+          pools.push({ name, type, used, committed, max, percent })
+        }
+      }
+    })
+    
+    memoryData.value = {
+      heapUsed,
+      heapMax,
+      heapPercent: heapMax ? Math.round((heapUsed / heapMax) * 100) : 0,
+      nonHeapUsed,
+      nonHeapMax,
+      nonHeapPercent: nonHeapMax ? Math.round((nonHeapUsed / nonHeapMax) * 100) : 0,
+      pools
+    }
+  } catch (e) {
+    console.error('Failed to parse memory data:', e)
+  }
+}
+
+// 提取数字的工具函数
+const extractNumber = (text: string, key: string): number => {
+  const idx = text.indexOf(key)
+  if (idx === -1) return 0
+  const start = idx + key.length
+  let end = start
+  while (end < text.length && /\d/.test(text[end])) {
+    end++
+  }
+  return parseInt(text.substring(start, end)) || 0
+}
+
 const showJvmInfo = async (row: AgentInstance) => {
   const agentId = buildAgentId(row)
   await executeDiag(`JVM信息 - ${row.app}@${row.inst}`, agentId, 
-    (id) => http.get('/api/diag/agent/jvmInfo', { params: { agentId: id } }))
+    (id) => http.get('/api/diag/agent/jvmInfo', { params: { agentId: id } }), 'jvmInfo')
 }
 
 const showThreadDump = async (row: AgentInstance) => {
@@ -308,7 +596,7 @@ const showThreadDump = async (row: AgentInstance) => {
 const showMemory = async (row: AgentInstance) => {
   const agentId = buildAgentId(row)
   await executeDiag(`内存信息 - ${row.app}@${row.inst}`, agentId,
-    (id) => http.get('/api/diag/agent/memory', { params: { agentId: id } }))
+    (id) => http.get('/api/diag/agent/memory', { params: { agentId: id } }), 'memory')
 }
 
 const copyDiagResult = async () => {
@@ -318,6 +606,53 @@ const copyDiagResult = async () => {
   } catch (e: any) {
     ElMessage.error('复制失败')
   }
+}
+
+// 切换模式
+const switchToTextMode = () => {
+  diagMode.value = 'text'
+}
+
+const switchToChartMode = () => {
+  if (canShowChart.value) {
+    diagMode.value = 'chart'
+  }
+}
+
+// 格式化字节
+const formatBytes = (bytes: number): string => {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i]
+}
+
+// 格式化时长
+const formatDuration = (ms: number): string => {
+  if (ms < 1000) return ms + ' ms'
+  const seconds = Math.floor(ms / 1000)
+  if (seconds < 60) return seconds + ' s'
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return minutes + ' min'
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return hours + ' h ' + (minutes % 60) + ' min'
+  const days = Math.floor(hours / 24)
+  return days + ' d ' + (hours % 24) + ' h'
+}
+
+// 获取进度条颜色
+const getProgressColor = (percent: number): string => {
+  if (percent < 60) return '#67c23a'
+  if (percent < 80) return '#e6a23c'
+  return '#f56c6c'
+}
+
+// 获取使用率级别
+const getUsageLevel = (percent: number): string => {
+  if (percent < 60) return 'success'
+  if (percent < 80) return 'warning'
+  return 'danger'
 }
 
 const rules = {
@@ -455,5 +790,105 @@ watch(activeTab, (newTab) => {
 .stat-label {
   font-size: 13px;
   color: #909399;
+}
+
+/* 诊断图表样式 */
+.diag-chart-content {
+  min-height: 400px;
+}
+
+.chart-container {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.stat-card {
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-title {
+  font-size: 14px;
+  color: #909399;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #303133;
+  margin-bottom: 4px;
+}
+
+.stat-subtitle {
+  font-size: 12px;
+  color: #c0c4cc;
+  margin-bottom: 12px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.info-label {
+  color: #909399;
+  font-size: 13px;
+}
+
+.info-value {
+  color: #303133;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.chart-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 16px;
+}
+
+.percentage-value {
+  display: block;
+  font-size: 28px;
+  font-weight: 700;
+  color: #303133;
+}
+
+.percentage-label {
+  display: block;
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+}
+
+.text-mode,
+.diag-text-content {
+  font-family: monospace;
+}
+
+.text-mode :deep(.el-textarea__inner),
+.diag-text-content :deep(.el-textarea__inner) {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  line-height: 1.5;
 }
 </style>

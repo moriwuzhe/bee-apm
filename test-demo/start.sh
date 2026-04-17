@@ -25,6 +25,10 @@ APM_OPTS="
 -Dlt.log.level=INFO
 -Dlt.project=default
 -Dlt.secret=d8d1d87c-17e9-482a-a92c-8abdbdf9c536
+-Dlt.config=${BASE_DIR}/packages/config.yml
+-Ddiag.proxy.host=127.0.0.1
+-Ddiag.proxy.port=3333
+-Ddiag.proxy.heartbeat=30
 "
 
 # 编译测试项目

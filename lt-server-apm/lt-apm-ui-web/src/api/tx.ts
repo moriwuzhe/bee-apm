@@ -15,6 +15,7 @@ export type TxRow = {
   app: string
   spend: number
   tags?: { count?: number; point?: string }
+  error?: boolean
 }
 
 export type TxQuery = {

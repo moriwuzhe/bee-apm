@@ -50,4 +50,12 @@ public interface PluginInfoRepository {
      * @return 插件信息列表
      */
     List<PluginInfo> findAll();
+    
+    /**
+     * 根据插件编码删除插件
+     * 
+     * @param pluginCode 插件编码
+     * @return 影响行数
+     */
+    int deleteByPluginCode(String pluginCode);
 }

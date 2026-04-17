@@ -29,5 +29,39 @@
 
     <build>
         <finalName>lt-monitor</finalName>
+        <plugins>
+            <!-- Clean 插件：清理 packages 目录下的插件文件夹 -->
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>3.2.0</version>
+                <configuration>
+                    <filesets>
+                        <!-- 删除 plugins 文件夹 -->
+                        <fileset>
+                            <directory>${project.basedir}/packages/plugins</directory>
+                            <followSymlinks>false</followSymlinks>
+                        </fileset>
+                        <!-- 删除 boot-plugins 文件夹 -->
+                        <fileset>
+                            <directory>${project.basedir}/packages/boot-plugins</directory>
+                            <followSymlinks>false</followSymlinks>
+                        </fileset>
+                        <!-- 删除 reporter 文件夹 -->
+                        <fileset>
+                            <directory>${project.basedir}/packages/reporter</directory>
+                            <followSymlinks>false</followSymlinks>
+                        </fileset>
+                        <!-- 删除 packages 文件夹下的jar -->
+                        <fileset>
+                            <directory>${project.basedir}/packages</directory>
+                            <includes>
+                                <include>*.jar</include>
+                            </includes>
+                            <followSymlinks>false</followSymlinks>
+                        </fileset>
+                    </filesets>
+                </configuration>
+            </plugin>
+        </plugins>
     </build>
 </project>

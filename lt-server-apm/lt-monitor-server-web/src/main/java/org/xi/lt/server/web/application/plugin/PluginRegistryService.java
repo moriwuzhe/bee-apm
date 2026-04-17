@@ -109,4 +109,13 @@ public class PluginRegistryService {
         
         return lastUpdateTime;
     }
+    
+    /**
+     * 删除插件
+     */
+    public void deletePlugin(String pluginCode) {
+        pluginInfoRepository.deleteByPluginCode(pluginCode);
+        // 从缓存中移除
+        pluginCache.remove(pluginCode);
+    }
 }

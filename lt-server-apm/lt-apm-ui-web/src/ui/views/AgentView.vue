@@ -27,7 +27,7 @@
       </el-table-column>
       <el-table-column label="操作" width="320" fixed="right" align="center">
         <template #default="{ row }">
-          <el-dropdown trigger="click" @command="(cmd) => handleCommand(cmd, row)">
+          <el-dropdown trigger="click" @command="(cmd: string) => handleCommand(cmd, row)">
             <el-button type="primary" link>
               操作 <el-icon class="el-icon--right"><ArrowDown /></el-icon>
             </el-button>
@@ -110,6 +110,7 @@ import {
   agentDeadlocks,
   agentSysProps,
   agentEnv,
+  fetchAgentConnections,
   type AgentInstanceInfo
 } from '../../api/agent'
 
@@ -150,7 +151,25 @@ const loadData = async () => {
 }
 
 const handleCommand = async (cmd: string, row: AgentInstanceInfo) => {
-  const agentId = `${row.app}@${row.inst}`
+  // 构建简化的 agentId 用于匹配
+  const simpleAgentId = `${row.app}@${row.inst}`
+  
+  // 从在线 Agent 列表中查找完整的 agentId
+  let agentId = simpleAgentId
+  try {
+    const connections = await fetchAgentConnections()
+    const matched = connections.find(conn => {
+      // 尝试多种匹配方式
+      return conn.agentId === simpleAgentId || 
+             conn.agentId.startsWith(simpleAgentId + '@') ||
+             conn.agentId.includes(`@${row.inst}@`)
+    })
+    if (matched) {
+      agentId = matched.agentId
+    }
+  } catch (e) {
+    console.warn('Failed to fetch agent connections, using simple agentId')
+  }
   
   switch (cmd) {
     case 'config':
@@ -214,9 +233,16 @@ const executeDiag = async (title: string, fn: () => Promise<string | undefined>)
   
   try {
     const result = await fn()
-    diagResult.value = result || '无结果'
+    if (result === undefined || result === null) {
+      diagResult.value = '返回数据为空'
+    } else if (result === '') {
+      diagResult.value = '返回空字符串'
+    } else {
+      diagResult.value = result
+    }
   } catch (e: any) {
-    diagResult.value = `执行失败: ${e.message || '未知错误'}`
+    const errorMsg = e.response?.data || e.message || '未知错误'
+    diagResult.value = `执行失败: ${JSON.stringify(errorMsg, null, 2)}`
   }
 }
 

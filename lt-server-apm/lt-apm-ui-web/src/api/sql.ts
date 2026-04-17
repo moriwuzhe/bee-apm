@@ -15,6 +15,7 @@ export type SqlRow = {
   app: string
   spend: number
   tags?: { count?: number; sql?: string }
+  error?: boolean
 }
 
 export type SqlQuery = {

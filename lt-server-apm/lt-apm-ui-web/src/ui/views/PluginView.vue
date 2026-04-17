@@ -27,13 +27,14 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="200" fixed="right" align="center">
+      <el-table-column label="操作" width="250" fixed="right" align="center">
         <template #default="{ row }">
           <el-button type="primary" link size="small" @click="toggleEnabled(row)">
             {{ row.enabled ? '禁用' : '启用' }}
           </el-button>
           <el-button type="primary" link size="small" @click="downloadPlugin(row)">下载</el-button>
           <el-button type="primary" link size="small" @click="showEditDialog = true; currentPlugin = { ...row }">编辑</el-button>
+          <el-button type="danger" link size="small" @click="confirmDelete(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -78,7 +79,7 @@
 
     <!-- 编辑插件对话框 -->
     <el-dialog v-model="showEditDialog" title="编辑插件" width="500px">
-      <el-form :model="currentPlugin" label-width="100px">
+      <el-form :model="currentPlugin" label-width="100px" v-if="currentPlugin">
         <el-form-item label="插件名称">
           <el-input v-model="currentPlugin.pluginName" placeholder="请输入插件名称" />
         </el-form-item>
@@ -104,9 +105,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { http } from '../../api/http'
-import { fetchAllPlugins, registerPlugin, updatePlugin as updatePluginApi, type PluginInfo } from '../../api/plugin'
+import { fetchAllPlugins, updatePlugin as updatePluginApi, deletePlugin as deletePluginApi, type PluginInfo } from '../../api/plugin'
 
 const plugins = ref<PluginInfo[]>([])
 const loading = ref(false)
@@ -189,7 +190,7 @@ const uploadPlugin = async () => {
     formData.append('description', uploadForm.value.description || '')
     
     // 使用 http 直接调用上传接口
-    const res = await http.post('/api/plugin/admin/upload', formData, {
+    await http.post('/api/plugin/admin/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
@@ -253,6 +254,28 @@ const formatFileSize = (bytes: number) => {
   if (bytes < 1024) return bytes + ' B'
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB'
   return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
+}
+
+const confirmDelete = async (plugin: PluginInfo) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除插件 "${plugin.pluginName}" 吗？此操作不可恢复。`,
+      '删除确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    await deletePluginApi(plugin.pluginCode)
+    ElMessage.success('插件删除成功')
+    loadData()
+  } catch (e: any) {
+    if (e !== 'cancel') {
+      ElMessage.error(e.message || '删除失败')
+    }
+  }
 }
 
 onMounted(() => {

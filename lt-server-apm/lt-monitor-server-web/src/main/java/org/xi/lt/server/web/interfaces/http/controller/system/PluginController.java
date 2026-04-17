@@ -163,6 +163,30 @@ public class PluginController {
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(resource);
     }
+    
+    /**
+     * 删除插件（管理后台用）
+     */
+    @PostMapping("/admin/delete")
+    public ApiResult<Void> deletePlugin(@RequestParam("pluginCode") String pluginCode) {
+        try {
+            // 获取插件信息以删除文件
+            PluginInfo plugin = pluginRegistryService.getPluginByCode(pluginCode);
+            if (plugin != null && plugin.getFileName() != null) {
+                File file = new File(PLUGIN_STORAGE_DIR, plugin.getFileName());
+                if (file.exists()) {
+                    file.delete();
+                }
+            }
+            
+            // 删除数据库记录
+            pluginRegistryService.deletePlugin(pluginCode);
+            
+            return ResultHelper.success("success", null);
+        } catch (Exception e) {
+            throw new RuntimeException("插件删除失败", e);
+        }
+    }
 
     /**
      * 计算文件 MD5

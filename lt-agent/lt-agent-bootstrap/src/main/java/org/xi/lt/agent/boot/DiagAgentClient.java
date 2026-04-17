@@ -156,6 +156,14 @@ public class DiagAgentClient {
         d.header.code = HEARTBEAT_CODE;
         d.header.flag = 0;
         d.header.agentVersion = AGENT_VERSION;
+        
+        // 添加 project 和 secret 用于服务端鉴权
+        String project = System.getProperty("lt.project", ConfigUtils.me().getStr("projectCode", "default"));
+        String secret = System.getProperty("lt.secret", ConfigUtils.me().getStr("secretKey", ""));
+        d.header.properties = new java.util.HashMap<>();
+        d.header.properties.put("lt.project", project);
+        d.header.properties.put("lt.secret", secret);
+        
         d.body = agentId;
         ch.writeAndFlush(d);
     }
@@ -175,6 +183,7 @@ public class DiagAgentClient {
         int code;
         int flag;
         short agentVersion;
+        java.util.Map<String, Object> properties;
     }
 
     private static class Datagram {
@@ -196,7 +205,13 @@ public class DiagAgentClient {
             writeString(msg.header.id == null ? "" : msg.header.id, out);
             out.writeInt(msg.header.code);
             out.writeInt(msg.header.flag);
-            out.writeShort(0);
+            
+            // 序列化 properties
+            byte[] propsBytes = serializeProperties(msg.header.properties);
+            out.writeShort((short) propsBytes.length);
+            if (propsBytes.length > 0) {
+                out.writeBytes(propsBytes);
+            }
 
             int headerSize = out.writerIndex() - headerStart;
 
@@ -207,6 +222,18 @@ public class DiagAgentClient {
             int total = end - start - 4;
             out.setInt(start, total);
             out.setShort(start + 4, (short) headerSize);
+        }
+        
+        private byte[] serializeProperties(java.util.Map<String, Object> props) {
+            if (props == null || props.isEmpty()) {
+                return new byte[0];
+            }
+            try {
+                String json = com.alibaba.fastjson.JSON.toJSONString(props);
+                return json.getBytes(StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                return new byte[0];
+            }
         }
     }
 

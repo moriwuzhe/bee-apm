@@ -274,6 +274,13 @@ public final class DatabaseConstants {
         "SELECT * FROM " + TABLE_PLUGIN_INFO + 
         " ORDER BY " + PLUGIN_COL_ID + " DESC";
     
+    /**
+     * 根据插件编码删除插件
+     */
+    public static final String SQL_DELETE_PLUGIN_BY_CODE = 
+        "DELETE FROM " + TABLE_PLUGIN_INFO + 
+        " WHERE " + PLUGIN_COL_PLUGIN_CODE + " = ?";
+    
     // 私有构造函数，防止实例化
     private DatabaseConstants() {
         throw new UnsupportedOperationException("Utility class cannot be instantiated");

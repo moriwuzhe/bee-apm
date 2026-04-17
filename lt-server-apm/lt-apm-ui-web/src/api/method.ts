@@ -15,6 +15,7 @@ export type MethodRow = {
   app: string
   spend: number
   tags?: { method?: string }
+  error?: boolean
 }
 
 export type MethodQuery = {

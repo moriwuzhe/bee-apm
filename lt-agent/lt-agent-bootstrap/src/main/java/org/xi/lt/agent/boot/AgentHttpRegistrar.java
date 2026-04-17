@@ -37,13 +37,12 @@ public class AgentHttpRegistrar {
      * 执行注册
      */
     public static void register() {
-        String registerUrl = ConfigUtils.me().getStr("agent.register.url", DEFAULT_REGISTER_URL);
+        // 优先使用配置的 agent.register.url
+        String registerUrl = ConfigUtils.me().getStr("agent.register.url");
         
-        // 如果配置了 diag.proxy.host,优先使用它作为注册地址
-        String diagHost = System.getProperty("diag.proxy.host", ConfigUtils.me().getStr("diag.proxy.host"));
-        if (LtUtils.isNotBlank(diagHost)) {
-            int diagPort = ConfigUtils.me().getInt("diag.proxy.port", 3333);
-            registerUrl = String.format("http://%s:%d/api/agent/register", diagHost, diagPort);
+        // 如果没有配置，使用默认地址
+        if (LtUtils.isBlank(registerUrl)) {
+            registerUrl = DEFAULT_REGISTER_URL;
         }
         
         LogUtil.log("start register agent to management platform, url=" + registerUrl);

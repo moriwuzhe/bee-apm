@@ -1,5 +1,5 @@
 import type { RouteRecordRaw } from 'vue-router'
-import { Bell, Coin, Connection, DataLine, Grid, Link, Tickets, Tools } from '@element-plus/icons-vue'
+import { Bell, Connection, DataLine, Grid, Tickets, Tools } from '@element-plus/icons-vue'
 
 import AppLayout from '../ui/layouts/AppLayout.vue'
 import LoginView from '../ui/views/LoginView.vue'
@@ -9,12 +9,13 @@ import MethodView from '../ui/views/MethodView.vue'
 import SqlView from '../ui/views/SqlView.vue'
 import TxView from '../ui/views/TxView.vue'
 import LoggerView from '../ui/views/LoggerView.vue'
-import AppListView from '../ui/views/AppListView.vue'
+// import AppListView from '../ui/views/AppListView.vue' // 已合并到 ApplicationView
 import AppDetailView from '../ui/views/AppDetailView.vue'
 import DiagnosticView from '../ui/views/DiagnosticView.vue'
 import OnlineDebugView from '../ui/views/OnlineDebugView.vue'
 import ProfilerView from '../ui/views/ProfilerView.vue'
 import AlertView from '../ui/views/AlertView.vue'
+import AlertManagementView from '../ui/views/AlertManagementView.vue'
 import ProjectView from '../ui/views/ProjectView.vue'
 import ApplicationView from '../ui/views/ApplicationView.vue'
 import AgentView from '../ui/views/AgentView.vue'
@@ -39,12 +40,13 @@ export const routes: RouteRecordRaw[] = [
         component: DashboardView,
         meta: { title: '仪表盘', nav: true, icon: DataLine, order: 10 },
       },
-      {
-        path: 'apps',
-        name: 'apps',
-        component: AppListView,
-        meta: { title: '应用列表', nav: true, icon: Grid, order: 20 },
-      },
+      // 应用列表不再单独显示，合并到应用管理中
+      // {
+      //   path: 'apps',
+      //   name: 'apps',
+      //   component: AppListView,
+      //   meta: { title: '应用列表', nav: true, icon: Grid, order: 20 },
+      // },
       {
         path: 'apps/:app',
         component: AppDetailView,
@@ -67,6 +69,12 @@ export const routes: RouteRecordRaw[] = [
         name: 'alert',
         component: AlertView,
         meta: { title: '智能告警', nav: true, icon: Bell, order: 25 },
+      },
+      {
+        path: 'alert-management',
+        name: 'alert-management',
+        component: AlertManagementView,
+        meta: { title: 'Agent告警', nav: true, icon: Bell, order: 26 },
       },
       {
         path: 'project',

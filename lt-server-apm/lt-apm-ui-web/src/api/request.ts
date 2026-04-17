@@ -15,6 +15,7 @@ export type RequestRow = {
   app: string
   spend: number
   tags?: { url?: string }
+  error?: boolean
 }
 
 export type RequestQuery = {

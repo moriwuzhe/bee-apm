@@ -67,6 +67,13 @@ diagnostic:
   zk:
     enabled: false
 
+# 诊断代理配置（Agent 连接到此端口进行远程诊断）
+diag:
+  proxy:
+    host: 127.0.0.1
+    port: 3333
+    heartbeat: 30
+
 # Zookeeper配置 (用于诊断代理节点注册)
 zk:
   url: zookeeper:2181

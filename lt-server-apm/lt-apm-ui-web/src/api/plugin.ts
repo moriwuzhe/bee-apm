@@ -45,3 +45,8 @@ export async function updatePlugin(data: PluginInfo) {
   const res = await http.post('/plugin/admin/update', data)
   return res.data
 }
+
+export async function deletePlugin(pluginCode: string) {
+  const res = await http.post('/plugin/admin/delete', null, { params: { pluginCode } })
+  return res.data
+}

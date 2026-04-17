@@ -57,8 +57,20 @@ public class HeartbeatTask {
             conn.setConnectTimeout(3000);
             conn.setReadTimeout(3000);
 
-            String jsonPayload = String.format("{\"app\":\"%s\",\"inst\":\"%s\",\"ip\":\"%s\",\"version\":\"%s\",\"configVersion\":\"%s\"}",
-                    LtConfig.me().getApp(), LtConfig.me().getInst(), LtConfig.me().getIp(), Version.VERSION, org.xi.lt.agent.config.ConfigUtils.me().getStr("config.version", "0"));
+            // 添加 projectCode 和 secretKey 用于服务端鉴权
+            String projectCode = System.getProperty("lt.project", org.xi.lt.agent.config.ConfigUtils.me().getStr("projectCode", "default"));
+            String secretKey = System.getProperty("lt.secret", org.xi.lt.agent.config.ConfigUtils.me().getStr("secretKey", ""));
+            
+            String jsonPayload = String.format(
+                "{\"app\":\"%s\",\"inst\":\"%s\",\"ip\":\"%s\",\"version\":\"%s\",\"configVersion\":\"%s\",\"projectCode\":\"%s\",\"secretKey\":\"%s\"}",
+                LtConfig.me().getApp(), 
+                LtConfig.me().getInst(), 
+                LtConfig.me().getIp(), 
+                Version.VERSION, 
+                org.xi.lt.agent.config.ConfigUtils.me().getStr("config.version", "0"),
+                projectCode,
+                secretKey
+            );
 
             try (OutputStream os = conn.getOutputStream()) {
                 os.write(jsonPayload.getBytes(StandardCharsets.UTF_8));

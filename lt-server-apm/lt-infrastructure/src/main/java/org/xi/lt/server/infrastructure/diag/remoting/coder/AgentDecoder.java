@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 public class AgentDecoder extends ByteToMessageDecoder {
-    private static final TypeReference PROPERTIES_TYPE = new TypeReference() {
+    private static final TypeReference<Map<String, Object>> PROPERTIES_TYPE = new TypeReference<Map<String, Object>>() {
     };
 
     @Override

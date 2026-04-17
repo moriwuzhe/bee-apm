@@ -97,4 +97,9 @@ public class PluginInfoDaoImpl implements PluginInfoRepository {
     public List<PluginInfo> findAll() {
         return jdbcTemplate.query(SQL_SELECT_ALL_PLUGINS, PLUGIN_INFO_ROW_MAPPER);
     }
+    
+    @Override
+    public int deleteByPluginCode(String pluginCode) {
+        return jdbcTemplate.update(SQL_DELETE_PLUGIN_BY_CODE, pluginCode);
+    }
 }

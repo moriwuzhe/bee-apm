@@ -27,12 +27,12 @@ export type TopologyData = {
 }
 
 export async function fetchDashboardStat(params: { beginTime: string; endTime: string }) {
-  const res = await http.post<DashboardStat>('/dashboard/stat', params)
+  const res = await http.post<DashboardStat>('/api/dashboard/stat', params)
   return res.data
 }
 
 export async function fetchGlobalTopology(params: { beginTime: string; endTime: string }) {
-  const res = await http.post<TopologyData>('/dashboard/topology', params)
+  const res = await http.post<TopologyData>('/api/dashboard/topology', params)
   return res.data
 }
 

@@ -30,7 +30,7 @@ export type MethodQuery = {
 }
 
 export async function fetchMethodList(params: MethodQuery) {
-  const res = await http.post<PageResult<MethodRow>>('/method/list', params)
+  const res = await http.post<PageResult<MethodRow>>('/api/method/list', params)
   return res.data
 }
 

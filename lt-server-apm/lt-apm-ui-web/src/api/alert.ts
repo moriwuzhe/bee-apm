@@ -12,6 +12,6 @@ export interface AlertRow {
 }
 
 export async function fetchAlerts(app?: string, limit: number = 100) {
-  const res = await http.get<{ result: AlertRow[] }>('/alert/list', { params: { app, limit } })
+  const res = await http.get<{ result: AlertRow[] }>('/api/alert/list', { params: { app, limit } })
   return res.data && res.data.result ? res.data.result : []
 }

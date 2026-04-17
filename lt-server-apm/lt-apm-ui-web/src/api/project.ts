@@ -25,21 +25,21 @@ export interface Application {
 }
 
 export async function fetchProjects() {
-  const res = await http.get<{ data: Project[] }>('/project/list')
+  const res = await http.get<{ data: Project[] }>('/api/project/list')
   return res.data?.data || []
 }
 
 export async function createProject(data: Partial<Project>) {
-  const res = await http.post('/project/create', data)
+  const res = await http.post('/api/project/create', data)
   return res.data
 }
 
 export async function fetchApplications(projectCode?: string) {
-  const res = await http.get<{ data: Application[] }>('/application/list', { params: { projectCode } })
+  const res = await http.get<{ data: Application[] }>('/api/application/list', { params: { projectCode } })
   return res.data?.data || []
 }
 
 export async function createApplication(data: Partial<Application>) {
-  const res = await http.post('/application/create', data)
+  const res = await http.post('/api/application/create', data)
   return res.data
 }

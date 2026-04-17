@@ -26,7 +26,7 @@ export type AppInfoQuery = {
 }
 
 export async function fetchAppInfoList(params: AppInfoQuery) {
-  const res = await http.post<PageResult<AppInfoRow>>('/app/info/list', params)
+  const res = await http.post<PageResult<AppInfoRow>>('/api/app/info/list', params)
   return res.data
 }
 

@@ -28,7 +28,7 @@ export type LoggerQuery = {
 }
 
 export async function fetchLoggerList(params: LoggerQuery) {
-  const res = await http.post<PageResult<LoggerRow>>('/logger/list', params)
+  const res = await http.post<PageResult<LoggerRow>>('/api/logger/list', params)
   return res.data
 }
 

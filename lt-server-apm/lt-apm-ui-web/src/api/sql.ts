@@ -30,7 +30,7 @@ export type SqlQuery = {
 }
 
 export async function fetchSqlList(params: SqlQuery) {
-  const res = await http.post<PageResult<SqlRow>>('/sql/list', params)
+  const res = await http.post<PageResult<SqlRow>>('/api/sql/list', params)
   return res.data
 }
 

@@ -30,7 +30,7 @@ export type TxQuery = {
 }
 
 export async function fetchTxList(params: TxQuery) {
-  const res = await http.post<PageResult<TxRow>>('/tx/list', params)
+  const res = await http.post<PageResult<TxRow>>('/api/tx/list', params)
   return res.data
 }
 

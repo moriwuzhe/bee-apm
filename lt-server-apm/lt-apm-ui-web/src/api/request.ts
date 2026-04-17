@@ -31,7 +31,7 @@ export type RequestQuery = {
 }
 
 export async function fetchRequestList(params: RequestQuery) {
-  const res = await http.post<PageResult<RequestRow>>('/request/list', params)
+  const res = await http.post<PageResult<RequestRow>>('/api/request/list', params)
   return res.data
 }
 

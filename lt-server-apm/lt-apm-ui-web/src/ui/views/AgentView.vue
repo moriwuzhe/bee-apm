@@ -255,6 +255,8 @@ import {
   fetchAgentInstances,
   updateAgentConfig,
   updateAgentInstanceConfig,
+  getAppConfig,
+  getInstanceConfig,
   agentThreadDump,
   agentJvmInfo,
   agentGc,
@@ -397,22 +399,32 @@ const handleCommand = async (cmd: string, row: AgentInstanceInfo) => {
       configMode.value = 'app'
       currentApp.value = row.app
       currentInst.value = ''
-      // 尝试从 localStorage 加载应用配置
-      const appConfigKey = `agent_config_app_${row.app}`
-      const savedAppConfig = localStorage.getItem(appConfigKey)
-      configForm.value.config = savedAppConfig || ''
+      // 从后端加载应用配置
       showConfigDialog.value = true
+      configForm.value.config = '加载中...'
+      try {
+        const config = await getAppConfig(row.app)
+        configForm.value.config = config
+      } catch (e: any) {
+        console.error('Failed to load app config:', e)
+        configForm.value.config = ''
+      }
       break
       
     case 'instanceConfig':
       configMode.value = 'instance'
       currentApp.value = row.app
       currentInst.value = row.inst
-      // 尝试从 localStorage 加载实例配置
-      const instConfigKey = `agent_config_inst_${row.app}_${row.inst}`
-      const savedInstConfig = localStorage.getItem(instConfigKey)
-      configForm.value.config = savedInstConfig || ''
+      // 从后端加载实例配置
       showConfigDialog.value = true
+      configForm.value.config = '加载中...'
+      try {
+        const config = await getInstanceConfig(row.app, row.inst)
+        configForm.value.config = config
+      } catch (e: any) {
+        console.error('Failed to load instance config:', e)
+        configForm.value.config = ''
+      }
       break
       
     case 'jvmInfo':
@@ -666,18 +678,12 @@ const submitConfig = async () => {
         app: currentApp.value,
         config: configForm.value.config
       })
-      // 保存到 localStorage
-      const appConfigKey = `agent_config_app_${currentApp.value}`
-      localStorage.setItem(appConfigKey, configForm.value.config)
     } else {
       await updateAgentInstanceConfig({
         app: currentApp.value,
         inst: currentInst.value,
         config: configForm.value.config
       })
-      // 保存到 localStorage
-      const instConfigKey = `agent_config_inst_${currentApp.value}_${currentInst.value}`
-      localStorage.setItem(instConfigKey, configForm.value.config)
     }
     ElMessage.success('配置更新成功')
     showConfigDialog.value = false

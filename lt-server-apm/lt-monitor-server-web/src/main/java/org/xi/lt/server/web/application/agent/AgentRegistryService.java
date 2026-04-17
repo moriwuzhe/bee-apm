@@ -247,6 +247,43 @@ public class AgentRegistryService {
         }
     }
     
+    /**
+     * 获取应用级配置（供 UI 显示）
+     */
+    public String getAppConfig(String app) {
+        if (app == null || app.isEmpty()) {
+            return "";
+        }
+        
+        // 先从内存缓存获取
+        String cachedConfig = appConfigs.get(app);
+        if (cachedConfig != null) {
+            return cachedConfig;
+        }
+        
+        // 从数据库获取
+        String config = agentConfigRepository.findConfigByAppCode(app);
+        if (config != null) {
+            appConfigs.put(app, config);
+            return config;
+        }
+        
+        return "";
+    }
+    
+    /**
+     * 获取实例级配置（供 UI 显示）
+     */
+    public String getInstanceConfig(String app, String inst) {
+        if (app == null || app.isEmpty() || inst == null || inst.isEmpty()) {
+            return "";
+        }
+        
+        // 从数据库获取
+        String config = agentInstanceConfigRepository.findConfigByAppCodeAndInstId(app, inst);
+        return config != null ? config : "";
+    }
+    
     private void updateMemoryCache(AgentInstanceInfo info) {
         agentRegistry.computeIfAbsent(info.getApp(), k -> new ConcurrentHashMap<>())
                     .put(info.getInst(), info);

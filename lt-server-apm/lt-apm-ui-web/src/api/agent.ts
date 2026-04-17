@@ -61,6 +61,16 @@ export async function updateAgentInstanceConfig(data: AgentInstanceConfigUpdateR
   return res.data
 }
 
+export async function getAppConfig(app: string) {
+  const res = await http.get<{ data: string }>('/agent/config/get', { params: { app } })
+  return res.data?.data || ''
+}
+
+export async function getInstanceConfig(app: string, inst: string) {
+  const res = await http.get<{ data: string }>('/agent/config/instance/get', { params: { app, inst } })
+  return res.data?.data || ''
+}
+
 export async function pullAgentConfig(app: string) {
   const res = await http.get<{ data: AgentPullConfigResult }>('/agent/config/pull', { params: { app } })
   return res.data?.data

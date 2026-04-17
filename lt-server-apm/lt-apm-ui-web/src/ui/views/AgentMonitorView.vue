@@ -12,6 +12,7 @@
           下次刷新: {{ countdown }}s
         </span>
         <el-button size="small" @click="clearHistory">清除历史</el-button>
+        <el-button size="small" type="info" @click="debugHistory">调试数据</el-button>
       </div>
     </div>
 
@@ -143,13 +144,17 @@ const loadAvailableAgents = async () => {
       inst: agent.agentId.split('@')[2] || ''
     }))
     
+    console.log(`[Monitor] Loaded ${availableAgents.value.length} agents`)
+    
     // 默认选中第一个在线的 Agent
     if (selectedAgents.value.length === 0 && availableAgents.value.length > 0) {
       selectedAgents.value = [availableAgents.value[0].agentId]
+      console.log(`[Monitor] Auto-selected agent: ${selectedAgents.value[0]}`)
       startMonitoring()
     }
   } catch (e: any) {
     console.error('Failed to load agents:', e)
+    ElMessage.error('加载 Agent 列表失败')
   }
 }
 
@@ -187,19 +192,24 @@ const refreshAgentData = async (agentId: string) => {
       agentMetrics.value[agentId] = metrics
       
       // 保存到历史数据
-      await metricHistoryStore.save({
-        agentId,
-        timestamp: Date.now(),
-        heapUsed: metrics.heapUsed,
-        heapMax: metrics.heapMax,
-        heapPercent: metrics.heapPercent,
-        nonHeapUsed: metrics.nonHeapUsed,
-        nonHeapMax: metrics.nonHeapMax,
-        nonHeapPercent: metrics.nonHeapPercent,
-        threadCount: metrics.threadCount,
-        peakThreadCount: metrics.peakThreadCount,
-        uptimeMs: metrics.uptimeMs
-      })
+      try {
+        await metricHistoryStore.save({
+          agentId,
+          timestamp: Date.now(),
+          heapUsed: metrics.heapUsed,
+          heapMax: metrics.heapMax,
+          heapPercent: metrics.heapPercent,
+          nonHeapUsed: metrics.nonHeapUsed,
+          nonHeapMax: metrics.nonHeapMax,
+          nonHeapPercent: metrics.nonHeapPercent,
+          threadCount: metrics.threadCount,
+          peakThreadCount: metrics.peakThreadCount,
+          uptimeMs: metrics.uptimeMs
+        })
+        console.log(`[Monitor] Saved metrics for ${agentId}, heap: ${metrics.heapPercent}%, threads: ${metrics.threadCount}`)
+      } catch (saveError) {
+        console.error('[Monitor] Failed to save metrics:', saveError)
+      }
       
       // 更新图表
       await nextTick()
@@ -336,7 +346,12 @@ const updateCharts = async (agentId: string) => {
     const oneHourAgo = Date.now() - 60 * 60 * 1000
     const records = await metricHistoryStore.query(agentId, oneHourAgo, Date.now())
     
-    if (records.length === 0) return
+    console.log(`[Monitor] Query result for ${agentId}: ${records.length} records`)
+    
+    if (records.length === 0) {
+      console.warn(`[Monitor] No historical data for ${agentId}`)
+      return
+    }
     
     // 更新堆内存图表
     updateHeapChart(agentId, records)
@@ -482,7 +497,45 @@ const clearHistory = async () => {
   }
 }
 
-onMounted(() => {
+// 调试历史数据
+const debugHistory = async () => {
+  if (!selectedAgents.value || selectedAgents.value.length === 0) {
+    ElMessage.warning('请先选择一个 Agent')
+    return
+  }
+  
+  const agentId = selectedAgents.value[0]
+  try {
+    const oneHourAgo = Date.now() - 60 * 60 * 1000
+    const records = await metricHistoryStore.query(agentId, oneHourAgo, Date.now())
+    
+    console.log('=== IndexedDB 调试信息 ===')
+    console.log('Agent ID:', agentId)
+    console.log('查询范围:', new Date(oneHourAgo).toLocaleString(), '-', new Date().toLocaleString())
+    console.log('记录数量:', records.length)
+    if (records.length > 0) {
+      console.log('第一条记录:', records[0])
+      console.log('最后一条记录:', records[records.length - 1])
+      console.log('所有记录:', records)
+    }
+    
+    ElMessage.info(`调试信息已输出到控制台 (F12 → Console)，共 ${records.length} 条记录`)
+  } catch (e: any) {
+    console.error('调试失败:', e)
+    ElMessage.error('调试失败: ' + e.message)
+  }
+}
+
+onMounted(async () => {
+  // 初始化 IndexedDB
+  try {
+    await metricHistoryStore.init()
+    console.log('[Monitor] IndexedDB initialized successfully')
+  } catch (e) {
+    console.error('[Monitor] Failed to initialize IndexedDB:', e)
+    ElMessage.warning('历史数据存储初始化失败，图表功能可能不可用')
+  }
+  
   loadAvailableAgents()
   if (autoRefreshEnabled.value) {
     toggleAutoRefresh(true)

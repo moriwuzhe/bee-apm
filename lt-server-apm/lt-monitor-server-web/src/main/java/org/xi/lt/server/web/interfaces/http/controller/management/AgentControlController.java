@@ -51,6 +51,20 @@ public class AgentControlController {
         return ResultHelper.success("success", null);
     }
     
+    // For UI to get app config
+    @GetMapping("/api/agent/config/get")
+    public ApiResult<String> getAppConfig(@RequestParam("app") String app) {
+        String config = registryService.getAppConfig(app);
+        return ResultHelper.success("success", config != null ? config : "");
+    }
+    
+    // For UI to get instance config
+    @GetMapping("/api/agent/config/instance/get")
+    public ApiResult<String> getInstanceConfig(@RequestParam("app") String app, @RequestParam("inst") String inst) {
+        String config = registryService.getInstanceConfig(app, inst);
+        return ResultHelper.success("success", config != null ? config : "");
+    }
+    
     // For UI to update instance-level config
     @PostMapping("/api/agent/config/instance/update")
     public ApiResult<Void> updateInstanceConfig(@RequestBody AgentInstanceConfigUpdateRequest payload) {

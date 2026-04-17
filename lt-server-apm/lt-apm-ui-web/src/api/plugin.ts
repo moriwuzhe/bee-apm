@@ -22,31 +22,31 @@ export interface PluginListResult {
 }
 
 export async function fetchEnabledPlugins() {
-  const res = await http.get<{ data: PluginListResult }>('/plugin/list')
+  const res = await http.get<{ data: PluginListResult }>('/api/plugin/list')
   return res.data?.data
 }
 
 export async function fetchAllPlugins() {
-  const res = await http.get<{ data: PluginInfo[] }>('/plugin/admin/list')
+  const res = await http.get<{ data: PluginInfo[] }>('/api/plugin/admin/list')
   return res.data?.data || []
 }
 
 export async function fetchPluginInfo(pluginCode: string) {
-  const res = await http.get<{ data: PluginInfo }>('/plugin/info', { params: { pluginCode } })
+  const res = await http.get<{ data: PluginInfo }>('/api/plugin/info', { params: { pluginCode } })
   return res.data?.data
 }
 
 export async function registerPlugin(data: PluginInfo) {
-  const res = await http.post('/plugin/admin/register', data)
+  const res = await http.post('/api/plugin/admin/register', data)
   return res.data
 }
 
 export async function updatePlugin(data: PluginInfo) {
-  const res = await http.post('/plugin/admin/update', data)
+  const res = await http.post('/api/plugin/admin/update', data)
   return res.data
 }
 
 export async function deletePlugin(pluginCode: string) {
-  const res = await http.post('/plugin/admin/delete', null, { params: { pluginCode } })
+  const res = await http.post('/api/plugin/admin/delete', null, { params: { pluginCode } })
   return res.data
 }

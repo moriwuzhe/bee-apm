@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Java代码流程图生成器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .main-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            border: none;
+            background: none;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            color: #666;
+        }
+        
+        .tab:hover {
+            background: #f5f5f5;
+        }
+        
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+        
+        .upload-area:hover {
+            background: #f8f9ff;
+            border-color: #764ba2;
+        }
+        
+        .upload-area.dragover {
+            background: #f0f4ff;
+            border-color: #764ba2;
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .upload-text {
+            color: #666;
+            font-size: 16px;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .code-area {
+            margin-bottom: 20px;
+        }
+        
+        .code-label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .code-input {
+            width: 100%;
+            height: 300px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+        
+        .code-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            padding: 14px 32px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            margin-left: 10px;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .result-card {
+            background: #f8f9ff;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 25px;
+            display: none;
+        }
+        
+        .result-card.show {
+            display: block;
+        }
+        
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .result-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .result-stats {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .dot-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .error-message {
+            background: #fff5f5;
+            border: 1px solid #fc8181;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            color: #666;
+            font-size: 16px;
+        }
+        
+        .file-info {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .file-info.show {
+            display: block;
+        }
+        
+        .file-name {
+            font-weight: 600;
+            color: #2e7d32;
+        }
+        
+        .graphviz-hint {
+            background: #fff8e1;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #ff9800;
+        }
+        
+        .graphviz-hint h4 {
+            color: #f57c00;
+            margin-bottom: 10px;
+        }
+        
+        .graphviz-hint p {
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .graphviz-hint code {
+            background: #f5f5f5;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Java 代码流程图生成器</h1>
+            <p>上传 Java 文件或粘贴代码，自动生成方法调用链流程图</p>
+        </div>
+        
+        <div class="main-card">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('upload')">📁 上传文件</button>
+                <button class="tab" onclick="switchTab('code')">📝 粘贴代码</button>
+            </div>
+            
+            <!-- 上传文件标签 -->
+            <div id="upload-tab" class="tab-content active">
+                <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-text">
+                        点击或拖拽 Java 文件到这里<br>
+                        <span style="font-size: 14px; color: #999;">支持 .java 文件</span>
+                    </div>
+                    <input type="file" id="fileInput" class="file-input" accept=".java" onchange="handleFileSelect(event)">
+                </div>
+                
+                <div class="file-info" id="fileInfo">
+                    <span class="file-name" id="selectedFileName"></span>
+                </div>
+                
+                <div style="text-align: center;">
+                    <button class="btn btn-primary" id="uploadBtn" onclick="uploadFile()" disabled>
+                        生成流程图
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearUpload()" style="display: none;" id="clearUploadBtn">
+                        清除
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 粘贴代码标签 -->
+            <div id="code-tab" class="tab-content">
+                <div class="code-area">
+                    <label class="code-label">粘贴 Java 代码：</label>
+                    <textarea class="code-input" id="codeInput" placeholder="在此粘贴您的 Java 代码...
+
+示例：
+public class TestClass {
+    public void methodA() {
+        System.out.println(\"Method A\");
+        methodB();
+    }
+    
+    public void methodB() {
+        System.out.println(\"Method B\");
+    }
+}"></textarea>
+                </div>
+                
+                <div style="text-align: center;">
+                    <button class="btn btn-primary" onclick="parseCode()">
+                        生成流程图
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearCode()">
+                        清除
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 加载状态 -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <div class="loading-text">正在分析代码并生成流程图...</div>
+            </div>
+            
+            <!-- 错误消息 -->
+            <div class="error-message" id="errorMessage"></div>
+            
+            <!-- 结果展示 -->
+            <div class="result-card" id="resultCard">
+                <div class="result-header">
+                    <div class="result-title">✅ 流程图生成成功！</div>
+                    <div class="result-stats">
+                        <div class="stat">
+                            <div class="stat-value" id="nodeCount">0</div>
+                            <div class="stat-label">节点</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value" id="edgeCount">0</div>
+                            <div class="stat-label">边</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <button class="btn btn-primary" onclick="downloadDot()">📥 下载 DOT 文件</button>
+                    <button class="btn btn-secondary" onclick="copyDot()">📋 复制 DOT 内容</button>
+                </div>
+                
+                <div class="dot-output" id="dotOutput"></div>
+                
+                <div class="graphviz-hint">
+                    <h4>💡 如何渲染流程图？</h4>
+                    <p>1. 将 DOT 内容复制到 <a href="https://dreampuf.github.io/GraphvizOnline/" target="_blank" style="color: #1976d2;">Graphviz Online</a></p>
+                    <p>2. 或者安装 Graphviz 后运行：<code>dot -Tpng output.dot -o output.png</code></p>
+                    <p>3. 或者使用 VS Code 的 Graphviz 插件实时预览</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentDotContent = '';
+        let currentDotFilename = '';
+        
+        // 切换标签
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            if (tab === 'upload') {
+                document.querySelectorAll('.tab')[0].classList.add('active');
+                document.getElementById('upload-tab').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                document.getElementById('code-tab').classList.add('active');
+            }
+        }
+        
+        // 拖拽上传
+        const uploadArea = document.getElementById('uploadArea');
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+        
+        // 处理文件选择
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+        
+        function handleFile(file) {
+            if (!file.name.endsWith('.java')) {
+                showError('请选择 .java 文件！');
+                return;
+            }
+            
+            document.getElementById('selectedFileName').textContent = '已选择: ' + file.name;
+            document.getElementById('fileInfo').classList.add('show');
+            document.getElementById('uploadBtn').disabled = false;
+            document.getElementById('clearUploadBtn').style.display = 'inline-block';
+            
+            // 保存文件引用
+            window.selectedFile = file;
+        }
+        
+        function clearUpload() {
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileInfo').classList.remove('show');
+            document.getElementById('uploadBtn').disabled = true;
+            document.getElementById('clearUploadBtn').style.display = 'none';
+            window.selectedFile = null;
+            hideResults();
+        }
+        
+        function clearCode() {
+            document.getElementById('codeInput').value = '';
+            hideResults();
+        }
+        
+        // 上传文件
+        async function uploadFile() {
+            if (!window.selectedFile) {
+                showError('请先选择文件！');
+                return;
+            }
+            
+            showLoading();
+            hideError();
+            hideResults();
+            
+            const formData = new FormData();
+            formData.append('file', window.selectedFile);
+            
+            try {
+                const response = await fetch('/api/flow/upload/file', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                hideLoading();
+                
+                if (result.success) {
+                    showResults(result);
+                } else {
+                    showError(result.message || '解析失败');
+                }
+            } catch (error) {
+                hideLoading();
+                showError('请求失败: ' + error.message);
+            }
+        }
+        
+        // 解析代码
+        async function parseCode() {
+            const code = document.getElementById('codeInput').value;
+            if (!code.trim()) {
+                showError('请输入 Java 代码！');
+                return;
+            }
+            
+            showLoading();
+            hideError();
+            hideResults();
+            
+            try {
+                const response = await fetch('/api/flow/parse/code', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ code: code })
+                });
+                
+                const result = await response.json();
+                hideLoading();
+                
+                if (result.success) {
+                    showResults(result);
+                } else {
+                    showError(result.message || '解析失败');
+                }
+            } catch (error) {
+                hideLoading();
+                showError('请求失败: ' + error.message);
+            }
+        }
+        
+        function showLoading() {
+            document.getElementById('loading').classList.add('show');
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('show');
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+        
+        function hideError() {
+            document.getElementById('errorMessage').classList.remove('show');
+        }
+        
+        function showResults(result) {
+            document.getElementById('nodeCount').textContent = result.nodeCount;
+            document.getElementById('edgeCount').textContent = result.edgeCount;
+            document.getElementById('dotOutput').textContent = result.dotContent;
+            document.getElementById('resultCard').classList.add('show');
+            
+            currentDotContent = result.dotContent;
+            currentDotFilename = result.graphName ? result.graphName + '.dot' : 'flowchart.dot';
+        }
+        
+        function hideResults() {
+            document.getElementById('resultCard').classList.remove('show');
+        }
+        
+        function downloadDot() {
+            if (!currentDotContent) return;
+            
+            const blob = new Blob([currentDotContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = currentDotFilename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        function copyDot() {
+            if (!currentDotContent) return;
+            
+            navigator.clipboard.writeText(currentDotContent).then(() => {
+                alert('DOT 内容已复制到剪贴板！');
+            }).catch(err => {
+                console.error('复制失败:', err);
+                // 降级方案
+                const textarea = document.createElement('textarea');
+                textarea.value = currentDotContent;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('DOT 内容已复制到剪贴板！');
+            });
+        }
+        
+        // 页面加载时检查服务状态
+        window.onload = async function() {
+            try {
+                const response = await fetch('/api/flow/health');
+                const data = await response.json();
+                console.log('服务状态:', data);
+            } catch (error) {
+                console.warn('无法连接到后端服务:', error);
+            }
+        };
+    </script>
+</body>
+</html>

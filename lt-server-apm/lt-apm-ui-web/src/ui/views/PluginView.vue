@@ -40,7 +40,7 @@
     </el-table>
 
     <!-- 上传插件对话框 -->
-    <el-dialog v-model="showUploadDialog" title="上传插件" width="500px">
+    <el-dialog v-model="showUploadDialog" title="上传插件" width="500px" @close="handleDialogClose">
       <el-form :model="uploadForm" label-width="100px">
         <el-form-item label="插件文件">
           <el-upload
@@ -48,6 +48,7 @@
             :auto-upload="false"
             :on-change="handleFileChange"
             :limit="1"
+            :file-list="fileList"
             accept=".jar,.zip"
           >
             <el-button type="primary">选择文件</el-button>
@@ -116,6 +117,8 @@ const updating = ref(false)
 const showUploadDialog = ref(false)
 const showEditDialog = ref(false)
 const currentPlugin = ref<PluginInfo | null>(null)
+const uploadRef = ref()
+const fileList = ref<any[]>([])
 const uploadForm = ref({
   pluginCode: '',
   pluginName: '',
@@ -137,8 +140,9 @@ const loadData = async () => {
   }
 }
 
-const handleFileChange = (file: any) => {
+const handleFileChange = (file: any, files: any[]) => {
   uploadForm.value.file = file.raw
+  fileList.value = files
   
   // 尝试从文件名自动提取信息
   const fileName = file.name || ''
@@ -166,6 +170,14 @@ const resetUploadForm = () => {
     description: '',
     file: null
   }
+  fileList.value = []
+  if (uploadRef.value) {
+    uploadRef.value.clearFiles()
+  }
+}
+
+const handleDialogClose = () => {
+  resetUploadForm()
 }
 
 const uploadPlugin = async () => {

@@ -19,7 +19,7 @@ reporter:
         writeTimeout: 10
         readTimeout: 10
         url:
-            - http://127.0.0.1:8081/stream
+            - http://127.0.0.1:8081/api/stream
 #            - http://127.0.0.1:7002/stream
     kafka1x:
         kafkaConfig:

@@ -36,7 +36,7 @@ public class HandlerFactory {
             ServiceProviderLoader loader = new ServiceProviderLoader("lt-handler.def");
             IStreamHandler prevHandler = null;
             for (String name : handlerNames) {
-                logger.error("load handler : " + name);
+                logger.debug("load handler : " + name);
                 IStreamHandler handler = loader.load(name);
                 handler.init();
                 if(prevHandler != null){

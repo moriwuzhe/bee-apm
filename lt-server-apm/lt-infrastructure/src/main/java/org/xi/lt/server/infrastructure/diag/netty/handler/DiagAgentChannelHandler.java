@@ -37,6 +37,9 @@ public class DiagAgentChannelHandler extends SimpleChannelInboundHandler<Datagra
 
     @Autowired(required=false)
     private ProjectRepository projectRepository;
+    
+    @Autowired(required=false)
+    private org.xi.lt.server.domain.repository.AgentMemoryHistoryRepository memoryHistoryRepository;
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Datagram msg) {
@@ -67,6 +70,17 @@ public class DiagAgentChannelHandler extends SimpleChannelInboundHandler<Datagra
                 }
 
                 store.register(agentId, version, ctx.channel());
+                
+                // 处理内存指标数据
+                try {
+                    Object metrics = getStringAsObject(props, "metrics");
+                    if (metrics != null && memoryHistoryRepository != null) {
+                        saveMemoryMetrics(agentId, metrics);
+                    }
+                } catch (Exception e) {
+                    log.debug("Failed to process memory metrics from heartbeat: {}", e.getMessage());
+                }
+                
                 ctx.channel().writeAndFlush(RemotingBuilder.buildRequestDatagram(HEARTBEAT_CODE, UUID.randomUUID().toString(), new RawStringPayloadHolder("")));
                 return;
             }
@@ -115,5 +129,137 @@ public class DiagAgentChannelHandler extends SimpleChannelInboundHandler<Datagra
         } catch (Exception ignored) {
             return null;
         }
+    }
+    
+    private static Object getStringAsObject(Object obj, String key) {
+        if (obj == null || key == null) return null;
+        if (obj instanceof java.util.Map) {
+            return ((java.util.Map) obj).get(key);
+        }
+        return null;
+    }
+    
+    private void saveMemoryMetrics(String agentId, Object metricsObj) {
+        if (!(metricsObj instanceof java.util.Map)) return;
+        
+        java.util.Map<String, Object> metrics = (java.util.Map<String, Object>) metricsObj;
+        
+        // 解析 agentId: app@env@inst@ip:port
+        String[] parts = agentId.split("@");
+        if (parts.length < 3) return;
+        
+        String appCode = parts[0];
+        String instId = parts.length >= 3 ? parts[2] : "unknown";
+        
+        org.xi.lt.server.domain.model.agent.AgentMemoryMetrics memoryMetrics = 
+            new org.xi.lt.server.domain.model.agent.AgentMemoryMetrics();
+        
+        memoryMetrics.setAppCode(appCode);
+        memoryMetrics.setInstId(instId);
+        memoryMetrics.setCollectTime(getLong(metrics, "collectTime", System.currentTimeMillis()));
+        memoryMetrics.setHeapUsed(getLong(metrics, "heapUsed"));
+        memoryMetrics.setHeapCommitted(getLong(metrics, "heapCommitted"));
+        memoryMetrics.setHeapMax(getLong(metrics, "heapMax"));
+        memoryMetrics.setNonHeapUsed(getLong(metrics, "nonHeapUsed"));
+        memoryMetrics.setNonHeapCommitted(getLong(metrics, "nonHeapCommitted"));
+        memoryMetrics.setNonHeapMax(getLong(metrics, "nonHeapMax"));
+        memoryMetrics.setThreadCount(getInt(metrics, "threadCount"));
+        memoryMetrics.setPeakThreadCount(getInt(metrics, "peakThreadCount"));
+        memoryMetrics.setDaemonThreadCount(getInt(metrics, "daemonThreadCount"));
+        memoryMetrics.setLoadedClassCount(getInt(metrics, "loadedClassCount"));
+        memoryMetrics.setTotalLoadedClassCount(getLong(metrics, "totalLoadedClassCount"));
+        memoryMetrics.setUnloadedClassCount(getLong(metrics, "unloadedClassCount"));
+        memoryMetrics.setGcCount(getLong(metrics, "gcCount"));
+        memoryMetrics.setGcTimeMs(getLong(metrics, "gcTimeMs"));
+        
+        // Minor/Full GC区分
+        memoryMetrics.setMinorGcCount(getLong(metrics, "minorGcCount"));
+        memoryMetrics.setMinorGcTimeMs(getLong(metrics, "minorGcTimeMs"));
+        memoryMetrics.setFullGcCount(getLong(metrics, "fullGcCount"));
+        memoryMetrics.setFullGcTimeMs(getLong(metrics, "fullGcTimeMs"));
+        
+        memoryMetrics.setProcessCpuLoad(getDouble(metrics, "processCpuLoad"));
+        memoryMetrics.setSystemCpuLoad(getDouble(metrics, "systemCpuLoad"));
+        
+        // Convert pools to JSON string
+        Object poolsObj = metrics.get("pools");
+        if (poolsObj != null) {
+            try {
+                memoryMetrics.setMemoryPools(com.alibaba.fastjson.JSON.toJSONString(poolsObj));
+            } catch (Exception e) {
+                log.debug("Failed to serialize pools: {}", e.getMessage());
+            }
+        }
+        
+        // Convert threadStates to JSON string
+        Object threadStatesObj = metrics.get("threadStates");
+        if (threadStatesObj != null) {
+            try {
+                memoryMetrics.setThreadStates(com.alibaba.fastjson.JSON.toJSONString(threadStatesObj));
+            } catch (Exception e) {
+                log.debug("Failed to serialize threadStates: {}", e.getMessage());
+            }
+        }
+        
+        // JVM Start Time
+        memoryMetrics.setJvmStartTime(getLong(metrics, "jvmStartTime"));
+        
+        // Phase 2: Convert topCpuThreads to JSON string
+        Object topCpuThreadsObj = metrics.get("topCpuThreads");
+        if (topCpuThreadsObj != null) {
+            try {
+                memoryMetrics.setTopCpuThreads(com.alibaba.fastjson.JSON.toJSONString(topCpuThreadsObj));
+            } catch (Exception e) {
+                log.debug("Failed to serialize topCpuThreads: {}", e.getMessage());
+            }
+        }
+        
+        // Phase 2: Convert threadPools to JSON string
+        Object threadPoolsObj = metrics.get("threadPools");
+        if (threadPoolsObj != null) {
+            try {
+                memoryMetrics.setThreadPools(com.alibaba.fastjson.JSON.toJSONString(threadPoolsObj));
+            } catch (Exception e) {
+                log.debug("Failed to serialize threadPools: {}", e.getMessage());
+            }
+        }
+        
+        // Phase 2: Convert gcSnapshot to JSON string
+        Object gcSnapshotObj = metrics.get("gcSnapshot");
+        if (gcSnapshotObj != null) {
+            try {
+                memoryMetrics.setGcSnapshot(com.alibaba.fastjson.JSON.toJSONString(gcSnapshotObj));
+            } catch (Exception e) {
+                log.debug("Failed to serialize gcSnapshot: {}", e.getMessage());
+            }
+        }
+        
+        memoryHistoryRepository.save(memoryMetrics);
+    }
+    
+    private static Long getLong(java.util.Map<String, Object> map, String key) {
+        Object val = map.get(key);
+        if (val == null) return null;
+        if (val instanceof Number) return ((Number) val).longValue();
+        try { return Long.parseLong(String.valueOf(val)); } catch (Exception e) { return null; }
+    }
+    
+    private static Long getLong(java.util.Map<String, Object> map, String key, Long defaultValue) {
+        Long val = getLong(map, key);
+        return val != null ? val : defaultValue;
+    }
+    
+    private static Integer getInt(java.util.Map<String, Object> map, String key) {
+        Object val = map.get(key);
+        if (val == null) return null;
+        if (val instanceof Number) return ((Number) val).intValue();
+        try { return Integer.parseInt(String.valueOf(val)); } catch (Exception e) { return null; }
+    }
+    
+    private static Double getDouble(java.util.Map<String, Object> map, String key) {
+        Object val = map.get(key);
+        if (val == null) return null;
+        if (val instanceof Number) return ((Number) val).doubleValue();
+        try { return Double.parseDouble(String.valueOf(val)); } catch (Exception e) { return null; }
     }
 }

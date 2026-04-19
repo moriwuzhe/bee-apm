@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.xi.lt.server.domain.model.agent.AgentHeartbeatResult;
 import org.xi.lt.server.domain.model.agent.AgentPullConfigResult;
 import org.xi.lt.server.domain.model.agent.AgentInstanceInfo;
+import org.xi.lt.server.domain.model.agent.AgentFullConfigInfo;
 import org.xi.lt.server.domain.repository.AgentInstanceRepository;
 import org.xi.lt.server.domain.repository.AgentConfigRepository;
 import org.xi.lt.server.domain.repository.AgentInstanceConfigRepository;
@@ -143,8 +144,14 @@ public class AgentRegistryService {
 
         AgentHeartbeatResult response = new AgentHeartbeatResult();
 
-        // 从数据库获取最新配置版本
-        String latestVersion = agentConfigRepository.findConfigVersionByAppCode(info.getApp());
+        // 从数据库获取最新配置版本（优先检查实例级配置）
+        String latestVersion = null;
+        if (info.getInst() != null && !info.getInst().isEmpty()) {
+            latestVersion = agentInstanceConfigRepository.findConfigVersionByAppCodeAndInstId(info.getApp(), info.getInst());
+        }
+        if (latestVersion == null) {
+            latestVersion = agentConfigRepository.findConfigVersionByAppCode(info.getApp());
+        }
         if (latestVersion == null) {
             latestVersion = "0";
         }
@@ -308,5 +315,51 @@ public class AgentRegistryService {
                 agentInstanceConfigRepository.update(app, inst, config, newVersion);
             }
         }
+    }
+    
+    /**
+     * 获取完整的配置信息（包括应用配置、实例配置和合并后的最终配置）
+     */
+    public AgentFullConfigInfo getFullConfigInfo(String app, String inst) {
+        AgentFullConfigInfo info = new AgentFullConfigInfo();
+        info.setApp(app);
+        info.setInst(inst);
+        
+        // 获取应用级配置
+        String appConfig = getAppConfig(app);
+        String appConfigVersion = agentConfigRepository.findConfigVersionByAppCode(app);
+        info.setAppConfig(appConfig != null ? appConfig : "");
+        info.setAppConfigVersion(appConfigVersion != null ? appConfigVersion : "0");
+        
+        // 获取实例级配置
+        String instanceConfig = "";
+        String instanceConfigVersion = "0";
+        if (inst != null && !inst.isEmpty()) {
+            instanceConfig = getInstanceConfig(app, inst);
+            instanceConfigVersion = agentInstanceConfigRepository.findConfigVersionByAppCodeAndInstId(app, inst);
+        }
+        info.setInstanceConfig(instanceConfig);
+        info.setInstanceConfigVersion(instanceConfigVersion != null ? instanceConfigVersion : "0");
+        
+        // 合并配置（简单字符串拼接，实际应该做YAML合并）
+        String mergedConfig;
+        String finalVersion;
+        if (instanceConfig != null && !instanceConfig.trim().isEmpty()) {
+            // 如果有实例配置，使用实例配置覆盖应用配置
+            // TODO: 实现真正的 YAML 合并逻辑
+            mergedConfig = "# === 应用级配置 ===\n" + 
+                          (appConfig != null ? appConfig : "") +
+                          "\n\n# === 实例级配置（会覆盖应用配置中的相同字段）===\n" + 
+                          instanceConfig;
+            finalVersion = instanceConfigVersion != null ? instanceConfigVersion : "0";
+        } else {
+            // 否则只使用应用配置
+            mergedConfig = appConfig != null ? appConfig : "";
+            finalVersion = appConfigVersion != null ? appConfigVersion : "0";
+        }
+        info.setMergedConfig(mergedConfig);
+        info.setFinalVersion(finalVersion);
+        
+        return info;
     }
 }

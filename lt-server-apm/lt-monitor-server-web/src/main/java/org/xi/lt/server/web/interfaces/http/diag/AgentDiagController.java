@@ -278,4 +278,16 @@ public class AgentDiagController {
             return ResultHelper.fail(e.getMessage());
         }
     }
+    
+    /**
+     * 读取 Agent 配置文件内容
+     */
+    @GetMapping("/diag/agent/readConfig")
+    public ApiResult<String> readConfig(@RequestParam("agentId") String agentId) {
+        try {
+            return ResultHelper.success(commandService.readConfig(agentId, 8000));
+        } catch (Exception e) {
+            return ResultHelper.fail(e.getMessage());
+        }
+    }
 }

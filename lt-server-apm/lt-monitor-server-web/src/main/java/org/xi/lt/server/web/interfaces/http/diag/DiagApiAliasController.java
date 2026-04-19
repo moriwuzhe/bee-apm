@@ -14,6 +14,10 @@ public class DiagApiAliasController {
         if (!uri.startsWith("/diag-api")) return "forward:" + uri;
         String target = uri.substring("/diag-api".length());
         if (target.isEmpty()) target = "/";
+        // 将 /diag-api/diag/... 转发到 /api/diag/...
+        if (target.startsWith("/diag/")) {
+            return "forward:/api" + target;
+        }
         return "forward:" + target;
     }
 }

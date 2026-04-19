@@ -10,7 +10,7 @@ spring:
     pathmatch:
       matching-strategy: ant_path_matcher
   datasource:
-    url: jdbc:h2:mem:lt_apm;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MYSQL
+    url: jdbc:h2:file:./data/lt_apm;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MYSQL
     driverClassName: org.h2.Driver
     username: sa
     password:
@@ -22,7 +22,7 @@ lt:
   handlers:
     flow: json>store
   store:
-    name: h2  # 可选: h2, elasticsearch, mysql
+    name: spring-data-adapter  # 可选: spring-data-adapter, console
     
     # Elasticsearch 配置
     elasticsearch:

@@ -47,83 +47,106 @@ export interface AgentConnection {
 }
 
 export async function fetchAgentInstances() {
-  const res = await http.get<{ data: AgentInstanceInfo[] }>('/agent/instances')
+  const res = await http.get<{ data: AgentInstanceInfo[] }>('/api/agent/instances')
   return res.data?.data || []
 }
 
 export async function updateAgentConfig(data: AgentConfigUpdateRequest) {
-  const res = await http.post('/agent/config/update', data)
+  const res = await http.post('/api/agent/config/update', data)
   return res.data
 }
 
 export async function updateAgentInstanceConfig(data: AgentInstanceConfigUpdateRequest) {
-  const res = await http.post('/agent/config/instance/update', data)
+  const res = await http.post('/api/agent/config/instance/update', data)
   return res.data
 }
 
 export async function getAppConfig(app: string) {
-  const res = await http.get<{ data: string }>('/agent/config/get', { params: { app } })
+  const res = await http.get<{ data: string }>('/api/agent/config/get', { params: { app } })
   return res.data?.data || ''
 }
 
 export async function getInstanceConfig(app: string, inst: string) {
-  const res = await http.get<{ data: string }>('/agent/config/instance/get', { params: { app, inst } })
+  const res = await http.get<{ data: string }>('/api/agent/config/instance/get', { params: { app, inst } })
   return res.data?.data || ''
 }
 
 export async function pullAgentConfig(app: string) {
-  const res = await http.get<{ data: AgentPullConfigResult }>('/agent/config/pull', { params: { app } })
+  const res = await http.get<{ data: AgentPullConfigResult }>('/api/agent/config/pull', { params: { app } })
+  return res.data?.data
+}
+
+export interface AgentFullConfigInfo {
+  app: string
+  inst?: string
+  appConfig: string
+  appConfigVersion: string
+  instanceConfig: string
+  instanceConfigVersion: string
+  mergedConfig: string
+  finalVersion: string
+}
+
+export async function getFullConfigInfo(app: string, inst?: string) {
+  const params: any = { app }
+  if (inst) params.inst = inst
+  const res = await http.get<{ data: AgentFullConfigInfo }>('/api/agent/config/full', { params })
   return res.data?.data
 }
 
 // Agent diagnostic APIs
 export async function fetchAgentConnections() {
-  const res = await http.get<{ data: AgentConnection[] }>('/diag/agent/version/detail')
+  const res = await http.get<{ data: AgentConnection[] }>('/api/diag/agent/version/detail')
   return res.data?.data || []
 }
 
 export async function agentThreadDump(agentId: string) {
-  const res = await http.get<{ data: string }>('/diag/agent/threadDump', { params: { agentId } })
+  const res = await http.get<{ data: string }>('/api/diag/agent/threadDump', { params: { agentId } })
   return res.data?.data
 }
 
 export async function agentJvmInfo(agentId: string) {
-  const res = await http.get<{ data: string }>('/diag/agent/jvmInfo', { params: { agentId } })
+  const res = await http.get<{ data: string }>('/api/diag/agent/jvmInfo', { params: { agentId } })
   return res.data?.data
 }
 
 export async function agentGc(agentId: string) {
-  const res = await http.get<{ data: string }>('/diag/agent/gc', { params: { agentId } })
+  const res = await http.get<{ data: string }>('/api/diag/agent/gc', { params: { agentId } })
   return res.data?.data
 }
 
 export async function agentMemory(agentId: string) {
-  const res = await http.get<{ data: string }>('/diag/agent/memory', { params: { agentId } })
+  const res = await http.get<{ data: string }>('/api/diag/agent/memory', { params: { agentId } })
   return res.data?.data
 }
 
 export async function agentGcStats(agentId: string) {
-  const res = await http.get<{ data: string }>('/diag/agent/gcStats', { params: { agentId } })
+  const res = await http.get<{ data: string }>('/api/diag/agent/gcStats', { params: { agentId } })
   return res.data?.data
 }
 
 export async function agentThreadsSummary(agentId: string) {
-  const res = await http.get<{ data: string }>('/diag/agent/threadsSummary', { params: { agentId } })
+  const res = await http.get<{ data: string }>('/api/diag/agent/threadsSummary', { params: { agentId } })
   return res.data?.data
 }
 
 export async function agentDeadlocks(agentId: string) {
-  const res = await http.get<{ data: string }>('/diag/agent/deadlocks', { params: { agentId } })
+  const res = await http.get<{ data: string }>('/api/diag/agent/deadlocks', { params: { agentId } })
   return res.data?.data
 }
 
 export async function agentSysProps(agentId: string) {
-  const res = await http.get<{ data: string }>('/diag/agent/sysProps', { params: { agentId } })
+  const res = await http.get<{ data: string }>('/api/diag/agent/sysProps', { params: { agentId } })
   return res.data?.data
 }
 
 export async function agentEnv(agentId: string) {
-  const res = await http.get<{ data: string }>('/diag/agent/env', { params: { agentId } })
+  const res = await http.get<{ data: string }>('/api/diag/agent/env', { params: { agentId } })
+  return res.data?.data
+}
+
+export async function agentReadConfig(agentId: string) {
+  const res = await http.get<{ data: string }>('/api/diag/agent/readConfig', { params: { agentId } })
   return res.data?.data
 }
 
@@ -135,4 +158,51 @@ export async function agentStartProfiler(agentId: string, event: string = 'cpu',
 export async function agentStopProfiler(agentId: string) {
   const res = await http.get<{ data: string }>('/diag/agent/stopProfiler', { params: { agentId } })
   return res.data?.data
+}
+
+// Memory history APIs
+export interface AgentMemoryMetrics {
+  appCode: string
+  instId: string
+  collectTime: number
+  heapUsed: number
+  heapCommitted: number
+  heapMax: number
+  nonHeapUsed: number
+  nonHeapCommitted: number
+  nonHeapMax: number
+  threadCount: number
+  peakThreadCount?: number
+  daemonThreadCount?: number
+  loadedClassCount: number
+  totalLoadedClassCount?: number
+  unloadedClassCount?: number
+  gcCount: number
+  gcTimeMs: number
+  minorGcCount?: number
+  minorGcTimeMs?: number
+  fullGcCount?: number
+  fullGcTimeMs?: number
+  processCpuLoad?: number
+  systemCpuLoad?: number
+  memoryPools?: string // JSON string
+  threadStates?: string // JSON string
+  jvmStartTime?: number
+  topCpuThreads?: string // Phase 2: JSON string - Top CPU线程列表
+  threadPools?: string // Phase 2: JSON string - 线程池信息
+  gcSnapshot?: string // Phase 2: JSON string - GC快照数据
+}
+
+export async function getMemoryHistory(
+  app: string,
+  inst: string,
+  startTime?: number,
+  endTime?: number,
+  limit: number = 100
+) {
+  const params: any = { app, inst, limit }
+  if (startTime) params.startTime = startTime
+  if (endTime) params.endTime = endTime
+  const res = await http.get<{ data: AgentMemoryMetrics[] }>('/api/agent/memory/history', { params })
+  return res.data?.data || []
 }

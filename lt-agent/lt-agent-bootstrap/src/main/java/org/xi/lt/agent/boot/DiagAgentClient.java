@@ -22,6 +22,7 @@ import org.xi.lt.agent.config.ConfigUtils;
 import org.xi.lt.agent.log.LogUtil;
 
 import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
@@ -179,8 +180,246 @@ public class DiagAgentClient {
         d.header.properties.put("lt.project", project);
         d.header.properties.put("lt.secret", secret);
         
+        // 添加内存指标数据
+        try {
+            d.header.properties.put("metrics", buildMemoryMetrics());
+        } catch (Exception e) {
+            // 忽略指标采集错误
+        }
+        
         d.body = agentId;
         ch.writeAndFlush(d);
+    }
+    
+    /**
+     * 构建内存指标数据（用于心跳上报）
+     */
+    private static java.util.Map<String, Object> buildMemoryMetrics() {
+        java.util.Map<String, Object> metrics = new java.util.HashMap<>();
+        
+        try {
+            java.lang.management.MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
+            MemoryUsage heap = memoryMXBean.getHeapMemoryUsage();
+            MemoryUsage nonHeap = memoryMXBean.getNonHeapMemoryUsage();
+            
+            // Heap Memory
+            metrics.put("heapUsed", heap.getUsed());
+            metrics.put("heapCommitted", heap.getCommitted());
+            metrics.put("heapMax", heap.getMax());
+            
+            // Non-Heap Memory
+            metrics.put("nonHeapUsed", nonHeap.getUsed());
+            metrics.put("nonHeapCommitted", nonHeap.getCommitted());
+            metrics.put("nonHeapMax", nonHeap.getMax());
+            
+            // Thread & Class
+            ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+            metrics.put("threadCount", threadMXBean.getThreadCount());
+            metrics.put("peakThreadCount", threadMXBean.getPeakThreadCount());
+            metrics.put("daemonThreadCount", threadMXBean.getDaemonThreadCount());
+            
+            // Thread states distribution
+            java.util.Map<String, Integer> threadStates = new java.util.HashMap<>();
+            try {
+                java.lang.management.ThreadInfo[] threadInfos = threadMXBean.dumpAllThreads(false, false);
+                for (java.lang.management.ThreadInfo info : threadInfos) {
+                    if (info != null) {
+                        String state = info.getThreadState().toString();
+                        threadStates.put(state, threadStates.getOrDefault(state, 0) + 1);
+                    }
+                }
+            } catch (Exception e) {
+                // 忽略线程dump错误
+            }
+            metrics.put("threadStates", threadStates);
+            
+            // JVM start time
+            long jvmStartTime = 0;
+            try {
+                jvmStartTime = ManagementFactory.getRuntimeMXBean().getStartTime();
+            } catch (Exception e) {
+                // 忽略
+            }
+            metrics.put("jvmStartTime", jvmStartTime);
+            
+            java.lang.management.ClassLoadingMXBean classMXBean = ManagementFactory.getClassLoadingMXBean();
+            metrics.put("loadedClassCount", classMXBean.getLoadedClassCount());
+            metrics.put("totalLoadedClassCount", classMXBean.getTotalLoadedClassCount());
+            metrics.put("unloadedClassCount", classMXBean.getUnloadedClassCount());
+            
+            // GC - 区分Minor GC和Full GC
+            long totalGcCount = 0;
+            long totalGcTime = 0;
+            long minorGcCount = 0;
+            long minorGcTime = 0;
+            long fullGcCount = 0;
+            long fullGcTime = 0;
+            
+            for (java.lang.management.GarbageCollectorMXBean gc : ManagementFactory.getGarbageCollectorMXBeans()) {
+                long count = gc.getCollectionCount();
+                long time = gc.getCollectionTime();
+                totalGcCount += count;
+                totalGcTime += time;
+                
+                String gcName = gc.getName();
+                // 根据GC名称判断类型
+                if (gcName.contains("Young") || gcName.contains("PS Scavenge") || 
+                    gcName.contains("ParNew") || gcName.contains("G1 Young Generation")) {
+                    minorGcCount += count;
+                    minorGcTime += time;
+                } else if (gcName.contains("Old") || gcName.contains("PS MarkSweep") || 
+                           gcName.contains("ConcurrentMarkSweep") || gcName.contains("G1 Old Generation")) {
+                    fullGcCount += count;
+                    fullGcTime += time;
+                } else {
+                    // 未知类型，默认计入Minor GC
+                    minorGcCount += count;
+                    minorGcTime += time;
+                }
+            }
+            metrics.put("gcCount", totalGcCount);
+            metrics.put("gcTimeMs", totalGcTime);
+            metrics.put("minorGcCount", minorGcCount);
+            metrics.put("minorGcTimeMs", minorGcTime);
+            metrics.put("fullGcCount", fullGcCount);
+            metrics.put("fullGcTimeMs", fullGcTime);
+            
+            // CPU (from OperatingSystemMXBean)
+            try {
+                com.sun.management.OperatingSystemMXBean osMXBean = 
+                    (com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+                metrics.put("processCpuLoad", osMXBean.getProcessCpuLoad());
+                metrics.put("systemCpuLoad", osMXBean.getSystemCpuLoad());
+            } catch (Exception e) {
+                // 某些JVM可能不支持
+            }
+            
+            // Memory Pools Detail (Eden, Survivor, Old Gen, etc.)
+            java.util.List<java.util.Map<String, Object>> pools = new java.util.ArrayList<>();
+            for (java.lang.management.MemoryPoolMXBean pool : ManagementFactory.getMemoryPoolMXBeans()) {
+                MemoryUsage usage = pool.getUsage();
+                if (usage == null) continue;
+                
+                java.util.Map<String, Object> poolData = new java.util.HashMap<>();
+                poolData.put("name", pool.getName());
+                poolData.put("type", pool.getType().toString());
+                poolData.put("used", usage.getUsed());
+                poolData.put("committed", usage.getCommitted());
+                poolData.put("max", usage.getMax());
+                poolData.put("init", usage.getInit());
+                
+                pools.add(poolData);
+            }
+            metrics.put("pools", pools);
+            
+            // Top CPU Threads - 获取CPU占用最高的10个线程
+            try {
+                long[] threadIds = threadMXBean.getAllThreadIds();
+                java.util.List<java.util.Map<String, Object>> topThreads = new java.util.ArrayList<>();
+                
+                if (threadIds != null && threadIds.length > 0) {
+                    // 获取每个线程的CPU时间
+                    java.util.Map<Long, Long> threadCpuTimes = new java.util.HashMap<>();
+                    for (long tid : threadIds) {
+                        long cpuTime = threadMXBean.getThreadCpuTime(tid);
+                        if (cpuTime >= 0) {
+                            threadCpuTimes.put(tid, cpuTime);
+                        }
+                    }
+                    
+                    // 按CPU时间排序，取前10个
+                    threadCpuTimes.entrySet().stream()
+                        .sorted(java.util.Map.Entry.<Long, Long>comparingByValue().reversed())
+                        .limit(10)
+                        .forEach(entry -> {
+                            java.util.Map<String, Object> threadInfo = new java.util.HashMap<>();
+                            long tid = entry.getKey();
+                            java.lang.management.ThreadInfo info = threadMXBean.getThreadInfo(tid);
+                            if (info != null) {
+                                threadInfo.put("threadId", tid);
+                                threadInfo.put("threadName", info.getThreadName());
+                                threadInfo.put("cpuTimeNs", entry.getValue());
+                                threadInfo.put("state", info.getThreadState().toString());
+                                threadInfo.put("blockedCount", info.getBlockedCount());
+                                threadInfo.put("waitedCount", info.getWaitedCount());
+                                topThreads.add(threadInfo);
+                            }
+                        });
+                }
+                metrics.put("topCpuThreads", topThreads);
+            } catch (Exception e) {
+                // 忽略线程CPU采集错误
+            }
+            
+            // Thread Pool Info - 尝试获取Tomcat/Undertow线程池信息
+            try {
+                java.util.List<java.util.Map<String, Object>> threadPools = new java.util.ArrayList<>();
+                
+                // 通过反射获取Tomcat线程池
+                try {
+                    Class<?> tomcatClass = Class.forName("org.apache.tomcat.util.threads.ThreadPoolExecutor");
+                    // 这里简化处理，实际需要通过JMX或反射获取具体实例
+                    // 由于心跳中无法直接获取Spring容器中的Bean，我们只记录已知的线程池名称
+                } catch (ClassNotFoundException e) {
+                    // 不是Tomcat
+                }
+                
+                // 统计常见线程池的线程数（通过线程名前缀）
+                java.util.Map<String, Integer> poolStats = new java.util.HashMap<>();
+                java.lang.management.ThreadInfo[] allThreads = threadMXBean.dumpAllThreads(false, false);
+                if (allThreads != null) {
+                    for (java.lang.management.ThreadInfo info : allThreads) {
+                        if (info != null) {
+                            String name = info.getThreadName();
+                            if (name.startsWith("http-nio-")) {
+                                poolStats.merge("tomcat-http", 1, Integer::sum);
+                            } else if (name.startsWith("XNIO-")) {
+                                poolStats.merge("undertow-xnio", 1, Integer::sum);
+                            } else if (name.startsWith("pool-")) {
+                                poolStats.merge("java-thread-pool", 1, Integer::sum);
+                            } else if (name.startsWith("ForkJoinPool")) {
+                                poolStats.merge("forkjoin-pool", 1, Integer::sum);
+                            }
+                        }
+                    }
+                }
+                
+                for (java.util.Map.Entry<String, Integer> entry : poolStats.entrySet()) {
+                    java.util.Map<String, Object> poolInfo = new java.util.HashMap<>();
+                    poolInfo.put("poolName", entry.getKey());
+                    poolInfo.put("activeCount", entry.getValue());
+                    threadPools.add(poolInfo);
+                }
+                metrics.put("threadPools", threadPools);
+            } catch (Exception e) {
+                // 忽略线程池采集错误
+            }
+            
+            // GC Efficiency - 记录GC前后的内存快照（用于计算GC效率）
+            try {
+                java.util.Map<String, Long> gcBeforeSnapshot = new java.util.HashMap<>();
+                for (java.lang.management.GarbageCollectorMXBean gc : ManagementFactory.getGarbageCollectorMXBeans()) {
+                    String gcName = gc.getName();
+                    long count = gc.getCollectionCount();
+                    gcBeforeSnapshot.put(gcName + "_count", count);
+                }
+                // 记录当前堆内存使用量
+                gcBeforeSnapshot.put("heap_used", heap.getUsed());
+                gcBeforeSnapshot.put("non_heap_used", nonHeap.getUsed());
+                metrics.put("gcSnapshot", gcBeforeSnapshot);
+            } catch (Exception e) {
+                // 忽略
+            }
+            
+            // Timestamp
+            metrics.put("collectTime", System.currentTimeMillis());
+            
+        } catch (Exception e) {
+            // 忽略错误
+            e.printStackTrace();
+        }
+        
+        return metrics;
     }
 
     private static void writeString(String data, ByteBuf out) {
@@ -440,6 +679,10 @@ public class DiagAgentClient {
                     sendResponse(ctx, d.header.id, handleStopProfiler(cmd));
                     return;
                 }
+                if ("readConfig".equals(cmd)) {
+                    sendResponse(ctx, d.header.id, readConfigFile());
+                    return;
+                }
             }
         }
 
@@ -480,19 +723,99 @@ public class DiagAgentClient {
 
     private static String buildJvmInfo() {
         StringBuilder sb = new StringBuilder();
+        
+        // === Runtime Information ===
+        sb.append("=== Runtime Information ===\n");
+        sb.append("PID: ").append(currentPid()).append('\n');
         sb.append("RuntimeMXBean: ").append(ManagementFactory.getRuntimeMXBean().getName()).append('\n');
         sb.append("UptimeMs: ").append(ManagementFactory.getRuntimeMXBean().getUptime()).append('\n');
         sb.append("StartTimeMs: ").append(ManagementFactory.getRuntimeMXBean().getStartTime()).append('\n');
+        sb.append("StartTime: ").append(new java.util.Date(ManagementFactory.getRuntimeMXBean().getStartTime())).append('\n');
         sb.append("VmName: ").append(ManagementFactory.getRuntimeMXBean().getVmName()).append('\n');
         sb.append("VmVendor: ").append(ManagementFactory.getRuntimeMXBean().getVmVendor()).append('\n');
         sb.append("VmVersion: ").append(ManagementFactory.getRuntimeMXBean().getVmVersion()).append('\n');
+        sb.append("SpecName: ").append(ManagementFactory.getRuntimeMXBean().getSpecName()).append('\n');
+        sb.append("SpecVendor: ").append(ManagementFactory.getRuntimeMXBean().getSpecVendor()).append('\n');
+        sb.append("SpecVersion: ").append(ManagementFactory.getRuntimeMXBean().getSpecVersion()).append('\n');
+        sb.append("BootClassPathSupported: ").append(ManagementFactory.getRuntimeMXBean().isBootClassPathSupported()).append('\n');
         sb.append('\n');
-        sb.append("Heap: ").append(ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().toString()).append('\n');
-        sb.append("NonHeap: ").append(ManagementFactory.getMemoryMXBean().getNonHeapMemoryUsage().toString()).append('\n');
+        
+        // === Memory Information ===
+        sb.append("=== Memory Information ===\n");
+        MemoryUsage heap = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
+        MemoryUsage nonHeap = ManagementFactory.getMemoryMXBean().getNonHeapMemoryUsage();
+        sb.append("Heap:\n");
+        sb.append("  init: ").append(formatBytes(heap.getInit())).append('\n');
+        sb.append("  used: ").append(formatBytes(heap.getUsed())).append('\n');
+        sb.append("  committed: ").append(formatBytes(heap.getCommitted())).append('\n');
+        sb.append("  max: ").append(formatBytes(heap.getMax())).append('\n');
+        sb.append("  usage: ").append(heap.getMax() > 0 ? String.format("%.2f%%", heap.getUsed() * 100.0 / heap.getMax()) : "N/A").append('\n');
+        sb.append("NonHeap:\n");
+        sb.append("  init: ").append(formatBytes(nonHeap.getInit())).append('\n');
+        sb.append("  used: ").append(formatBytes(nonHeap.getUsed())).append('\n');
+        sb.append("  committed: ").append(formatBytes(nonHeap.getCommitted())).append('\n');
+        sb.append("  max: ").append(formatBytes(nonHeap.getMax())).append('\n');
         sb.append('\n');
-        sb.append("ThreadCount: ").append(ManagementFactory.getThreadMXBean().getThreadCount()).append('\n');
-        sb.append("PeakThreadCount: ").append(ManagementFactory.getThreadMXBean().getPeakThreadCount()).append('\n');
-        sb.append("DaemonThreadCount: ").append(ManagementFactory.getThreadMXBean().getDaemonThreadCount()).append('\n');
+        
+        // === Thread Information ===
+        sb.append("=== Thread Information ===\n");
+        ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
+        sb.append("ThreadCount: ").append(threadBean.getThreadCount()).append('\n');
+        sb.append("PeakThreadCount: ").append(threadBean.getPeakThreadCount()).append('\n');
+        sb.append("DaemonThreadCount: ").append(threadBean.getDaemonThreadCount()).append('\n');
+        sb.append("TotalStartedThreadCount: ").append(threadBean.getTotalStartedThreadCount()).append('\n');
+        sb.append("ThreadContentionMonitoringEnabled: ").append(threadBean.isThreadContentionMonitoringEnabled()).append('\n');
+        sb.append("ThreadCpuTimeSupported: ").append(threadBean.isThreadCpuTimeSupported()).append('\n');
+        sb.append("ThreadCpuTimeEnabled: ").append(threadBean.isThreadCpuTimeEnabled()).append('\n');
+        sb.append("CurrentThreadCpuTimeSupported: ").append(threadBean.isCurrentThreadCpuTimeSupported()).append('\n');
+        sb.append('\n');
+        
+        // === Class Loading Information ===
+        sb.append("=== Class Loading Information ===\n");
+        sb.append("LoadedClassCount: ").append(ManagementFactory.getClassLoadingMXBean().getLoadedClassCount()).append('\n');
+        sb.append("TotalLoadedClassCount: ").append(ManagementFactory.getClassLoadingMXBean().getTotalLoadedClassCount()).append('\n');
+        sb.append("UnloadedClassCount: ").append(ManagementFactory.getClassLoadingMXBean().getUnloadedClassCount()).append('\n');
+        sb.append("Verbose: ").append(ManagementFactory.getClassLoadingMXBean().isVerbose()).append('\n');
+        sb.append('\n');
+        
+        // === Operating System Information ===
+        sb.append("=== Operating System Information ===\n");
+        com.sun.management.OperatingSystemMXBean osBean = 
+            (com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+        sb.append("OS Name: ").append(osBean.getName()).append('\n');
+        sb.append("OS Version: ").append(osBean.getVersion()).append('\n');
+        sb.append("OS Arch: ").append(osBean.getArch()).append('\n');
+        sb.append("Available Processors: ").append(osBean.getAvailableProcessors()).append('\n');
+        sb.append("System Load Average: ").append(osBean.getSystemLoadAverage()).append('\n');
+        sb.append("Total Physical Memory: ").append(formatBytes(osBean.getTotalPhysicalMemorySize())).append('\n');
+        sb.append("Free Physical Memory: ").append(formatBytes(osBean.getFreePhysicalMemorySize())).append('\n');
+        sb.append("Committed Virtual Memory: ").append(formatBytes(osBean.getCommittedVirtualMemorySize())).append('\n');
+        sb.append("Total Swap Space: ").append(formatBytes(osBean.getTotalSwapSpaceSize())).append('\n');
+        sb.append("Free Swap Space: ").append(formatBytes(osBean.getFreeSwapSpaceSize())).append('\n');
+        sb.append("Process CPU Load: ").append(String.format("%.2f%%", osBean.getProcessCpuLoad() * 100)).append('\n');
+        sb.append("System CPU Load: ").append(String.format("%.2f%%", osBean.getSystemCpuLoad() * 100)).append('\n');
+        sb.append('\n');
+        
+        // === Garbage Collection Summary ===
+        sb.append("=== Garbage Collection Summary ===\n");
+        List<java.lang.management.GarbageCollectorMXBean> gcs = ManagementFactory.getGarbageCollectorMXBeans();
+        long totalGcCount = 0;
+        long totalGcTime = 0;
+        for (java.lang.management.GarbageCollectorMXBean gc : gcs) {
+            sb.append("GC: ").append(gc.getName())
+                    .append(" count=").append(gc.getCollectionCount())
+                    .append(" time=").append(formatDuration(gc.getCollectionTime()));
+            String[] pools = gc.getMemoryPoolNames();
+            if (pools != null && pools.length > 0) {
+                sb.append(" pools=").append(String.join(",", pools));
+            }
+            sb.append('\n');
+            totalGcCount += gc.getCollectionCount();
+            totalGcTime += gc.getCollectionTime();
+        }
+        sb.append("Total GC Count: ").append(totalGcCount).append('\n');
+        sb.append("Total GC Time: ").append(formatDuration(totalGcTime)).append('\n');
+        
         return truncate(sb.toString());
     }
 
@@ -602,24 +925,120 @@ public class DiagAgentClient {
 
     private static String buildMemory() {
         StringBuilder sb = new StringBuilder();
-        MemoryUsage heap = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
-        MemoryUsage nonHeap = ManagementFactory.getMemoryMXBean().getNonHeapMemoryUsage();
-        sb.append("Heap: ").append(formatMem(heap)).append('\n');
-        sb.append("NonHeap: ").append(formatMem(nonHeap)).append('\n');
-        sb.append('\n');
+        
+        // === Memory Overview ===
+        sb.append("=== Memory Overview ===\n");
+        MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
+        MemoryUsage heap = memoryMXBean.getHeapMemoryUsage();
+        MemoryUsage nonHeap = memoryMXBean.getNonHeapMemoryUsage();
+        
+        sb.append("Heap:\n");
+        sb.append("  Used: ").append(formatBytes(heap.getUsed())).append(" (" + heap.getUsed() + " bytes)\n");
+        sb.append("  Committed: ").append(formatBytes(heap.getCommitted())).append(" (" + heap.getCommitted() + " bytes)\n");
+        sb.append("  Max: ").append(formatBytes(heap.getMax())).append(" (" + heap.getMax() + " bytes)\n");
+        double heapPercent = heap.getMax() > 0 ? (heap.getUsed() * 100.0 / heap.getMax()) : 0;
+        sb.append("  Usage: ").append(String.format("%.2f", heapPercent)).append("%\n");
+        sb.append("\n");
+        
+        sb.append("Non-Heap:\n");
+        sb.append("  Used: ").append(formatBytes(nonHeap.getUsed())).append(" (" + nonHeap.getUsed() + " bytes)\n");
+        sb.append("  Committed: ").append(formatBytes(nonHeap.getCommitted())).append(" (" + nonHeap.getCommitted() + " bytes)\n");
+        sb.append("  Max: ").append(formatBytes(nonHeap.getMax())).append(" (" + nonHeap.getMax() + " bytes)\n");
+        double nonHeapPercent = nonHeap.getMax() > 0 ? (nonHeap.getUsed() * 100.0 / nonHeap.getMax()) : 0;
+        sb.append("  Usage: ").append(String.format("%.2f", nonHeapPercent)).append("%\n");
+        sb.append("\n");
+        
+        // === Memory Pools Detail ===
+        sb.append("=== Memory Pools Detail ===\n");
         List<java.lang.management.MemoryPoolMXBean> pools = ManagementFactory.getMemoryPoolMXBeans();
         pools.sort(Comparator.comparing(java.lang.management.MemoryPoolMXBean::getName));
         for (java.lang.management.MemoryPoolMXBean p : pools) {
             MemoryUsage u = p.getUsage();
             if (u == null) continue;
-            sb.append("Pool: ").append(p.getName()).append(" (").append(p.getType()).append(") ").append(formatMem(u)).append('\n');
+            
+            sb.append("Pool: ").append(p.getName()).append("\n");
+            sb.append("  Type: ").append(p.getType()).append("\n");
+            sb.append("  Used: ").append(formatBytes(u.getUsed())).append(" (" + u.getUsed() + " bytes)\n");
+            sb.append("  Committed: ").append(formatBytes(u.getCommitted())).append(" (" + u.getCommitted() + " bytes)\n");
+            sb.append("  Max: ").append(formatBytes(u.getMax())).append(" (" + u.getMax() + " bytes)\n");
+            sb.append("  Init: ").append(formatBytes(u.getInit())).append(" (" + u.getInit() + " bytes)\n");
+            
+            if (u.getMax() > 0) {
+                double poolPercent = u.getUsed() * 100.0 / u.getMax();
+                sb.append("  Usage: ").append(String.format("%.2f", poolPercent)).append("%\n");
+            }
+            
+            // Collection usage
+            MemoryUsage cu = p.getCollectionUsage();
+            if (cu != null) {
+                sb.append("  Collection Used: ").append(formatBytes(cu.getUsed())).append("\n");
+                sb.append("  Collection Committed: ").append(formatBytes(cu.getCommitted())).append("\n");
+                sb.append("  Collection Max: ").append(formatBytes(cu.getMax())).append("\n");
+            }
+            
+            // Peak usage
+            MemoryUsage pu = p.getPeakUsage();
+            if (pu != null) {
+                sb.append("  Peak Used: ").append(formatBytes(pu.getUsed())).append("\n");
+                sb.append("  Peak Committed: ").append(formatBytes(pu.getCommitted())).append("\n");
+            }
+            
+            sb.append("\n");
         }
+        
+        // === Buffer Pools ===
+        sb.append("=== Buffer Pools ===\n");
+        try {
+            Class<?> bufferPoolMXBeanClass = Class.forName("java.lang.management.BufferPoolMXBean");
+            @SuppressWarnings("unchecked")
+            List<Object> bufferPools = (List<Object>) ManagementFactory.getPlatformMXBeans((Class) bufferPoolMXBeanClass);
+            for (Object bp : bufferPools) {
+                String name = (String) bufferPoolMXBeanClass.getMethod("getName").invoke(bp);
+                long count = (Long) bufferPoolMXBeanClass.getMethod("getCount").invoke(bp);
+                long memoryUsed = (Long) bufferPoolMXBeanClass.getMethod("getMemoryUsed").invoke(bp);
+                long totalCapacity = (Long) bufferPoolMXBeanClass.getMethod("getTotalCapacity").invoke(bp);
+                
+                sb.append("Buffer Pool: ").append(name).append("\n");
+                sb.append("  Count: ").append(count).append("\n");
+                sb.append("  Memory Used: ").append(formatBytes(memoryUsed)).append("\n");
+                sb.append("  Total Capacity: ").append(formatBytes(totalCapacity)).append("\n");
+                sb.append("\n");
+            }
+        } catch (Exception e) {
+            sb.append("Buffer pools info not available\n\n");
+        }
+        
         return truncate(sb.toString());
     }
 
     private static String formatMem(MemoryUsage u) {
         if (u == null) return "";
         return "init=" + u.getInit() + " used=" + u.getUsed() + " committed=" + u.getCommitted() + " max=" + u.getMax();
+    }
+
+    /**
+     * 格式化字节数为可读格式
+     */
+    private static String formatBytes(long bytes) {
+        if (bytes < 0) return "N/A";
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return String.format("%.2f KB", bytes / 1024.0);
+        if (bytes < 1024 * 1024 * 1024) return String.format("%.2f MB", bytes / (1024.0 * 1024));
+        return String.format("%.2f GB", bytes / (1024.0 * 1024 * 1024));
+    }
+
+    /**
+     * 格式化毫秒数为可读的时间格式
+     */
+    private static String formatDuration(long millis) {
+        if (millis < 0) return "N/A";
+        if (millis < 1000) return millis + " ms";
+        long seconds = millis / 1000;
+        if (seconds < 60) return String.format("%.2f s", millis / 1000.0);
+        long minutes = seconds / 60;
+        if (minutes < 60) return String.format("%d min %d s", minutes, seconds % 60);
+        long hours = minutes / 60;
+        return String.format("%d h %d min", hours, minutes % 60);
     }
 
     private static String buildGcStats() {
@@ -1192,6 +1611,53 @@ public class DiagAgentClient {
             return s.substring(0, idx + 1) + "<redacted>";
         }
         return "<redacted>";
+    }
+
+    /**
+     * 读取 Agent 配置文件内容
+     */
+    private static String readConfigFile() {
+        try {
+            // 从系统属性获取配置文件路径
+            String configPath = System.getProperty("lt.config");
+            if (configPath == null || configPath.isEmpty()) {
+                // 尝试从 ConfigUtils 获取
+                configPath = ConfigUtils.me().getStr("lt.config.path");
+            }
+            
+            if (configPath == null || configPath.isEmpty()) {
+                return "# No config file path specified\n# Please set -Dlt.config=/path/to/config.yml";
+            }
+            
+            java.io.File configFile = new java.io.File(configPath);
+            if (!configFile.exists()) {
+                return "# Config file not found: " + configPath;
+            }
+            
+            if (!configFile.canRead()) {
+                return "# Config file is not readable: " + configPath;
+            }
+            
+            // 读取文件内容
+            StringBuilder sb = new StringBuilder();
+            java.io.BufferedReader reader = new java.io.BufferedReader(
+                new java.io.FileReader(configFile)
+            );
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line).append("\n");
+            }
+            reader.close();
+            
+            String content = sb.toString();
+            if (content.trim().isEmpty()) {
+                return "# Config file is empty: " + configPath;
+            }
+            
+            return content;
+        } catch (Exception e) {
+            return "# Failed to read config file: " + e.getMessage();
+        }
     }
 
     private static String truncate(String s) {

@@ -67,8 +67,8 @@ public class LtConfig extends AbstractLtConfig {
         inst = System.getProperty(SysPropKey.LT_INST, "unknown");
         app = System.getProperty(SysPropKey.LT_APP, "unknown");
         env = System.getProperty(SysPropKey.LT_ENV, "unknown");
-        project = System.getProperty("lt.project", "default");
-        secret = System.getProperty("lt.secret", "");
+        project = System.getProperty("lt.project", ConfigUtils.me().getStr("projectCode", "default"));
+        secret = System.getProperty("lt.secret", ConfigUtils.me().getStr("secret", ""));
         port = System.getProperty(SysPropKey.LT_PORT, "0");
         ip = System.getProperty(SysPropKey.LT_IP);
         heartbeatPeriod = ConfigUtils.me().getInt("heartbeat.period", 60);
@@ -124,6 +124,13 @@ public class LtConfig extends AbstractLtConfig {
 
     public int getJvmPeriod() {
         return jvmPeriod;
+    }
+    
+    /**
+     * 动态设置采样率（用于配置热更新）
+     */
+    public void setRate(int rate) {
+        this.rate = rate;
     }
 
     public void fillEnvInfo(Span span){

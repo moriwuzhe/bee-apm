@@ -1,0 +1,17 @@
+# Handler Plugin Definitions
+# Format: name=fully.qualified.ClassName
+
+# JSON解析Handler
+json=org.xi.lt.server.core.handler.JsonStreamHandler
+
+# 数据存储Handler
+store=org.xi.lt.server.core.handler.StoreStreamHandler
+
+# 队列Handler
+queue=org.xi.lt.server.core.handler.QueueStreamHandler
+
+# FileBeat日志Handler
+filebeat=org.xi.lt.server.core.handler.FileBeatStreamHandler
+
+# 空Handler（用于测试）
+empty=org.xi.lt.server.core.handler.EmptyStreamHandler

@@ -22,6 +22,9 @@ import org.xi.lt.server.web.shared.util.ResultHelper;
 public class AgentControlController {
     @Autowired
     private AgentRegistryService registryService;
+    
+    @Autowired(required = false)
+    private org.xi.lt.server.domain.repository.AgentMemoryHistoryRepository memoryHistoryRepository;
 
     @PostMapping({"/api/agent/register", "/apm/agent/register"})
     public ApiResult<Void> register(@RequestBody AgentInstanceInfo info) {
@@ -71,6 +74,15 @@ public class AgentControlController {
         registryService.updateInstanceConfig(payload);
         return ResultHelper.success("success", null);
     }
+    
+    // For UI to get full config info (app config + instance config + merged)
+    @GetMapping("/api/agent/config/full")
+    public ApiResult<org.xi.lt.server.domain.model.agent.AgentFullConfigInfo> getFullConfig(
+            @RequestParam("app") String app, 
+            @RequestParam(value = "inst", required = false) String inst) {
+        org.xi.lt.server.domain.model.agent.AgentFullConfigInfo info = registryService.getFullConfigInfo(app, inst);
+        return ResultHelper.success("success", info);
+    }
 
     @GetMapping("/api/agent/download")
     public ResponseEntity<Resource> downloadAgentZip() {
@@ -105,6 +117,24 @@ public class AgentControlController {
         
         Resource resource = new FileSystemResource(file);
         return ResponseEntity.ok().body(resource);
+    }
+    
+    // Query memory history
+    @GetMapping("/api/agent/memory/history")
+    public ApiResult<java.util.List<org.xi.lt.server.domain.model.agent.AgentMemoryMetrics>> getMemoryHistory(
+            @RequestParam("app") String app,
+            @RequestParam("inst") String inst,
+            @RequestParam(value = "startTime", required = false) Long startTime,
+            @RequestParam(value = "endTime", required = false) Long endTime,
+            @RequestParam(value = "limit", defaultValue = "100") int limit) {
+        
+        if (memoryHistoryRepository == null) {
+            return ResultHelper.success("success", java.util.Collections.emptyList());
+        }
+        
+        java.util.List<org.xi.lt.server.domain.model.agent.AgentMemoryMetrics> history = 
+            memoryHistoryRepository.queryHistory(app, inst, startTime, endTime, limit);
+        return ResultHelper.success("success", history);
     }
 
 }

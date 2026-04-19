@@ -13,4 +13,4 @@ console=org.xi.lt.server.core.store.ConsoleStore
 # elasticsearch-adapter=org.xi.lt.server.infrastructure.store.elasticsearch.EsUnifiedStoreAdapter
 
 # Spring Data Architecture Adapter (recommended)
-spring-data-adapter=org.xi.lt.server.infrastructure.store.adapter.SpringDataStoreAdapter
+spring-data-adapter=org.xi.lt.server.infrastructure.store.adapter.UnifiedDataStoreAdapter

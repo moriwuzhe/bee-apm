@@ -1,5 +1,5 @@
 import type { RouteRecordRaw } from 'vue-router'
-import { Bell, Connection, DataLine, Grid, Tickets, Tools } from '@element-plus/icons-vue'
+import { Bell, Connection, DataLine, Grid, Tickets, Tools, Cpu, Monitor } from '@element-plus/icons-vue'
 
 import AppLayout from '../ui/layouts/AppLayout.vue'
 import LoginView from '../ui/views/LoginView.vue'
@@ -21,6 +21,12 @@ import ProjectView from '../ui/views/ProjectView.vue'
 import ApplicationView from '../ui/views/ApplicationView.vue'
 import AgentView from '../ui/views/AgentView.vue'
 import PluginView from '../ui/views/PluginView.vue'
+// JVM Monitoring Views
+import JvmMemoryView from '../ui/views/jvm/JvmMemoryView.vue'
+import JvmGcView from '../ui/views/jvm/JvmGcView.vue'
+import JvmThreadView from '../ui/views/jvm/JvmThreadView.vue'
+import JvmCpuView from '../ui/views/jvm/JvmCpuView.vue'
+import JvmAdvancedView from '../ui/views/jvm/JvmAdvancedView.vue'
 import NotFoundView from '../ui/views/NotFoundView.vue'
 
 export const routes: RouteRecordRaw[] = [
@@ -101,11 +107,45 @@ export const routes: RouteRecordRaw[] = [
         component: AgentView,
         meta: { title: 'Agent管理', nav: true, icon: Connection, order: 32 },
       },
+      // ============================================
+      // JVM Historical Monitoring (历史监控)
+      // 数据来自数据库，支持时间范围查询和实时监控
+      // ============================================
+      {
+        path: 'agent/jvm/memory',
+        name: 'jvm-memory',
+        component: JvmMemoryView,
+        meta: { title: 'JVM内存监控', nav: true, icon: Monitor, order: 33, parent: 'agent', category: 'monitoring' },
+      },
+      {
+        path: 'agent/jvm/gc',
+        name: 'jvm-gc',
+        component: JvmGcView,
+        meta: { title: 'JVM GC分析', nav: true, icon: DataLine, order: 34, parent: 'agent', category: 'monitoring' },
+      },
+      {
+        path: 'agent/jvm/thread',
+        name: 'jvm-thread',
+        component: JvmThreadView,
+        meta: { title: 'JVM线程监控', nav: true, icon: Connection, order: 35, parent: 'agent', category: 'monitoring' },
+      },
+      {
+        path: 'agent/jvm/cpu',
+        name: 'jvm-cpu',
+        component: JvmCpuView,
+        meta: { title: 'JVM CPU监控', nav: true, icon: Cpu, order: 36, parent: 'agent', category: 'monitoring' },
+      },
+      {
+        path: 'agent/jvm/advanced',
+        name: 'jvm-advanced',
+        component: JvmAdvancedView,
+        meta: { title: 'JVM高级监控', nav: true, icon: Tools, order: 37, parent: 'agent', category: 'monitoring' },
+      },
       {
         path: 'plugin',
         name: 'plugin',
         component: PluginView,
-        meta: { title: '插件管理', nav: true, icon: Tools, order: 33 },
+        meta: { title: '插件管理', nav: true, icon: Tools, order: 38 },
       },
     ],
   },

@@ -162,6 +162,13 @@ public class AgentCommandService {
     public String stopProfiler(String agentId, long timeoutMs) {
         return exec(agentId, "stopProfiler", timeoutMs);
     }
+    
+    /**
+     * 读取 Agent 配置文件内容
+     */
+    public String readConfig(String agentId, long timeoutMs) {
+        return exec(agentId, "readConfig", timeoutMs);
+    }
 
     private String exec(String agentId, String cmd, long timeoutMs) {
         AgentConnection conn = store.get(agentId);

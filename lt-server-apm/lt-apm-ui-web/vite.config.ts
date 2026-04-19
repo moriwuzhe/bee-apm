@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
         '/diag-api': {
           target: diagTarget,
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/diag-api/, ''),
+          rewrite: (path) => path.replace(/^\/diag-api\/diag\//, '/api/diag/'),
         },
       },
     },

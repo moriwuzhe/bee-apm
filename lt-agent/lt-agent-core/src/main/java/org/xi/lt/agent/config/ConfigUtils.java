@@ -48,7 +48,7 @@ public class ConfigUtils {
         service.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
-                if (loadConfig()) {
+                if (doLoadConfig()) {
                     LtConfigFactory.me().refresh();
                 }
             }
@@ -58,7 +58,7 @@ public class ConfigUtils {
 
     public ConfigUtils() {
         initConfigPath();
-        loadConfig();
+        doLoadConfig();
         configFileModifyListener();
     }
 
@@ -69,7 +69,7 @@ public class ConfigUtils {
         }
     }
 
-    private boolean loadConfig() {
+    private boolean doLoadConfig() {
         FileInputStream fis = null;
         boolean isReload = false;
         try {
@@ -94,6 +94,39 @@ public class ConfigUtils {
             LtUtils.close(fis);
         }
         return isReload;
+    }
+    
+    /**
+     * 公开方法：强制重新加载配置（用于配置热更新）
+     */
+    public void loadConfig() {
+        // 重置时间戳，强制重新加载
+        configLastTime = 0;
+        doLoadConfig();
+    }
+    
+    /**
+     * 设置配置值（用于动态配置）
+     */
+    public void setStr(String key, String value) {
+        try {
+            readWriteLock.writeLock().lock();
+            if (config == null) {
+                config = new JSONObject();
+            }
+            // 支持嵌套key，如 "config.version"
+            String[] keys = key.split("\\.");
+            JSONObject current = config;
+            for (int i = 0; i < keys.length - 1; i++) {
+                if (!current.containsKey(keys[i])) {
+                    current.put(keys[i], new JSONObject());
+                }
+                current = current.getJSONObject(keys[i]);
+            }
+            current.put(keys[keys.length - 1], value);
+        } finally {
+            readWriteLock.writeLock().unlock();
+        }
     }
 
     private Object parseValue(String key) {

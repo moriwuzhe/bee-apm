@@ -139,11 +139,7 @@ public class UmlClassParser {
             umlMethod.setName(method.getNameAsString());
             
             // 设置返回类型
-            if (method.getTypeAsString().isPresent()) {
-                umlMethod.setReturnType(method.getTypeAsString().get());
-            } else {
-                umlMethod.setReturnType("void");
-            }
+            umlMethod.setReturnType(method.getTypeAsString());
             
             // 设置是否静态和抽象
             umlMethod.setStatic(method.isStatic());
@@ -200,14 +196,17 @@ public class UmlClassParser {
      * 获取可见性
      */
     private UmlClassDiagram.UmlAttribute.Visibility getVisibility(BodyDeclaration<?> declaration) {
-        if (declaration.isPublic()) {
-            return UmlClassDiagram.UmlAttribute.Visibility.PUBLIC;
-        } else if (declaration.isPrivate()) {
-            return UmlClassDiagram.UmlAttribute.Visibility.PRIVATE;
-        } else if (declaration.isProtected()) {
-            return UmlClassDiagram.UmlAttribute.Visibility.PROTECTED;
-        } else {
-            return UmlClassDiagram.UmlAttribute.Visibility.PACKAGE;
+        if (declaration instanceof FieldDeclaration) {
+            FieldDeclaration field = (FieldDeclaration) declaration;
+            if (field.isPublic()) return UmlClassDiagram.UmlAttribute.Visibility.PUBLIC;
+            if (field.isPrivate()) return UmlClassDiagram.UmlAttribute.Visibility.PRIVATE;
+            if (field.isProtected()) return UmlClassDiagram.UmlAttribute.Visibility.PROTECTED;
+        } else if (declaration instanceof MethodDeclaration) {
+            MethodDeclaration method = (MethodDeclaration) declaration;
+            if (method.isPublic()) return UmlClassDiagram.UmlAttribute.Visibility.PUBLIC;
+            if (method.isPrivate()) return UmlClassDiagram.UmlAttribute.Visibility.PRIVATE;
+            if (method.isProtected()) return UmlClassDiagram.UmlAttribute.Visibility.PROTECTED;
         }
+        return UmlClassDiagram.UmlAttribute.Visibility.PACKAGE;
     }
 }

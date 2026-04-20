@@ -5,8 +5,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.xi.lt.flow.generator.GraphvizFlowGenerator;
+import org.xi.lt.flow.generator.UmlClassDiagramGenerator;
 import org.xi.lt.flow.model.FlowGraph;
+import org.xi.lt.flow.model.UmlClassDiagram;
 import org.xi.lt.flow.parser.JavaCodeParser;
+import org.xi.lt.flow.parser.UmlClassParser;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,6 +22,7 @@ import java.util.UUID;
 
 /**
  * 流程图分析器REST API控制器
+ * 支持多种流程图类型：方法调用链、UML类图等
  */
 @Slf4j
 @RestController
@@ -31,6 +35,9 @@ public class FlowAnalyzerController {
     
     private final JavaCodeParser parser = new JavaCodeParser();
     private final GraphvizFlowGenerator generator = new GraphvizFlowGenerator();
+    
+    private final UmlClassParser umlParser = new UmlClassParser();
+    private final UmlClassDiagramGenerator umlGenerator = new UmlClassDiagramGenerator();
     
     /**
      * 健康检查
@@ -211,6 +218,118 @@ public class FlowAnalyzerController {
             log.error("代码解析失败", e);
             result.put("success", false);
             result.put("message", "解析失败: " + e.getMessage());
+        }
+        
+        return result;
+    }
+    
+    // ==================== UML 类图相关 API ====================
+    
+    /**
+     * 上传文件并生成 UML 类图
+     */
+    @PostMapping("/uml/upload/file")
+    public Map<String, Object> uploadAndGenerateUmlClassDiagram(@RequestParam("file") MultipartFile file) {
+        log.info("收到 UML 类图文件上传请求: {}", file.getOriginalFilename());
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            // 确保上传目录存在
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+            
+            // 保存文件
+            String originalFilename = file.getOriginalFilename();
+            String savedFilename = UUID.randomUUID().toString() + "_" + originalFilename;
+            Path savedFilePath = uploadPath.resolve(savedFilename);
+            Files.copy(file.getInputStream(), savedFilePath);
+            
+            log.info("文件保存成功: {}", savedFilePath);
+            
+            // 解析文件，生成 UML 类图
+            UmlClassDiagram diagram = umlParser.parseFile(savedFilePath.toFile());
+            
+            // 生成 DOT 格式
+            String dotContent = umlGenerator.generateDot(diagram);
+            
+            // 保存 DOT 文件
+            String dotFilename = savedFilename + ".uml.dot";
+            Path dotFilePath = uploadPath.resolve(dotFilename);
+            umlGenerator.saveToFile(diagram, dotFilePath.toFile());
+            
+            // 构建返回结果
+            result.put("success", true);
+            result.put("message", "UML 类图生成成功");
+            result.put("classCount", diagram.getClasses().size());
+            result.put("relationshipCount", diagram.getRelationships().size());
+            result.put("dotContent", dotContent);
+            result.put("dotFilename", dotFilename);
+            
+            log.info("UML 类图生成成功！类数: {}, 关系数: {}", 
+                    diagram.getClasses().size(), diagram.getRelationships().size());
+            
+        } catch (Exception e) {
+            log.error("UML 类图生成失败", e);
+            result.put("success", false);
+            result.put("message", "UML 类图生成失败: " + e.getMessage());
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 直接解析代码并生成 UML 类图
+     */
+    @PostMapping("/uml/parse/code")
+    public Map<String, Object> parseCodeAndGenerateUml(@RequestBody Map<String, String> request) {
+        log.info("收到 UML 类图代码解析请求");
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            String code = request.get("code");
+            if (code == null || code.trim().isEmpty()) {
+                result.put("success", false);
+                result.put("message", "代码不能为空");
+                return result;
+            }
+            
+            // 创建临时文件
+            Path tempDir = Paths.get(uploadDir);
+            if (!Files.exists(tempDir)) {
+                Files.createDirectories(tempDir);
+            }
+            
+            String tempFilename = UUID.randomUUID().toString() + ".java";
+            Path tempFile = tempDir.resolve(tempFilename);
+            Files.write(tempFile, code.getBytes("UTF-8"));
+            
+            // 解析文件，生成 UML 类图
+            UmlClassDiagram diagram = umlParser.parseFile(tempFile.toFile());
+            
+            // 生成 DOT 格式
+            String dotContent = umlGenerator.generateDot(diagram);
+            
+            // 构建返回结果
+            result.put("success", true);
+            result.put("message", "UML 类图生成成功");
+            result.put("classCount", diagram.getClasses().size());
+            result.put("relationshipCount", diagram.getRelationships().size());
+            result.put("dotContent", dotContent);
+            
+            // 清理临时文件
+            Files.deleteIfExists(tempFile);
+            
+            log.info("UML 类图代码解析成功！类数: {}, 关系数: {}", 
+                    diagram.getClasses().size(), diagram.getRelationships().size());
+            
+        } catch (Exception e) {
+            log.error("UML 类图代码解析失败", e);
+            result.put("success", false);
+            result.put("message", "UML 类图解析失败: " + e.getMessage());
         }
         
         return result;

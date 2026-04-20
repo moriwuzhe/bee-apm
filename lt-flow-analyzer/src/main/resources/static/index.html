@@ -341,6 +341,21 @@
         </div>
         
         <div class="main-card">
+            <!-- 流程图类型选择 -->
+            <div style="margin-bottom: 25px;">
+                <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #333;">选择流程图类型：</label>
+                <div style="display: flex; gap: 15px;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="flowType" value="callChain" checked style="margin-right: 8px; transform: scale(1.2);">
+                        <span style="font-size: 15px;">🔗 方法调用链流程图</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="flowType" value="umlClass" style="margin-right: 8px; transform: scale(1.2);">
+                        <span style="font-size: 15px;">📊 UML 类图</span>
+                    </label>
+                </div>
+            </div>
+            
             <div class="tabs">
                 <button class="tab active" onclick="switchTab('upload')">📁 上传文件</button>
                 <button class="tab" onclick="switchTab('code')">📝 粘贴代码</button>
@@ -519,6 +534,17 @@ public class TestClass {
             hideResults();
         }
         
+        // 获取当前选择的流程图类型
+        function getSelectedFlowType() {
+            const radios = document.querySelectorAll('input[name="flowType"]');
+            for (const radio of radios) {
+                if (radio.checked) {
+                    return radio.value;
+                }
+            }
+            return 'callChain'; // 默认
+        }
+        
         // 上传文件
         async function uploadFile() {
             if (!window.selectedFile) {
@@ -526,6 +552,7 @@ public class TestClass {
                 return;
             }
             
+            const flowType = getSelectedFlowType();
             showLoading();
             hideError();
             hideResults();
@@ -534,7 +561,12 @@ public class TestClass {
             formData.append('file', window.selectedFile);
             
             try {
-                const response = await fetch('/api/flow/upload/file', {
+                let url = '/api/flow/upload/file';
+                if (flowType === 'umlClass') {
+                    url = '/api/flow/uml/upload/file';
+                }
+                
+                const response = await fetch(url, {
                     method: 'POST',
                     body: formData
                 });
@@ -543,7 +575,7 @@ public class TestClass {
                 hideLoading();
                 
                 if (result.success) {
-                    showResults(result);
+                    showResults(result, flowType);
                 } else {
                     showError(result.message || '解析失败');
                 }
@@ -561,12 +593,18 @@ public class TestClass {
                 return;
             }
             
+            const flowType = getSelectedFlowType();
             showLoading();
             hideError();
             hideResults();
             
             try {
-                const response = await fetch('/api/flow/parse/code', {
+                let url = '/api/flow/parse/code';
+                if (flowType === 'umlClass') {
+                    url = '/api/flow/uml/parse/code';
+                }
+                
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -578,7 +616,7 @@ public class TestClass {
                 hideLoading();
                 
                 if (result.success) {
-                    showResults(result);
+                    showResults(result, flowType);
                 } else {
                     showError(result.message || '解析失败');
                 }
@@ -606,14 +644,27 @@ public class TestClass {
             document.getElementById('errorMessage').classList.remove('show');
         }
         
-        function showResults(result) {
-            document.getElementById('nodeCount').textContent = result.nodeCount;
-            document.getElementById('edgeCount').textContent = result.edgeCount;
+        function showResults(result, flowType) {
+            // 更新统计信息
+            if (flowType === 'umlClass') {
+                document.getElementById('nodeCount').textContent = result.classCount;
+                document.getElementById('edgeCount').textContent = result.relationshipCount;
+                // 更新标签
+                document.querySelector('.stat:nth-child(1) .stat-label').textContent = '类数';
+                document.querySelector('.stat:nth-child(2) .stat-label').textContent = '关系数';
+                currentDotFilename = 'uml-class-diagram.dot';
+            } else {
+                document.getElementById('nodeCount').textContent = result.nodeCount;
+                document.getElementById('edgeCount').textContent = result.edgeCount;
+                // 恢复默认标签
+                document.querySelector('.stat:nth-child(1) .stat-label').textContent = '节点数';
+                document.querySelector('.stat:nth-child(2) .stat-label').textContent = '边数';
+                currentDotFilename = result.graphName ? result.graphName + '.dot' : 'flowchart.dot';
+            }
+            
             document.getElementById('dotOutput').textContent = result.dotContent;
             document.getElementById('resultCard').classList.add('show');
-            
             currentDotContent = result.dotContent;
-            currentDotFilename = result.graphName ? result.graphName + '.dot' : 'flowchart.dot';
         }
         
         function hideResults() {

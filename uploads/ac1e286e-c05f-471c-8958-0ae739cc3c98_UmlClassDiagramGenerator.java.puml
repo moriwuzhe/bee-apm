@@ -1,0 +1,56 @@
+@startuml
+skinparam backgroundColor white
+skinparam handwritten false
+skinparam shadowing false
+skinparam activity {
+  BackgroundColor #f0f7ff
+  BorderColor #667eea
+  ArrowColor #667eea
+}
+
+start
+
+:UmlClassDiagramGenerator;
+-->
+:UmlClassDiagramGenerator.generateDot\n(生成);
+-->
+:UmlClassDiagramGenerator.generateClassNode\n(生成);
+-->
+:UmlClassDiagramGenerator.generateClassLabel\n(生成);
+-->
+:UmlClassDiagramGenerator.generateRelationship\n(生成);
+-->
+:UmlClassDiagramGenerator.getClassColor\n(获取);
+-->
+:UmlClassDiagramGenerator.getStereotype\n(获取);
+-->
+:UmlClassDiagramGenerator.getRelationshipStyle\n(获取);
+-->
+:UmlClassDiagramGenerator.escapeLabel\n(escape label);
+-->
+:UmlClassDiagramGenerator.saveToFile\n(保存);
+-->
+:dot.append\n(append);
+-->
+:UmlClassDiagramGenerator.generateClassNode\n(生成);
+-->
+:diagram.getClasses\n(获取);
+-->
+:UmlClassDiagramGenerator.generateRelationship\n(生成);
+-->
+:diagram.getRelationships\n(获取);
+-->
+:dot.toString\n(转字符串);
+-->
+:clazz.getClassName\n(获取);
+-->
+:getClassName().replace\n(replace);
+-->
+:', '_').replace\n(replace);
+-->
+:UmlClassDiagramGenerator.generateClassLabel\n(生成);
+-->
+:clazz.getClassType\n(获取);
+
+stop
+@enduml

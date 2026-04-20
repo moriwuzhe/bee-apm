@@ -55,6 +55,7 @@ const handleMenuClick = (path: string) => {
 }
 
 const isDivider = (item: MenuItem) => item.divider || item.title.startsWith('─')
+const isCategoryHeader = (item: MenuItem) => !item.path && !item.divider && !item.title.startsWith('─')
 </script>
 
 <template>
@@ -88,18 +89,32 @@ const isDivider = (item: MenuItem) => item.divider || item.title.startsWith('─
               </el-icon>
               <span>{{ item.title }}</span>
             </template>
-            <el-menu-item
-              v-for="child in item.children"
-              :key="child.path || child.title"
-              :index="child.path"
-              class="sub-menu-item"
-              :class="{ 'sub-divider': isDivider(child) }"
-            >
-              <el-icon v-if="child.icon">
-                <component :is="child.icon" />
-              </el-icon>
-              <span>{{ child.title }}</span>
-            </el-menu-item>
+            <template v-for="child in item.children" :key="child.path || child.title">
+              <!-- 子菜单中的分割线 -->
+              <div v-if="isDivider(child)" class="menu-divider sub-divider-text">
+                {{ child.title }}
+              </div>
+              
+              <!-- 子菜单中的分类标题 -->
+              <div v-else-if="isCategoryHeader(child)" class="menu-divider sub-category-header">
+                <el-icon v-if="child.icon" style="margin-right: 4px;">
+                  <component :is="child.icon" />
+                </el-icon>
+                {{ child.title }}
+              </div>
+              
+              <!-- 子菜单中的普通菜单项 -->
+              <el-menu-item
+                v-else
+                :index="child.path"
+                class="sub-menu-item"
+              >
+                <el-icon v-if="child.icon">
+                  <component :is="child.icon" />
+                </el-icon>
+                <span>{{ child.title }}</span>
+              </el-menu-item>
+            </template>
           </el-sub-menu>
           
           <!-- 普通菜单项 -->
@@ -183,10 +198,20 @@ const isDivider = (item: MenuItem) => item.divider || item.title.startsWith('─
   padding-left: 20px !important;
 }
 
-.sub-menu-item.sub-divider {
-  pointer-events: none;
-  opacity: 0.5;
+.sub-divider-text {
+  padding: 8px 12px 8px 32px;
   font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 1px;
+}
+
+.sub-category-header {
+  padding: 10px 12px 10px 32px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
 }
 
 .menu-inner :deep(.el-menu-item),

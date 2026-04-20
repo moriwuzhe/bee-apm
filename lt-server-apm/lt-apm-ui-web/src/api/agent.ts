@@ -177,6 +177,7 @@ export interface AgentMemoryMetrics {
   loadedClassCount: number
   totalLoadedClassCount?: number
   unloadedClassCount?: number
+  classLoadingRate?: number
   gcCount: number
   gcTimeMs: number
   minorGcCount?: number

@@ -26,6 +26,7 @@
         <module>lt-monitor-server-core</module>
         <module>lt-infrastructure</module>
         <module>lt-monitor-server-web</module>
+        <module>../lt-flow-analyzer</module>
     </modules>
 
 

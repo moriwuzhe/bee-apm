@@ -344,18 +344,41 @@
             <!-- 流程图类型选择 -->
             <div style="margin-bottom: 25px;">
                 <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #333;">选择流程图类型：</label>
-                <div style="display: flex; gap: 15px;">
+                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
                     <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="radio" name="flowType" value="callChain" checked style="margin-right: 8px; transform: scale(1.2);">
-                        <span style="font-size: 15px;">🔗 方法调用链流程图</span>
+                        <input type="radio" name="flowType" value="callChain" checked style="margin-right: 8px; transform: scale(1.2);" onchange="toggleCallChainStyles()">
+                        <span style="font-size: 15px;">🔗 方法调用链</span>
                     </label>
                     <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="radio" name="flowType" value="umlClass" style="margin-right: 8px; transform: scale(1.2);">
+                        <input type="radio" name="flowType" value="umlClass" style="margin-right: 8px; transform: scale(1.2);" onchange="toggleCallChainStyles()">
                         <span style="font-size: 15px;">📊 UML 类图</span>
                     </label>
-                    <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="radio" name="flowType" value="umlSequence" style="margin-right: 8px; transform: scale(1.2);">
-                        <span style="font-size: 15px;">⏱️ UML 时序图</span>
+                </div>
+            </div>
+
+            <!-- 方法调用链样式选择 -->
+            <div id="callChainStyles" style="margin-bottom: 25px; padding: 15px; background: #f8f9ff; border-radius: 10px;">
+                <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #333;">选择调用链样式：</label>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: white; border-radius: 8px; border: 2px solid #e0e0e0;">
+                        <input type="radio" name="callChainStyle" value="ACTIVITY" checked style="margin-right: 6px;">
+                        <span style="font-size: 14px;">🎯 活动图</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: white; border-radius: 8px; border: 2px solid #e0e0e0;">
+                        <input type="radio" name="callChainStyle" value="SEQUENCE" style="margin-right: 6px;">
+                        <span style="font-size: 14px;">📋 时序图</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: white; border-radius: 8px; border: 2px solid #e0e0e0;">
+                        <input type="radio" name="callChainStyle" value="COMPONENT" style="margin-right: 6px;">
+                        <span style="font-size: 14px;">🧩 组件图</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: white; border-radius: 8px; border: 2px solid #e0e0e0;">
+                        <input type="radio" name="callChainStyle" value="STATE" style="margin-right: 6px;">
+                        <span style="font-size: 14px;">🔄 状态图</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; background: white; border-radius: 8px; border: 2px solid #e0e0e0;">
+                        <input type="radio" name="callChainStyle" value="MINDMAP" style="margin-right: 6px;">
+                        <span style="font-size: 14px;">🗺️ 思维导图</span>
                     </label>
                 </div>
             </div>
@@ -443,19 +466,25 @@ public class TestClass {
                         </div>
                     </div>
                 </div>
-                
-                <div style="margin-bottom: 15px;">
-                    <button class="btn btn-primary" onclick="downloadDot()">📥 下载 DOT 文件</button>
-                    <button class="btn btn-secondary" onclick="copyDot()">📋 复制 DOT 内容</button>
+
+                <!-- 图片预览 -->
+                <div id="previewSection" style="margin-bottom: 20px; display: none;">
+                    <h4 style="margin-bottom: 10px; color: #333;">🖼️ 预览</h4>
+                    <img id="previewImage" style="max-width: 100%; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
                 </div>
-                
+
+                <div style="margin-bottom: 15px;">
+                    <button class="btn btn-primary" onclick="downloadDot()">📥 下载 PlantUML 文件</button>
+                    <button class="btn btn-secondary" onclick="copyDot()">📋 复制 PlantUML 内容</button>
+                </div>
+
                 <div class="dot-output" id="dotOutput"></div>
-                
+
                 <div class="graphviz-hint">
-                    <h4>💡 如何渲染流程图？</h4>
-                    <p>1. 将 DOT 内容复制到 <a href="https://dreampuf.github.io/GraphvizOnline/" target="_blank" style="color: #1976d2;">Graphviz Online</a></p>
-                    <p>2. 或者安装 Graphviz 后运行：<code>dot -Tpng output.dot -o output.png</code></p>
-                    <p>3. 或者使用 VS Code 的 Graphviz 插件实时预览</p>
+                    <h4>💡 如何使用 PlantUML？</h4>
+                    <p>1. 将内容复制到 <a href="https://www.plantuml.com/plantuml/" target="_blank" style="color: #1976d2;">PlantUML Online</a></p>
+                    <p>2. 或者安装 PlantUML 后渲染：<code>plantuml diagram.puml</code></p>
+                    <p>3. 或者使用 VS Code 的 PlantUML 插件实时预览</p>
                 </div>
             </div>
         </div>
@@ -538,6 +567,28 @@ public class TestClass {
             hideResults();
         }
         
+        // 切换方法调用链样式显示
+        function toggleCallChainStyles() {
+            const flowType = getSelectedFlowType();
+            const callChainStyles = document.getElementById('callChainStyles');
+            if (flowType === 'callChain') {
+                callChainStyles.style.display = 'block';
+            } else {
+                callChainStyles.style.display = 'none';
+            }
+        }
+
+        // 获取当前选择的调用链样式
+        function getSelectedCallChainStyle() {
+            const radios = document.querySelectorAll('input[name="callChainStyle"]');
+            for (const radio of radios) {
+                if (radio.checked) {
+                    return radio.value;
+                }
+            }
+            return 'ACTIVITY'; // 默认
+        }
+
         // 获取当前选择的流程图类型
         function getSelectedFlowType() {
             const radios = document.querySelectorAll('input[name="flowType"]');
@@ -555,29 +606,33 @@ public class TestClass {
                 showError('请先选择文件！');
                 return;
             }
-            
+
             const flowType = getSelectedFlowType();
+            const callChainStyle = getSelectedCallChainStyle();
             showLoading();
             hideError();
             hideResults();
-            
+
             const formData = new FormData();
             formData.append('file', window.selectedFile);
-            
+            if (flowType === 'callChain') {
+                formData.append('style', callChainStyle);
+            }
+
             try {
                 let url = '/api/flow/upload/file';
                 if (flowType === 'umlClass') {
                     url = '/api/flow/uml/upload/file';
                 }
-                
+
                 const response = await fetch(url, {
                     method: 'POST',
                     body: formData
                 });
-                
+
                 const result = await response.json();
                 hideLoading();
-                
+
                 if (result.success) {
                     showResults(result, flowType);
                 } else {
@@ -596,29 +651,35 @@ public class TestClass {
                 showError('请输入 Java 代码！');
                 return;
             }
-            
+
             const flowType = getSelectedFlowType();
+            const callChainStyle = getSelectedCallChainStyle();
             showLoading();
             hideError();
             hideResults();
-            
+
             try {
                 let url = '/api/flow/parse/code';
                 if (flowType === 'umlClass') {
                     url = '/api/flow/uml/parse/code';
                 }
-                
+
+                const requestBody = { code: code };
+                if (flowType === 'callChain') {
+                    requestBody.style = callChainStyle;
+                }
+
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ code: code })
+                    body: JSON.stringify(requestBody)
                 });
-                
+
                 const result = await response.json();
                 hideLoading();
-                
+
                 if (result.success) {
                     showResults(result, flowType);
                 } else {
@@ -656,16 +717,26 @@ public class TestClass {
                 // 更新标签
                 document.querySelector('.stat:nth-child(1) .stat-label').textContent = '类数';
                 document.querySelector('.stat:nth-child(2) .stat-label').textContent = '关系数';
-                currentDotFilename = 'uml-class-diagram.dot';
+                currentDotFilename = 'uml-class-diagram.puml';
             } else {
                 document.getElementById('nodeCount').textContent = result.nodeCount;
                 document.getElementById('edgeCount').textContent = result.edgeCount;
                 // 恢复默认标签
                 document.querySelector('.stat:nth-child(1) .stat-label').textContent = '节点数';
                 document.querySelector('.stat:nth-child(2) .stat-label').textContent = '边数';
-                currentDotFilename = result.graphName ? result.graphName + '.dot' : 'flowchart.dot';
+                currentDotFilename = result.graphName ? result.graphName + '.puml' : 'flowchart.puml';
             }
-            
+
+            // 显示预览图片（如果有）
+            const previewSection = document.getElementById('previewSection');
+            const previewImage = document.getElementById('previewImage');
+            if (result.previewImage) {
+                previewImage.src = result.previewImage;
+                previewSection.style.display = 'block';
+            } else {
+                previewSection.style.display = 'none';
+            }
+
             document.getElementById('dotOutput').textContent = result.dotContent;
             document.getElementById('resultCard').classList.add('show');
             currentDotContent = result.dotContent;
@@ -709,6 +780,8 @@ public class TestClass {
         
         // 页面加载时检查服务状态
         window.onload = async function() {
+            // 初始化显示调用链样式
+            toggleCallChainStyles();
             try {
                 const response = await fetch('/api/flow/health');
                 const data = await response.json();

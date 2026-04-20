@@ -8,6 +8,7 @@
         <groupId>org.xi.lt</groupId>
         <artifactId>lt-server-apm</artifactId>
         <version>1.0.0</version>
+        <relativePath>../lt-server-apm/pom.xml</relativePath>
     </parent>
 
     <artifactId>lt-flow-analyzer</artifactId>
@@ -52,14 +53,35 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>1.18.30</version>
-            <scope>provided</scope>
+            <optional>true</optional>
         </dependency>
 
         <!-- JGit - Git 操作库 -->
         <dependency>
             <groupId>org.eclipse.jgit</groupId>
             <artifactId>org.eclipse.jgit</artifactId>
-            <version>6.7.0.202309050850-r</version>
+            <version>5.13.2.202306221912-r</version>
+        </dependency>
+
+        <!-- PlantUML - 支持所有 PlantUML 图表类型 -->
+        <dependency>
+            <groupId>net.sourceforge.plantuml</groupId>
+            <artifactId>plantuml</artifactId>
+            <version>1.2023.13</version>
+        </dependency>
+
+        <!-- ASM - 用于解析 JAR 文件中的 class 文件 -->
+        <dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm</artifactId>
+            <version>9.5</version>
+        </dependency>
+
+        <!-- Apache Commons Compress - 用于处理 ZIP/JAR 文件 -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>1.24.0</version>
         </dependency>
 
         <!-- 测试依赖 -->
@@ -95,6 +117,13 @@
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>1.18.30</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
         </plugins>

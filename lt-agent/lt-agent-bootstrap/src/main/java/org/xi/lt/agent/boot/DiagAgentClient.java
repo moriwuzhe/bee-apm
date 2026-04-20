@@ -59,6 +59,10 @@ public class DiagAgentClient {
     private volatile int reconnectAttempts = 0;
     private static final int MAX_RECONNECT_DELAY_SEC = 60; // 最大重连延迟 60 秒
     private static final int BASE_RECONNECT_DELAY_SEC = 2; // 基础重连延迟 2 秒
+    
+    // 类加载速率计算相关
+    private static volatile long prevClassLoadingTime = 0;
+    private static volatile long prevTotalLoadedClassCount = 0;
 
     public static DiagAgentClient tryCreate() {
         String host = System.getProperty("diag.proxy.host", ConfigUtils.me().getStr("diag.proxy.host"));
@@ -247,6 +251,33 @@ public class DiagAgentClient {
             metrics.put("totalLoadedClassCount", classMXBean.getTotalLoadedClassCount());
             metrics.put("unloadedClassCount", classMXBean.getUnloadedClassCount());
             
+            // Class Loading Rate - 计算类加载速率（类/秒）
+            try {
+                long currentTime = System.currentTimeMillis();
+                long currentLoaded = classMXBean.getTotalLoadedClassCount();
+                
+                if (prevClassLoadingTime > 0 && currentTime > prevClassLoadingTime) {
+                    long timeDiffSeconds = (currentTime - prevClassLoadingTime) / 1000;
+                    if (timeDiffSeconds > 0) {
+                        long classDiff = Math.max(0, currentLoaded - prevTotalLoadedClassCount);
+                        double classLoadingRate = (double) classDiff / timeDiffSeconds;
+                        metrics.put("classLoadingRate", classLoadingRate);
+                        LogUtil.log("[DEBUG] classLoadingRate calculated: " + classLoadingRate + " classes/sec, timeDiff=" + timeDiffSeconds + "s, classDiff=" + classDiff);
+                    } else {
+                        LogUtil.log("[DEBUG] timeDiffSeconds is 0, skip calculation");
+                    }
+                } else {
+                    LogUtil.log("[DEBUG] First heartbeat or invalid time, prevClassLoadingTime=" + prevClassLoadingTime + ", currentTime=" + currentTime);
+                }
+                
+                // 更新历史值
+                prevClassLoadingTime = currentTime;
+                prevTotalLoadedClassCount = currentLoaded;
+            } catch (Exception e) {
+                LogUtil.log("[ERROR] Failed to calculate classLoadingRate: " + e.getMessage());
+                e.printStackTrace();
+            }
+            
             // GC - 区分Minor GC和Full GC
             long totalGcCount = 0;
             long totalGcTime = 0;
@@ -371,17 +402,89 @@ public class DiagAgentClient {
                     for (java.lang.management.ThreadInfo info : allThreads) {
                         if (info != null) {
                             String name = info.getThreadName();
+                            // Tomcat HTTP 线程池
                             if (name.startsWith("http-nio-")) {
                                 poolStats.merge("tomcat-http", 1, Integer::sum);
+                            // Undertow XNIO 线程池
                             } else if (name.startsWith("XNIO-")) {
                                 poolStats.merge("undertow-xnio", 1, Integer::sum);
+                            // Jetty 线程池
+                            } else if (name.startsWith("qtp") || name.startsWith("jetty-")) {
+                                poolStats.merge("jetty-thread-pool", 1, Integer::sum);
+                            // HikariCP 数据库连接池
+                            } else if (name.startsWith("HikariPool-")) {
+                                poolStats.merge("hikaricp-pool", 1, Integer::sum);
+                            // Druid 数据库连接池
+                            } else if (name.startsWith("Druid-")) {
+                                poolStats.merge("druid-pool", 1, Integer::sum);
+                            // OkHttp 连接池
+                            } else if (name.startsWith("OkHttp ")) {
+                                poolStats.merge("okhttp-pool", 1, Integer::sum);
+                            // gRPC 线程池
+                            } else if (name.startsWith("grpc-")) {
+                                poolStats.merge("grpc-pool", 1, Integer::sum);
+                            // Netty 线程池
+                            } else if (name.startsWith("nioEventLoopGroup-") || name.startsWith("defaultEventExecutorGroup-")) {
+                                poolStats.merge("netty-pool", 1, Integer::sum);
+                            // Java 默认线程池
                             } else if (name.startsWith("pool-")) {
                                 poolStats.merge("java-thread-pool", 1, Integer::sum);
+                            // ForkJoinPool
                             } else if (name.startsWith("ForkJoinPool")) {
                                 poolStats.merge("forkjoin-pool", 1, Integer::sum);
+                            // Spring @Async 线程池
+                            } else if (name.startsWith("task-") || name.startsWith("async-")) {
+                                poolStats.merge("spring-async-pool", 1, Integer::sum);
+                            // Quartz 调度线程池
+                            } else if (name.startsWith("QuartzScheduler-")) {
+                                poolStats.merge("quartz-pool", 1, Integer::sum);
+                            // 其他自定义线程池（包含 "pool"、"thread"、"executor" 等关键词）
+                            } else if (name.matches(".*-(pool|thread|executor|worker)-\\d+.*") || 
+                                       name.matches(".*(Pool|Thread|Executor|Worker)-\\d+.*")) {
+                                poolStats.merge("custom-thread-pool", 1, Integer::sum);
                             }
                         }
                     }
+                }
+                
+                // 统计未分类的线程（排除系统线程）
+                java.util.Map<String, Integer> unclassifiedPools = new java.util.HashMap<>();
+                if (allThreads != null) {
+                    for (java.lang.management.ThreadInfo info : allThreads) {
+                        if (info != null) {
+                            String name = info.getThreadName();
+                            // 排除已分类的线程和系统线程
+                            boolean isClassified = false;
+                            for (String prefix : new String[]{"http-nio-", "XNIO-", "qtp", "jetty-", "HikariPool-", 
+                                                              "Druid-", "OkHttp ", "grpc-", "nioEventLoopGroup-", 
+                                                              "defaultEventExecutorGroup-", "pool-", "ForkJoinPool", 
+                                                              "task-", "async-", "QuartzScheduler-"}) {
+                                if (name.startsWith(prefix)) {
+                                    isClassified = true;
+                                    break;
+                                }
+                            }
+                            // 检查是否匹配自定义线程池模式
+                            if (!isClassified && (name.matches(".*-(pool|thread|executor|worker)-\\d+.*") || 
+                                                  name.matches(".*(Pool|Thread|Executor|Worker)-\\d+.*"))) {
+                                isClassified = true;
+                            }
+                            // 排除系统线程
+                            if (!isClassified && !name.startsWith("main") && !name.startsWith("Reference Handler") &&
+                                !name.startsWith("Finalizer") && !name.startsWith("Signal Dispatcher") &&
+                                !name.startsWith("Attach Listener") && !name.startsWith("Common-Cleaner") &&
+                                !name.startsWith("DestroyJavaVM") && !name.startsWith("Monitor Ctrl-Break") &&
+                                !name.contains("JMX server connection timeout")) {
+                                // 提取线程名前缀作为分组标识（取第一个 - 或数字前的部分）
+                                String poolPrefix = extractPoolPrefix(name);
+                                unclassifiedPools.merge(poolPrefix, 1, Integer::sum);
+                            }
+                        }
+                    }
+                }
+                // 将未分类的线程池添加到统计中
+                for (java.util.Map.Entry<String, Integer> entry : unclassifiedPools.entrySet()) {
+                    poolStats.merge(entry.getKey(), entry.getValue(), Integer::sum);
                 }
                 
                 for (java.util.Map.Entry<String, Integer> entry : poolStats.entrySet()) {
@@ -422,6 +525,42 @@ public class DiagAgentClient {
         return metrics;
     }
 
+    /**
+     * 提取线程名前缀作为线程池标识
+     * 例如: "myOrderPool-1" -> "myOrderPool", "user-thread-5" -> "user-thread"
+     */
+    private static String extractPoolPrefix(String threadName) {
+        // 尝试匹配常见模式: name-number 或 name-number-suffix
+        int lastDashIndex = -1;
+        int digitStartIndex = -1;
+        
+        // 从后往前找第一个数字序列的起始位置
+        for (int i = threadName.length() - 1; i >= 0; i--) {
+            char c = threadName.charAt(i);
+            if (Character.isDigit(c)) {
+                digitStartIndex = i;
+            } else if (digitStartIndex > 0 && (c == '-' || c == '_')) {
+                lastDashIndex = i;
+                break;
+            } else if (digitStartIndex > 0) {
+                break;
+            }
+        }
+        
+        // 如果找到了模式，返回前缀
+        if (lastDashIndex > 0) {
+            return threadName.substring(0, lastDashIndex);
+        }
+        
+        // 否则返回整个线程名（去掉末尾的数字）
+        if (digitStartIndex > 0) {
+            return threadName.substring(0, digitStartIndex).replaceAll("[-_]$", "");
+        }
+        
+        // 如果没有数字，返回原名称
+        return threadName;
+    }
+    
     private static void writeString(String data, ByteBuf out) {
         if (data == null || data.isEmpty()) {
             out.writeShort(0);

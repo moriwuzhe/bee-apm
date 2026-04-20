@@ -36,8 +36,13 @@ public class JavaCodeParser {
         log.info("开始解析文件: {}", javaFile.getAbsolutePath());
         
         ParseResult<CompilationUnit> result = javaParser.parse(javaFile);
-        if (!result.isSuccessful() || result.getResult().isEmpty()) {
+        if (!result.isSuccessful() || !result.getResult().isPresent()) {
             log.error("解析文件失败: {}", javaFile.getAbsolutePath());
+            if (result.getProblems() != null) {
+                for (com.github.javaparser.Problem problem : result.getProblems()) {
+                    log.error("解析问题: {}", problem.getMessage());
+                }
+            }
             throw new RuntimeException("无法解析文件: " + javaFile.getAbsolutePath());
         }
         

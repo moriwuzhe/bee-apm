@@ -169,6 +169,10 @@ public class DiagAgentChannelHandler extends SimpleChannelInboundHandler<Datagra
         memoryMetrics.setLoadedClassCount(getInt(metrics, "loadedClassCount"));
         memoryMetrics.setTotalLoadedClassCount(getLong(metrics, "totalLoadedClassCount"));
         memoryMetrics.setUnloadedClassCount(getLong(metrics, "unloadedClassCount"));
+        
+        Double classLoadingRate = getDouble(metrics, "classLoadingRate");
+        log.info("[DIAG] Received classLoadingRate from agent: {}, metrics keys: {}", classLoadingRate, metrics.keySet());
+        memoryMetrics.setClassLoadingRate(classLoadingRate);
         memoryMetrics.setGcCount(getLong(metrics, "gcCount"));
         memoryMetrics.setGcTimeMs(getLong(metrics, "gcTimeMs"));
         

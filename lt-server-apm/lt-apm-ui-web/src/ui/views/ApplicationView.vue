@@ -1,4 +1,4 @@
-<template>
+ <template>
   <div class="application-container">
     <el-tabs v-model="activeTab" type="border-card">
       <!-- Tab 1: 应用定义 -->
@@ -137,6 +137,12 @@
                       <el-dropdown-item command="threadChart">
                         <span style="display: flex; justify-content: space-between; align-items: center;">
                           <span>🧵 线程监控</span>
+                          <el-tag size="small" type="info">趋势</el-tag>
+                        </span>
+                      </el-dropdown-item>
+                      <el-dropdown-item command="ioNetworkChart">
+                        <span style="display: flex; justify-content: space-between; align-items: center;">
+                          <span>🌐 IO/网络监控</span>
                           <el-tag size="small" type="info">趋势</el-tag>
                         </span>
                       </el-dropdown-item>
@@ -726,30 +732,34 @@
               </el-col>
             </el-row>
             
-            <!-- 3. 内存池使用趋势(所有内存池) - 仅当有数据时显示 -->
-            <el-row v-if="hasMemoryPoolsData" :gutter="16" class="charts-row">
+            <!-- 3. 内存池使用趋势(所有内存池) -->
+            <el-row :gutter="16" class="charts-row">
               <el-col :span="24">
                 <div ref="memoryPoolsGridRef" class="chart-box-large"></div>
               </el-col>
             </el-row>
             
-            <!-- 4. 内存深度分析 - 仅展示有数据的图表 -->
+            <!-- 4. 内存深度分析 - 合并到一行 -->
             <el-row :gutter="16" class="charts-row">
               <el-col :span="12">
                 <div ref="memoryUsageRateRef" class="chart-box-large"></div>
               </el-col>
-              <el-col v-if="hasBufferPoolsData" :span="12">
-                <div ref="bufferPoolsChartRef" class="chart-box-large"></div>
-              </el-col>
-              <el-col v-if="hasPhysicalMemoryData" :span="12">
-                <div ref="physicalMemoryRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            <el-row :gutter="16" class="charts-row">
               <el-col :span="12">
                 <div ref="memoryAllocationRef" class="chart-box-large"></div>
               </el-col>
             </el-row>
+            
+            <!-- 缓冲区池和物理内存 - 有数据时才显示，避免空白行 -->
+            <template v-if="hasBufferPoolsData || hasPhysicalMemoryData">
+              <el-row :gutter="16" class="charts-row">
+                <el-col :span="hasBufferPoolsData && hasPhysicalMemoryData ? 12 : 24" v-if="hasBufferPoolsData">
+                  <div ref="bufferPoolsChartRef" class="chart-box-large"></div>
+                </el-col>
+                <el-col :span="hasBufferPoolsData && hasPhysicalMemoryData ? 12 : 24" v-if="hasPhysicalMemoryData">
+                  <div ref="physicalMemoryRef" class="chart-box-large"></div>
+                </el-col>
+              </el-row>
+            </template>
             
             <!-- 5. 内存泄漏检测指标 -->
             <el-row :gutter="16" class="charts-row">
@@ -853,40 +863,25 @@
                     <el-descriptions-item label="Full GC次数">{{ latestFullGcCount }}</el-descriptions-item>
                   </el-descriptions>
                   
-                  <!-- JVM参数展示 -->
-                  <el-divider content-position="left">
-                    <el-icon><Setting /></el-icon>
-                    JVM参数
-                  </el-divider>
-                  <div v-if="latestJvmArgs && latestJvmArgs.length > 0" class="jvm-args-container">
-                    <el-tag 
-                      v-for="(arg, index) in latestJvmArgs" 
-                      :key="index"
-                      size="small"
-                      type="info"
-                      style="margin: 2px;"
-                    >
-                      {{ arg }}
-                    </el-tag>
-                  </div>
-                  <el-empty v-else description="暂无JVM参数信息 (需Agent配置上报)" :image-size="80" />
+                  <!-- 只在有JVM参数数据时显示 -->
+                  <template v-if="latestJvmArgs && latestJvmArgs.length > 0">
+                    <el-divider content-position="left">
+                      <el-icon><Setting /></el-icon>
+                      JVM参数
+                    </el-divider>
+                    <div class="jvm-args-container">
+                      <el-tag 
+                        v-for="(arg, index) in latestJvmArgs" 
+                        :key="index"
+                        size="small"
+                        type="info"
+                        style="margin: 2px;"
+                      >
+                        {{ arg }}
+                      </el-tag>
+                    </div>
+                  </template>
                 </el-card>
-              </el-col>
-            </el-row>
-            
-            <!-- ⚡ CPU与系统监控区域 - 仅展示有数据的图表 -->
-            <div class="section-header">
-              <h3>⚡ CPU与系统监控</h3>
-            </div>
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="12">
-                <div ref="cpuChartRef" class="chart-box-large"></div>
-              </el-col>
-              <el-col v-if="hasSystemLoadData" :span="12">
-                <div ref="systemLoadRef" class="chart-box-large"></div>
-              </el-col>
-              <el-col v-if="hasDiskIoData" :span="12">
-                <div ref="diskIoRef" class="chart-box-large"></div>
               </el-col>
             </el-row>
             </template>
@@ -964,18 +959,99 @@
                 <div ref="classLoadingDetailChartRef" class="chart-box-large"></div>
               </el-col>
             </el-row>
+            </template>
             
+            <!-- 🏊 线程池监控 - 始终显示 -->
             <div class="section-header">
-              <h3>🏊 线程池监控</h3>
+              <h3>🏊 线程池与类加载</h3>
             </div>
             <el-row :gutter="16" class="charts-row">
-              <el-col :span="12">
+              <el-col :span="24">
                 <div ref="threadPoolsChartRef" class="chart-box-large"></div>
               </el-col>
-              <el-col :span="12">
-                <div ref="classLoadingRateChartRef" class="chart-box-large"></div>
+            </el-row>
+            
+            <!-- ⚡ CPU与系统监控 - 始终显示 -->
+            <div class="section-header">
+              <h3>⚡ CPU与系统监控</h3>
+            </div>
+            <el-row :gutter="16" class="charts-row">
+              <el-col :span="24">
+                <div ref="cpuChartRef" class="chart-box-large"></div>
               </el-col>
             </el-row>
+          </div>
+        </div>
+
+        <!-- IO/网络监控历史趋势 -->
+        <div v-else-if="currentDiagType === 'ioNetworkChart'" class="chart-container">
+          <div class="memory-history-container">
+            <!-- 时间范围控制 -->
+            <div class="history-controls" style="margin-bottom: 16px;">
+              <el-select v-model="historyTimeRange" placeholder="选择时间范围" style="width: 200px; margin-right: 10px;">
+                <el-option label="最近1小时" :value="1" />
+                <el-option label="最近6小时" :value="6" />
+                <el-option label="最近24小时" :value="24" />
+                <el-option label="最近7天" :value="168" />
+              </el-select>
+              <el-button type="primary" @click="refreshHistoryChart" :loading="historyLoading">🔄 刷新数据</el-button>
+              
+              <!-- 自动刷新控制 -->
+              <el-divider direction="vertical" />
+              <el-switch 
+                v-model="enableAutoRefresh" 
+                active-text="自动刷新" 
+                @change="toggleAutoRefresh"
+                style="margin-left: 10px;"
+              />
+              <el-select 
+                v-if="enableAutoRefresh" 
+                v-model="autoRefreshInterval" 
+                placeholder="刷新间隔" 
+                style="width: 120px; margin-left: 10px;"
+              >
+                <el-option label="5秒" :value="5" />
+                <el-option label="10秒" :value="10" />
+                <el-option label="30秒" :value="30" />
+                <el-option label="1分钟" :value="60" />
+                <el-option label="5分钟" :value="300" />
+              </el-select>
+              <el-tag v-if="enableAutoRefresh" type="success" effect="dark" style="margin-left: 10px;">
+                <el-icon class="is-loading"><Connection /></el-icon>
+                自动刷新中
+              </el-tag>
+            </div>
+            
+            <div class="section-header">
+              <h3>🌐 IO/网络监控趋势</h3>
+            </div>
+            
+            <!-- 空数据提示 -->
+            <div v-if="memoryHistory.length === 0" style="text-align: center; padding: 60px 0; color: #909399;">
+              <div style="font-size: 64px; margin-bottom: 16px;">🌐</div>
+              <div style="font-size: 16px; margin-bottom: 8px;">暂无IO/网络监控数据</div>
+              <div style="font-size: 13px; color: #c0c4cc;">请确保Agent正常运行并上报数据</div>
+            </div>
+            
+            <template v-else>
+            <!-- 磁盘I/O监控 -->
+            <template v-if="hasDiskIoData">
+              <div class="section-header">
+                <h3>💾 磁盘I/O监控</h3>
+              </div>
+              <el-row :gutter="16" class="charts-row">
+                <el-col :span="24">
+                  <div ref="diskIoRef" class="chart-box-large"></div>
+                </el-col>
+              </el-row>
+            </template>
+            
+            <!-- 网络监控 (预留，待后端支持) -->
+            <div v-if="!hasDiskIoData" style="text-align: center; padding: 60px 0; color: #909399;">
+              <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
+              <div style="font-size: 16px; margin-bottom: 8px;">暂无IO/网络数据</div>
+              <div style="font-size: 13px; color: #c0c4cc;">当前Agent版本可能未采集网络和IO指标</div>
+            </div>
             </template>
           </div>
         </div>
@@ -1043,7 +1119,7 @@
         <span class="dialog-footer">
           <!-- 历史监控图表的刷新按钮 -->
           <el-button 
-            v-if="['memoryChart', 'gcChart', 'threadChart'].includes(currentDiagType)" 
+            v-if="['memoryChart', 'gcChart', 'threadChart', 'ioNetworkChart'].includes(currentDiagType)" 
             type="success" 
             @click="refreshHistoryChart"
           >
@@ -1211,7 +1287,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Connection, CircleClose, Bell, ArrowDown } from '@element-plus/icons-vue'
+import { Connection, CircleClose, Bell, ArrowDown, Setting } from '@element-plus/icons-vue'
 import { fetchApplications, createApplication, fetchProjects, type Application, type Project } from '../../api/project'
 import { http } from '../../api/http'
 import {
@@ -1625,15 +1701,32 @@ const hasBufferPoolsData = computed(() => {
 
 // 检查是否有内存池数据
 const hasMemoryPoolsData = computed(() => {
-  if (memoryHistory.value.length === 0) return false
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  if (!latest.memoryPools) return false
-  try {
-    const pools = JSON.parse(latest.memoryPools)
-    return pools && pools.length > 0
-  } catch (e) {
+  if (memoryHistory.value.length === 0) {
+    console.log('[hasMemoryPoolsData] No history data')
     return false
   }
+
+  console.log(`[hasMemoryPoolsData] Checking ${memoryHistory.value.length} records`)
+  
+  // 检查所有记录中是否有实际的内存池数据
+  for (let i = 0; i < memoryHistory.value.length; i++) {
+    const record = memoryHistory.value[i]
+    if (record.memoryPools) {
+      try {
+        const pools = JSON.parse(record.memoryPools)
+        console.log(`[hasMemoryPoolsData] Record ${i}: Found ${pools.length} pools`, pools.map((p: any) => p.name))
+        if (pools && pools.length > 0) {
+          return true
+        }
+      } catch (e) {
+        console.warn(`[hasMemoryPoolsData] Record ${i}: Failed to parse memoryPools`, e)
+      }
+    } else {
+      console.log(`[hasMemoryPoolsData] Record ${i}: No memoryPools field`)
+    }
+  }
+  console.log('[hasMemoryPoolsData] No valid pool data found')
+  return false
 })
 
 // 检查是否有物理内存数据
@@ -1655,6 +1748,33 @@ const hasDiskIoData = computed(() => {
   if (memoryHistory.value.length === 0) return false
   const latest = memoryHistory.value[memoryHistory.value.length - 1]
   return latest.diskReadBytes !== undefined || latest.diskWriteBytes !== undefined
+})
+
+// 检查是否有CPU数据
+const hasCpuData = computed(() => {
+  if (memoryHistory.value.length === 0) return false
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  return latest.cpuUsage !== undefined || latest.systemCpuUsage !== undefined
+})
+
+// 检查是否有线程池数据
+const hasThreadPoolData = computed(() => {
+  if (memoryHistory.value.length === 0) return false
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  if (!latest.threadPools) return false
+  try {
+    const pools = JSON.parse(latest.threadPools)
+    return pools && pools.length > 0
+  } catch (e) {
+    return false
+  }
+})
+
+// 检查是否有类加载速率数据
+const hasClassLoadingRateData = computed(() => {
+  if (memoryHistory.value.length === 0) return false
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  return latest.classLoadingRate !== undefined
 })
 
 // Phase 2: Top CPU Threads Table Data
@@ -1863,6 +1983,11 @@ const handleDiagCommand = async (cmd: string, row: AgentInstance) => {
     case 'threadChart':
       currentDiagRow.value = row
       await showThreadHistoryChart(row)
+      break
+      
+    case 'ioNetworkChart':
+      currentDiagRow.value = row
+      await showIoNetworkHistoryChart(row)
       break
       
     case 'jvmInfo':
@@ -2081,6 +2206,49 @@ const showThreadHistoryChart = async (row: any, refresh = false) => {
   }
 }
 
+// 显示IO/网络历史监控图表
+const showIoNetworkHistoryChart = async (row: any, refresh = false) => {
+  if (!refresh) {
+    diagDialogTitle.value = `🌐 IO/网络监控 - ${row.app}@${row.inst}`
+    diagResult.value = '正在加载历史数据...'
+    showDiagDialog.value = true
+    currentDiagType.value = 'ioNetworkChart'
+    diagMode.value = 'chart'
+  }
+  
+  try {
+    historyLoading.value = true
+    const endTime = Date.now()
+    const startTime = endTime - historyTimeRange.value * 3600 * 1000
+    
+    const data = await getMemoryHistory(row.app, row.inst, startTime, endTime, 100)
+    
+    if (data.length === 0) {
+      diagResult.value = '暂无历史数据，请确保Agent正常运行并上报数据'
+      return
+    }
+    
+    memoryHistory.value = data.sort((a, b) => a.collectTime - b.collectTime)
+    diagResult.value = 'loaded'
+    
+    // 使用nextTick确保DOM更新后再渲染
+    setTimeout(() => {
+      console.log('准备渲染IO/网络图表, memoryHistory长度:', memoryHistory.value.length)
+      renderThreadCharts() // 复用线程图表的渲染函数（包含磁盘I/O）
+    }, 500)
+    
+    if (!refresh) {
+      ElMessage.success(`加载了 ${data.length} 条历史记录`)
+    } else {
+      ElMessage.success('数据已刷新')
+    }
+  } catch (e: any) {
+    diagResult.value = `加载失败: ${e.message || '未知错误'}`
+  } finally {
+    historyLoading.value = false
+  }
+}
+
 // 刷新当前历史监控数据
 const refreshHistoryChart = () => {
   if (!currentDiagRow.value) {
@@ -2097,6 +2265,9 @@ const refreshHistoryChart = () => {
       break
     case 'threadChart':
       showThreadHistoryChart(currentDiagRow.value, true)
+      break
+    case 'ioNetworkChart':
+      showIoNetworkHistoryChart(currentDiagRow.value, true)
       break
     default:
       ElMessage.info('当前不是历史监控视图')
@@ -2334,26 +2505,241 @@ const renderThreadCharts = () => {
     }
   }
   
-  // 4. Class Loading Detail Chart
+  // 4. Class Loading Rate Chart - 显示类加载速率
   if (classLoadingDetailChartRef.value) {
     if (!classLoadingDetailChartInstance) classLoadingDetailChartInstance = echarts.init(classLoadingDetailChartRef.value)
     
-    const loadedRates = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      return m.loadedClassCount - memoryHistory.value[i - 1].loadedClassCount
-    })
+    // 检查是否有 classLoadingRate 数据
+    const hasRateData = memoryHistory.value.length > 0 && memoryHistory.value[0].classLoadingRate !== undefined
     
-    classLoadingDetailChartInstance.setOption({
-      title: { text: '类加载速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { trigger: 'axis', formatter: (params: any) => {
-        return params[0].name + '<br/>新增类: ' + params[0].value
-      }},
-      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '类数量' },
-      series: [{ name: '新增类', type: 'bar', data: loadedRates, itemStyle: { color: '#9c27b0' } }]
-    })
-    classLoadingDetailChartInstance.resize()
+    if (!hasRateData || memoryHistory.value.length === 0) {
+      // 无数据时显示空状态
+      classLoadingDetailChartInstance.setOption({
+        title: { text: '类加载速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
+        graphic: {
+          type: 'text',
+          left: 'center',
+          top: 'middle',
+          style: {
+            text: '暂无类加载数据\n请确保 Agent 正常运行并上报数据',
+            fill: '#c0c4cc',
+            fontSize: 14,
+            textAlign: 'center'
+          }
+        }
+      })
+      classLoadingDetailChartInstance.resize()
+    } else if (hasRateData) {
+      // 使用 classLoadingRate 字段
+      const rates = memoryHistory.value.map(m => m.classLoadingRate || 0)
+      const allZero = rates.every(r => r === 0)
+      
+      if (allZero) {
+        // 所有数据都是 0，显示空状态
+        classLoadingDetailChartInstance.setOption({
+          title: { text: '类加载速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
+          graphic: {
+            type: 'text',
+            left: 'center',
+            top: 'middle',
+            style: {
+              text: '无类加载活动\n所有类已加载完成，无新增或卸载',
+              fill: '#c0c4cc',
+              fontSize: 14,
+              textAlign: 'center'
+            }
+          }
+        })
+      } else {
+        // 有数据，正常显示
+        classLoadingDetailChartInstance.setOption({
+          title: { text: '类加载速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+          tooltip: { 
+            trigger: 'axis', 
+            formatter: (params: any) => {
+              return params[0].name + '<br/>加载速率: ' + params[0].value.toFixed(2) + ' 类/秒'
+            }
+          },
+          grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
+          xAxis: { type: 'category', data: times, boundaryGap: false },
+          yAxis: { type: 'value', name: '类/秒' },
+          series: [{ 
+            name: '加载速率', 
+            type: 'line', 
+            data: rates, 
+            smooth: true, 
+            itemStyle: { color: '#9c27b0' },
+            areaStyle: { color: 'rgba(156, 39, 176, 0.1)' }
+          }]
+        })
+      }
+      classLoadingDetailChartInstance.resize()
+    } else {
+      // 降级：使用 loadedClassCount 的差值
+      const loadedRates = memoryHistory.value.map((m, i) => {
+        if (i === 0) return 0
+        return Math.max(0, m.loadedClassCount - memoryHistory.value[i - 1].loadedClassCount)
+      })
+      const allZero = loadedRates.every(r => r === 0)
+      
+      if (allZero) {
+        // 所有数据都是 0，显示空状态
+        classLoadingDetailChartInstance.setOption({
+          title: { text: '类加载速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
+          graphic: {
+            type: 'text',
+            left: 'center',
+            top: 'middle',
+            style: {
+              text: '无类加载活动\n所有类已加载完成，无新增或卸载',
+              fill: '#c0c4cc',
+              fontSize: 14,
+              textAlign: 'center'
+            }
+          }
+        })
+      } else {
+        // 有数据，正常显示
+        classLoadingDetailChartInstance.setOption({
+          title: { text: '类加载速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+          tooltip: { trigger: 'axis', formatter: (params: any) => {
+            return params[0].name + '<br/>新增类: ' + params[0].value
+          }},
+          grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
+          xAxis: { type: 'category', data: times, boundaryGap: false },
+          yAxis: { type: 'value', name: '类数量' },
+          series: [{ name: '新增类', type: 'bar', data: loadedRates, itemStyle: { color: '#9c27b0' } }]
+        })
+      }
+      classLoadingDetailChartInstance.resize()
+    }
+  }
+  
+  // 5. Thread Pools Chart - 始终渲染，无数据时显示默认图表
+  if (threadPoolsChartRef.value) {
+    if (!threadPoolsChartInstance) threadPoolsChartInstance = echarts.init(threadPoolsChartRef.value)
+    
+    const hasData = memoryHistory.value.length > 0 && memoryHistory.value[0].threadPools
+    
+    if (!hasData) {
+      threadPoolsChartInstance.setOption({
+        title: { text: '线程池使用情况', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
+        graphic: {
+          type: 'text',
+          left: 'center',
+          top: 'middle',
+          style: {
+            text: '暂无线程池数据\n请确保 Agent 正常运行并上报数据',
+            fill: '#c0c4cc',
+            fontSize: 14,
+            textAlign: 'center'
+          }
+        }
+      })
+      threadPoolsChartInstance.resize()
+    } else {
+      try {
+        const latest = memoryHistory.value[memoryHistory.value.length - 1]
+        const pools: any[] = JSON.parse(latest.threadPools!)
+        
+        if (!pools || pools.length === 0) {
+          threadPoolsChartInstance.setOption({
+            title: { text: '线程池使用情况', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
+            graphic: {
+              type: 'text',
+              left: 'center',
+              top: 'middle',
+              style: {
+                text: '该 Agent 未上报线程池数据\n可能原因：JVM 版本不支持或配置未开启',
+                fill: '#c0c4cc',
+                fontSize: 14,
+                textAlign: 'center'
+              }
+            }
+          })
+          threadPoolsChartInstance.resize()
+        } else {
+          const poolNames = pools.map(p => p.poolName)
+          const poolCounts = pools.map(p => p.activeCount)
+          
+          threadPoolsChartInstance.setOption({
+            title: { text: '线程池使用情况', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+            tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+            grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
+            xAxis: { type: 'category', data: poolNames, axisLabel: { interval: 0, rotate: 30 } },
+            yAxis: { type: 'value', name: '线程数' },
+            series: [{
+              name: '活跃线程',
+              type: 'bar',
+              data: poolCounts,
+              itemStyle: { color: '#409eff' },
+              label: { show: true, position: 'top' }
+            }]
+          })
+          threadPoolsChartInstance.resize()
+        }
+      } catch (e) {
+        console.error('Failed to parse threadPools:', e)
+        threadPoolsChartInstance.setOption({
+          title: { text: '线程池使用情况', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
+          graphic: {
+            type: 'text',
+            left: 'center',
+            top: 'middle',
+            style: {
+              text: '解析线程池数据失败',
+              fill: '#c0c4cc',
+              fontSize: 14,
+              textAlign: 'center'
+            }
+          }
+        })
+        threadPoolsChartInstance.resize()
+      }
+    }
+  }
+  
+  // 6. CPU Usage Chart - 始终渲染，无数据时显示默认图表
+  if (cpuChartRef.value) {
+    if (!cpuChartInstance) cpuChartInstance = echarts.init(cpuChartRef.value)
+    
+    const hasData = memoryHistory.value.length > 0 && (memoryHistory.value[0].processCpuLoad !== undefined || memoryHistory.value[0].systemCpuLoad !== undefined)
+    
+    if (!hasData) {
+      cpuChartInstance.setOption({
+        title: { text: 'CPU使用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
+        graphic: {
+          type: 'text',
+          left: 'center',
+          top: 'middle',
+          style: {
+            text: '暂无CPU数据\n请确保 Agent 正常运行并上报数据',
+            fill: '#c0c4cc',
+            fontSize: 14,
+            textAlign: 'center'
+          }
+        }
+      })
+      cpuChartInstance.resize()
+    } else {
+      cpuChartInstance.setOption({
+        title: { text: 'CPU使用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+        tooltip: { trigger: 'axis', formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${(p.value * 100).toFixed(2)}%<br/>` })
+          return result
+        }},
+        legend: { data: ['进程CPU', '系统CPU'], bottom: 0 },
+        grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+        xAxis: { type: 'category', data: times, boundaryGap: false },
+        yAxis: { type: 'value', name: 'CPU%', axisLabel: { formatter: (val: number) => (val * 100).toFixed(0) + '%' } },
+        series: [
+          { name: '进程CPU', type: 'line', data: memoryHistory.value.map(m => m.processCpuLoad || 0), smooth: true, itemStyle: { color: '#409eff' }, areaStyle: { color: 'rgba(64, 158, 255, 0.1)' } },
+          { name: '系统CPU', type: 'line', data: memoryHistory.value.map(m => m.systemCpuLoad || 0), smooth: true, itemStyle: { color: '#f56c6c' }, areaStyle: { color: 'rgba(245, 108, 108, 0.1)' } }
+        ]
+      })
+      cpuChartInstance.resize()
+    }
   }
 }
 
@@ -3046,15 +3432,14 @@ watch(autoRefreshInterval, (newInterval) => {
 
 // 渲染内存趋势图表
 const renderMemoryCharts = () => {
-  console.log('renderMemoryCharts called')
-  console.log('memoryHistory length:', memoryHistory.value.length)
+  console.log('🔴 renderMemoryCharts called')
+  console.log('🔴 memoryHistory length:', memoryHistory.value.length)
   
-  if (memoryHistory.value.length === 0) {
-    console.log('No history data, returning')
-    return
-  }
+  // 渲染内存池图表（无论有无数据都要渲染，显示默认图表）
+  console.log('🔴 准备调用 renderMemoryPoolsGrid')
+  renderMemoryPoolsGrid()
   
-  console.log('Starting to render memory charts...')
+  console.log('🔴 Starting to render memory charts...')
   
   const times = memoryHistory.value.map(m => {
     const date = new Date(m.collectTime)
@@ -3293,27 +3678,51 @@ const renderMemoryCharts = () => {
     classLoadingChartInstance.resize()
   }
   
-  // 9. CPU Usage Chart
+  // 9. CPU Usage Chart - 始终渲染，无数据时显示默认图表
   if (cpuChartRef.value) {
+    console.log('🟢 CPU Chart ref found')
     if (!cpuChartInstance) cpuChartInstance = echarts.init(cpuChartRef.value)
-    cpuChartInstance.setOption({
-      title: { text: 'CPU使用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { trigger: 'axis', formatter: (params: any) => {
-        let result = params[0].name + '<br/>'
-        params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${(p.value * 100).toFixed(2)}%<br/>` })
-        return result
-      }},
-      legend: { data: ['进程CPU', '系统CPU'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: 'CPU%', axisLabel: { formatter: (val: number) => (val * 100).toFixed(0) + '%' } },
-      series: [
-        { name: '进程CPU', type: 'line', data: memoryHistory.value.map(m => m.processCpuLoad || 0), smooth: true, itemStyle: { color: '#409eff' }, areaStyle: { color: 'rgba(64, 158, 255, 0.1)' } },
-        { name: '系统CPU', type: 'line', data: memoryHistory.value.map(m => m.systemCpuLoad || 0), smooth: true, itemStyle: { color: '#f56c6c' }, areaStyle: { color: 'rgba(245, 108, 108, 0.1)' } }
-      ],
-      ...animationConfig // Phase 2: 应用动画配置
-    })
-    cpuChartInstance.resize()
+    
+    // 检查是否有有效数据
+    const hasData = memoryHistory.value.length > 0 && (memoryHistory.value[0].processCpuLoad !== undefined || memoryHistory.value[0].systemCpuLoad !== undefined)
+    
+    if (!hasData) {
+      // 无数据时显示空状态
+      cpuChartInstance.setOption({
+        title: { text: 'CPU使用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
+        graphic: {
+          type: 'text',
+          left: 'center',
+          top: 'middle',
+          style: {
+            text: '暂无CPU数据\n请确保 Agent 正常运行并上报数据',
+            fill: '#c0c4cc',
+            fontSize: 14,
+            textAlign: 'center'
+          }
+        }
+      })
+      cpuChartInstance.resize()
+    } else {
+      cpuChartInstance.setOption({
+        title: { text: 'CPU使用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+        tooltip: { trigger: 'axis', formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${(p.value * 100).toFixed(2)}%<br/>` })
+          return result
+        }},
+        legend: { data: ['进程CPU', '系统CPU'], bottom: 0 },
+        grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+        xAxis: { type: 'category', data: times, boundaryGap: false },
+        yAxis: { type: 'value', name: 'CPU%', axisLabel: { formatter: (val: number) => (val * 100).toFixed(0) + '%' } },
+        series: [
+          { name: '进程CPU', type: 'line', data: memoryHistory.value.map(m => m.processCpuLoad || 0), smooth: true, itemStyle: { color: '#409eff' }, areaStyle: { color: 'rgba(64, 158, 255, 0.1)' } },
+          { name: '系统CPU', type: 'line', data: memoryHistory.value.map(m => m.systemCpuLoad || 0), smooth: true, itemStyle: { color: '#f56c6c' }, areaStyle: { color: 'rgba(245, 108, 108, 0.1)' } }
+        ],
+        ...animationConfig // Phase 2: 应用动画配置
+      })
+      cpuChartInstance.resize()
+    }
   }
   
   // 10. Minor vs Full GC Chart
@@ -3441,8 +3850,8 @@ const renderMemoryCharts = () => {
     }
   }
   
-  // 13. Class Loading Detail Chart
-  if (classLoadingDetailChartRef.value) {
+  // 13. Class Loading Detail Chart - 仅当有数据时初始化
+  if (classLoadingDetailChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].totalLoadedClassCount !== undefined) {
     if (!classLoadingDetailChartInstance) classLoadingDetailChartInstance = echarts.init(classLoadingDetailChartRef.value)
     
     const totalLoadedData = memoryHistory.value.map(m => m.totalLoadedClassCount || 0)
@@ -3466,38 +3875,94 @@ const renderMemoryCharts = () => {
     classLoadingDetailChartInstance.resize()
   }
   
-  // 14. Thread Pools Chart
-  if (threadPoolsChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].threadPools) {
+  // 14. Thread Pools Chart - 始终渲染，无数据时显示默认图表
+  if (threadPoolsChartRef.value) {
     if (!threadPoolsChartInstance) threadPoolsChartInstance = echarts.init(threadPoolsChartRef.value)
     
-    try {
-      const latest = memoryHistory.value[memoryHistory.value.length - 1]
-      const pools: any[] = JSON.parse(latest.threadPools!)
-      const poolNames = pools.map(p => p.poolName)
-      const poolCounts = pools.map(p => p.activeCount)
-      
+    // 检查是否有有效数据
+    const hasData = memoryHistory.value.length > 0 && memoryHistory.value[0].threadPools
+    
+    if (!hasData) {
+      // 无数据时显示空状态
       threadPoolsChartInstance.setOption({
-        title: { text: '线程池使用情况', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-        xAxis: { type: 'category', data: poolNames, axisLabel: { interval: 0, rotate: 30 } },
-        yAxis: { type: 'value', name: '线程数' },
-        series: [{
-          name: '活跃线程',
-          type: 'bar',
-          data: poolCounts,
-          itemStyle: { color: '#409eff' },
-          label: { show: true, position: 'top' }
-        }]
+        title: { text: '线程池使用情况', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
+        graphic: {
+          type: 'text',
+          left: 'center',
+          top: 'middle',
+          style: {
+            text: '暂无线程池数据\n请确保 Agent 正常运行并上报数据',
+            fill: '#c0c4cc',
+            fontSize: 14,
+            textAlign: 'center'
+          }
+        }
       })
       threadPoolsChartInstance.resize()
-    } catch (e) {
-      console.error('Failed to parse threadPools:', e)
+    } else {
+      try {
+        const latest = memoryHistory.value[memoryHistory.value.length - 1]
+        const pools: any[] = JSON.parse(latest.threadPools!)
+        
+        if (!pools || pools.length === 0) {
+          threadPoolsChartInstance.setOption({
+            title: { text: '线程池使用情况', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
+            graphic: {
+              type: 'text',
+              left: 'center',
+              top: 'middle',
+              style: {
+                text: '该 Agent 未上报线程池数据\n可能原因：JVM 版本不支持或配置未开启',
+                fill: '#c0c4cc',
+                fontSize: 14,
+                textAlign: 'center'
+              }
+            }
+          })
+          threadPoolsChartInstance.resize()
+        } else {
+          const poolNames = pools.map(p => p.poolName)
+          const poolCounts = pools.map(p => p.activeCount)
+          
+          threadPoolsChartInstance.setOption({
+            title: { text: '线程池使用情况', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+            tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+            grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
+            xAxis: { type: 'category', data: poolNames, axisLabel: { interval: 0, rotate: 30 } },
+            yAxis: { type: 'value', name: '线程数' },
+            series: [{
+              name: '活跃线程',
+              type: 'bar',
+              data: poolCounts,
+              itemStyle: { color: '#409eff' },
+              label: { show: true, position: 'top' }
+            }]
+          })
+          threadPoolsChartInstance.resize()
+        }
+      } catch (e) {
+        console.error('Failed to parse threadPools:', e)
+        threadPoolsChartInstance.setOption({
+          title: { text: '线程池使用情况', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
+          graphic: {
+            type: 'text',
+            left: 'center',
+            top: 'middle',
+            style: {
+              text: '解析线程池数据失败',
+              fill: '#c0c4cc',
+              fontSize: 14,
+              textAlign: 'center'
+            }
+          }
+        })
+        threadPoolsChartInstance.resize()
+      }
     }
   }
   
-  // 15. Class Loading Rate Chart
-  if (classLoadingRateChartRef.value) {
+  // 15. Class Loading Rate Chart - 仅当有数据时初始化
+  if (classLoadingRateChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].classLoadingRate !== undefined) {
     if (!classLoadingRateChartInstance) classLoadingRateChartInstance = echarts.init(classLoadingRateChartRef.value)
     
     const loadRates: number[] = []
@@ -3730,8 +4195,8 @@ const renderMemoryCharts = () => {
     physicalMemoryInstance.resize()
   }
   
-  // 新增：系统负载监控
-  if (systemLoadRef.value && memoryHistory.value.length > 0) {
+  // 新增：系统负载监控 - 仅当有数据时初始化
+  if (systemLoadRef.value && memoryHistory.value.length > 0 && (memoryHistory.value[0].systemCpuLoad !== undefined || memoryHistory.value[0].processCpuLoad !== undefined)) {
     if (!systemLoadInstance) systemLoadInstance = echarts.init(systemLoadRef.value)
     
     const systemCpuLoadData = memoryHistory.value.map(m => 
@@ -4000,18 +4465,37 @@ const renderMemoryCharts = () => {
 
 // 渲染内存池详细网格 - 改为折线图展示
 const renderMemoryPoolsGrid = () => {
-  if (!memoryPoolsGridRef.value || memoryHistory.value.length === 0) return
+  if (!memoryPoolsGridRef.value) return
   
   try {
-    // 初始化ECharts实例
+    // 只有确定有数据时才初始化 ECharts 实例
     if (!memoryPoolsGridInstance) {
       memoryPoolsGridInstance = echarts.init(memoryPoolsGridRef.value)
     }
     
-    const times = memoryHistory.value.map(m => {
-      const date = new Date(m.collectTime)
-      return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
-    })
+    // 如果没有历史数据，显示默认空状态图表
+    if (memoryHistory.value.length === 0) {
+      memoryPoolsGridInstance.setOption({
+        title: { 
+          text: '内存池使用趋势', 
+          left: 'center', 
+          textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } 
+        },
+        graphic: {
+          type: 'text',
+          left: 'center',
+          top: 'middle',
+          style: {
+            text: '暂无内存池数据\n请确保 Agent 正常运行并上报数据',
+            fill: '#c0c4cc',
+            fontSize: 14,
+            textAlign: 'center'
+          }
+        }
+      })
+      memoryPoolsGridInstance.resize()
+      return
+    }
     
     // 提取所有内存池名称
     const allPoolNames = new Set<string>()
@@ -4027,6 +4511,34 @@ const renderMemoryPoolsGrid = () => {
     })
     
     const poolNames = Array.from(allPoolNames)
+    const times = memoryHistory.value.map(m => {
+      const date = new Date(m.collectTime)
+      return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+    })
+    
+    // 如果没有内存池数据，显示提示图表
+    if (poolNames.length === 0) {
+      memoryPoolsGridInstance.setOption({
+        title: { 
+          text: '内存池使用趋势', 
+          left: 'center', 
+          textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } 
+        },
+        graphic: {
+          type: 'text',
+          left: 'center',
+          top: 'middle',
+          style: {
+            text: '该 Agent 未上报内存池数据\n可能原因：JVM 版本不支持或配置未开启',
+            fill: '#c0c4cc',
+            fontSize: 14,
+            textAlign: 'center'
+          }
+        }
+      })
+      memoryPoolsGridInstance.resize()
+      return
+    }
     
     // 为每个内存池生成数据系列
     const series = poolNames.map((poolName, index) => {

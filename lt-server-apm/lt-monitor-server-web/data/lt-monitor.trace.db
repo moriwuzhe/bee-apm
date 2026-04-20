@@ -1,6 +1,0 @@
-2026-04-17 15:31:44 jdbc[3]: exception
-org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "LT_PROJECT" not found (this database is empty); SQL statement:
-SELECT project_code, secret_key FROM lt_project WHERE project_code='default' [42104-220]
-2026-04-18 16:11:56 jdbc[3]: exception
-org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "BISTOURY_PROJECT" not found (this database is empty); SQL statement:
-SELECT project_code, secret_key FROM bistoury_project WHERE project_code='order' [42104-220]

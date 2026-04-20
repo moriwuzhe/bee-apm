@@ -110,6 +110,7 @@ CREATE TABLE IF NOT EXISTS agent_memory_history (
   loaded_class_count INT,
   total_loaded_class_count BIGINT,
   unloaded_class_count BIGINT,
+  class_loading_rate DOUBLE,
   gc_count BIGINT,
   gc_time_ms BIGINT,
   minor_gc_count BIGINT,

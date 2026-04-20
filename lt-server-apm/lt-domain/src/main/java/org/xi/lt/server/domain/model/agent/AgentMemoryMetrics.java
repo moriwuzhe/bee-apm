@@ -25,6 +25,7 @@ public class AgentMemoryMetrics {
     private Integer loadedClassCount;
     private Long totalLoadedClassCount;
     private Long unloadedClassCount;
+    private Double classLoadingRate;
     
     // GC
     private Long gcCount;
@@ -174,6 +175,14 @@ public class AgentMemoryMetrics {
 
     public void setUnloadedClassCount(Long unloadedClassCount) {
         this.unloadedClassCount = unloadedClassCount;
+    }
+
+    public Double getClassLoadingRate() {
+        return classLoadingRate;
+    }
+
+    public void setClassLoadingRate(Double classLoadingRate) {
+        this.classLoadingRate = classLoadingRate;
     }
 
     public Long getMinorGcCount() {

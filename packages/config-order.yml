@@ -41,6 +41,27 @@ diag:
 agent:
   register:
     url: http://127.0.0.1:8081/apm/agent/register
+# 推荐：基础监控默认开启，高级监控按需配置
+monitoring:
+  jvm:
+    enabled: true
+    interval: 5000
+    # 基础指标（默认开启）
+    heap:
+      enabled: true
+    gc:
+      enabled: true
+    threads:
+      enabled: true
+    # 高级指标（默认关闭，按需开启）
+    memoryPools:
+      enabled: true  # 需要时才开启
+      interval: 5000
+    threadStates:
+      enabled: true
+    bufferPools:
+      enabled: true
+
 
 # Order 应用专属配置
 projectCode: order

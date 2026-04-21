@@ -24,40 +24,75 @@ public class PlantUmlService {
      * 将 PlantUML 源码渲染为 PNG 图片
      */
     public byte[] renderToPng(String plantUmlSource) throws IOException {
-        SourceStringReader reader = new SourceStringReader(plantUmlSource);
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try {
+            SourceStringReader reader = new SourceStringReader(plantUmlSource);
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
-        reader.outputImage(outputStream, new FileFormatOption(FileFormat.PNG));
+            reader.outputImage(outputStream, new FileFormatOption(FileFormat.PNG));
 
-        return outputStream.toByteArray();
+            byte[] result = outputStream.toByteArray();
+            if (result.length == 0) {
+                throw new IOException("PlantUML 渲染结果为空");
+            }
+            return result;
+        } catch (Exception e) {
+            log.error("PlantUML PNG 渲染失败", e);
+            throw new IOException("PlantUML 渲染失败: " + e.getMessage(), e);
+        }
     }
 
     /**
      * 将 PlantUML 源码渲染为 SVG
      */
     public byte[] renderToSvg(String plantUmlSource) throws IOException {
-        SourceStringReader reader = new SourceStringReader(plantUmlSource);
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try {
+            SourceStringReader reader = new SourceStringReader(plantUmlSource);
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
-        reader.outputImage(outputStream, new FileFormatOption(FileFormat.SVG));
+            reader.outputImage(outputStream, new FileFormatOption(FileFormat.SVG));
 
-        return outputStream.toByteArray();
+            byte[] result = outputStream.toByteArray();
+            if (result.length == 0) {
+                throw new IOException("PlantUML 渲染结果为空");
+            }
+            return result;
+        } catch (Exception e) {
+            log.error("PlantUML SVG 渲染失败", e);
+            throw new IOException("PlantUML 渲染失败: " + e.getMessage(), e);
+        }
     }
 
     /**
      * 将 PlantUML 源码渲染为 Base64 编码的 PNG
      */
-    public String renderToBase64Png(String plantUmlSource) throws IOException {
-        byte[] pngData = renderToPng(plantUmlSource);
-        return "data:image/png;base64," + Base64.getEncoder().encodeToString(pngData);
+    public String renderToBase64Png(String plantUmlSource) {
+        try {
+            byte[] pngData = renderToPng(plantUmlSource);
+            return "data:image/png;base64," + Base64.getEncoder().encodeToString(pngData);
+        } catch (Exception e) {
+            log.warn("PlantUML Base64 PNG 渲染失败，降级不返回图片", e);
+            return null;
+        }
     }
 
     /**
      * 将 PlantUML 源码渲染为 Base64 编码的 SVG
      */
-    public String renderToBase64Svg(String plantUmlSource) throws IOException {
-        byte[] svgData = renderToSvg(plantUmlSource);
-        return "data:image/svg+xml;base64," + Base64.getEncoder().encodeToString(svgData);
+    public String renderToBase64Svg(String plantUmlSource) {
+        try {
+            byte[] svgData = renderToSvg(plantUmlSource);
+            return "data:image/svg+xml;base64," + Base64.getEncoder().encodeToString(svgData);
+        } catch (Exception e) {
+            log.warn("PlantUML Base64 SVG 渲染失败，降级不返回图片", e);
+            return null;
+        }
+    }
+
+    /**
+     * 安全地渲染 Base64 PNG，失败时返回 null（不抛异常）
+     */
+    public String renderToBase64PngSafe(String plantUmlSource) {
+        return renderToBase64Png(plantUmlSource);
     }
 
     /**

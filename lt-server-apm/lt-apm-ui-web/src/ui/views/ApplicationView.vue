@@ -581,6 +581,76 @@
                     </el-col>
                   </el-row>
                   
+                  <!-- Phase 4: Memory Pools Detail Section -->
+                  <div class="section-header">
+                    <h3>️ 内存池详细趋势</h3>
+                  </div>
+                  <el-row :gutter="16" class="charts-row">
+                    <el-col :span="12">
+                      <div ref="edenSurvivorChartRef" class="chart-box-large"></div>
+                    </el-col>
+                    <el-col :span="12">
+                      <div ref="oldGenChartDetailRef" class="chart-box-large"></div>
+                    </el-col>
+                  </el-row>
+                  <el-row :gutter="16" class="charts-row">
+                    <el-col :span="12">
+                      <div ref="metaspaceChartRef" class="chart-box-large"></div>
+                    </el-col>
+                    <el-col :span="12">
+                      <div ref="codeCacheChartRef" class="chart-box-large"></div>
+                    </el-col>
+                  </el-row>
+                  
+                  <!-- Phase 5: Advanced Monitoring Section -->
+                  <div class="section-header">
+                    <h3>🚀 高级监控指标</h3>
+                  </div>
+                  <el-row :gutter="16" class="charts-row">
+                    <el-col :span="12">
+                      <div ref="memoryAllocationRateChartRef" class="chart-box-large"></div>
+                    </el-col>
+                    <el-col :span="12">
+                      <div ref="gcPressureChartRef" class="chart-box-large"></div>
+                    </el-col>
+                  </el-row>
+                  
+                  <!-- Phase 6: Comprehensive Monitoring Section -->
+                  <div class="section-header">
+                    <h3>📈 综合性能分析</h3>
+                  </div>
+                  <el-row :gutter="16" class="charts-row">
+                    <el-col :span="12">
+                      <div ref="gcReclaimedChartRef" class="chart-box-large"></div>
+                    </el-col>
+                    <el-col :span="12">
+                      <div ref="cpuMemoryCorrelationChartRef" class="chart-box-large"></div>
+                    </el-col>
+                  </el-row>
+                  
+                  <!-- Phase 7: Real-time Dashboard Section -->
+                  <div class="section-header">
+                    <h3>⚡ 实时监控仪表盘</h3>
+                  </div>
+                  <el-row :gutter="16" class="charts-row">
+                    <el-col :span="12">
+                      <div ref="topCpuThreadChartRef" class="chart-box-large"></div>
+                    </el-col>
+                    <el-col :span="12">
+                      <div ref="threadStateChartRef" class="chart-box-large"></div>
+                    </el-col>
+                  </el-row>
+                  
+                  <!-- Phase 8: Performance Dashboard Section -->
+                  <div class="section-header">
+                    <h3>🎯 综合性能看板</h3>
+                  </div>
+                  <el-row :gutter="16" class="charts-row">
+                    <el-col :span="24">
+                      <div ref="performanceDashboardChartRef" class="chart-box-large" style="height: 400px;"></div>
+                    </el-col>
+                  </el-row>
+                  
                   <!-- Thread Advanced Analysis Section -->
                   <div class="section-header">
                     <h3>🧵 线程深度分析</h3>
@@ -1537,6 +1607,22 @@ const threadStatesChartRef = ref<HTMLElement>()
 const classLoadingDetailChartRef = ref<HTMLElement>()
 const threadPoolsChartRef = ref<HTMLElement>()
 const classLoadingRateChartRef = ref<HTMLElement>()
+// Phase 4: Memory Pools Detail
+const edenSurvivorChartRef = ref<HTMLElement>()
+const oldGenChartDetailRef = ref<HTMLElement>()
+const metaspaceChartRef = ref<HTMLElement>()
+const codeCacheChartRef = ref<HTMLElement>()
+// Phase 5: Advanced Monitoring
+const memoryAllocationRateChartRef = ref<HTMLElement>()
+const gcPressureChartRef = ref<HTMLElement>()
+// Phase 6: Comprehensive Monitoring
+const gcReclaimedChartRef = ref<HTMLElement>()
+const cpuMemoryCorrelationChartRef = ref<HTMLElement>()
+// Phase 7: Real-time Dashboard
+const topCpuThreadChartRef = ref<HTMLElement>()
+const threadStateChartRef = ref<HTMLElement>()
+// Phase 8: Performance Dashboard
+const performanceDashboardChartRef = ref<HTMLElement>()
 let heapChartInstance: any = null
 let nonHeapChartInstance: any = null
 let youngGenChartInstance: any = null
@@ -1552,6 +1638,22 @@ let threadStatesChartInstance: any = null
 let classLoadingDetailChartInstance: any = null
 let threadPoolsChartInstance: any = null
 let classLoadingRateChartInstance: any = null
+// Phase 4: Memory Pools Detail Chart Instances
+let edenSurvivorChartInstance: any = null
+let oldGenChartDetailInstance: any = null
+let metaspaceChartInstance: any = null
+let codeCacheChartInstance: any = null
+// Phase 5: Advanced Monitoring Chart Instances
+let memoryAllocationRateChartInstance: any = null
+let gcPressureChartInstance: any = null
+// Phase 6: Comprehensive Monitoring Chart Instances
+let gcReclaimedChartInstance: any = null
+let cpuMemoryCorrelationChartInstance: any = null
+// Phase 7: Real-time Dashboard Chart Instances
+let topCpuThreadChartInstance: any = null
+let threadStateChartInstance: any = null
+// Phase 8: Performance Dashboard Chart Instance
+let performanceDashboardChartInstance: any = null
 interface MemoryPool {
   name: string
   type: string
@@ -1747,7 +1849,9 @@ const hasSystemLoadData = computed(() => {
 const hasDiskIoData = computed(() => {
   if (memoryHistory.value.length === 0) return false
   const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  return latest.diskReadBytes !== undefined || latest.diskWriteBytes !== undefined
+  // 修复：使用 != null 而不是 !== undefined，避免 null 被误判为有数据
+  return (latest.diskReadBytes != null && latest.diskReadBytes > 0) || 
+         (latest.diskWriteBytes != null && latest.diskWriteBytes > 0)
 })
 
 // 检查是否有CPU数据
@@ -4009,6 +4113,525 @@ const renderMemoryCharts = () => {
     classLoadingRateChartInstance.resize()
   }
   
+  // ===== Phase 4: Memory Pools Detail Charts =====
+  
+  // 16. Eden & Survivor Chart
+  if (edenSurvivorChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].edenUsed !== undefined) {
+    if (!edenSurvivorChartInstance) edenSurvivorChartInstance = echarts.init(edenSurvivorChartRef.value)
+    
+    const edenUsedData = memoryHistory.value.map(m => m.edenUsed || 0)
+    const edenMaxData = memoryHistory.value.map(m => m.edenMax || 0)
+    const survivorUsedData = memoryHistory.value.map(m => m.survivorUsed || 0)
+    
+    edenSurvivorChartInstance.setOption({
+      title: { text: 'Eden & Survivor区', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}<br/>` })
+          return result
+        }
+      },
+      legend: { data: ['Eden使用', 'Eden最大', 'Survivor使用'], bottom: 0 },
+      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: { type: 'value', name: '内存', axisLabel: { formatter: (val: number) => formatBytes(val) } },
+      series: [
+        { name: 'Eden使用', type: 'line', data: edenUsedData, smooth: true, itemStyle: { color: '#67c23a' }, areaStyle: { color: 'rgba(103, 194, 58, 0.1)' } },
+        { name: 'Eden最大', type: 'line', data: edenMaxData, smooth: true, itemStyle: { color: '#909399' }, lineStyle: { type: 'dashed' } },
+        { name: 'Survivor使用', type: 'line', data: survivorUsedData, smooth: true, itemStyle: { color: '#e6a23c' }, areaStyle: { color: 'rgba(230, 162, 60, 0.1)' } }
+      ]
+    })
+    edenSurvivorChartInstance.resize()
+  }
+  
+  // 17. Old Gen Detail Chart
+  if (oldGenChartDetailRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].oldGenUsed !== undefined) {
+    if (!oldGenChartDetailInstance) oldGenChartDetailInstance = echarts.init(oldGenChartDetailRef.value)
+    
+    const oldGenUsedData = memoryHistory.value.map(m => m.oldGenUsed || 0)
+    const oldGenMaxData = memoryHistory.value.map(m => m.oldGenMax || 0)
+    const oldGenUsageRate = memoryHistory.value.map(m => 
+      m.oldGenMax > 0 ? ((m.oldGenUsed || 0) / m.oldGenMax * 100).toFixed(1) : 0
+    )
+    
+    oldGenChartDetailInstance.setOption({
+      title: { text: '老年代使用趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => { 
+            if (p.seriesName.includes('使用率')) {
+              result += `${p.marker} ${p.seriesName}: ${p.value}%<br/>`
+            } else {
+              result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}<br/>`
+            }
+          })
+          return result
+        }
+      },
+      legend: { data: ['老年代使用', '老年代最大', '使用率'], bottom: 0 },
+      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: [
+        { type: 'value', name: '内存', axisLabel: { formatter: (val: number) => formatBytes(val) } },
+        { type: 'value', name: '使用率(%)', max: 100, position: 'right' }
+      ],
+      series: [
+        { name: '老年代使用', type: 'line', data: oldGenUsedData, smooth: true, itemStyle: { color: '#f56c6c' }, areaStyle: { color: 'rgba(245, 108, 108, 0.1)' }, yAxisIndex: 0 },
+        { name: '老年代最大', type: 'line', data: oldGenMaxData, smooth: true, itemStyle: { color: '#909399' }, lineStyle: { type: 'dashed' }, yAxisIndex: 0 },
+        { name: '使用率', type: 'line', data: oldGenUsageRate, smooth: true, itemStyle: { color: '#409eff' }, lineStyle: { width: 2 }, yAxisIndex: 1 }
+      ]
+    })
+    oldGenChartDetailInstance.resize()
+  }
+  
+  // 18. Metaspace Chart
+  if (metaspaceChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].metaspaceUsed !== undefined) {
+    if (!metaspaceChartInstance) metaspaceChartInstance = echarts.init(metaspaceChartRef.value)
+    
+    const metaspaceUsedData = memoryHistory.value.map(m => m.metaspaceUsed || 0)
+    const metaspaceMaxData = memoryHistory.value.map(m => m.metaspaceMax || 0)
+    
+    metaspaceChartInstance.setOption({
+      title: { text: 'Metaspace趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}<br/>` })
+          return result
+        }
+      },
+      legend: { data: ['Metaspace使用', 'Metaspace最大'], bottom: 0 },
+      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: { type: 'value', name: '内存', axisLabel: { formatter: (val: number) => formatBytes(val) } },
+      series: [
+        { name: 'Metaspace使用', type: 'line', data: metaspaceUsedData, smooth: true, itemStyle: { color: '#e6a23c' }, areaStyle: { color: 'rgba(230, 162, 60, 0.1)' } },
+        { name: 'Metaspace最大', type: 'line', data: metaspaceMaxData, smooth: true, itemStyle: { color: '#909399' }, lineStyle: { type: 'dashed' } }
+      ]
+    })
+    metaspaceChartInstance.resize()
+  }
+  
+  // 19. Code Cache Chart
+  if (codeCacheChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].codeCacheUsed !== undefined) {
+    if (!codeCacheChartInstance) codeCacheChartInstance = echarts.init(codeCacheChartRef.value)
+    
+    const codeCacheUsedData = memoryHistory.value.map(m => m.codeCacheUsed || 0)
+    const codeCacheMaxData = memoryHistory.value.map(m => m.codeCacheMax || 0)
+    
+    codeCacheChartInstance.setOption({
+      title: { text: 'CodeCache趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}<br/>` })
+          return result
+        }
+      },
+      legend: { data: ['CodeCache使用', 'CodeCache最大'], bottom: 0 },
+      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: { type: 'value', name: '内存', axisLabel: { formatter: (val: number) => formatBytes(val) } },
+      series: [
+        { name: 'CodeCache使用', type: 'line', data: codeCacheUsedData, smooth: true, itemStyle: { color: '#9c27b0' }, areaStyle: { color: 'rgba(156, 39, 176, 0.1)' } },
+        { name: 'CodeCache最大', type: 'line', data: codeCacheMaxData, smooth: true, itemStyle: { color: '#909399' }, lineStyle: { type: 'dashed' } }
+      ]
+    })
+    codeCacheChartInstance.resize()
+  }
+  
+  // ===== Phase 5: Advanced Monitoring Charts =====
+  
+  // 20. Memory Allocation Rate Chart
+  if (memoryAllocationRateChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].memoryAllocationRate !== undefined) {
+    if (!memoryAllocationRateChartInstance) memoryAllocationRateChartInstance = echarts.init(memoryAllocationRateChartRef.value)
+    
+    const allocRateData = memoryHistory.value.map(m => m.memoryAllocationRate || 0)
+    
+    memoryAllocationRateChartInstance.setOption({
+      title: { text: '内存分配速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          return params[0].name + '<br/>' + params[0].marker + ' 分配速率: ' + formatBytes(params[0].value) + '/s'
+        }
+      },
+      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: { type: 'value', name: '分配速率', axisLabel: { formatter: (val: number) => formatBytes(val) + '/s' } },
+      series: [
+        { 
+          name: '分配速率', 
+          type: 'line', 
+          data: allocRateData, 
+          smooth: true, 
+          itemStyle: { color: '#409eff' },
+          areaStyle: { color: 'rgba(64, 158, 255, 0.2)' },
+          markLine: {
+            data: [
+              { type: 'average', label: { formatter: '平均值' }, lineStyle: { color: '#67c23a' } }
+            ]
+          }
+        }
+      ]
+    })
+    memoryAllocationRateChartInstance.resize()
+  }
+  
+  // 21. GC Pressure Chart
+  if (gcPressureChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].gcPressure !== undefined) {
+    if (!gcPressureChartInstance) gcPressureChartInstance = echarts.init(gcPressureChartRef.value)
+    
+    const gcPressureData = memoryHistory.value.map(m => m.gcPressure || 0)
+    
+    gcPressureChartInstance.setOption({
+      title: { text: 'GC压力指数', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          const value = params[0].value
+          let level = value < 30 ? '低' : value < 60 ? '中' : value < 80 ? '高' : '极高'
+          return params[0].name + '<br/>' + params[0].marker + ' GC压力: ' + value.toFixed(1) + ' (' + level + ')'
+        }
+      },
+      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: { type: 'value', name: '压力指数', max: 100 },
+      series: [
+        { 
+          name: 'GC压力', 
+          type: 'line', 
+          data: gcPressureData, 
+          smooth: true, 
+          itemStyle: { color: '#e6a23c' },
+          areaStyle: { 
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(245, 108, 108, 0.5)' },
+              { offset: 0.5, color: 'rgba(230, 162, 60, 0.3)' },
+              { offset: 1, color: 'rgba(103, 194, 58, 0.1)' }
+            ])
+          },
+          markLine: {
+            data: [
+              { yAxis: 30, label: { formatter: '低' }, lineStyle: { color: '#67c23a', type: 'dashed' } },
+              { yAxis: 60, label: { formatter: '中' }, lineStyle: { color: '#e6a23c', type: 'dashed' } },
+              { yAxis: 80, label: { formatter: '高' }, lineStyle: { color: '#f56c6c', type: 'dashed' } }
+            ]
+          }
+        }
+      ]
+    })
+    gcPressureChartInstance.resize()
+  }
+  
+  // ===== Phase 6: Comprehensive Monitoring Charts =====
+  
+  // 22. GC Reclaimed Bytes Chart
+  if (gcReclaimedChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].gcReclaimedBytesCurrent !== undefined) {
+    if (!gcReclaimedChartInstance) gcReclaimedChartInstance = echarts.init(gcReclaimedChartRef.value)
+    
+    const gcReclaimedData = memoryHistory.value.map(m => m.gcReclaimedBytesCurrent || 0)
+    
+    gcReclaimedChartInstance.setOption({
+      title: { text: 'GC回收内存量', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          return params[0].name + '<br/>' + params[0].marker + ' GC回收: ' + formatBytes(params[0].value)
+        }
+      },
+      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: { type: 'value', name: '回收量', axisLabel: { formatter: (val: number) => formatBytes(val) } },
+      series: [
+        { 
+          name: 'GC回收量', 
+          type: 'bar', 
+          data: gcReclaimedData, 
+          itemStyle: { 
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: '#67c23a' },
+              { offset: 1, color: '#409eff' }
+            ])
+          },
+          markLine: {
+            data: [
+              { type: 'average', label: { formatter: '平均回收' }, lineStyle: { color: '#e6a23c' } }
+            ]
+          }
+        }
+      ]
+    })
+    gcReclaimedChartInstance.resize()
+  }
+  
+  // 23. CPU-Memory Correlation Chart
+  if (cpuMemoryCorrelationChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].cpuMemoryCorrelation !== undefined) {
+    if (!cpuMemoryCorrelationChartInstance) cpuMemoryCorrelationChartInstance = echarts.init(cpuMemoryCorrelationChartRef.value)
+    
+    const correlationData = memoryHistory.value.map(m => m.cpuMemoryCorrelation || 0)
+    const cpuData = memoryHistory.value.map(m => ((m.processCpuLoad || 0) * 100).toFixed(1))
+    const memData = memoryHistory.value.map(m => m.heapMax > 0 ? ((m.heapUsed / m.heapMax) * 100).toFixed(1) : 0)
+    
+    cpuMemoryCorrelationChartInstance.setOption({
+      title: { text: 'CPU-内存关联分析', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${p.value}%<br/>` })
+          return result
+        }
+      },
+      legend: { data: ['CPU使用率', '内存使用率', '关联指数'], bottom: 0 },
+      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: { type: 'value', name: '百分比(%)', max: 100 },
+      series: [
+        { name: 'CPU使用率', type: 'line', data: cpuData, smooth: true, itemStyle: { color: '#409eff' } },
+        { name: '内存使用率', type: 'line', data: memData, smooth: true, itemStyle: { color: '#67c23a' } },
+        { 
+          name: '关联指数', 
+          type: 'line', 
+          data: correlationData, 
+          smooth: true, 
+          itemStyle: { color: '#e6a23c' },
+          lineStyle: { width: 3, type: 'dashed' },
+          areaStyle: { color: 'rgba(230, 162, 60, 0.1)' }
+        }
+      ]
+    })
+    cpuMemoryCorrelationChartInstance.resize()
+  }
+  
+  // ===== Phase 7: Real-time Dashboard Charts =====
+  
+  // 24. Top CPU Thread Chart
+  if (topCpuThreadChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].topCpuThreadName !== undefined) {
+    if (!topCpuThreadChartInstance) topCpuThreadChartInstance = echarts.init(topCpuThreadChartRef.value)
+    
+    const threadNames = memoryHistory.value.map(m => m.topCpuThreadName || 'unknown')
+    const cpuPercents = memoryHistory.value.map(m => m.topCpuThreadPercent || 0)
+    
+    topCpuThreadChartInstance.setOption({
+      title: { text: 'Top CPU线程趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          return params[0].name + '<br/>' + 
+                 params[0].marker + ' 线程: ' + threadNames[params[0].dataIndex] + '<br/>' +
+                 params[0].marker + ' CPU占用: ' + params[0].value.toFixed(2) + '%'
+        }
+      },
+      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: { type: 'value', name: 'CPU占用(%)' },
+      series: [
+        { 
+          name: 'CPU占用', 
+          type: 'line', 
+          data: cpuPercents, 
+          smooth: true, 
+          itemStyle: { color: '#f56c6c' },
+          areaStyle: { color: 'rgba(245, 108, 108, 0.2)' },
+          markPoint: {
+            data: [
+              { type: 'max', label: { formatter: '峰值' } },
+              { type: 'average', label: { formatter: '平均' } }
+            ]
+          }
+        }
+      ]
+    })
+    topCpuThreadChartInstance.resize()
+  }
+  
+  // 25. Thread State Distribution Chart
+  if (threadStateChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].threadCountRunnable !== undefined) {
+    if (!threadStateChartInstance) threadStateChartInstance = echarts.init(threadStateChartRef.value)
+    
+    const runnableData = memoryHistory.value.map(m => m.threadCountRunnable || 0)
+    const blockedData = memoryHistory.value.map(m => m.threadCountBlocked || 0)
+    const totalThreads = memoryHistory.value.map(m => (m.threadCountRunnable || 0) + (m.threadCountBlocked || 0))
+    
+    threadStateChartInstance.setOption({
+      title: { text: '线程状态分布', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${p.value}<br/>` })
+          return result
+        }
+      },
+      legend: { data: ['RUNNABLE', 'BLOCKED'], bottom: 0 },
+      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: { type: 'value', name: '线程数' },
+      series: [
+        { 
+          name: 'RUNNABLE', 
+          type: 'bar', 
+          stack: 'total',
+          data: runnableData,
+          itemStyle: { color: '#67c23a' }
+        },
+        { 
+          name: 'BLOCKED', 
+          type: 'bar', 
+          stack: 'total',
+          data: blockedData,
+          itemStyle: { color: '#e6a23c' }
+        },
+        {
+          name: '总计',
+          type: 'line',
+          data: totalThreads,
+          smooth: true,
+          itemStyle: { color: '#409eff' },
+          lineStyle: { width: 2, type: 'dashed' }
+        }
+      ]
+    })
+    threadStateChartInstance.resize()
+  }
+  
+  // ===== Phase 8: Performance Dashboard Chart =====
+  
+  // 26. Comprehensive Performance Dashboard
+  if (performanceDashboardChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].performanceScore !== undefined) {
+    if (!performanceDashboardChartInstance) performanceDashboardChartInstance = echarts.init(performanceDashboardChartRef.value)
+    
+    const cpuData = memoryHistory.value.map(m => ((m.processCpuLoad || 0) * 100).toFixed(1))
+    const memUsageData = memoryHistory.value.map(m => m.heapMax > 0 ? ((m.heapUsed / m.heapMax) * 100).toFixed(1) : 0)
+    const gcCountData = memoryHistory.value.map(m => m.gcCount || 0)
+    const perfScoreData = memoryHistory.value.map(m => m.performanceScore || 0)
+    
+    // Health status colors
+    const healthColors = memoryHistory.value.map(m => {
+      const status = m.healthStatus
+      if (status === 'HEALTHY') return '#67c23a'
+      if (status === 'WARNING') return '#e6a23c'
+      return '#f56c6c'
+    })
+    
+    performanceDashboardChartInstance.setOption({
+      title: { 
+        text: '综合性能看板', 
+        left: 'center', 
+        textStyle: { fontSize: 16, fontWeight: 600 }
+      },
+      tooltip: { 
+        trigger: 'axis',
+        axisPointer: { type: 'cross' },
+        formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => {
+            if (p.seriesName.includes('CPU') || p.seriesName.includes('内存') || p.seriesName.includes('GC')) {
+              result += `${p.marker} ${p.seriesName}: ${p.value}<br/>`
+            } else if (p.seriesName.includes('评分')) {
+              result += `${p.marker} ${p.seriesName}: ${p.value.toFixed(1)}<br/>`
+            }
+          })
+          return result
+        }
+      },
+      legend: { 
+        data: ['CPU使用率', '内存使用率', 'GC次数', '性能评分'],
+        top: 30,
+        bottom: 0
+      },
+      grid: { 
+        left: '3%', 
+        right: '4%', 
+        bottom: '12%', 
+        top: '15%', 
+        containLabel: true 
+      },
+      xAxis: { 
+        type: 'category', 
+        data: times, 
+        boundaryGap: false 
+      },
+      yAxis: [
+        { 
+          type: 'value', 
+          name: '百分比(%)', 
+          max: 100,
+          position: 'left'
+        },
+        { 
+          type: 'value', 
+          name: 'GC次数',
+          position: 'right'
+        },
+        {
+          type: 'value',
+          name: '性能评分',
+          max: 100,
+          position: 'right',
+          offset: 80
+        }
+      ],
+      series: [
+        { 
+          name: 'CPU使用率', 
+          type: 'line', 
+          data: cpuData, 
+          smooth: true, 
+          itemStyle: { color: '#409eff' },
+          areaStyle: { color: 'rgba(64, 158, 255, 0.1)' },
+          yAxisIndex: 0
+        },
+        { 
+          name: '内存使用率', 
+          type: 'line', 
+          data: memUsageData, 
+          smooth: true, 
+          itemStyle: { color: '#67c23a' },
+          areaStyle: { color: 'rgba(103, 194, 58, 0.1)' },
+          yAxisIndex: 0
+        },
+        { 
+          name: 'GC次数', 
+          type: 'bar', 
+          data: gcCountData,
+          itemStyle: { color: '#e6a23c' },
+          yAxisIndex: 1
+        },
+        { 
+          name: '性能评分', 
+          type: 'line', 
+          data: perfScoreData, 
+          smooth: true, 
+          itemStyle: { 
+            color: (params: any) => {
+              const score = params.value
+              if (score >= 80) return '#67c23a'
+              if (score >= 60) return '#e6a23c'
+              return '#f56c6c'
+            }
+          },
+          lineStyle: { width: 3 },
+          markLine: {
+            data: [
+              { yAxis: 80, label: { formatter: '健康线' }, lineStyle: { color: '#67c23a', type: 'dashed' } },
+              { yAxis: 60, label: { formatter: '警告线' }, lineStyle: { color: '#e6a23c', type: 'dashed' } }
+            ]
+          },
+          yAxisIndex: 2
+        }
+      ]
+    })
+    performanceDashboardChartInstance.resize()
+  }
+  
   // 关键：所有图表渲染后统一resize，确保在Tab页中正确显示
   setTimeout(() => {
     heapChartInstance?.resize()
@@ -4026,6 +4649,17 @@ const renderMemoryCharts = () => {
     classLoadingDetailChartInstance?.resize()
     threadPoolsChartInstance?.resize()
     classLoadingRateChartInstance?.resize()
+    edenSurvivorChartInstance?.resize()
+    oldGenChartDetailInstance?.resize()
+    metaspaceChartInstance?.resize()
+    codeCacheChartInstance?.resize()
+    memoryAllocationRateChartInstance?.resize()
+    gcPressureChartInstance?.resize()
+    gcReclaimedChartInstance?.resize()
+    cpuMemoryCorrelationChartInstance?.resize()
+    topCpuThreadChartInstance?.resize()
+    threadStateChartInstance?.resize()
+    performanceDashboardChartInstance?.resize()
     memoryPoolsGridInstance?.resize()
     memoryUsageRateInstance?.resize()
     bufferPoolsChartInstance?.resize()

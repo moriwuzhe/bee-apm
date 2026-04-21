@@ -35,7 +35,7 @@ public class UmlClassParser {
         log.info("开始解析 UML 类图: {}", javaFile.getAbsolutePath());
         
         ParseResult<CompilationUnit> result = javaParser.parse(javaFile);
-        if (!result.isSuccessful() || result.getResult().isPresent()) {
+        if (!result.isSuccessful() || !result.getResult().isPresent()) {
             log.error("解析文件失败: {}", javaFile.getAbsolutePath());
             throw new RuntimeException("无法解析文件: " + javaFile.getAbsolutePath());
         }

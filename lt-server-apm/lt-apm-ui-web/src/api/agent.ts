@@ -192,6 +192,41 @@ export interface AgentMemoryMetrics {
   topCpuThreads?: string // Phase 2: JSON string - Top CPU线程列表
   threadPools?: string // Phase 2: JSON string - 线程池信息
   gcSnapshot?: string // Phase 2: JSON string - GC快照数据
+  diskReadBytes?: number // Phase 3: IO & Network metrics
+  diskWriteBytes?: number
+  networkRecvBytes?: number
+  networkSentBytes?: number
+  diskReadOps?: number
+  diskWriteOps?: number
+  // Phase 4: Memory Pools Detail
+  edenUsed?: number
+  edenMax?: number
+  survivorUsed?: number
+  survivorMax?: number
+  oldGenUsed?: number
+  oldGenMax?: number
+  metaspaceUsed?: number
+  metaspaceMax?: number
+  codeCacheUsed?: number
+  codeCacheMax?: number
+  // Phase 4: GC Efficiency
+  gcReclaimedBytes?: number
+  gcEfficiency?: number
+  // Phase 5: Advanced Monitoring
+  memoryAllocationRate?: number
+  gcReclaimedLastInterval?: number
+  gcPressure?: number
+  // Phase 6: Comprehensive Monitoring
+  gcReclaimedBytesCurrent?: number
+  cpuMemoryCorrelation?: number
+  // Phase 7: Real-time Dashboard
+  topCpuThreadName?: string
+  topCpuThreadPercent?: number
+  threadCountRunnable?: number
+  threadCountBlocked?: number
+  // Phase 8: Performance Dashboard
+  performanceScore?: number
+  healthStatus?: string
 }
 
 export async function getMemoryHistory(

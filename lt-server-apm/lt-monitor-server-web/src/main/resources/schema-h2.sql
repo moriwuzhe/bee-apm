@@ -124,9 +124,78 @@ CREATE TABLE IF NOT EXISTS agent_memory_history (
   jvm_start_time BIGINT,
   top_cpu_threads TEXT,                    -- Phase 2: Top CPU线程列表 (JSON)
   thread_pools TEXT,                       -- Phase 2: 线程池信息 (JSON)
-  gc_snapshot TEXT                         -- Phase 2: GC快照数据 (JSON)
+  gc_snapshot TEXT,                        -- Phase 2: GC快照数据 (JSON)
+  disk_read_bytes BIGINT,                  -- Phase 3: 磁盘读取字节数
+  disk_write_bytes BIGINT,                 -- Phase 3: 磁盘写入字节数
+  network_recv_bytes BIGINT,               -- Phase 3: 网络接收字节数
+  network_sent_bytes BIGINT,               -- Phase 3: 网络发送字节数
+  disk_read_ops BIGINT,                    -- Phase 3: 磁盘读操作次数
+  disk_write_ops BIGINT,                   -- Phase 3: 磁盘写操作次数
+  eden_used BIGINT,                        -- Phase 4: Eden区使用量
+  eden_max BIGINT,                         -- Phase 4: Eden区最大值
+  survivor_used BIGINT,                    -- Phase 4: Survivor区使用量
+  survivor_max BIGINT,                     -- Phase 4: Survivor区最大值
+  old_gen_used BIGINT,                     -- Phase 4: 老年代使用量
+  old_gen_max BIGINT,                      -- Phase 4: 老年代最大值
+  metaspace_used BIGINT,                   -- Phase 4: Metaspace使用量
+  metaspace_max BIGINT,                    -- Phase 4: Metaspace最大值
+  code_cache_used BIGINT,                  -- Phase 4: CodeCache使用量
+  code_cache_max BIGINT,                   -- Phase 4: CodeCache最大值
+  gc_reclaimed_bytes BIGINT,               -- Phase 4: GC回收内存量
+  gc_efficiency DOUBLE,                    -- Phase 4: GC效率
+  memory_allocation_rate DOUBLE,           -- Phase 5: 内存分配速率 (bytes/sec)
+  gc_reclaimed_last_interval BIGINT,       -- Phase 5: 上次间隔GC回收量
+  gc_pressure DOUBLE,                        -- Phase 5: GC压力指数 (0-100)
+  gc_reclaimed_bytes_current BIGINT,         -- Phase 6: 当前GC回收量
+  cpu_memory_correlation DOUBLE,             -- Phase 6: CPU与内存相关性指数
+  top_cpu_thread_name VARCHAR(255),          -- Phase 7: Top CPU线程名
+  top_cpu_thread_percent DOUBLE,             -- Phase 7: Top CPU线程占用率
+  thread_count_runnable INTEGER,             -- Phase 7: RUNNABLE线程数
+  thread_count_blocked INTEGER,              -- Phase 7: BLOCKED线程数
+  performance_score DOUBLE,                  -- Phase 8: 综合性能评分 (0-100)
+  health_status VARCHAR(20)                  -- Phase 8: 健康状态
 );
 
+-- 告警规则表
+CREATE TABLE IF NOT EXISTS alert_rules (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  rule_name VARCHAR(255) NOT NULL COMMENT '规则名称',
+  app_code VARCHAR(100) NOT NULL COMMENT '应用代码（*表示所有应用）',
+  metric_name VARCHAR(100) NOT NULL COMMENT '监控指标名称',
+  operator VARCHAR(10) NOT NULL COMMENT '操作符: >, <, >=, <=, ==',
+  threshold DOUBLE NOT NULL COMMENT '阈值',
+  duration INT DEFAULT 60 COMMENT '持续时间（秒），连续N秒超过阈值才告警',
+  severity VARCHAR(20) DEFAULT 'WARNING' COMMENT '严重程度: INFO, WARNING, CRITICAL',
+  notification_type VARCHAR(20) DEFAULT 'WEBHOOK' COMMENT '通知类型: EMAIL, SMS, WEBHOOK',
+  notification_target VARCHAR(500) COMMENT '通知目标',
+  enabled BOOLEAN DEFAULT TRUE COMMENT '是否启用',
+  create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  description VARCHAR(500) COMMENT '规则描述',
+  INDEX idx_app_metric (app_code, metric_name),
+  INDEX idx_enabled (enabled)
+);
+
+-- 告警记录表
+CREATE TABLE IF NOT EXISTS alert_records (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  rule_id BIGINT NOT NULL COMMENT '关联的告警规则ID',
+  app_code VARCHAR(100) NOT NULL COMMENT '应用代码',
+  inst_id VARCHAR(100) NOT NULL COMMENT '实例ID',
+  metric_name VARCHAR(100) NOT NULL COMMENT '触发告警的指标',
+  current_value DOUBLE NOT NULL COMMENT '当前值',
+  threshold DOUBLE NOT NULL COMMENT '阈值',
+  severity VARCHAR(20) NOT NULL COMMENT '严重程度',
+  status VARCHAR(20) DEFAULT 'TRIGGERED' COMMENT '状态: TRIGGERED, RESOLVED',
+  trigger_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '触发时间',
+  resolve_time TIMESTAMP NULL COMMENT '恢复时间',
+  message VARCHAR(1000) COMMENT '告警消息',
+  INDEX idx_app_inst (app_code, inst_id),
+  INDEX idx_rule_status (rule_id, status),
+  INDEX idx_trigger_time (trigger_time)
+);
+
+-- 索引优化
 CREATE INDEX IF NOT EXISTS idx_app_inst ON agent_memory_history (app_code, inst_id);
 CREATE INDEX IF NOT EXISTS idx_collect_time ON agent_memory_history (collect_time);
 

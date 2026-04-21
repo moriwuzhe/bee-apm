@@ -40,6 +40,9 @@ public class DiagAgentChannelHandler extends SimpleChannelInboundHandler<Datagra
     
     @Autowired(required=false)
     private org.xi.lt.server.domain.repository.AgentMemoryHistoryRepository memoryHistoryRepository;
+    
+    @Autowired(required=false)
+    private org.xi.lt.server.infrastructure.alert.engine.AlertEngine alertEngine;
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Datagram msg) {
@@ -73,12 +76,38 @@ public class DiagAgentChannelHandler extends SimpleChannelInboundHandler<Datagra
                 
                 // 处理内存指标数据
                 try {
-                    Object metrics = getStringAsObject(props, "metrics");
-                    if (metrics != null && memoryHistoryRepository != null) {
-                        saveMemoryMetrics(agentId, metrics);
+                    Object metricsObj = getStringAsObject(props, "metrics");
+                    if (props instanceof java.util.Map) {
+                        log.info("[DIAG] Received heartbeat from agentId='{}', props keys: {}, metricsObj is null: {}, metricsObj class: {}", 
+                            agentId, ((java.util.Map<?, ?>) props).keySet(), metricsObj == null, 
+                            metricsObj != null ? metricsObj.getClass().getName() : "null");
+                    } else {
+                        log.info("[DIAG] Received heartbeat from agentId='{}', props class: {}, metricsObj is null: {}", 
+                            agentId, props != null ? props.getClass().getName() : "null", metricsObj == null);
+                    }
+                    if (metricsObj != null) {
+                        log.info("[DIAG] metricsObj type check - is Map: {}, is LinkedHashMap: {}", 
+                            metricsObj instanceof java.util.Map, 
+                            metricsObj instanceof java.util.LinkedHashMap);
+                    }
+                    if (metricsObj instanceof java.util.Map) {
+                        log.info("[DIAG] metrics keys: {}", ((java.util.Map<?, ?>) metricsObj).keySet());
+                        log.info("[DIAG] diskReadBytes value: {}, class: {}", 
+                            ((java.util.Map<?, ?>) metricsObj).get("diskReadBytes"),
+                            ((java.util.Map<?, ?>) metricsObj).get("diskReadBytes") != null ? 
+                                ((java.util.Map<?, ?>) metricsObj).get("diskReadBytes").getClass().getName() : "null");
+                    }
+                    if (metricsObj != null && memoryHistoryRepository != null) {
+                        org.xi.lt.server.domain.model.agent.AgentMemoryMetrics savedMetrics = saveMemoryMetrics(agentId, metricsObj);
+                        log.info("[DIAG] saveMemoryMetrics result: {}", savedMetrics != null ? "success" : "null");
+                        
+                        // 触发告警检查
+                        if (alertEngine != null && savedMetrics != null) {
+                            alertEngine.checkMetrics(savedMetrics);
+                        }
                     }
                 } catch (Exception e) {
-                    log.debug("Failed to process memory metrics from heartbeat: {}", e.getMessage());
+                    log.error("Failed to process memory metrics from heartbeat", e);
                 }
                 
                 ctx.channel().writeAndFlush(RemotingBuilder.buildRequestDatagram(HEARTBEAT_CODE, UUID.randomUUID().toString(), new RawStringPayloadHolder("")));
@@ -139,17 +168,30 @@ public class DiagAgentChannelHandler extends SimpleChannelInboundHandler<Datagra
         return null;
     }
     
-    private void saveMemoryMetrics(String agentId, Object metricsObj) {
-        if (!(metricsObj instanceof java.util.Map)) return;
+    private org.xi.lt.server.domain.model.agent.AgentMemoryMetrics saveMemoryMetrics(String agentId, Object metricsObj) {
+        if (!(metricsObj instanceof java.util.Map)) return null;
         
         java.util.Map<String, Object> metrics = (java.util.Map<String, Object>) metricsObj;
         
-        // 解析 agentId: app@env@inst@ip:port
-        String[] parts = agentId.split("@");
-        if (parts.length < 3) return;
+        // 解析 agentId: 兼容 "app@env@inst" 和 "env_app_inst_suffix" 两种格式
+        String appCode = "unknown";
+        String instId = "unknown";
         
-        String appCode = parts[0];
-        String instId = parts.length >= 3 ? parts[2] : "unknown";
+        String[] parts = agentId.split("@");
+        if (parts.length >= 3) {
+            appCode = parts[0];
+            instId = parts[2];
+        } else {
+            // 兼容 Agent 实际发送的格式: dev_order_test01_0
+            parts = agentId.split("_");
+            if (parts.length >= 3) {
+                // 格式: env_app_inst_suffix
+                appCode = parts[1];
+                instId = parts[2];
+            }
+        }
+        
+        log.info("[DIAG] Parsed agentId='{}' -> appCode='{}', instId='{}'", agentId, appCode, instId);
         
         org.xi.lt.server.domain.model.agent.AgentMemoryMetrics memoryMetrics = 
             new org.xi.lt.server.domain.model.agent.AgentMemoryMetrics();
@@ -238,14 +280,77 @@ public class DiagAgentChannelHandler extends SimpleChannelInboundHandler<Datagra
             }
         }
         
+        // Phase 3: IO & Network metrics
+        Long diskReadBytes = getLong(metrics, "diskReadBytes");
+        Long diskWriteBytes = getLong(metrics, "diskWriteBytes");
+        Long networkRecvBytes = getLong(metrics, "networkRecvBytes");
+        Long networkSentBytes = getLong(metrics, "networkSentBytes");
+        log.info("[DIAG] IO/Network metrics received - diskRead:{}, diskWrite:{}, networkRecv:{}, networkSent:{}, metrics keys: {}", 
+                diskReadBytes, diskWriteBytes, networkRecvBytes, networkSentBytes, metrics.keySet());
+        memoryMetrics.setDiskReadBytes(diskReadBytes);
+        memoryMetrics.setDiskWriteBytes(diskWriteBytes);
+        memoryMetrics.setNetworkRecvBytes(networkRecvBytes);
+        memoryMetrics.setNetworkSentBytes(networkSentBytes);
+        memoryMetrics.setDiskReadOps(getLong(metrics, "diskReadOps"));
+        memoryMetrics.setDiskWriteOps(getLong(metrics, "diskWriteOps"));
+        
+        // Phase 4: Memory Pools Detail
+        memoryMetrics.setEdenUsed(getLong(metrics, "edenUsed"));
+        memoryMetrics.setEdenMax(getLong(metrics, "edenMax"));
+        memoryMetrics.setSurvivorUsed(getLong(metrics, "survivorUsed"));
+        memoryMetrics.setSurvivorMax(getLong(metrics, "survivorMax"));
+        memoryMetrics.setOldGenUsed(getLong(metrics, "oldGenUsed"));
+        memoryMetrics.setOldGenMax(getLong(metrics, "oldGenMax"));
+        memoryMetrics.setMetaspaceUsed(getLong(metrics, "metaspaceUsed"));
+        memoryMetrics.setMetaspaceMax(getLong(metrics, "metaspaceMax"));
+        memoryMetrics.setCodeCacheUsed(getLong(metrics, "codeCacheUsed"));
+        memoryMetrics.setCodeCacheMax(getLong(metrics, "codeCacheMax"));
+        
+        // Phase 4: GC Efficiency
+        memoryMetrics.setGcReclaimedBytes(getLong(metrics, "gcReclaimedBytes"));
+        memoryMetrics.setGcEfficiency(getDouble(metrics, "gcEfficiency"));
+        
+        // Phase 5: Advanced Monitoring
+        memoryMetrics.setMemoryAllocationRate(getDouble(metrics, "memoryAllocationRate"));
+        memoryMetrics.setGcReclaimedLastInterval(getLong(metrics, "gcReclaimedLastInterval"));
+        memoryMetrics.setGcPressure(getDouble(metrics, "gcPressure"));
+        
+        // Phase 6: Comprehensive Monitoring
+        memoryMetrics.setGcReclaimedBytesCurrent(getLong(metrics, "gcReclaimedBytesCurrent"));
+        memoryMetrics.setCpuMemoryCorrelation(getDouble(metrics, "cpuMemoryCorrelation"));
+        
+        // Phase 7: Real-time Dashboard
+        memoryMetrics.setTopCpuThreadName(getString(metrics, "topCpuThreadName"));
+        memoryMetrics.setTopCpuThreadPercent(getDouble(metrics, "topCpuThreadPercent"));
+        memoryMetrics.setThreadCountRunnable(getInt(metrics, "threadCountRunnable"));
+        memoryMetrics.setThreadCountBlocked(getInt(metrics, "threadCountBlocked"));
+        
+        // Phase 8: Performance Dashboard
+        memoryMetrics.setPerformanceScore(getDouble(metrics, "performanceScore"));
+        memoryMetrics.setHealthStatus(getString(metrics, "healthStatus"));
+        
         memoryHistoryRepository.save(memoryMetrics);
+        
+        return memoryMetrics;
     }
     
     private static Long getLong(java.util.Map<String, Object> map, String key) {
         Object val = map.get(key);
         if (val == null) return null;
         if (val instanceof Number) return ((Number) val).longValue();
-        try { return Long.parseLong(String.valueOf(val)); } catch (Exception e) { return null; }
+        // 兼容反序列化后的类型（如 BigDecimal, String 等）
+        try {
+            String str = String.valueOf(val).trim();
+            if (str.isEmpty() || "null".equalsIgnoreCase(str)) return null;
+            // 处理小数（如 "123.0"）
+            if (str.contains(".")) {
+                return new java.math.BigDecimal(str).longValue();
+            }
+            return Long.parseLong(str);
+        } catch (Exception e) {
+            log.warn("Failed to parse Long for key='{}', value={}, type={}", key, val, val.getClass().getName());
+            return null;
+        }
     }
     
     private static Long getLong(java.util.Map<String, Object> map, String key, Long defaultValue) {

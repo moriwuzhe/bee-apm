@@ -36,6 +36,11 @@
                 <version>3.2.0</version>
                 <configuration>
                     <filesets>
+                        <!-- 删除 logs 文件夹 -->
+                        <fileset>
+                            <directory>${project.basedir}/packages/logs</directory>
+                            <followSymlinks>false</followSymlinks>
+                        </fileset>
                         <!-- 删除 plugins 文件夹 -->
                         <fileset>
                             <directory>${project.basedir}/packages/plugins</directory>

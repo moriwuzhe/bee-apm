@@ -64,3 +64,5 @@ package/
 /packages/plugins/
 /packages/reporter/
 /packages/config-local.yml
+/uploads/
+/data/

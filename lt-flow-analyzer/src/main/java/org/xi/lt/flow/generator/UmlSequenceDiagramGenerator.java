@@ -23,6 +23,23 @@ public class UmlSequenceDiagramGenerator {
         plantuml.append("@startuml\n");
         plantuml.append("skinparam backgroundColor white\n");
         plantuml.append("skinparam handwritten false\n");
+        plantuml.append("skinparam shadowing true\n");
+        plantuml.append("skinparam sequenceMessageAlign center\n");
+        plantuml.append("skinparam noteBackgroundColor #fff9c4\n");
+        plantuml.append("skinparam noteBorderColor #ffc107\n");
+        plantuml.append("skinparam sequenceParticipant {\n");
+        plantuml.append("  BackgroundColor #e3f2fd\n");
+        plantuml.append("  BorderColor #1976d2\n");
+        plantuml.append("}\n");
+        plantuml.append("skinparam sequenceArrow {\n");
+        plantuml.append("  Color #1976d2\n");
+        plantuml.append("  Thickness 2\n");
+        plantuml.append("}\n");
+        plantuml.append("skinparam boxPadding 10\n");
+        plantuml.append("\n");
+        if (diagram.getName() != null && !diagram.getName().isEmpty()) {
+            plantuml.append("title ").append(escapeLabel(diagram.getName())).append("\n");
+        }
         plantuml.append("\n");
 
         // 定义所有参与者
@@ -54,7 +71,7 @@ public class UmlSequenceDiagramGenerator {
      */
     private String generateParticipantDeclaration(UmlSequenceDiagram.Participant participant) {
         StringBuilder line = new StringBuilder();
-        
+
         switch (participant.getType()) {
             case ACTOR:
                 line.append("actor ");
@@ -73,12 +90,28 @@ public class UmlSequenceDiagramGenerator {
                 line.append("participant ");
                 break;
         }
-        
-        line.append("\"").append(participant.getName()).append("\"");
-        line.append(" as ").append(participant.getId());
+
+        line.append("\"").append(escapeLabel(participant.getName())).append("\"");
+        line.append(" as ").append(cleanId(participant.getId()));
         line.append("\n");
-        
+
         return line.toString();
+    }
+
+    /**
+     * 清理ID，确保只包含合法字符
+     */
+    private String cleanId(String id) {
+        if (id == null || id.isEmpty()) {
+            return "unknown";
+        }
+        // 只保留字母、数字和下划线
+        String clean = id.replaceAll("[^a-zA-Z0-9_]", "_");
+        // 确保不以数字开头
+        if (clean.isEmpty() || Character.isDigit(clean.charAt(0))) {
+            clean = "p_" + clean;
+        }
+        return clean;
     }
     
     /**
@@ -86,26 +119,26 @@ public class UmlSequenceDiagramGenerator {
      */
     private String generateMessage(UmlSequenceDiagram.Message message) {
         StringBuilder line = new StringBuilder();
-        
-        String from = message.getFromParticipantId();
-        String to = message.getToParticipantId();
-        
+
+        String from = cleanId(message.getFromParticipantId());
+        String to = cleanId(message.getToParticipantId());
+
         // 自调用
         if (message.isSelfCall()) {
             line.append(from).append(" -> ").append(to).append(" : ");
-            line.append(message.getName());
+            line.append(escapeLabel(message.getName()));
             line.append("\n");
             return line.toString();
         }
-        
+
         // 返回消息
         if (message.isReturn()) {
             line.append(from).append(" --> ").append(to).append(" : ");
-            line.append(message.getName());
+            line.append(escapeLabel(message.getName()));
             line.append("\n");
             return line.toString();
         }
-        
+
         // 普通消息
         switch (message.getType()) {
             case SYNCHRONOUS:
@@ -127,10 +160,10 @@ public class UmlSequenceDiagramGenerator {
                 line.append(from).append(" -> ").append(to).append(" : ");
                 break;
         }
-        
-        line.append(message.getName());
+
+        line.append(escapeLabel(message.getName()));
         line.append("\n");
-        
+
         return line.toString();
     }
     
@@ -145,5 +178,16 @@ public class UmlSequenceDiagramGenerator {
         }
 
         log.info("PlantUML UML 时序图已保存到: {}", outputFile.getAbsolutePath());
+    }
+
+    /**
+     * 转义标签中的特殊字符
+     */
+    private String escapeLabel(String label) {
+        if (label == null) {
+            return "";
+        }
+        // 转义引号和换行符
+        return label.replace("\"", "'").replace("\n", " ").replace("\r", " ");
     }
 }

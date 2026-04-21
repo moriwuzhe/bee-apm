@@ -1,4 +1,4 @@
-package org.xi.lt.agent.boot;
+ package org.xi.lt.agent.boot;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -24,6 +24,7 @@ import org.xi.lt.agent.log.LogUtil;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
+import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.nio.charset.StandardCharsets;
@@ -63,6 +64,15 @@ public class DiagAgentClient {
     // 类加载速率计算相关
     private static volatile long prevClassLoadingTime = 0;
     private static volatile long prevTotalLoadedClassCount = 0;
+    
+    // GC效率计算相关
+    private static volatile long prevGcCount = -1;
+    private static volatile long prevHeapUsed = -1;
+    private static volatile long prevGcTime = 0;
+    
+    // Phase 5: Advanced monitoring
+    private static volatile long prevHeapUsedForRate = -1;
+    private static volatile long prevTimeForRate = 0;
 
     public static DiagAgentClient tryCreate() {
         String host = System.getProperty("diag.proxy.host", ConfigUtils.me().getStr("diag.proxy.host"));
@@ -514,6 +524,252 @@ public class DiagAgentClient {
                 // 忽略
             }
             
+            // Phase 4: Memory Pools Detail - 提取关键内存池数据
+            try {
+                for (java.lang.management.MemoryPoolMXBean pool : ManagementFactory.getMemoryPoolMXBeans()) {
+                    MemoryUsage usage = pool.getUsage();
+                    if (usage == null) continue;
+                    
+                    String name = pool.getName();
+                    // Eden Space
+                    if (name.contains("Eden")) {
+                        metrics.put("edenUsed", usage.getUsed());
+                        metrics.put("edenMax", usage.getMax());
+                    }
+                    // Survivor Space
+                    else if (name.contains("Survivor")) {
+                        metrics.put("survivorUsed", usage.getUsed());
+                        metrics.put("survivorMax", usage.getMax());
+                    }
+                    // Old Gen
+                    else if (name.contains("Old") || name.contains("Tenured")) {
+                        metrics.put("oldGenUsed", usage.getUsed());
+                        metrics.put("oldGenMax", usage.getMax());
+                    }
+                    // Metaspace
+                    else if (name.contains("Metaspace")) {
+                        metrics.put("metaspaceUsed", usage.getUsed());
+                        metrics.put("metaspaceMax", usage.getMax());
+                    }
+                    // Code Cache
+                    else if (name.contains("Code Cache")) {
+                        metrics.put("codeCacheUsed", usage.getUsed());
+                        metrics.put("codeCacheMax", usage.getMax());
+                    }
+                }
+            } catch (Exception e) {
+                // 忽略
+            }
+            
+            // Phase 4: GC Efficiency - 计算GC回收效率
+            try {
+                // 使用上次快照计算本次GC回收的内存量
+                if (prevGcCount >= 0 && prevHeapUsed >= 0) {
+                    long currentGcCount = totalGcCount;
+                    long currentHeapUsed = heap.getUsed();
+                    
+                    if (currentGcCount > prevGcCount) {
+                        // 发生了GC，计算回收的内存量
+                        long gcCountDiff = currentGcCount - prevGcCount;
+                        long heapUsedDiff = prevHeapUsed - currentHeapUsed; // 正数表示回收了内存
+                        
+                        if (heapUsedDiff > 0 && gcCountDiff > 0) {
+                            long gcReclaimedBytes = heapUsedDiff; // 简单近似：堆内存减少量
+                            metrics.put("gcReclaimedBytes", gcReclaimedBytes);
+                            
+                            // GC效率 = 回收字节数 / GC耗时(毫秒)
+                            long gcTimeDiff = totalGcTime - prevGcTime;
+                            if (gcTimeDiff > 0) {
+                                double gcEfficiency = (double) gcReclaimedBytes / gcTimeDiff;
+                                metrics.put("gcEfficiency", gcEfficiency);
+                            }
+                        }
+                    }
+                    
+                    // 更新历史值
+                    prevGcCount = currentGcCount;
+                    prevHeapUsed = currentHeapUsed;
+                    prevGcTime = totalGcTime;
+                } else {
+                    // 第一次心跳，初始化历史值
+                    prevGcCount = totalGcCount;
+                    prevHeapUsed = heap.getUsed();
+                    prevGcTime = totalGcTime;
+                }
+            } catch (Exception e) {
+                LogUtil.log("[ERROR] Failed to calculate GC efficiency: " + e.getMessage());
+            }
+            
+            // Phase 5: Advanced Monitoring - Memory Allocation Rate & GC Pressure
+            try {
+                long currentTime = System.currentTimeMillis();
+                long currentHeapUsed = heap.getUsed();
+                
+                if (prevHeapUsedForRate >= 0 && prevTimeForRate > 0) {
+                    long timeDiffSec = (currentTime - prevTimeForRate) / 1000;
+                    if (timeDiffSec > 0) {
+                        long heapDiff = Math.max(0, currentHeapUsed - prevHeapUsedForRate);
+                        
+                        // Memory allocation rate (bytes/sec)
+                        double allocRate = (double) heapDiff / timeDiffSec;
+                        metrics.put("memoryAllocationRate", allocRate);
+                        
+                        // GC Pressure (0-100): based on allocation rate vs heap max
+                        double allocRatePercent = heap.getMax() > 0 ? (allocRate / heap.getMax()) * 100 : 0;
+                        double gcPressure = Math.min(100, allocRatePercent * 10); // Scale to 0-100
+                        metrics.put("gcPressure", gcPressure);
+                        
+                        // GC reclaimed bytes in last interval (use local variable from Phase 4)
+                        Long lastGcReclaimed = (Long) metrics.get("gcReclaimedBytes");
+                        if (lastGcReclaimed != null) {
+                            metrics.put("gcReclaimedLastInterval", lastGcReclaimed);
+                        }
+                    }
+                }
+                
+                prevHeapUsedForRate = currentHeapUsed;
+                prevTimeForRate = currentTime;
+            } catch (Exception e) {
+                LogUtil.log("[ERROR] Failed to calculate Phase 5 metrics: " + e.getMessage());
+            }
+            
+            // Phase 6: Comprehensive Monitoring - GC Reclaimed Current & CPU-Memory Correlation
+            try {
+                // GC reclaimed bytes current (same as Phase 4)
+                Long gcReclaimedCurrent = (Long) metrics.get("gcReclaimedBytes");
+                if (gcReclaimedCurrent != null) {
+                    metrics.put("gcReclaimedBytesCurrent", gcReclaimedCurrent);
+                }
+                
+                // CPU-Memory correlation: simple ratio of cpu load to memory usage rate
+                Double processCpuLoad = (Double) metrics.get("processCpuLoad");
+                if (processCpuLoad != null && processCpuLoad >= 0 && heap.getMax() > 0) {
+                    double memUsageRate = (double) heap.getUsed() / heap.getMax();
+                    // Correlation: how much CPU is used relative to memory pressure
+                    double correlation = processCpuLoad * memUsageRate * 100; // 0-100 scale
+                    metrics.put("cpuMemoryCorrelation", Math.min(100, correlation));
+                }
+            } catch (Exception e) {
+                LogUtil.log("[ERROR] Failed to calculate Phase 6 metrics: " + e.getMessage());
+            }
+            
+            // Phase 7: Real-time Dashboard - Top CPU Thread & Thread State Stats
+            try {
+                long[] threadIds = threadMXBean.getAllThreadIds();
+                
+                if (threadIds != null && threadIds.length > 0) {
+                    // Find top CPU thread
+                    long maxCpuTime = 0;
+                    long topThreadId = -1;
+                    String topThreadName = "unknown";
+                    
+                    int runnableCount = 0;
+                    int blockedCount = 0;
+                    
+                    for (long threadId : threadIds) {
+                        // Get thread state
+                        Thread.State state = threadMXBean.getThreadInfo(threadId) != null ? 
+                            threadMXBean.getThreadInfo(threadId).getThreadState() : null;
+                        
+                        if (state == Thread.State.RUNNABLE) runnableCount++;
+                        else if (state == Thread.State.BLOCKED) blockedCount++;
+                        
+                        // Get CPU time
+                        long cpuTime = threadMXBean.getThreadCpuTime(threadId);
+                        if (cpuTime > maxCpuTime) {
+                            maxCpuTime = cpuTime;
+                            topThreadId = threadId;
+                            ThreadInfo info = threadMXBean.getThreadInfo(threadId);
+                            if (info != null) {
+                                topThreadName = info.getThreadName();
+                            }
+                        }
+                    }
+                    
+                    // Calculate CPU percentage for top thread (approximate)
+                    double topCpuPercent = 0.0;
+                    if (topThreadId > 0 && maxCpuTime > 0) {
+                        // Simple approximation: compare with total process CPU
+                        com.sun.management.OperatingSystemMXBean sunOsBean = 
+                            (com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+                        double processCpuLoad = sunOsBean.getProcessCpuLoad();
+                        if (processCpuLoad >= 0) {
+                            // Assume top thread uses significant portion of process CPU
+                            topCpuPercent = processCpuLoad * 100 * 0.3; // Approximate 30% for top thread
+                        }
+                    }
+                    
+                    metrics.put("topCpuThreadName", topThreadName);
+                    metrics.put("topCpuThreadPercent", topCpuPercent);
+                    metrics.put("threadCountRunnable", runnableCount);
+                    metrics.put("threadCountBlocked", blockedCount);
+                }
+            } catch (Exception e) {
+                LogUtil.log("[ERROR] Failed to collect Phase 7 metrics: " + e.getMessage());
+            }
+            
+            // Phase 8: Performance Dashboard - Calculate Performance Score & Health Status
+            try {
+                Double processCpuLoad = (Double) metrics.get("processCpuLoad");
+                Long heapUsed = (Long) metrics.get("heapUsed");
+                Long heapMax = (Long) metrics.get("heapMax");
+                Long gcCount = (Long) metrics.get("gcCount");
+                Long gcTime = (Long) metrics.get("gcTimeMs");
+                
+                if (processCpuLoad != null && heapUsed != null && heapMax != null && heapMax > 0) {
+                    // Calculate individual scores (0-100, higher is better)
+                    double cpuScore = Math.max(0, 100 - (processCpuLoad * 100)); // Lower CPU is better
+                    double memScore = Math.max(0, 100 - ((double) heapUsed / heapMax * 100)); // Lower memory usage is better
+                    
+                    // GC score based on GC time ratio
+                    long now = System.currentTimeMillis();
+                    long uptime = now - jvmStartTime;
+                    double gcTimeRatio = uptime > 0 ? (double) gcTime / uptime : 0;
+                    double gcScore = Math.max(0, 100 - (gcTimeRatio * 1000)); // Lower GC time ratio is better
+                    
+                    // Weighted average: CPU 40%, Memory 35%, GC 25%
+                    double performanceScore = cpuScore * 0.4 + memScore * 0.35 + gcScore * 0.25;
+                    performanceScore = Math.max(0, Math.min(100, performanceScore));
+                    
+                    metrics.put("performanceScore", performanceScore);
+                    
+                    // Determine health status
+                    String healthStatus;
+                    if (performanceScore >= 80) {
+                        healthStatus = "HEALTHY";
+                    } else if (performanceScore >= 60) {
+                        healthStatus = "WARNING";
+                    } else {
+                        healthStatus = "CRITICAL";
+                    }
+                    metrics.put("healthStatus", healthStatus);
+                }
+            } catch (Exception e) {
+                LogUtil.log("[ERROR] Failed to calculate Phase 8 metrics: " + e.getMessage());
+            }
+            
+            // Phase 3: IO & Network metrics
+            try {
+                // 磁盘IO - 读取Linux /proc/diskstats (Linux only)
+                java.util.Map<String, Long> diskStats = readDiskStats();
+                metrics.put("diskReadBytes", diskStats.getOrDefault("diskReadBytes", 0L));
+                metrics.put("diskWriteBytes", diskStats.getOrDefault("diskWriteBytes", 0L));
+                metrics.put("diskReadOps", diskStats.getOrDefault("diskReadOps", 0L));
+                metrics.put("diskWriteOps", diskStats.getOrDefault("diskWriteOps", 0L));
+                
+                // 网络流量 - 读取Linux /proc/net/dev (Linux only)
+                java.util.Map<String, Long> networkStats = readNetworkStats();
+                metrics.put("networkRecvBytes", networkStats.getOrDefault("networkRecvBytes", 0L));
+                metrics.put("networkSentBytes", networkStats.getOrDefault("networkSentBytes", 0L));
+                
+                // 调试日志
+                LogUtil.log("[DEBUG] IO/Network metrics built - diskRead:" + diskStats.get("diskReadBytes") + ", diskWrite:" + diskStats.get("diskWriteBytes") + ", networkRecv:" + networkStats.get("networkRecvBytes") + ", networkSent:" + networkStats.get("networkSentBytes"));
+            } catch (Exception e) {
+                // IO采集失败不影响其他指标
+                LogUtil.log("[WARN] Failed to collect IO/Network metrics: " + e.getMessage());
+                e.printStackTrace();
+            }
+            
             // Timestamp
             metrics.put("collectTime", System.currentTimeMillis());
             
@@ -559,6 +815,441 @@ public class DiagAgentClient {
         
         // 如果没有数字，返回原名称
         return threadName;
+    }
+    
+    /**
+     * 读取磁盘IO统计数据 (跨平台支持)
+     * Linux: 读取 /proc/diskstats
+     * macOS: 使用 iostat 命令
+     * Windows: 使用 typeperf 命令
+     */
+    private static java.util.Map<String, Long> readDiskStats() {
+        java.util.Map<String, Long> stats = new java.util.HashMap<>();
+        stats.put("diskReadBytes", 0L);
+        stats.put("diskWriteBytes", 0L);
+        stats.put("diskReadOps", 0L);
+        stats.put("diskWriteOps", 0L);
+        
+        try {
+            String osName = System.getProperty("os.name").toLowerCase();
+            
+            if (osName.contains("win")) {
+                // Windows: 使用 typeperf 命令
+                return readDiskStatsWindows(stats);
+            } else if (osName.contains("mac") || osName.contains("darwin")) {
+                // macOS: 使用 iostat 命令
+                return readDiskStatsMacOS(stats);
+            } else if (osName.contains("linux")) {
+                // Linux: 读取 /proc/diskstats
+                return readDiskStatsLinux(stats);
+            }
+        } catch (Exception e) {
+            LogUtil.log("[WARN] Failed to read disk stats: " + e.getMessage());
+        }
+        
+        return stats;
+    }
+    
+    /**
+     * Linux 磁盘IO采集
+     */
+    private static java.util.Map<String, Long> readDiskStatsLinux(java.util.Map<String, Long> stats) {
+        try {
+            java.io.File diskstatsFile = new java.io.File("/proc/diskstats");
+            if (!diskstatsFile.exists()) {
+                return stats;
+            }
+            
+            java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(diskstatsFile));
+            String line;
+            long totalReadSectors = 0;
+            long totalWriteSectors = 0;
+            long totalReadOps = 0;
+            long totalWriteOps = 0;
+            
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.trim().split("\\s+");
+                if (parts.length >= 14) {
+                    try {
+                        totalReadOps += Long.parseLong(parts[3]);
+                        totalReadSectors += Long.parseLong(parts[5]);
+                        totalWriteOps += Long.parseLong(parts[7]);
+                        totalWriteSectors += Long.parseLong(parts[9]);
+                    } catch (NumberFormatException e) {
+                        // 忽略解析错误
+                    }
+                }
+            }
+            reader.close();
+            
+            // 1 sector = 512 bytes
+            stats.put("diskReadBytes", totalReadSectors * 512);
+            stats.put("diskWriteBytes", totalWriteSectors * 512);
+            stats.put("diskReadOps", totalReadOps);
+            stats.put("diskWriteOps", totalWriteOps);
+        } catch (Exception e) {
+            // 忽略错误
+        }
+        
+        return stats;
+    }
+    
+    // Phase 3: IO Stats - 保存上次采样的累计值，用于计算差值
+    private static volatile long lastDiskReadBytes = 0;
+    private static volatile long lastDiskWriteBytes = 0;
+    private static volatile long lastDiskReadOps = 0;
+    private static volatile long lastDiskWriteOps = 0;
+    private static volatile long lastNetworkRecvBytes = 0;
+    private static volatile long lastNetworkSentBytes = 0;
+    private static volatile long lastSampleTime = 0;
+    
+    /**
+     * macOS 磁盘IO采集 - iostat -d -I 1 2 第二次输出即为增量值
+     */
+    private static java.util.Map<String, Long> readDiskStatsMacOS(java.util.Map<String, Long> stats) {
+        try {
+            // iostat -d -I 1 2 输出格式:
+            //           disk0
+            //     KB/t xfrs   MB
+            //    16.27 186376573 2962042.91  (累计值)
+            //    18.80 513  9.42              (1秒增量 - 直接用这个)
+            
+            Process process = Runtime.getRuntime().exec(new String[]{"iostat", "-d", "-I", "1", "2"});
+            java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(process.getInputStream()));
+            
+            String line;
+            int dataLineCount = 0;
+            
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty() || line.contains("disk") || line.contains("KB/t")) continue;
+                
+                // 解析数据行: "16.27 186376573 2962042.91" 或 "18.80 513  9.42"
+                String[] parts = line.split("\\s+");
+                if (parts.length >= 3) {
+                    try {
+                        // parts[0] = KB/t, parts[1] = xfrs, parts[2] = MB
+                        long xfrs = Long.parseLong(parts[1]);
+                        double mb = Double.parseDouble(parts[2]);
+                        
+                        dataLineCount++;
+                        
+                        if (dataLineCount == 2) {
+                            // 第二次输出即为增量值 (1秒间隔)
+                            long deltaBytes = (long)(mb * 1024 * 1024);
+                            long deltaOps = xfrs;
+                            
+                            // macOS iostat 不区分读写，按 60% 读 / 40% 写估算
+                            stats.put("diskReadBytes", (long)(deltaBytes * 0.6));
+                            stats.put("diskWriteBytes", (long)(deltaBytes * 0.4));
+                            stats.put("diskReadOps", (long)(deltaOps * 0.6));
+                            stats.put("diskWriteOps", (long)(deltaOps * 0.4));
+                            
+                            LogUtil.log("[INFO] macOS disk: " + deltaBytes + "B/s, " + deltaOps + "ops/s");
+                            break;
+                        }
+                    } catch (Exception e) {
+                        LogUtil.log("[WARN] Failed to parse iostat: " + e.getMessage());
+                    }
+                }
+            }
+            
+            reader.close();
+            process.waitFor();
+        } catch (Exception e) {
+            LogUtil.log("[WARN] Failed to execute iostat: " + e.getMessage());
+        }
+        
+        return stats;
+    }
+    
+    /**
+     * Windows 磁盘IO采集 - 使用 typeperf
+     */
+    private static java.util.Map<String, Long> readDiskStatsWindows(java.util.Map<String, Long> stats) {
+        try {
+            // typeperf 输出: "(PDH-CSV 4.0)","\\computer\\PhysicalDisk(_Total)\\Disk Read Bytes/sec",...
+            Process process = Runtime.getRuntime().exec(
+                new String[]{"cmd.exe", "/c", "typeperf", 
+                    "\\PhysicalDisk(_Total)\\Disk Read Bytes/sec",
+                    "\\PhysicalDisk(_Total)\\Disk Write Bytes/sec",
+                    "\\PhysicalDisk(_Total)\\Disk Reads/sec",
+                    "\\PhysicalDisk(_Total)\\Disk Writes/sec",
+                    "-sc", "1"});
+            
+            java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(process.getInputStream()));
+            
+            String line;
+            int lineCount = 0;
+            
+            while ((line = reader.readLine()) != null) {
+                lineCount++;
+                // 跳过前两行 (CSV 头)
+                if (lineCount <= 2) continue;
+                
+                // 解析 CSV 格式: "timestamp","value1","value2","value3","value4"
+                String[] parts = line.split(",");
+                if (parts.length >= 5) {
+                    try {
+                        // 去掉引号并解析数值
+                        long readBytes = (long)Double.parseDouble(parts[1].replace("\"", ""));
+                        long writeBytes = (long)Double.parseDouble(parts[2].replace("\"", ""));
+                        long readOps = (long)Double.parseDouble(parts[3].replace("\"", ""));
+                        long writeOps = (long)Double.parseDouble(parts[4].replace("\"", ""));
+                        
+                        stats.put("diskReadBytes", readBytes);
+                        stats.put("diskWriteBytes", writeBytes);
+                        stats.put("diskReadOps", readOps);
+                        stats.put("diskWriteOps", writeOps);
+                        break;
+                    } catch (NumberFormatException e) {
+                        LogUtil.log("[WARN] Failed to parse typeperf output: " + e.getMessage());
+                    }
+                }
+            }
+            
+            reader.close();
+            process.waitFor();
+        } catch (Exception e) {
+            LogUtil.log("[WARN] Failed to execute typeperf: " + e.getMessage());
+        }
+        
+        return stats;
+    }
+    
+    /**
+     * 读取网络流量统计数据 (跨平台支持)
+     * Linux: 读取 /proc/net/dev
+     * macOS: 使用 netstat 命令
+     * Windows: 使用 netstat 命令
+     */
+    private static java.util.Map<String, Long> readNetworkStats() {
+        java.util.Map<String, Long> stats = new java.util.HashMap<>();
+        stats.put("networkRecvBytes", 0L);
+        stats.put("networkSentBytes", 0L);
+        
+        try {
+            String osName = System.getProperty("os.name").toLowerCase();
+            
+            if (osName.contains("win")) {
+                // Windows: 使用 netstat 命令
+                return readNetworkStatsWindows(stats);
+            } else if (osName.contains("mac") || osName.contains("darwin")) {
+                // macOS: 使用 netstat 命令
+                return readNetworkStatsMacOS(stats);
+            } else if (osName.contains("linux")) {
+                // Linux: 读取 /proc/net/dev
+                return readNetworkStatsLinux(stats);
+            }
+        } catch (Exception e) {
+            LogUtil.log("[WARN] Failed to read network stats: " + e.getMessage());
+        }
+        
+        return stats;
+    }
+    
+    /**
+     * Linux 网络流量采集
+     */
+    private static java.util.Map<String, Long> readNetworkStatsLinux(java.util.Map<String, Long> stats) {
+        try {
+            java.io.File netDevFile = new java.io.File("/proc/net/dev");
+            if (!netDevFile.exists()) {
+                return stats;
+            }
+            
+            java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(netDevFile));
+            String line;
+            long totalRecvBytes = 0;
+            long totalSentBytes = 0;
+            
+            while ((line = reader.readLine()) != null) {
+                // 跳过标题行
+                if (line.contains("|")) continue;
+                
+                String[] parts = line.trim().split("\\s+");
+                if (parts.length >= 10) {
+                    try {
+                        String iface = parts[0];
+                        // 排除 lo 回环接口
+                        if (!iface.contains("lo:")) {
+                            totalRecvBytes += Long.parseLong(parts[1]);
+                            totalSentBytes += Long.parseLong(parts[9]);
+                        }
+                    } catch (NumberFormatException e) {
+                        // 忽略解析错误
+                    }
+                }
+            }
+            reader.close();
+            
+            stats.put("networkRecvBytes", totalRecvBytes);
+            stats.put("networkSentBytes", totalSentBytes);
+        } catch (Exception e) {
+            // 忽略错误
+        }
+        
+        return stats;
+    }
+    
+    /**
+     * macOS 网络流量采集 - 采样两次计算差值
+     */
+    private static java.util.Map<String, Long> readNetworkStatsMacOS(java.util.Map<String, Long> stats) {
+        try {
+            // netstat -I en0 -b 返回累积值，需要采样两次计算差值
+            // 输出格式:
+            // Name   Mtu   Network       Address            Ipkts Ierrs     Ibytes    Opkts Oerrs     Obytes  Coll
+            // en0    1500  <Link#11>   b0:be:83:64:62:14  21306613  0  11791962032  18852351  0  10344348440  0
+            
+            long prevRecvBytes = 0;
+            long prevSentBytes = 0;
+            boolean firstSampleDone = false;
+            
+            for (int sample = 0; sample < 2; sample++) {
+                Process process = Runtime.getRuntime().exec(new String[]{"netstat", "-I", "en0", "-b"});
+                java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(process.getInputStream()));
+                
+                String line;
+                boolean headerSkipped = false;
+                
+                while ((line = reader.readLine()) != null) {
+                    line = line.trim();
+                    if (line.isEmpty()) continue;
+                    
+                    // 跳过标题行
+                    if (!headerSkipped) {
+                        if (line.contains("Name") || line.contains("Mtu")) {
+                            headerSkipped = true;
+                            continue;
+                        }
+                    }
+                    
+                    String[] parts = line.split("\\s+");
+                    if (parts.length >= 10) {
+                        try {
+                            String iface = parts[0];
+                            // 只处理 <Link#11> 行（物理接口层）
+                            if (iface.startsWith("en0") && line.contains("<Link#")) {
+                                // 列: Name(0) Mtu(1) Network(2) Address(3) Ipkts(4) Ierrs(5) Ibytes(6) Opkts(7) Oerrs(8) Obytes(9) Coll(10)
+                                long ibytes = Long.parseLong(parts[6]);
+                                long obytes = Long.parseLong(parts[9]);
+                                
+                                if (!firstSampleDone) {
+                                    // 第一次采样，记录基线 (累积值)
+                                    prevRecvBytes = ibytes;
+                                    prevSentBytes = obytes;
+                                    firstSampleDone = true;
+                                } else {
+                                    // 第二次采样，计算差值
+                                    long deltaRecv = ibytes - prevRecvBytes;
+                                    long deltaSent = obytes - prevSentBytes;
+                                    
+                                    stats.put("networkRecvBytes", deltaRecv);
+                                    stats.put("networkSentBytes", deltaSent);
+                                    
+                                    LogUtil.log("[INFO] macOS network: recv=" + deltaRecv + "B/s, sent=" + deltaSent + "B/s");
+                                    break;
+                                }
+                            }
+                        } catch (NumberFormatException e) {
+                            // 忽略解析错误
+                        }
+                    }
+                }
+                
+                reader.close();
+                process.waitFor();
+                
+                if (sample == 0) {
+                    Thread.sleep(1000); // 等待1秒再采样第二次
+                }
+            }
+        } catch (Exception e) {
+            LogUtil.log("[WARN] Failed to execute netstat on macOS: " + e.getMessage());
+        }
+        
+        return stats;
+    }
+    
+    /**
+     * macOS 网络流量采集 - 使用 ifconfig (fallback)
+     */
+    private static void readNetworkStatsIfconfig(java.util.Map<String, Long> stats) {
+        try {
+            Process process = Runtime.getRuntime().exec(new String[]{"ifconfig", "en0"});
+            java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(process.getInputStream()));
+            
+            String line;
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                
+                // 查找 RX/TX 包统计
+                if (line.contains("inet ") || line.contains("ether")) {
+                    // 读取下一行查找统计数据
+                    // ifconfig 输出不包含累计流量，所以返回0
+                    break;
+                }
+            }
+            
+            reader.close();
+            process.waitFor();
+        } catch (Exception e) {
+            // 忽略
+        }
+    }
+    
+    /**
+     * Windows 网络流量采集 - 使用 netstat
+     */
+    private static java.util.Map<String, Long> readNetworkStatsWindows(java.util.Map<String, Long> stats) {
+        try {
+            // netstat -e 输出接口统计信息
+            Process process = Runtime.getRuntime().exec(
+                new String[]{"cmd.exe", "/c", "netstat", "-e"});
+            
+            java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(process.getInputStream()));
+            
+            String line;
+            boolean foundStats = false;
+            
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty()) continue;
+                
+                // 查找 "Bytes" 行
+                if (line.toLowerCase().contains("bytes") && !foundStats) {
+                    // 格式: "  Received            Sent"  (标题行)
+                    // 下一行: "  123456789       987654321" (数据行)
+                    foundStats = true;
+                    continue;
+                }
+                
+                if (foundStats) {
+                    // 解析数据行: "  123456789       987654321"
+                    String[] parts = line.trim().split("\\s+");
+                    if (parts.length >= 2) {
+                        try {
+                            long received = Long.parseLong(parts[0]);
+                            long sent = Long.parseLong(parts[1]);
+                            
+                            stats.put("networkRecvBytes", received);
+                            stats.put("networkSentBytes", sent);
+                            break;
+                        } catch (NumberFormatException e) {
+                            LogUtil.log("[WARN] Failed to parse netstat output: " + e.getMessage());
+                        }
+                    }
+                }
+            }
+            
+            reader.close();
+            process.waitFor();
+        } catch (Exception e) {
+            LogUtil.log("[WARN] Failed to execute netstat on Windows: " + e.getMessage());
+        }
+        
+        return stats;
     }
     
     private static void writeString(String data, ByteBuf out) {

@@ -25,7 +25,13 @@ public class PlantUmlCallChainGenerator {
         SEQUENCE,       // 时序图
         COMPONENT,      // 组件图
         STATE,          // 状态图
-        MINDMAP         // 思维导图
+        MINDMAP,        // 思维导图
+        OBJECT,         // 对象图
+        DEPLOYMENT,     // 部署图
+        USECASE,        // 用例图
+        TIMING,         // 定时图
+        GANTT,          // 甘特图
+        WBS             // 工作分解结构图
     }
 
     /**
@@ -318,6 +324,18 @@ public class PlantUmlCallChainGenerator {
                 return generateStateDiagram(graph);
             case MINDMAP:
                 return generateMindmapDiagram(graph);
+            case OBJECT:
+                return generateObjectDiagram(graph);
+            case DEPLOYMENT:
+                return generateDeploymentDiagram(graph);
+            case USECASE:
+                return generateUsecaseDiagram(graph);
+            case TIMING:
+                return generateTimingDiagram(graph);
+            case GANTT:
+                return generateGanttDiagram(graph);
+            case WBS:
+                return generateWbsDiagram(graph);
             case ACTIVITY:
             default:
                 return generateActivityDiagram(graph);
@@ -383,13 +401,21 @@ public class PlantUmlCallChainGenerator {
         plantuml.append("@startuml\n");
         plantuml.append("skinparam backgroundColor white\n");
         plantuml.append("skinparam handwritten false\n");
-        plantuml.append("skinparam shadowing false\n");
+        plantuml.append("skinparam shadowing true\n");
         plantuml.append("skinparam activity {\n");
-        plantuml.append("  BackgroundColor #f0f7ff\n");
-        plantuml.append("  BorderColor #667eea\n");
-        plantuml.append("  ArrowColor #667eea\n");
+        plantuml.append("  BackgroundColor #e8f4fd\n");
+        plantuml.append("  BorderColor #2196F3\n");
+        plantuml.append("  ArrowColor #2196F3\n");
+        plantuml.append("  StartColor #4CAF50\n");
+        plantuml.append("  EndColor #F44336\n");
         plantuml.append("}\n");
+        plantuml.append("skinparam noteBackgroundColor #fff9c4\n");
+        plantuml.append("skinparam noteBorderColor #ffc107\n");
         plantuml.append("\n");
+        if (graph.getName() != null && !graph.getName().isEmpty()) {
+            plantuml.append("title ").append(escapeLabel(graph.getName())).append("\n");
+            plantuml.append("\n");
+        }
         plantuml.append("start\n");
         plantuml.append("\n");
 
@@ -405,7 +431,8 @@ public class PlantUmlCallChainGenerator {
                 String edgeKey = sourceLabel + "|" + targetLabel;
 
                 if (sourceLabel.isEmpty() || targetLabel.isEmpty() ||
-                    sourceLabel.length() > 80 || targetLabel.length() > 80) {
+                    sourceLabel.length() > 80 || targetLabel.length() > 80 ||
+                    sourceLabel.equals("->") || targetLabel.equals("->")) {
                     continue;
                 }
 
@@ -447,8 +474,22 @@ public class PlantUmlCallChainGenerator {
         plantuml.append("skinparam handwritten false\n");
         plantuml.append("skinparam sequenceMessageAlign center\n");
         plantuml.append("skinparam noteBackgroundColor #fff9c4\n");
+        plantuml.append("skinparam sequenceParticipant {\n");
+        plantuml.append("  BackgroundColor #e3f2fd\n");
+        plantuml.append("  BorderColor #1976d2\n");
+        plantuml.append("}\n");
+        plantuml.append("skinparam sequenceArrow {\n");
+        plantuml.append("  Color #1976d2\n");
+        plantuml.append("  Thickness 2\n");
+        plantuml.append("}\n");
+        plantuml.append("skinparam boxPadding 10\n");
         plantuml.append("\n");
-        plantuml.append("title 方法调用时序图\n");
+        if (graph.getName() != null && !graph.getName().isEmpty()) {
+            plantuml.append("title ").append(escapeLabel(graph.getName())).append("\n");
+        } else {
+            plantuml.append("title 方法调用时序图\n");
+        }
+        plantuml.append("skinparam maxMessageSize 100\n");
         plantuml.append("\n");
 
         Set<String> participants = new LinkedHashSet<>();
@@ -507,13 +548,19 @@ public class PlantUmlCallChainGenerator {
         plantuml.append("skinparam backgroundColor white\n");
         plantuml.append("skinparam handwritten false\n");
         plantuml.append("skinparam componentStyle rectangle\n");
+        plantuml.append("skinparam shadowing true\n");
         plantuml.append("skinparam component {\n");
         plantuml.append("  BackgroundColor #e3f2fd\n");
         plantuml.append("  BorderColor #1976d2\n");
         plantuml.append("  ArrowColor #1976d2\n");
+        plantuml.append("  LineThickness 2\n");
         plantuml.append("}\n");
         plantuml.append("\n");
-        plantuml.append("title 方法调用组件图\n");
+        if (graph.getName() != null && !graph.getName().isEmpty()) {
+            plantuml.append("title ").append(escapeLabel(graph.getName())).append("\n");
+        } else {
+            plantuml.append("title 方法调用组件图\n");
+        }
         plantuml.append("\n");
 
         Set<String> components = new HashSet<>();
@@ -571,13 +618,18 @@ public class PlantUmlCallChainGenerator {
         plantuml.append("@startuml\n");
         plantuml.append("skinparam backgroundColor white\n");
         plantuml.append("skinparam handwritten false\n");
+        plantuml.append("skinparam shadowing true\n");
         plantuml.append("skinparam state {\n");
-        plantuml.append("  BackgroundColor #e8f5e9\n");
-        plantuml.append("  BorderColor #388e3c\n");
-        plantuml.append("  ArrowColor #388e3c\n");
+        plantuml.append("  BackgroundColor #fff3e0\n");
+        plantuml.append("  BorderColor #f57c00\n");
+        plantuml.append("  ArrowColor #f57c00\n");
         plantuml.append("}\n");
         plantuml.append("\n");
-        plantuml.append("title 方法调用状态图\n");
+        if (graph.getName() != null && !graph.getName().isEmpty()) {
+            plantuml.append("title ").append(escapeLabel(graph.getName())).append("\n");
+        } else {
+            plantuml.append("title 方法调用状态图\n");
+        }
         plantuml.append("\n");
         plantuml.append("[*] --> Start\n");
         plantuml.append("\n");
@@ -646,8 +698,14 @@ public class PlantUmlCallChainGenerator {
         plantuml.append("@startmindmap\n");
         plantuml.append("skinparam backgroundColor white\n");
         plantuml.append("skinparam handwritten false\n");
+        plantuml.append("skinparam mindmapBorderColor #9c27b0\n");
+        plantuml.append("skinparam mindmapBorderThickness 2\n");
         plantuml.append("\n");
-        plantuml.append("title 方法调用思维导图\n");
+        if (graph.getName() != null && !graph.getName().isEmpty()) {
+            plantuml.append("title ").append(escapeLabel(graph.getName())).append("\n");
+        } else {
+            plantuml.append("title 方法调用思维导图\n");
+        }
         plantuml.append("\n");
 
         Map<String, List<String>> tree = new LinkedHashMap<>();
@@ -726,10 +784,21 @@ public class PlantUmlCallChainGenerator {
      * 获取简化的节点标签
      */
     private String getSimpleNodeLabel(FlowNode node) {
+        if (node == null) {
+            return "";
+        }
         if (node.getType() == FlowNode.NodeType.METHOD) {
             String className = node.getClassName() != null ? node.getClassName() : "";
             String methodName = node.getMethodName() != null ? node.getMethodName() : "";
             String displayName = node.getDisplayName() != null ? node.getDisplayName() : methodName;
+
+            // 验证方法名有效
+            if (methodName.isEmpty() || methodName.equals("->") || methodName.contains("->")) {
+                return "";
+            }
+            if (displayName != null && (displayName.equals("->") || displayName.contains("->"))) {
+                return "";
+            }
 
             if (!className.isEmpty()) {
                 String simpleClassName = className;
@@ -743,6 +812,10 @@ public class PlantUmlCallChainGenerator {
         } else {
             String displayName = node.getDisplayName() != null ? node.getDisplayName() : node.getClassName();
             if (displayName != null) {
+                // 验证显示名有效
+                if (displayName.equals("->") || displayName.contains("->")) {
+                    return "";
+                }
                 int lastDot = displayName.lastIndexOf('.');
                 if (lastDot > 0) {
                     return displayName.substring(lastDot + 1);
@@ -756,9 +829,17 @@ public class PlantUmlCallChainGenerator {
      * 获取带描述的节点标签（包含方法名和类名）
      */
     private String getDescriptiveLabel(FlowNode node) {
+        if (node == null) {
+            return "";
+        }
         if (node.getType() == FlowNode.NodeType.METHOD) {
             String className = node.getClassName() != null ? node.getClassName() : "";
             String methodName = node.getMethodName() != null ? node.getMethodName() : "";
+
+            // 验证方法名有效
+            if (methodName.isEmpty() || methodName.equals("->") || methodName.contains("->")) {
+                return "";
+            }
 
             if (!className.isEmpty()) {
                 String simpleClassName = className;
@@ -776,6 +857,10 @@ public class PlantUmlCallChainGenerator {
         } else {
             String displayName = node.getDisplayName() != null ? node.getDisplayName() : node.getClassName();
             if (displayName != null) {
+                // 验证显示名有效
+                if (displayName.equals("->") || displayName.contains("->")) {
+                    return "";
+                }
                 int lastDot = displayName.lastIndexOf('.');
                 if (lastDot > 0) {
                     return displayName.substring(lastDot + 1);
@@ -896,6 +981,355 @@ public class PlantUmlCallChainGenerator {
         }
 
         log.info("PlantUML 方法调用链已保存到: {}", outputFile.getAbsolutePath());
+    }
+
+    /**
+     * 生成对象图格式
+     */
+    private String generateObjectDiagram(FlowGraph graph) {
+        StringBuilder plantuml = new StringBuilder();
+        plantuml.append("@startuml\n");
+        plantuml.append("skinparam backgroundColor white\n");
+        plantuml.append("skinparam object {\n");
+        plantuml.append("  BackgroundColor #e8f5e9\n");
+        plantuml.append("  BorderColor #4CAF50\n");
+        plantuml.append("  ArrowColor #4CAF50\n");
+        plantuml.append("}\n");
+        plantuml.append("\n");
+        if (graph.getName() != null && !graph.getName().isEmpty()) {
+            plantuml.append("title ").append(escapeLabel(graph.getName())).append("\n");
+            plantuml.append("\n");
+        }
+
+        Set<String> processedNodes = new HashSet<>();
+        Set<String> processedEdges = new HashSet<>();
+
+        for (FlowNode node : graph.getAllNodes()) {
+            if (shouldFilterNode(node)) continue;
+            String label = escapeLabel(getSimpleNodeLabel(node));
+            if (label.isEmpty()) continue;
+            String nodeId = getNodeId(node);
+            if (!processedNodes.contains(nodeId)) {
+                plantuml.append("object \"").append(label).append("\" as ").append(nodeId).append("\n");
+                processedNodes.add(nodeId);
+            }
+        }
+
+        plantuml.append("\n");
+
+        for (FlowEdge edge : graph.getEdges()) {
+            if (shouldFilterEdge(edge)) continue;
+            if (edge.getSource() != null && edge.getTarget() != null) {
+                String sourceId = getNodeId(edge.getSource());
+                String targetId = getNodeId(edge.getTarget());
+                String edgeKey = sourceId + "|" + targetId;
+                if (!processedNodes.contains(sourceId) || !processedNodes.contains(targetId)) continue;
+                if (!processedEdges.contains(edgeKey)) {
+                    plantuml.append(sourceId).append(" --> ").append(targetId).append("\n");
+                    processedEdges.add(edgeKey);
+                }
+                if (processedEdges.size() >= 20) break;
+            }
+        }
+
+        plantuml.append("\n@enduml\n");
+        return plantuml.toString();
+    }
+
+    /**
+     * 生成部署图格式
+     */
+    private String generateDeploymentDiagram(FlowGraph graph) {
+        StringBuilder plantuml = new StringBuilder();
+        plantuml.append("@startuml\n");
+        plantuml.append("skinparam backgroundColor white\n");
+        plantuml.append("skinparam node {\n");
+        plantuml.append("  BackgroundColor #e3f2fd\n");
+        plantuml.append("  BorderColor #2196F3\n");
+        plantuml.append("  ArrowColor #2196F3\n");
+        plantuml.append("}\n");
+        plantuml.append("\n");
+        if (graph.getName() != null && !graph.getName().isEmpty()) {
+            plantuml.append("title ").append(escapeLabel(graph.getName())).append("\n");
+            plantuml.append("\n");
+        }
+
+        Set<String> processedNodes = new HashSet<>();
+        Set<String> processedEdges = new HashSet<>();
+        int nodeCount = 0;
+
+        for (FlowNode node : graph.getAllNodes()) {
+            if (shouldFilterNode(node)) continue;
+            String label = escapeLabel(getSimpleNodeLabel(node));
+            if (label.isEmpty()) continue;
+            String nodeId = getNodeId(node);
+            if (!processedNodes.contains(nodeId)) {
+                plantuml.append("node \"").append(label).append("\" as ").append(nodeId).append("\n");
+                processedNodes.add(nodeId);
+                nodeCount++;
+                if (nodeCount >= 10) break;
+            }
+        }
+
+        plantuml.append("\n");
+
+        for (FlowEdge edge : graph.getEdges()) {
+            if (shouldFilterEdge(edge)) continue;
+            if (edge.getSource() != null && edge.getTarget() != null) {
+                String sourceId = getNodeId(edge.getSource());
+                String targetId = getNodeId(edge.getTarget());
+                String edgeKey = sourceId + "|" + targetId;
+                if (!processedNodes.contains(sourceId) || !processedNodes.contains(targetId)) continue;
+                if (!processedEdges.contains(edgeKey)) {
+                    plantuml.append(sourceId).append(" --> ").append(targetId).append("\n");
+                    processedEdges.add(edgeKey);
+                }
+                if (processedEdges.size() >= 15) break;
+            }
+        }
+
+        plantuml.append("\n@enduml\n");
+        return plantuml.toString();
+    }
+
+    /**
+     * 生成用例图格式
+     */
+    private String generateUsecaseDiagram(FlowGraph graph) {
+        StringBuilder plantuml = new StringBuilder();
+        plantuml.append("@startuml\n");
+        plantuml.append("skinparam backgroundColor white\n");
+        plantuml.append("skinparam usecase {\n");
+        plantuml.append("  BackgroundColor #fff3e0\n");
+        plantuml.append("  BorderColor #FF9800\n");
+        plantuml.append("  ArrowColor #FF9800\n");
+        plantuml.append("}\n");
+        plantuml.append("left to right direction\n");
+        plantuml.append("\n");
+        if (graph.getName() != null && !graph.getName().isEmpty()) {
+            plantuml.append("title ").append(escapeLabel(graph.getName())).append("\n");
+            plantuml.append("\n");
+        }
+
+        Set<String> processedNodes = new HashSet<>();
+        Set<String> processedEdges = new HashSet<>();
+        int usecaseCount = 0;
+
+        plantuml.append("actor User\n");
+        plantuml.append("\n");
+        plantuml.append("rectangle System {\n");
+
+        for (FlowNode node : graph.getAllNodes()) {
+            if (shouldFilterNode(node)) continue;
+            String label = escapeLabel(getSimpleNodeLabel(node));
+            if (label.isEmpty()) continue;
+            String nodeId = getNodeId(node);
+            if (!processedNodes.contains(nodeId)) {
+                plantuml.append("  usecase \"").append(label).append("\" as ").append(nodeId).append("\n");
+                processedNodes.add(nodeId);
+                usecaseCount++;
+                if (usecaseCount >= 10) break;
+            }
+        }
+
+        plantuml.append("}\n");
+        plantuml.append("\n");
+
+        if (!processedNodes.isEmpty()) {
+            String firstNode = processedNodes.iterator().next();
+            plantuml.append("User --> ").append(firstNode).append("\n");
+        }
+
+        for (FlowEdge edge : graph.getEdges()) {
+            if (shouldFilterEdge(edge)) continue;
+            if (edge.getSource() != null && edge.getTarget() != null) {
+                String sourceId = getNodeId(edge.getSource());
+                String targetId = getNodeId(edge.getTarget());
+                String edgeKey = sourceId + "|" + targetId;
+                if (!processedNodes.contains(sourceId) || !processedNodes.contains(targetId)) continue;
+                if (!processedEdges.contains(edgeKey)) {
+                    plantuml.append(sourceId).append(" --> ").append(targetId).append("\n");
+                    processedEdges.add(edgeKey);
+                }
+                if (processedEdges.size() >= 15) break;
+            }
+        }
+
+        plantuml.append("\n@enduml\n");
+        return plantuml.toString();
+    }
+
+    /**
+     * 生成定时图格式
+     */
+    private String generateTimingDiagram(FlowGraph graph) {
+        StringBuilder plantuml = new StringBuilder();
+        plantuml.append("@startuml\n");
+        plantuml.append("skinparam backgroundColor white\n");
+        plantuml.append("skinparam sequenceMessageAlign center\n");
+        plantuml.append("\n");
+        if (graph.getName() != null && !graph.getName().isEmpty()) {
+            plantuml.append("title ").append(escapeLabel(graph.getName())).append("\n");
+            plantuml.append("\n");
+        }
+
+        Set<String> participants = new LinkedHashSet<>();
+        List<String> nodeLabels = new ArrayList<>();
+
+        for (FlowNode node : graph.getAllNodes()) {
+            if (shouldFilterNode(node)) continue;
+            String label = escapeLabel(getSimpleNodeLabel(node));
+            if (label.isEmpty()) continue;
+            if (!participants.contains(label)) {
+                participants.add(label);
+                nodeLabels.add(label);
+                if (participants.size() >= 5) break;
+            }
+        }
+
+        for (String p : nodeLabels) {
+            plantuml.append("concise \"").append(p).append("\" as p_")
+                    .append(Math.abs(p.hashCode())).append("\n");
+        }
+
+        plantuml.append("\n");
+
+        if (nodeLabels.size() >= 2) {
+            plantuml.append("@0\n");
+            for (String p : nodeLabels) {
+                plantuml.append("p_").append(Math.abs(p.hashCode())).append(" is Idle\n");
+            }
+            plantuml.append("\n");
+
+            plantuml.append("@100\n");
+            String first = nodeLabels.get(0);
+            String second = nodeLabels.get(1);
+            plantuml.append("p_").append(Math.abs(first.hashCode()))
+                    .append(" -> p_").append(Math.abs(second.hashCode()))
+                    .append(" : call\n");
+            plantuml.append("p_").append(Math.abs(second.hashCode())).append(" is Active\n");
+            plantuml.append("\n");
+
+            plantuml.append("@200\n");
+            plantuml.append("p_").append(Math.abs(second.hashCode())).append(" is Idle\n");
+            if (nodeLabels.size() >= 2) {
+                plantuml.append("p_").append(Math.abs(second.hashCode()))
+                        .append(" -> p_").append(Math.abs(first.hashCode()))
+                        .append(" : return\n");
+            }
+        }
+
+        plantuml.append("\n@enduml\n");
+        return plantuml.toString();
+    }
+
+    /**
+     * 生成甘特图格式
+     */
+    private String generateGanttDiagram(FlowGraph graph) {
+        StringBuilder plantuml = new StringBuilder();
+        plantuml.append("@startgantt\n");
+        plantuml.append("Project starts 2024-01-01\n");
+        plantuml.append("skinparam backgroundColor white\n");
+        plantuml.append("\n");
+        if (graph.getName() != null && !graph.getName().isEmpty()) {
+            plantuml.append("title ").append(escapeLabel(graph.getName())).append("\n");
+            plantuml.append("\n");
+        }
+
+        List<String> tasks = new ArrayList<>();
+        for (FlowNode node : graph.getAllNodes()) {
+            if (shouldFilterNode(node)) continue;
+            String label = getSimpleNodeLabel(node);
+            if (label.isEmpty()) continue;
+            // 清理标签，只保留安全字符
+            label = label.replaceAll("[^a-zA-Z0-9\\s]", "");
+            label = label.trim();
+            if (label.isEmpty() || label.length() > 50) {
+                label = "Task " + (tasks.size() + 1);
+            }
+            if (!tasks.contains(label)) {
+                tasks.add(label);
+                if (tasks.size() >= 5) break;
+            }
+        }
+
+        // 如果没有任务，添加一个默认任务
+        if (tasks.isEmpty()) {
+            tasks.add("Method Call Analysis");
+        }
+
+        for (int i = 0; i < tasks.size(); i++) {
+            String task = tasks.get(i);
+            int duration = Math.max(1, (i % 3) + 1);
+            plantuml.append("[").append(task).append("] lasts ").append(duration).append(" days\n");
+            if (i > 0) {
+                String prevTask = tasks.get(i - 1);
+                plantuml.append("[").append(task).append("] starts at [").append(prevTask).append("]'s end\n");
+            }
+        }
+
+        plantuml.append("\n@endgantt\n");
+        return plantuml.toString();
+    }
+
+    /**
+     * 生成 WBS 图格式
+     */
+    private String generateWbsDiagram(FlowGraph graph) {
+        StringBuilder plantuml = new StringBuilder();
+        plantuml.append("@startwbs\n");
+        plantuml.append("skinparam backgroundColor white\n");
+        plantuml.append("\n");
+        if (graph.getName() != null && !graph.getName().isEmpty()) {
+            plantuml.append("title ").append(escapeLabel(graph.getName())).append("\n");
+            plantuml.append("\n");
+        }
+
+        plantuml.append("* 方法调用链\n");
+
+        Set<String> level1 = new LinkedHashSet<>();
+        Map<String, Set<String>> level2 = new HashMap<>();
+
+        for (FlowNode node : graph.getAllNodes()) {
+            if (shouldFilterNode(node)) continue;
+            String className = node.getClassName();
+            String methodName = node.getMethodName();
+            if (className != null && !className.isEmpty()) {
+                String simpleClassName = className;
+                int lastDot = className.lastIndexOf('.');
+                if (lastDot > 0) {
+                    simpleClassName = className.substring(lastDot + 1);
+                }
+                level1.add(simpleClassName);
+                if (methodName != null && !methodName.isEmpty()) {
+                    level2.computeIfAbsent(simpleClassName, k -> new LinkedHashSet<>()).add(methodName);
+                }
+            }
+        }
+
+        int l1Count = 0;
+        for (String cls : level1) {
+            plantuml.append("** ").append(cls).append("\n");
+            Set<String> methods = level2.get(cls);
+            if (methods != null) {
+                int l2Count = 0;
+                for (String m : methods) {
+                    plantuml.append("*** ").append(m).append("\n");
+                    l2Count++;
+                    if (l2Count >= 3) break;
+                }
+            }
+            l1Count++;
+            if (l1Count >= 5) break;
+        }
+
+        if (level1.isEmpty()) {
+            plantuml.append("** 调用关系分析\n");
+        }
+
+        plantuml.append("\n@endwbs\n");
+        return plantuml.toString();
     }
 
     /**

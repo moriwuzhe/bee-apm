@@ -6,7 +6,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 流程图节点
@@ -17,55 +19,62 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class FlowNode {
-    
+
     /**
      * 节点唯一标识
      */
     private String id;
-    
+
     /**
-     * 节点类型：CLASS, METHOD
+     * 节点类型：CLASS, METHOD, EXTERNAL
      */
     private NodeType type;
-    
+
     /**
      * 类名（全限定名）
      */
     private String className;
-    
+
     /**
      * 方法名（如果是方法节点）
      */
     private String methodName;
-    
+
     /**
      * 方法签名（如果是方法节点）
      */
     private String methodSignature;
-    
+
     /**
      * 节点显示名称
      */
     private String displayName;
-    
+
     /**
      * 子节点（被调用的方法）
      */
     @Builder.Default
     private List<FlowEdge> outgoingEdges = new ArrayList<>();
-    
+
     /**
      * 父节点（调用此方法的方法）
      */
     @Builder.Default
     private List<FlowEdge> incomingEdges = new ArrayList<>();
-    
+
+    /**
+     * 元数据（用于存储额外信息）
+     */
+    @Builder.Default
+    private Map<String, Object> metadata = new HashMap<>();
+
     /**
      * 节点类型枚举
      */
     public enum NodeType {
         CLASS,
-        METHOD
+        METHOD,
+        EXTERNAL
     }
     
     /**

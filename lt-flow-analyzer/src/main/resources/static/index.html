@@ -1013,16 +1013,18 @@ public class TestClass {
                 let url;
                 const requestBody = { code: code };
 
+                // 过滤选项作为全局配置，所有流程图类型都发送
+                requestBody.excludeJdk = document.getElementById('filterJdk').checked;
+                requestBody.excludeLogging = document.getElementById('filterLogging').checked;
+                requestBody.excludeGetterSetter = document.getElementById('filterGetterSetter').checked;
+                requestBody.excludeConstructors = document.getElementById('filterConstructors').checked;
+                requestBody.excludeBuilderMethods = document.getElementById('filterBuilderMethods').checked;
+                requestBody.excludeLombokMethods = document.getElementById('filterLombokMethods').checked;
+                requestBody.excludeLt = document.getElementById('filterLt').checked;
+
                 if (flowType === 'callChain') {
                     url = '/api/flow/parse/code-enhanced';
                     requestBody.style = callChainStyle;
-                    requestBody.excludeJdk = document.getElementById('filterJdk').checked;
-                    requestBody.excludeLogging = document.getElementById('filterLogging').checked;
-                    requestBody.excludeGetterSetter = document.getElementById('filterGetterSetter').checked;
-                    requestBody.excludeConstructors = document.getElementById('filterConstructors').checked;
-                    requestBody.excludeBuilderMethods = document.getElementById('filterBuilderMethods').checked;
-                    requestBody.excludeLombokMethods = document.getElementById('filterLombokMethods').checked;
-                    requestBody.excludeLt = document.getElementById('filterLt').checked;
                 } else if (flowType === 'umlClass') {
                     url = '/api/flow/uml/parse/code';
                 } else if (flowType === 'sequence') {

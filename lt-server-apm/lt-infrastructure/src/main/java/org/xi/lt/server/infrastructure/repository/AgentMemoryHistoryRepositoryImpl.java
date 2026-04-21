@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 import org.xi.lt.server.domain.model.agent.AgentMemoryMetrics;
 import org.xi.lt.server.domain.repository.AgentMemoryHistoryRepository;
 
+import javax.annotation.PostConstruct;
 import java.sql.Timestamp;
 import java.util.List;
 
@@ -17,13 +18,8 @@ public class AgentMemoryHistoryRepositoryImpl implements AgentMemoryHistoryRepos
 
     @PostConstruct
     public void init() {
-        try {
-            // 强制删除旧表，确保下次启动时 schema-h2.sql 能创建最新结构的表
-            jdbcTemplate.execute("DROP TABLE IF EXISTS agent_memory_history");
-            System.out.println("[DIAG] Old agent_memory_history table dropped. Will be recreated by schema-h2.sql on next startup.");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        // 不再手动删表，依赖 schema-h2.sql 自动初始化
+        System.out.println("[DIAG] AgentMemoryHistoryRepository initialized.");
     }
     
     @Override

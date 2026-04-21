@@ -525,7 +525,15 @@ public class FlowAnalyzerController {
      * 上传文件并生成 UML 类图
      */
     @PostMapping("/uml/upload/file")
-    public Map<String, Object> uploadAndGenerateUmlClassDiagram(@RequestParam("file") MultipartFile file) {
+    public Map<String, Object> uploadAndGenerateUmlClassDiagram(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "excludeJdk", required = false, defaultValue = "true") boolean excludeJdk,
+            @RequestParam(value = "excludeLogging", required = false, defaultValue = "true") boolean excludeLogging,
+            @RequestParam(value = "excludeGetterSetter", required = false, defaultValue = "true") boolean excludeGetterSetter,
+            @RequestParam(value = "excludeConstructors", required = false, defaultValue = "true") boolean excludeConstructors,
+            @RequestParam(value = "excludeBuilderMethods", required = false, defaultValue = "true") boolean excludeBuilderMethods,
+            @RequestParam(value = "excludeLombokMethods", required = false, defaultValue = "true") boolean excludeLombokMethods,
+            @RequestParam(value = "excludeLt", required = false, defaultValue = "true") boolean excludeLt) {
         log.info("收到 UML 类图文件上传请求: {}", file.getOriginalFilename());
 
         Map<String, Object> result = new HashMap<>();
@@ -545,8 +553,19 @@ public class FlowAnalyzerController {
 
             log.info("文件保存成功: {}", savedFilePath);
 
+            // 构建过滤配置
+            StaticFilterConfig filterConfig = StaticFilterConfig.defaultConfig();
+            filterConfig.setExcludeJdk(excludeJdk);
+            filterConfig.setExcludeLogging(excludeLogging);
+            filterConfig.setExcludeGetterSetter(excludeGetterSetter);
+            filterConfig.setExcludeConstructors(excludeConstructors);
+            filterConfig.setExcludeBuilderMethods(excludeBuilderMethods);
+            filterConfig.setExcludeLombokMethods(excludeLombokMethods);
+            filterConfig.setExcludeLt(excludeLt);
+
             // 解析文件，生成 UML 类图
-            UmlClassDiagram diagram = umlParser.parseFile(savedFilePath.toFile());
+            UmlClassParser umlParserWithConfig = new UmlClassParser(filterConfig);
+            UmlClassDiagram diagram = umlParserWithConfig.parseFile(savedFilePath.toFile());
 
             // 生成 PlantUML 格式
             String plantUmlContent = umlGenerator.generatePlantUml(diagram);
@@ -593,18 +612,34 @@ public class FlowAnalyzerController {
      * 直接解析代码并生成 UML 类图
      */
     @PostMapping("/uml/parse/code")
-    public Map<String, Object> parseCodeAndGenerateUml(@RequestBody Map<String, String> request) {
+    public Map<String, Object> parseCodeAndGenerateUml(@RequestBody Map<String, Object> request) {
         log.info("收到 UML 类图代码解析请求");
 
         Map<String, Object> result = new HashMap<>();
 
         try {
-            String code = request.get("code");
+            String code = (String) request.get("code");
             if (code == null || code.trim().isEmpty()) {
                 result.put("success", false);
                 result.put("message", "代码不能为空");
                 return result;
             }
+
+            // 提取过滤参数
+            Boolean excludeJdkObj = request.get("excludeJdk") != null ? (Boolean) request.get("excludeJdk") : true;
+            boolean excludeJdk = excludeJdkObj != null ? excludeJdkObj : true;
+            Boolean excludeLoggingObj = request.get("excludeLogging") != null ? (Boolean) request.get("excludeLogging") : true;
+            boolean excludeLogging = excludeLoggingObj != null ? excludeLoggingObj : true;
+            Boolean excludeGetterSetterObj = request.get("excludeGetterSetter") != null ? (Boolean) request.get("excludeGetterSetter") : true;
+            boolean excludeGetterSetter = excludeGetterSetterObj != null ? excludeGetterSetterObj : true;
+            Boolean excludeConstructorsObj = request.get("excludeConstructors") != null ? (Boolean) request.get("excludeConstructors") : true;
+            boolean excludeConstructors = excludeConstructorsObj != null ? excludeConstructorsObj : true;
+            Boolean excludeBuilderMethodsObj = request.get("excludeBuilderMethods") != null ? (Boolean) request.get("excludeBuilderMethods") : true;
+            boolean excludeBuilderMethods = excludeBuilderMethodsObj != null ? excludeBuilderMethodsObj : true;
+            Boolean excludeLombokMethodsObj = request.get("excludeLombokMethods") != null ? (Boolean) request.get("excludeLombokMethods") : true;
+            boolean excludeLombokMethods = excludeLombokMethodsObj != null ? excludeLombokMethodsObj : true;
+            Boolean excludeLtObj = request.get("excludeLt") != null ? (Boolean) request.get("excludeLt") : true;
+            boolean excludeLt = excludeLtObj != null ? excludeLtObj : true;
 
             // 创建临时文件
             Path tempDir = Paths.get(uploadDir);
@@ -616,8 +651,19 @@ public class FlowAnalyzerController {
             Path tempFile = tempDir.resolve(tempFilename);
             Files.write(tempFile, code.getBytes("UTF-8"));
 
+            // 构建过滤配置
+            StaticFilterConfig filterConfig = StaticFilterConfig.defaultConfig();
+            filterConfig.setExcludeJdk(excludeJdk);
+            filterConfig.setExcludeLogging(excludeLogging);
+            filterConfig.setExcludeGetterSetter(excludeGetterSetter);
+            filterConfig.setExcludeConstructors(excludeConstructors);
+            filterConfig.setExcludeBuilderMethods(excludeBuilderMethods);
+            filterConfig.setExcludeLombokMethods(excludeLombokMethods);
+            filterConfig.setExcludeLt(excludeLt);
+
             // 解析文件，生成 UML 类图
-            UmlClassDiagram diagram = umlParser.parseFile(tempFile.toFile());
+            UmlClassParser umlParserWithConfig = new UmlClassParser(filterConfig);
+            UmlClassDiagram diagram = umlParserWithConfig.parseFile(tempFile.toFile());
 
             // 生成 PlantUML 格式
             String plantUmlContent = umlGenerator.generatePlantUml(diagram);
@@ -663,7 +709,15 @@ public class FlowAnalyzerController {
      * 上传文件并生成 UML 时序图
      */
     @PostMapping("/sequence/upload/file")
-    public Map<String, Object> uploadAndGenerateSequenceDiagram(@RequestParam("file") MultipartFile file) {
+    public Map<String, Object> uploadAndGenerateSequenceDiagram(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "excludeJdk", required = false, defaultValue = "true") boolean excludeJdk,
+            @RequestParam(value = "excludeLogging", required = false, defaultValue = "true") boolean excludeLogging,
+            @RequestParam(value = "excludeGetterSetter", required = false, defaultValue = "true") boolean excludeGetterSetter,
+            @RequestParam(value = "excludeConstructors", required = false, defaultValue = "true") boolean excludeConstructors,
+            @RequestParam(value = "excludeBuilderMethods", required = false, defaultValue = "true") boolean excludeBuilderMethods,
+            @RequestParam(value = "excludeLombokMethods", required = false, defaultValue = "true") boolean excludeLombokMethods,
+            @RequestParam(value = "excludeLt", required = false, defaultValue = "true") boolean excludeLt) {
         log.info("收到 UML 时序图文件上传请求: {}", file.getOriginalFilename());
 
         Map<String, Object> result = new HashMap<>();
@@ -683,8 +737,19 @@ public class FlowAnalyzerController {
 
             log.info("文件保存成功: {}", savedFilePath);
 
+            // 构建过滤配置
+            StaticFilterConfig filterConfig = StaticFilterConfig.defaultConfig();
+            filterConfig.setExcludeJdk(excludeJdk);
+            filterConfig.setExcludeLogging(excludeLogging);
+            filterConfig.setExcludeGetterSetter(excludeGetterSetter);
+            filterConfig.setExcludeConstructors(excludeConstructors);
+            filterConfig.setExcludeBuilderMethods(excludeBuilderMethods);
+            filterConfig.setExcludeLombokMethods(excludeLombokMethods);
+            filterConfig.setExcludeLt(excludeLt);
+
             // 解析文件，生成调用链 FlowGraph
-            FlowGraph graph = parser.parseFile(savedFilePath.toFile());
+            EnhancedJavaCodeParser parserWithConfig = new EnhancedJavaCodeParser(filterConfig);
+            FlowGraph graph = parserWithConfig.parseFile(savedFilePath.toFile());
 
             // 转换为时序图
             UmlSequenceDiagram diagram = sequenceConverter.convert(graph);
@@ -734,18 +799,34 @@ public class FlowAnalyzerController {
      * 直接解析代码并生成 UML 时序图
      */
     @PostMapping("/sequence/parse/code")
-    public Map<String, Object> parseCodeAndGenerateSequence(@RequestBody Map<String, String> request) {
+    public Map<String, Object> parseCodeAndGenerateSequence(@RequestBody Map<String, Object> request) {
         log.info("收到 UML 时序图代码解析请求");
 
         Map<String, Object> result = new HashMap<>();
 
         try {
-            String code = request.get("code");
+            String code = (String) request.get("code");
             if (code == null || code.trim().isEmpty()) {
                 result.put("success", false);
                 result.put("message", "代码不能为空");
                 return result;
             }
+
+            // 提取过滤参数
+            Boolean excludeJdkObj = request.get("excludeJdk") != null ? (Boolean) request.get("excludeJdk") : true;
+            boolean excludeJdk = excludeJdkObj != null ? excludeJdkObj : true;
+            Boolean excludeLoggingObj = request.get("excludeLogging") != null ? (Boolean) request.get("excludeLogging") : true;
+            boolean excludeLogging = excludeLoggingObj != null ? excludeLoggingObj : true;
+            Boolean excludeGetterSetterObj = request.get("excludeGetterSetter") != null ? (Boolean) request.get("excludeGetterSetter") : true;
+            boolean excludeGetterSetter = excludeGetterSetterObj != null ? excludeGetterSetterObj : true;
+            Boolean excludeConstructorsObj = request.get("excludeConstructors") != null ? (Boolean) request.get("excludeConstructors") : true;
+            boolean excludeConstructors = excludeConstructorsObj != null ? excludeConstructorsObj : true;
+            Boolean excludeBuilderMethodsObj = request.get("excludeBuilderMethods") != null ? (Boolean) request.get("excludeBuilderMethods") : true;
+            boolean excludeBuilderMethods = excludeBuilderMethodsObj != null ? excludeBuilderMethodsObj : true;
+            Boolean excludeLombokMethodsObj = request.get("excludeLombokMethods") != null ? (Boolean) request.get("excludeLombokMethods") : true;
+            boolean excludeLombokMethods = excludeLombokMethodsObj != null ? excludeLombokMethodsObj : true;
+            Boolean excludeLtObj = request.get("excludeLt") != null ? (Boolean) request.get("excludeLt") : true;
+            boolean excludeLt = excludeLtObj != null ? excludeLtObj : true;
 
             // 创建临时文件
             Path tempDir = Paths.get(uploadDir);
@@ -757,8 +838,19 @@ public class FlowAnalyzerController {
             Path tempFile = tempDir.resolve(tempFilename);
             Files.write(tempFile, code.getBytes("UTF-8"));
 
+            // 构建过滤配置
+            StaticFilterConfig filterConfig = StaticFilterConfig.defaultConfig();
+            filterConfig.setExcludeJdk(excludeJdk);
+            filterConfig.setExcludeLogging(excludeLogging);
+            filterConfig.setExcludeGetterSetter(excludeGetterSetter);
+            filterConfig.setExcludeConstructors(excludeConstructors);
+            filterConfig.setExcludeBuilderMethods(excludeBuilderMethods);
+            filterConfig.setExcludeLombokMethods(excludeLombokMethods);
+            filterConfig.setExcludeLt(excludeLt);
+
             // 解析文件，生成调用链 FlowGraph
-            FlowGraph graph = parser.parseFile(tempFile.toFile());
+            EnhancedJavaCodeParser parserWithConfig = new EnhancedJavaCodeParser(filterConfig);
+            FlowGraph graph = parserWithConfig.parseFile(tempFile.toFile());
 
             // 转换为时序图
             UmlSequenceDiagram diagram = sequenceConverter.convert(graph);

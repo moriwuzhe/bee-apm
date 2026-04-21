@@ -8,6 +8,7 @@ import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.type.Type;
 import lombok.extern.slf4j.Slf4j;
 import org.xi.lt.flow.model.UmlClassDiagram;
+import org.xi.lt.flow.staticfilter.StaticFilterConfig;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -21,38 +22,44 @@ import java.util.Optional;
  */
 @Slf4j
 public class UmlClassParser {
-    
+
     private final JavaParser javaParser;
-    
+    private final StaticFilterConfig filterConfig;
+
     public UmlClassParser() {
-        this.javaParser = new JavaParser();
+        this(StaticFilterConfig.defaultConfig());
     }
-    
+
+    public UmlClassParser(StaticFilterConfig filterConfig) {
+        this.javaParser = new JavaParser();
+        this.filterConfig = filterConfig;
+    }
+
     /**
      * 解析单个 Java 文件，生成 UML 类图
      */
     public UmlClassDiagram parseFile(File javaFile) throws FileNotFoundException {
         log.info("开始解析 UML 类图: {}", javaFile.getAbsolutePath());
-        
+
         ParseResult<CompilationUnit> result = javaParser.parse(javaFile);
         if (!result.isSuccessful() || !result.getResult().isPresent()) {
             log.error("解析文件失败: {}", javaFile.getAbsolutePath());
             throw new RuntimeException("无法解析文件: " + javaFile.getAbsolutePath());
         }
-        
+
         CompilationUnit cu = result.getResult().get();
         UmlClassDiagram diagram = UmlClassDiagram.builder()
                 .name(javaFile.getName())
                 .description("从文件 " + javaFile.getAbsolutePath() + " 生成的 UML 类图")
                 .build();
-        
+
         // 提取所有类和接口
         extractClassesAndInterfaces(cu, diagram);
-        
+
         // 提取类之间的关系
         extractRelationships(cu, diagram);
-        
-        log.info("UML 类图解析完成！类数: {}, 关系数: {}", 
+
+        log.info("UML 类图解析完成！类数: {}, 关系数: {}",
                 diagram.getClasses().size(), diagram.getRelationships().size());
         return diagram;
     }
@@ -109,42 +116,52 @@ public class UmlClassParser {
         clazz.getFields().forEach(field -> {
             field.getVariables().forEach(variable -> {
                 UmlClassDiagram.UmlAttribute attribute = new UmlClassDiagram.UmlAttribute();
-                
+
                 // 设置可见性
                 attribute.setVisibility(getVisibility(field));
-                
+
                 // 设置属性名和类型
                 attribute.setName(variable.getNameAsString());
                 attribute.setType(variable.getTypeAsString());
-                
+
                 // 设置是否静态
                 attribute.setStatic(field.isStatic());
-                
+
                 umlClass.addAttribute(attribute);
             });
         });
     }
-    
+
     /**
      * 提取方法
      */
     private void extractMethods(ClassOrInterfaceDeclaration clazz, UmlClassDiagram.UmlClass umlClass) {
+        String className = umlClass.getClassName();
+
         clazz.getMethods().forEach(method -> {
+            String methodName = method.getNameAsString();
+
+            // 应用过滤配置
+            if (!filterConfig.shouldIncludeMethod(methodName, className)) {
+                log.debug("跳过方法: {}#{}", className, methodName);
+                return;
+            }
+
             UmlClassDiagram.UmlMethod umlMethod = new UmlClassDiagram.UmlMethod();
-            
+
             // 设置可见性
             umlMethod.setVisibility(getVisibility(method));
-            
+
             // 设置方法名
-            umlMethod.setName(method.getNameAsString());
-            
+            umlMethod.setName(methodName);
+
             // 设置返回类型
             umlMethod.setReturnType(method.getTypeAsString());
-            
+
             // 设置是否静态和抽象
             umlMethod.setStatic(method.isStatic());
             umlMethod.setAbstract(method.isAbstract());
-            
+
             // 提取参数
             method.getParameters().forEach(param -> {
                 UmlClassDiagram.UmlParameter parameter = new UmlClassDiagram.UmlParameter();
@@ -152,7 +169,7 @@ public class UmlClassParser {
                 parameter.setType(param.getTypeAsString());
                 umlMethod.addParameter(parameter);
             });
-            
+
             umlClass.addMethod(umlMethod);
         });
     }

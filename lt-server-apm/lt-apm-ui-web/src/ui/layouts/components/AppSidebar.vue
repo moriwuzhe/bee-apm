@@ -25,22 +25,22 @@ const menuData: MenuItem[] = [
   { path: '/agent-monitor', title: '实时监控', icon: DataLine },
   { path: '/project', title: '项目管理', icon: Tickets },
   { path: '/application', title: '应用管理', icon: Connection },
+  { path: '/agent', title: 'Agent管理', icon: Setting },
+  { path: '/plugin', title: '插件管理', icon: Tools },
+  
+  // JVM历史监控独立分组
+  { divider: true, title: '──────────────' },
   {
-    path: '/agent',
-    title: 'Agent管理',
-    icon: Setting,
+    title: '📊 JVM历史监控',
+    icon: Monitor,
     children: [
-      { path: '/agent', title: 'Agent列表' },
-      { divider: true, title: '──────────────' },
-      { title: '📊 历史监控', icon: DataLine },
-      { path: '/agent/jvm/memory', title: 'JVM内存监控', icon: Monitor },
-      { path: '/agent/jvm/gc', title: 'JVM GC分析', icon: DataLine },
-      { path: '/agent/jvm/thread', title: 'JVM线程监控', icon: Connection },
-      { path: '/agent/jvm/cpu', title: 'JVM CPU监控', icon: Cpu },
-      { path: '/agent/jvm/advanced', title: 'JVM高级监控', icon: Tools },
+      { path: '/agent/jvm/memory', title: '内存监控', icon: Monitor },
+      { path: '/agent/jvm/gc', title: 'GC分析', icon: DataLine },
+      { path: '/agent/jvm/thread', title: '线程监控', icon: Connection },
+      { path: '/agent/jvm/cpu', title: 'CPU监控', icon: Cpu },
+      { path: '/agent/jvm/advanced', title: '高级监控', icon: Tools },
     ],
   },
-  { path: '/plugin', title: '插件管理', icon: Tools },
 ]
 
 // 当前激活的菜单
@@ -187,6 +187,41 @@ const isCategoryHeader = (item: MenuItem) => !item.path && !item.divider && !ite
   background: transparent;
 }
 
+/* 子菜单容器背景色 - 修复白色背景问题 */
+.menu-inner :deep(.el-sub-menu) {
+  background: transparent;
+}
+
+.menu-inner :deep(.el-sub-menu .el-menu) {
+  background: transparent !important;
+}
+
+/* 子菜单容器背景色 */
+.menu-inner :deep(.el-sub-menu) {
+  background: transparent;
+}
+
+/* 子菜单下拉容器背景 */
+.menu-inner :deep(.el-sub-menu .el-menu) {
+  background: transparent !important;
+}
+
+/* 子菜单容器背景色 */
+.menu-inner :deep(.el-sub-menu) {
+  background: transparent !important;
+}
+
+.menu-inner :deep(.el-sub-menu .el-menu) {
+  background: transparent !important;
+}
+
+/* 强制覆盖子菜单所有元素的背景色 */
+.sidebar .menu .menu-inner :deep(.el-sub-menu),
+.sidebar .menu .menu-inner :deep(.el-sub-menu .el-menu),
+.sidebar .menu .menu-inner :deep(.el-sub-menu__hide-arrow) {
+  background: transparent !important;
+}
+
 .menu-divider {
   padding: 8px 12px;
   font-size: 11px;
@@ -195,7 +230,43 @@ const isCategoryHeader = (item: MenuItem) => !item.path && !item.divider && !ite
 }
 
 .sub-menu-item {
-  padding-left: 20px !important;
+  padding-left: 28px !important;
+  font-size: 13px;
+}
+
+/* 子菜单标题样式 */
+.menu-inner :deep(.el-sub-menu__title) {
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+/* 子菜单展开后的子项样式 */
+.menu-inner :deep(.el-sub-menu .el-menu-item) {
+  background: rgba(255, 255, 255, 0.02);
+  margin: 2px 8px;
+  border-radius: 6px;
+}
+
+.menu-inner :deep(.el-sub-menu .el-menu-item:hover) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.menu-inner :deep(.el-sub-menu .el-menu-item.is-active) {
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--sidebar-text-active);
+}
+
+/* 子菜单的左侧指示条 */
+.menu-inner :deep(.el-sub-menu.is-opened > .el-sub-menu__title) {
+  color: var(--sidebar-text-active);
+}
+
+/* 修复子菜单白色背景问题 - 强制覆盖所有子菜单相关元素 */
+.sidebar .menu .menu-inner :deep(.el-sub-menu),
+.sidebar .menu .menu-inner :deep(.el-sub-menu .el-menu),
+.sidebar .menu .menu-inner :deep(.el-menu--popup) {
+  background: transparent !important;
 }
 
 .sub-divider-text {

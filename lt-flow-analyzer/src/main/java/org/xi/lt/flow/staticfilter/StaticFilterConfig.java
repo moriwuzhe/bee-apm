@@ -114,6 +114,36 @@ public class StaticFilterConfig {
     private boolean excludeLt = true;
 
     /**
+     * 是否过滤测试方法（test*, should*, when* 等）
+     */
+    @Builder.Default
+    private boolean excludeTestMethods = false;
+
+    /**
+     * 是否过滤静态方法
+     */
+    @Builder.Default
+    private boolean excludeStaticMethods = false;
+
+    /**
+     * 是否过滤私有方法
+     */
+    @Builder.Default
+    private boolean excludePrivateMethods = false;
+
+    /**
+     * 是否过滤集合相关方法
+     */
+    @Builder.Default
+    private boolean excludeCollectionMethods = false;
+
+    /**
+     * 是否过滤 String 相关方法
+     */
+    @Builder.Default
+    private boolean excludeStringMethods = false;
+
+    /**
      * 访问修饰符枚举
      */
     public enum Modifier {
@@ -272,6 +302,21 @@ public class StaticFilterConfig {
 
         // 7. 检查通用方法
         if (excludeCommonMethods && DefaultFilters.COMMON_OBJECT_METHODS.contains(methodName)) {
+            return false;
+        }
+
+        // 8. 检查测试方法
+        if (excludeTestMethods && DefaultFilters.isTestMethod(methodName)) {
+            return false;
+        }
+
+        // 9. 检查集合方法
+        if (excludeCollectionMethods && DefaultFilters.COLLECTION_METHOD_NAMES.contains(methodName)) {
+            return false;
+        }
+
+        // 10. 检查 String 方法
+        if (excludeStringMethods && DefaultFilters.STRING_METHOD_NAMES.contains(methodName)) {
             return false;
         }
 

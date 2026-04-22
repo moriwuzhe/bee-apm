@@ -50,3 +50,8 @@ export async function deletePlugin(pluginCode: string) {
   const res = await http.post('/api/plugin/admin/delete', null, { params: { pluginCode } })
   return res.data
 }
+
+export async function downloadPlugin(pluginCode: string) {
+  const res = await http.get<{ data: string }>('/api/plugin/download', { params: { pluginCode } })
+  return res.data?.data
+}

@@ -1,0 +1,63 @@
+@startuml
+skinparam backgroundColor #ffffff
+skinparam handwritten false
+skinparam shadowing true
+skinparam activity {
+  BackgroundColor #e8f4fd
+  BorderColor #667eea
+  ArrowColor #764ba2
+  StartColor #4CAF50
+  EndColor #F44336
+}
+skinparam noteBackgroundColor #fff9c4
+skinparam noteBorderColor #ffc107
+
+title 9996ca95-2262-4ad3-8182-b82243b0e504_FlowGraphDiffService.java
+
+start
+
+:FlowGraphDiffService;
+-->
+:FlowGraphDiffService.compare\n(比较);
+-->
+:FlowGraphDiffService.generateHighlightedDiffGraph\n(生成highlighteddiffgraph);
+-->
+:FlowGraphDiffService.cloneNodeWithStatus\n(克隆nodewithstatus);
+-->
+:FlowGraphDiffService.cloneEdgeWithStatus\n(克隆edgewithstatus);
+:DiffResult;
+-->
+:DiffResult.calculate\n(计算);
+-->
+:DiffResult.calculateNodeDiff\n(计算nodediff);
+-->
+:DiffResult.calculateEdgeDiff\n(计算edgediff);
+-->
+:DiffResult.hasChanges\n(是否有changes);
+-->
+:DiffResult.toResponse\n(toresponse);
+-->
+:DiffResult.nodeListToInfo\n(nodelisttoinfo);
+-->
+:DiffResult.edgeListToInfo\n(edgelisttoinfo);
+-->
+:DiffResult.calculateNodeDiff\n(计算nodediff);
+-->
+:DiffResult.calculateEdgeDiff\n(计算edgediff);
+-->
+:builder().oldNodeCount\n(oldnodecount);
+-->
+:getNodeCount()).oldEdgeCount\n(oldedgecount);
+-->
+:getEdgeCount()).nodeDiff\n(nodediff);
+-->
+:size()).edgeDiff\n(edgediff);
+-->
+:DiffResult.edgeListToInfo\n(edgelisttoinfo);
+-->
+:DiffResult.nodeListToInfo\n(nodelisttoinfo);
+-->
+:DiffResult.hasChanges\n(是否有changes);
+
+stop
+@enduml

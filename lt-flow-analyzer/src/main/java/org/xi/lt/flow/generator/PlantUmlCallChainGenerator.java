@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.xi.lt.flow.model.FlowEdge;
 import org.xi.lt.flow.model.FlowGraph;
 import org.xi.lt.flow.model.FlowNode;
+import org.xi.lt.flow.theme.ChartTheme;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -315,30 +316,40 @@ public class PlantUmlCallChainGenerator {
      * 生成指定样式的 PlantUML 格式的方法调用链
      */
     public String generatePlantUml(FlowGraph graph, DiagramStyle style) {
+        return generatePlantUml(graph, style, ChartTheme.defaultTheme());
+    }
+
+    /**
+     * 生成指定样式和主题的 PlantUML 格式的方法调用链
+     */
+    public String generatePlantUml(FlowGraph graph, DiagramStyle style, ChartTheme theme) {
+        if (theme == null) {
+            theme = ChartTheme.defaultTheme();
+        }
         switch (style) {
             case SEQUENCE:
-                return generateSequenceDiagram(graph);
+                return generateSequenceDiagram(graph, theme);
             case COMPONENT:
-                return generateComponentDiagram(graph);
+                return generateComponentDiagram(graph, theme);
             case STATE:
-                return generateStateDiagram(graph);
+                return generateStateDiagram(graph, theme);
             case MINDMAP:
-                return generateMindmapDiagram(graph);
+                return generateMindmapDiagram(graph, theme);
             case OBJECT:
-                return generateObjectDiagram(graph);
+                return generateObjectDiagram(graph, theme);
             case DEPLOYMENT:
-                return generateDeploymentDiagram(graph);
+                return generateDeploymentDiagram(graph, theme);
             case USECASE:
-                return generateUsecaseDiagram(graph);
+                return generateUsecaseDiagram(graph, theme);
             case TIMING:
-                return generateTimingDiagram(graph);
+                return generateTimingDiagram(graph, theme);
             case GANTT:
-                return generateGanttDiagram(graph);
+                return generateGanttDiagram(graph, theme);
             case WBS:
-                return generateWbsDiagram(graph);
+                return generateWbsDiagram(graph, theme);
             case ACTIVITY:
             default:
-                return generateActivityDiagram(graph);
+                return generateActivityDiagram(graph, theme);
         }
     }
 
@@ -396,16 +407,23 @@ public class PlantUmlCallChainGenerator {
      * 生成活动图格式
      */
     private String generateActivityDiagram(FlowGraph graph) {
+        return generateActivityDiagram(graph, ChartTheme.defaultTheme());
+    }
+
+    /**
+     * 生成活动图格式（带主题）
+     */
+    private String generateActivityDiagram(FlowGraph graph, ChartTheme theme) {
         StringBuilder plantuml = new StringBuilder();
 
         plantuml.append("@startuml\n");
-        plantuml.append("skinparam backgroundColor white\n");
+        plantuml.append("skinparam backgroundColor ").append(theme.getBackgroundColor()).append("\n");
         plantuml.append("skinparam handwritten false\n");
-        plantuml.append("skinparam shadowing true\n");
+        plantuml.append("skinparam shadowing ").append(theme.isShowShadow()).append("\n");
         plantuml.append("skinparam activity {\n");
-        plantuml.append("  BackgroundColor #e8f4fd\n");
-        plantuml.append("  BorderColor #2196F3\n");
-        plantuml.append("  ArrowColor #2196F3\n");
+        plantuml.append("  BackgroundColor ").append(theme.getActivityBackgroundColor()).append("\n");
+        plantuml.append("  BorderColor ").append(theme.getClassNodeColor()).append("\n");
+        plantuml.append("  ArrowColor ").append(theme.getCallEdgeColor()).append("\n");
         plantuml.append("  StartColor #4CAF50\n");
         plantuml.append("  EndColor #F44336\n");
         plantuml.append("}\n");
@@ -468,18 +486,25 @@ public class PlantUmlCallChainGenerator {
      * 生成时序图格式
      */
     private String generateSequenceDiagram(FlowGraph graph) {
+        return generateSequenceDiagram(graph, ChartTheme.defaultTheme());
+    }
+
+    /**
+     * 生成时序图格式（带主题）
+     */
+    private String generateSequenceDiagram(FlowGraph graph, ChartTheme theme) {
         StringBuilder plantuml = new StringBuilder();
         plantuml.append("@startuml\n");
-        plantuml.append("skinparam backgroundColor white\n");
+        plantuml.append("skinparam backgroundColor ").append(theme.getBackgroundColor()).append("\n");
         plantuml.append("skinparam handwritten false\n");
         plantuml.append("skinparam sequenceMessageAlign center\n");
         plantuml.append("skinparam noteBackgroundColor #fff9c4\n");
         plantuml.append("skinparam sequenceParticipant {\n");
-        plantuml.append("  BackgroundColor #e3f2fd\n");
-        plantuml.append("  BorderColor #1976d2\n");
+        plantuml.append("  BackgroundColor ").append(theme.getParticipantNodeColor()).append("\n");
+        plantuml.append("  BorderColor ").append(theme.getClassNodeColor()).append("\n");
         plantuml.append("}\n");
         plantuml.append("skinparam sequenceArrow {\n");
-        plantuml.append("  Color #1976d2\n");
+        plantuml.append("  Color ").append(theme.getCallEdgeColor()).append("\n");
         plantuml.append("  Thickness 2\n");
         plantuml.append("}\n");
         plantuml.append("skinparam boxPadding 10\n");
@@ -543,16 +568,20 @@ public class PlantUmlCallChainGenerator {
      * 生成组件图格式
      */
     private String generateComponentDiagram(FlowGraph graph) {
+        return generateComponentDiagram(graph, ChartTheme.defaultTheme());
+    }
+
+    private String generateComponentDiagram(FlowGraph graph, ChartTheme theme) {
         StringBuilder plantuml = new StringBuilder();
         plantuml.append("@startuml\n");
-        plantuml.append("skinparam backgroundColor white\n");
+        plantuml.append("skinparam backgroundColor ").append(theme.getBackgroundColor()).append("\n");
         plantuml.append("skinparam handwritten false\n");
         plantuml.append("skinparam componentStyle rectangle\n");
-        plantuml.append("skinparam shadowing true\n");
+        plantuml.append("skinparam shadowing ").append(theme.isShowShadow()).append("\n");
         plantuml.append("skinparam component {\n");
-        plantuml.append("  BackgroundColor #e3f2fd\n");
-        plantuml.append("  BorderColor #1976d2\n");
-        plantuml.append("  ArrowColor #1976d2\n");
+        plantuml.append("  BackgroundColor ").append(theme.getActivityBackgroundColor()).append("\n");
+        plantuml.append("  BorderColor ").append(theme.getClassNodeColor()).append("\n");
+        plantuml.append("  ArrowColor ").append(theme.getCallEdgeColor()).append("\n");
         plantuml.append("  LineThickness 2\n");
         plantuml.append("}\n");
         plantuml.append("\n");
@@ -614,15 +643,19 @@ public class PlantUmlCallChainGenerator {
      * 生成状态图格式
      */
     private String generateStateDiagram(FlowGraph graph) {
+        return generateStateDiagram(graph, ChartTheme.defaultTheme());
+    }
+
+    private String generateStateDiagram(FlowGraph graph, ChartTheme theme) {
         StringBuilder plantuml = new StringBuilder();
         plantuml.append("@startuml\n");
-        plantuml.append("skinparam backgroundColor white\n");
+        plantuml.append("skinparam backgroundColor ").append(theme.getBackgroundColor()).append("\n");
         plantuml.append("skinparam handwritten false\n");
-        plantuml.append("skinparam shadowing true\n");
+        plantuml.append("skinparam shadowing ").append(theme.isShowShadow()).append("\n");
         plantuml.append("skinparam state {\n");
-        plantuml.append("  BackgroundColor #fff3e0\n");
-        plantuml.append("  BorderColor #f57c00\n");
-        plantuml.append("  ArrowColor #f57c00\n");
+        plantuml.append("  BackgroundColor ").append(theme.getActivityBackgroundColor()).append("\n");
+        plantuml.append("  BorderColor ").append(theme.getMethodNodeColor()).append("\n");
+        plantuml.append("  ArrowColor ").append(theme.getCallEdgeColor()).append("\n");
         plantuml.append("}\n");
         plantuml.append("\n");
         if (graph.getName() != null && !graph.getName().isEmpty()) {
@@ -694,11 +727,15 @@ public class PlantUmlCallChainGenerator {
      * 生成思维导图格式
      */
     private String generateMindmapDiagram(FlowGraph graph) {
+        return generateMindmapDiagram(graph, ChartTheme.defaultTheme());
+    }
+
+    private String generateMindmapDiagram(FlowGraph graph, ChartTheme theme) {
         StringBuilder plantuml = new StringBuilder();
         plantuml.append("@startmindmap\n");
-        plantuml.append("skinparam backgroundColor white\n");
+        plantuml.append("skinparam backgroundColor ").append(theme.getBackgroundColor()).append("\n");
         plantuml.append("skinparam handwritten false\n");
-        plantuml.append("skinparam mindmapBorderColor #9c27b0\n");
+        plantuml.append("skinparam mindmapBorderColor ").append(theme.getMethodNodeColor()).append("\n");
         plantuml.append("skinparam mindmapBorderThickness 2\n");
         plantuml.append("\n");
         if (graph.getName() != null && !graph.getName().isEmpty()) {
@@ -987,13 +1024,17 @@ public class PlantUmlCallChainGenerator {
      * 生成对象图格式
      */
     private String generateObjectDiagram(FlowGraph graph) {
+        return generateObjectDiagram(graph, ChartTheme.defaultTheme());
+    }
+
+    private String generateObjectDiagram(FlowGraph graph, ChartTheme theme) {
         StringBuilder plantuml = new StringBuilder();
         plantuml.append("@startuml\n");
-        plantuml.append("skinparam backgroundColor white\n");
+        plantuml.append("skinparam backgroundColor ").append(theme.getBackgroundColor()).append("\n");
         plantuml.append("skinparam object {\n");
-        plantuml.append("  BackgroundColor #e8f5e9\n");
-        plantuml.append("  BorderColor #4CAF50\n");
-        plantuml.append("  ArrowColor #4CAF50\n");
+        plantuml.append("  BackgroundColor ").append(theme.getActivityBackgroundColor()).append("\n");
+        plantuml.append("  BorderColor ").append(theme.getExternalNodeColor()).append("\n");
+        plantuml.append("  ArrowColor ").append(theme.getCallEdgeColor()).append("\n");
         plantuml.append("}\n");
         plantuml.append("\n");
         if (graph.getName() != null && !graph.getName().isEmpty()) {
@@ -1040,13 +1081,17 @@ public class PlantUmlCallChainGenerator {
      * 生成部署图格式
      */
     private String generateDeploymentDiagram(FlowGraph graph) {
+        return generateDeploymentDiagram(graph, ChartTheme.defaultTheme());
+    }
+
+    private String generateDeploymentDiagram(FlowGraph graph, ChartTheme theme) {
         StringBuilder plantuml = new StringBuilder();
         plantuml.append("@startuml\n");
-        plantuml.append("skinparam backgroundColor white\n");
+        plantuml.append("skinparam backgroundColor ").append(theme.getBackgroundColor()).append("\n");
         plantuml.append("skinparam node {\n");
-        plantuml.append("  BackgroundColor #e3f2fd\n");
-        plantuml.append("  BorderColor #2196F3\n");
-        plantuml.append("  ArrowColor #2196F3\n");
+        plantuml.append("  BackgroundColor ").append(theme.getActivityBackgroundColor()).append("\n");
+        plantuml.append("  BorderColor ").append(theme.getClassNodeColor()).append("\n");
+        plantuml.append("  ArrowColor ").append(theme.getCallEdgeColor()).append("\n");
         plantuml.append("}\n");
         plantuml.append("\n");
         if (graph.getName() != null && !graph.getName().isEmpty()) {
@@ -1096,13 +1141,17 @@ public class PlantUmlCallChainGenerator {
      * 生成用例图格式
      */
     private String generateUsecaseDiagram(FlowGraph graph) {
+        return generateUsecaseDiagram(graph, ChartTheme.defaultTheme());
+    }
+
+    private String generateUsecaseDiagram(FlowGraph graph, ChartTheme theme) {
         StringBuilder plantuml = new StringBuilder();
         plantuml.append("@startuml\n");
-        plantuml.append("skinparam backgroundColor white\n");
+        plantuml.append("skinparam backgroundColor ").append(theme.getBackgroundColor()).append("\n");
         plantuml.append("skinparam usecase {\n");
-        plantuml.append("  BackgroundColor #fff3e0\n");
-        plantuml.append("  BorderColor #FF9800\n");
-        plantuml.append("  ArrowColor #FF9800\n");
+        plantuml.append("  BackgroundColor ").append(theme.getActivityBackgroundColor()).append("\n");
+        plantuml.append("  BorderColor ").append(theme.getMethodNodeColor()).append("\n");
+        plantuml.append("  ArrowColor ").append(theme.getCallEdgeColor()).append("\n");
         plantuml.append("}\n");
         plantuml.append("left to right direction\n");
         plantuml.append("\n");
@@ -1163,9 +1212,13 @@ public class PlantUmlCallChainGenerator {
      * 生成定时图格式
      */
     private String generateTimingDiagram(FlowGraph graph) {
+        return generateTimingDiagram(graph, ChartTheme.defaultTheme());
+    }
+
+    private String generateTimingDiagram(FlowGraph graph, ChartTheme theme) {
         StringBuilder plantuml = new StringBuilder();
         plantuml.append("@startuml\n");
-        plantuml.append("skinparam backgroundColor white\n");
+        plantuml.append("skinparam backgroundColor ").append(theme.getBackgroundColor()).append("\n");
         plantuml.append("skinparam sequenceMessageAlign center\n");
         plantuml.append("\n");
         if (graph.getName() != null && !graph.getName().isEmpty()) {
@@ -1227,10 +1280,14 @@ public class PlantUmlCallChainGenerator {
      * 生成甘特图格式
      */
     private String generateGanttDiagram(FlowGraph graph) {
+        return generateGanttDiagram(graph, ChartTheme.defaultTheme());
+    }
+
+    private String generateGanttDiagram(FlowGraph graph, ChartTheme theme) {
         StringBuilder plantuml = new StringBuilder();
         plantuml.append("@startgantt\n");
         plantuml.append("Project starts 2024-01-01\n");
-        plantuml.append("skinparam backgroundColor white\n");
+        plantuml.append("skinparam backgroundColor ").append(theme.getBackgroundColor()).append("\n");
         plantuml.append("\n");
         if (graph.getName() != null && !graph.getName().isEmpty()) {
             plantuml.append("title ").append(escapeLabel(graph.getName())).append("\n");
@@ -1277,9 +1334,13 @@ public class PlantUmlCallChainGenerator {
      * 生成 WBS 图格式
      */
     private String generateWbsDiagram(FlowGraph graph) {
+        return generateWbsDiagram(graph, ChartTheme.defaultTheme());
+    }
+
+    private String generateWbsDiagram(FlowGraph graph, ChartTheme theme) {
         StringBuilder plantuml = new StringBuilder();
         plantuml.append("@startwbs\n");
-        plantuml.append("skinparam backgroundColor white\n");
+        plantuml.append("skinparam backgroundColor ").append(theme.getBackgroundColor()).append("\n");
         plantuml.append("\n");
         if (graph.getName() != null && !graph.getName().isEmpty()) {
             plantuml.append("title ").append(escapeLabel(graph.getName())).append("\n");

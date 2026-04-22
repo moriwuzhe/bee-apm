@@ -782,6 +782,68 @@
             </div>
             
             <template v-else>
+            <!-- 内存关键指标卡片 -->
+            <el-row :gutter="16" style="margin-bottom: 20px;">
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">💾 堆内存使用率</div>
+                  <div class="stat-value" :class="heapUsageStatus">{{ heapUsagePercent }}</div>
+                  <div class="stat-subtitle">当前时刻</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">📊 非堆内存使用率</div>
+                  <div class="stat-value" :class="nonHeapUsageStatus">{{ nonHeapUsagePercent }}</div>
+                  <div class="stat-subtitle">Metaspace等</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">🌱 新生代使用率</div>
+                  <div class="stat-value" :class="youngGenUsageStatus">{{ youngGenUsagePercent }}</div>
+                  <div class="stat-subtitle">Eden + Survivor</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">👴 老年代使用率</div>
+                  <div class="stat-value" :class="oldGenUsageStatus">{{ oldGenUsagePercent }}</div>
+                  <div class="stat-subtitle">Old Gen</div>
+                </el-card>
+              </el-col>
+            </el-row>
+            <el-row :gutter="16" style="margin-bottom: 20px;">
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">📈 内存增长速率</div>
+                  <div class="stat-value" :class="memoryGrowthStatus">{{ memoryGrowthRate }}</div>
+                  <div class="stat-subtitle">MB/分钟</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">⚡ GC压力指数</div>
+                  <div class="stat-value" :class="gcPressureStatus">{{ gcPressureIndex }}</div>
+                  <div class="stat-subtitle">0-100分</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">🔍 内存泄漏风险</div>
+                  <div class="stat-value" :class="leakRiskStatus">{{ leakRiskLevel }}</div>
+                  <div class="stat-subtitle">风险评估</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">🎯 内存健康度</div>
+                  <div class="stat-value" :class="memoryHealthStatus">{{ memoryHealthScore }}</div>
+                  <div class="stat-subtitle">综合评分</div>
+                </el-card>
+              </el-col>
+            </el-row>
+            
             <!-- 1. 堆/非堆总览 -->
             <el-row :gutter="16" class="charts-row">
               <el-col :span="12">
@@ -895,6 +957,67 @@
             </div>
             
             <template v-else>
+            <!-- GC关键指标卡片 -->
+            <el-row :gutter="16" style="margin-bottom: 20px;">
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">♻️ 累计GC次数</div>
+                  <div class="stat-value">{{ totalGcCount }}</div>
+                  <div class="stat-subtitle">Minor + Full</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">⏱️ 累计GC耗时</div>
+                  <div class="stat-value">{{ totalGcTime }}</div>
+                  <div class="stat-subtitle">毫秒</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">📈 GC频率</div>
+                  <div class="stat-value">{{ gcFrequency }}</div>
+                  <div class="stat-subtitle">次/小时</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">⚡ 平均GC耗时</div>
+                  <div class="stat-value" :class="avgGcTimeStatus">{{ avgGcTime }}</div>
+                  <div class="stat-subtitle">毫秒/次</div>
+                </el-card>
+              </el-col>
+            </el-row>
+            <el-row :gutter="16" style="margin-bottom: 20px;">
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">🔴 Full GC占比</div>
+                  <div class="stat-value" :class="fullGcRatioStatus">{{ fullGcRatio }}</div>
+                  <div class="stat-subtitle">Full/Total</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title"> GC效率</div>
+                  <div class="stat-value" :class="gcEfficiencyStatus">{{ gcEfficiency }}</div>
+                  <div class="stat-subtitle">回收/分配</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">🛑 最大GC耗时</div>
+                  <div class="stat-value">{{ maxGcDuration }}</div>
+                  <div class="stat-subtitle">峰值</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">🎯 GC健康度</div>
+                  <div class="stat-value" :class="gcHealthStatus">{{ gcHealthScore }}</div>
+                  <div class="stat-subtitle">综合评分</div>
+                </el-card>
+              </el-col>
+            </el-row>
             <el-row :gutter="16" class="charts-row">
               <el-col :span="12">
                 <div ref="gcCountChartRef" class="chart-box-large"></div>
@@ -915,6 +1038,72 @@
                 <div ref="gcEfficiencyChartRef" class="chart-box-large"></div>
               </el-col>
             </el-row>
+            
+            <!-- GC关联分析 -->
+            <div class="section-header">
+              <h3> GC关联分析</h3>
+            </div>
+            <el-row :gutter="16" class="charts-row">
+              <el-col :span="12">
+                <div ref="gcVsHeapChartRef" class="chart-box-large"></div>
+              </el-col>
+              <el-col :span="12">
+                <div ref="gcVsCpuChartRef" class="chart-box-large"></div>
+              </el-col>
+            </el-row>
+            
+            <!-- 智能GC分析面板 -->
+            <div class="section-header">
+              <h3>🧠 智能GC分析</h3>
+            </div>
+            <el-card shadow="hover" style="margin-bottom: 20px;">
+              <div class="gc-analysis-panel">
+                <el-row :gutter="16">
+                  <el-col :span="12">
+                    <div class="analysis-item">
+                      <span class="analysis-icon">♻️</span>
+                      <div class="analysis-content">
+                        <div class="analysis-label">GC模式</div>
+                        <div class="analysis-value" :class="gcModeAnalysis.status">{{ gcModeAnalysis.text }}</div>
+                        <div class="analysis-detail">{{ gcModeAnalysis.detail }}</div>
+                      </div>
+                    </div>
+                  </el-col>
+                  <el-col :span="12">
+                    <div class="analysis-item">
+                      <span class="analysis-icon">🛑</span>
+                      <div class="analysis-content">
+                        <div class="analysis-label">Full GC趋势</div>
+                        <div class="analysis-value" :class="fullGcTrendAnalysis.status">{{ fullGcTrendAnalysis.text }}</div>
+                        <div class="analysis-detail">{{ fullGcTrendAnalysis.detail }}</div>
+                      </div>
+                    </div>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="16" style="margin-top: 16px;">
+                  <el-col :span="12">
+                    <div class="analysis-item">
+                      <span class="analysis-icon">🎯</span>
+                      <div class="analysis-content">
+                        <div class="analysis-label">GC健康度</div>
+                        <div class="analysis-value" :class="gcHealthDetailAnalysis.status">{{ gcHealthDetailAnalysis.text }}</div>
+                        <div class="analysis-detail">{{ gcHealthDetailAnalysis.detail }}</div>
+                      </div>
+                    </div>
+                  </el-col>
+                  <el-col :span="12">
+                    <div class="analysis-item">
+                      <span class="analysis-icon">💡</span>
+                      <div class="analysis-content">
+                        <div class="analysis-label">优化建议</div>
+                        <div class="analysis-value suggestion">{{ gcSuggestions[0] }}</div>
+                        <div class="analysis-detail">{{ gcSuggestions[1] }}</div>
+                      </div>
+                    </div>
+                  </el-col>
+                </el-row>
+              </div>
+            </el-card>
             
             <div class="section-header">
               <h3>☕ JVM信息</h3>
@@ -1009,6 +1198,68 @@
             </div>
             
             <template v-else>
+            <!-- 线程关键指标卡片 -->
+            <el-row :gutter="16" style="margin-bottom: 20px;">
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">📊 最大线程数</div>
+                  <div class="stat-value">{{ maxThreadCountValue }}</div>
+                  <div class="stat-subtitle">峰值时刻</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">👥 平均线程数</div>
+                  <div class="stat-value">{{ avgThreadCount }}</div>
+                  <div class="stat-subtitle">总体平均</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">🔝 峰值线程数</div>
+                  <div class="stat-value">{{ peakThreadCountValue }}</div>
+                  <div class="stat-subtitle">历史最高</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">🚫 BLOCKED占比</div>
+                  <div class="stat-value" :class="blockedRatioStatus">{{ blockedRatioText }}</div>
+                  <div class="stat-subtitle">线程阻塞</div>
+                </el-card>
+              </el-col>
+            </el-row>
+            <el-row :gutter="16" style="margin-bottom: 20px;">
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">🛡️ 守护线程占比</div>
+                  <div class="stat-value">{{ daemonRatioText }}</div>
+                  <div class="stat-subtitle">Daemon比例</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">⚡ 活跃线程占比</div>
+                  <div class="stat-value" :class="runnableRatioStatus">{{ runnableRatioText }}</div>
+                  <div class="stat-subtitle">RUNNABLE比例</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">📈 线程创建速率</div>
+                  <div class="stat-value">{{ threadCreationRateValue }}</div>
+                  <div class="stat-subtitle">个/秒</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">🔄 累计启动线程</div>
+                  <div class="stat-value">{{ totalStartedThreadValue }}</div>
+                  <div class="stat-subtitle">生命周期</div>
+                </el-card>
+              </el-col>
+            </el-row>
+            
             <el-row :gutter="16" class="charts-row">
               <el-col :span="12">
                 <div ref="threadChartRef" class="chart-box-large"></div>
@@ -1029,12 +1280,169 @@
                 <div ref="classLoadingDetailChartRef" class="chart-box-large"></div>
               </el-col>
             </el-row>
+            
+            <!-- 新增：线程高级分析图表 -->
+            <div class="section-header">
+              <h3>📈 线程高级分析</h3>
+            </div>
+            <el-row :gutter="16" class="charts-row">
+              <el-col :span="12">
+                <div ref="daemonThreadChartRef" class="chart-box-large"></div>
+              </el-col>
+              <el-col :span="12">
+                <div ref="blockedThreadChartRef" class="chart-box-large"></div>
+              </el-col>
+            </el-row>
+            <el-row :gutter="16" class="charts-row">
+              <el-col :span="12">
+                <div ref="topCpuThreadDetailChartRef" class="chart-box-large"></div>
+              </el-col>
+              <el-col :span="12">
+                <div ref="threadCreationRateChartRef" class="chart-box-large"></div>
+              </el-col>
+            </el-row>
+            
+            <!-- 线程与性能关联分析 -->
+            <div class="section-header">
+              <h3> 线程与性能关联</h3>
+            </div>
+            <el-row :gutter="16" class="charts-row">
+              <el-col :span="12">
+                <div ref="threadCpuCorrelationRef" class="chart-box-large"></div>
+              </el-col>
+              <el-col :span="12">
+                <div ref="threadLeakDetectionRef" class="chart-box-large"></div>
+              </el-col>
+            </el-row>
+            <el-row :gutter="16" class="charts-row">
+              <el-col :span="24">
+                <div ref="threadStatesTrendRef" class="chart-box-large"></div>
+              </el-col>
+            </el-row>
+            
+            <!-- 智能线程分析面板 -->
+            <div class="section-header">
+              <h3>🧠 智能线程分析</h3>
+            </div>
+            <el-card shadow="hover" style="margin-bottom: 20px;">
+              <div class="thread-analysis-panel">
+                <el-row :gutter="16">
+                  <el-col :span="12">
+                    <div class="analysis-item">
+                      <span class="analysis-icon">📊</span>
+                      <div class="analysis-content">
+                        <div class="analysis-label">线程增长模式</div>
+                        <div class="analysis-value" :class="threadGrowthAnalysis.status">{{ threadGrowthAnalysis.text }}</div>
+                        <div class="analysis-detail">{{ threadGrowthAnalysis.detail }}</div>
+                      </div>
+                    </div>
+                  </el-col>
+                  <el-col :span="12">
+                    <div class="analysis-item">
+                      <span class="analysis-icon">🚫</span>
+                      <div class="analysis-content">
+                        <div class="analysis-label">线程阻塞情况</div>
+                        <div class="analysis-value" :class="blockedThreadAnalysis.status">{{ blockedThreadAnalysis.text }}</div>
+                        <div class="analysis-detail">{{ blockedThreadAnalysis.detail }}</div>
+                      </div>
+                    </div>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="16" style="margin-top: 16px;">
+                  <el-col :span="12">
+                    <div class="analysis-item">
+                      <span class="analysis-icon">⚡</span>
+                      <div class="analysis-content">
+                        <div class="analysis-label">线程健康度</div>
+                        <div class="analysis-value" :class="threadHealthAnalysis.status">{{ threadHealthAnalysis.text }}</div>
+                        <div class="analysis-detail">{{ threadHealthAnalysis.detail }}</div>
+                      </div>
+                    </div>
+                  </el-col>
+                  <el-col :span="12">
+                    <div class="analysis-item">
+                      <span class="analysis-icon">💡</span>
+                      <div class="analysis-content">
+                        <div class="analysis-label">优化建议</div>
+                        <div class="analysis-value suggestion">{{ threadSuggestions[0] }}</div>
+                        <div class="analysis-detail">{{ threadSuggestions[1] }}</div>
+                      </div>
+                    </div>
+                  </el-col>
+                </el-row>
+              </div>
+            </el-card>
             </template>
             
             <!-- 🏊 线程池监控 - 始终显示 -->
             <div class="section-header">
               <h3>🏊 线程池与类加载</h3>
             </div>
+            
+            <!-- 线程池关键指标 -->
+            <el-row :gutter="16" style="margin-bottom: 20px;" v-if="hasThreadPoolData">
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">🏊 线程池总数</div>
+                  <div class="stat-value">{{ threadPoolCount }}</div>
+                  <div class="stat-subtitle">活跃池</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">⚡ 平均活跃度</div>
+                  <div class="stat-value" :class="threadPoolActivityStatus">{{ threadPoolActivityRate }}</div>
+                  <div class="stat-subtitle">活跃/总线程</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">📦 队列积压</div>
+                  <div class="stat-value" :class="queueBacklogStatus">{{ queueBacklogValue }}</div>
+                  <div class="stat-subtitle">待处理任务</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">❌ 拒绝次数</div>
+                  <div class="stat-value" :class="rejectedCountStatus">{{ rejectedTaskCount }}</div>
+                  <div class="stat-subtitle">任务被拒</div>
+                </el-card>
+              </el-col>
+            </el-row>
+            
+            <!-- 类加载关键指标 -->
+            <el-row :gutter="16" style="margin-bottom: 20px;">
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">📦 已加载类</div>
+                  <div class="stat-value">{{ loadedClassCount }}</div>
+                  <div class="stat-subtitle">当前数量</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">📈 类加载速率</div>
+                  <div class="stat-value">{{ classLoadingRateValue }}</div>
+                  <div class="stat-subtitle">个/秒</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">🗑️ 已卸载类</div>
+                  <div class="stat-value">{{ unloadedClassCount }}</div>
+                  <div class="stat-subtitle">累计数量</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">⚠️ 加载异常</div>
+                  <div class="stat-value" :class="classLoadErrorStatus">{{ classLoadErrorCount }}</div>
+                  <div class="stat-subtitle">异常次数</div>
+                </el-card>
+              </el-col>
+            </el-row>
+            
             <el-row :gutter="16" class="charts-row">
               <el-col :span="24">
                 <div ref="threadPoolsChartRef" class="chart-box-large"></div>
@@ -1104,24 +1512,210 @@
             </div>
             
             <template v-else>
-            <!-- 磁盘I/O监控 -->
-            <template v-if="hasDiskIoData">
-              <div class="section-header">
-                <h3>💾 磁盘I/O监控</h3>
-              </div>
-              <el-row :gutter="16" class="charts-row">
-                <el-col :span="24">
-                  <div ref="diskIoRef" class="chart-box-large"></div>
-                </el-col>
-              </el-row>
-            </template>
+            <!-- IO/网络关键指标卡片 -->
+            <el-row :gutter="16" style="margin-bottom: 20px;">
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">📈 最大读取速率</div>
+                  <div class="stat-value">{{ maxDiskReadRate }}</div>
+                  <div class="stat-subtitle">峰值时刻</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">📉 最大写入速率</div>
+                  <div class="stat-value">{{ maxDiskWriteRate }}</div>
+                  <div class="stat-subtitle">峰值时刻</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">🌐 平均接收速率</div>
+                  <div class="stat-value">{{ avgNetworkRecvRate }}</div>
+                  <div class="stat-subtitle">总体平均</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">📡 平均发送速率</div>
+                  <div class="stat-value">{{ avgNetworkSentRate }}</div>
+                  <div class="stat-subtitle">总体平均</div>
+                </el-card>
+              </el-col>
+            </el-row>
+            <el-row :gutter="16" style="margin-bottom: 20px;">
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">💾 磁盘IO压力</div>
+                  <div class="stat-value" :class="diskIoPressureStatus">{{ diskIoPressureIndex }}</div>
+                  <div class="stat-subtitle">0-100分</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">🌐 网络流量负载</div>
+                  <div class="stat-value" :class="networkLoadStatus">{{ networkLoadIndex }}</div>
+                  <div class="stat-subtitle">0-100分</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">⚡ IO延迟指数</div>
+                  <div class="stat-value" :class="ioLatencyIndexStatus">{{ ioLatencyIndexValue }}</div>
+                  <div class="stat-subtitle">综合评估</div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover" class="stat-card">
+                  <div class="stat-title">🎯 IO健康度</div>
+                  <div class="stat-value" :class="ioHealthStatus">{{ ioHealthScore }}</div>
+                  <div class="stat-subtitle">综合评分</div>
+                </el-card>
+              </el-col>
+            </el-row>
             
-            <!-- 网络监控 (预留，待后端支持) -->
-            <div v-if="!hasDiskIoData" style="text-align: center; padding: 60px 0; color: #909399;">
-              <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
-              <div style="font-size: 16px; margin-bottom: 8px;">暂无IO/网络数据</div>
-              <div style="font-size: 13px; color: #c0c4cc;">当前Agent版本可能未采集网络和IO指标</div>
+            <!-- 磁盘I/O监控 - 始终渲染图表容器，由JS决定是否显示数据 -->
+            <div class="section-header">
+              <h3>💾 磁盘I/O速率</h3>
             </div>
+            <el-row :gutter="16" class="charts-row">
+              <el-col :span="24">
+                <div ref="diskIoRef" class="chart-box-large"></div>
+              </el-col>
+            </el-row>
+            
+            <!-- 磁盘I/O操作次数 -->
+            <div class="section-header">
+              <h3>📊 磁盘I/O操作次数</h3>
+            </div>
+            <el-row :gutter="16" class="charts-row">
+              <el-col :span="24">
+                <div ref="diskIoOpsRef" class="chart-box-large"></div>
+              </el-col>
+            </el-row>
+            
+            <!-- 网络流量监控 -->
+            <div class="section-header">
+              <h3>🌐 网络流量监控</h3>
+            </div>
+            <el-row :gutter="16" class="charts-row">
+              <el-col :span="24">
+                <div ref="networkTrafficRef" class="chart-box-large"></div>
+              </el-col>
+            </el-row>
+            
+            <!-- 综合分析：IO与CPU/内存关联 -->
+            <div class="section-header">
+              <h3> 综合性能分析</h3>
+            </div>
+            <el-row :gutter="16" class="charts-row">
+              <el-col :span="24">
+                <div ref="ioCpuCorrelationRef" class="chart-box-large"></div>
+              </el-col>
+            </el-row>
+            
+            <!-- IO操作热力图 -->
+            <div class="section-header">
+              <h3>🔥 IO操作热力图</h3>
+            </div>
+            <el-row :gutter="16" class="charts-row">
+              <el-col :span="24">
+                <div ref="ioHeatmapRef" class="chart-box-large"></div>
+              </el-col>
+            </el-row>
+            
+            <!-- 智能IO性能分析 -->
+            <div class="section-header">
+              <h3>🧠 智能IO性能分析</h3>
+            </div>
+            <el-card shadow="hover" style="margin-bottom: 20px;">
+              <div class="io-analysis-panel">
+                <el-row :gutter="16">
+                  <el-col :span="12">
+                    <div class="analysis-item">
+                      <span class="analysis-icon">📊</span>
+                      <div class="analysis-content">
+                        <div class="analysis-label">磁盘IO模式</div>
+                        <div class="analysis-value" :class="ioPatternAnalysis.status">{{ ioPatternAnalysis.text }}</div>
+                        <div class="analysis-detail">{{ ioPatternAnalysis.detail }}</div>
+                      </div>
+                    </div>
+                  </el-col>
+                  <el-col :span="12">
+                    <div class="analysis-item">
+                      <span class="analysis-icon">⏱️</span>
+                      <div class="analysis-content">
+                        <div class="analysis-label">平均IO延迟</div>
+                        <div class="analysis-value" :class="ioLatencyAnalysis.status">{{ ioLatencyAnalysis.text }}</div>
+                        <div class="analysis-detail">{{ ioLatencyAnalysis.detail }}</div>
+                      </div>
+                    </div>
+                  </el-col>
+                </el-row>
+                <el-row :gutter="16" style="margin-top: 16px;">
+                  <el-col :span="12">
+                    <div class="analysis-item">
+                      <span class="analysis-icon">🌐</span>
+                      <div class="analysis-content">
+                        <div class="analysis-label">网络模式</div>
+                        <div class="analysis-value" :class="networkPatternAnalysis.status">{{ networkPatternAnalysis.text }}</div>
+                        <div class="analysis-detail">{{ networkPatternAnalysis.detail }}</div>
+                      </div>
+                    </div>
+                  </el-col>
+                  <el-col :span="12">
+                    <div class="analysis-item">
+                      <span class="analysis-icon">💡</span>
+                      <div class="analysis-content">
+                        <div class="analysis-label">优化建议</div>
+                        <div class="analysis-value suggestion">{{ ioSuggestions[0] }}</div>
+                        <div class="analysis-detail">{{ ioSuggestions[1] }}</div>
+                      </div>
+                    </div>
+                  </el-col>
+                </el-row>
+              </div>
+            </el-card>
+            
+            <!-- IO延迟趋势图 -->
+            <div class="section-header">
+              <h3>⏱️ IO延迟趋势</h3>
+            </div>
+            <el-row :gutter="16" class="charts-row">
+              <el-col :span="24">
+                <div ref="ioLatencyRef" class="chart-box-large"></div>
+              </el-col>
+            </el-row>
+            
+            <!-- IO与GC关联分析 -->
+            <div class="section-header">
+              <h3>🔗 IO与GC关联分析</h3>
+            </div>
+            <el-row :gutter="16" class="charts-row">
+              <el-col :span="24">
+                <div ref="ioGcCorrelationRef" class="chart-box-large"></div>
+              </el-col>
+            </el-row>
+            
+            <!-- 内存分配与IO关联 -->
+            <div class="section-header">
+              <h3>💾 内存分配与IO关联</h3>
+            </div>
+            <el-row :gutter="16" class="charts-row">
+              <el-col :span="24">
+                <div ref="memoryIoCorrelationRef" class="chart-box-large"></div>
+              </el-col>
+            </el-row>
+            
+            <!-- 综合性能评分趋势 -->
+            <div class="section-header">
+              <h3>⭐ 综合性能评分</h3>
+            </div>
+            <el-row :gutter="16" class="charts-row">
+              <el-col :span="24">
+                <div ref="performanceScoreRef" class="chart-box-large"></div>
+              </el-col>
+            </el-row>
             </template>
           </div>
         </div>
@@ -1174,6 +1768,48 @@
           </el-row>
         </div>
 
+        <!-- 系统属性表格 -->
+        <div v-else-if="currentDiagType === 'sysProps'" class="chart-container">
+          <el-card shadow="never">
+            <div class="chart-title">⚙️ 系统属性</div>
+            <div style="margin-bottom: 12px;">
+              <el-input
+                v-model="sysPropsSearch"
+                placeholder="搜索属性名或值..."
+                clearable
+                prefix-icon="Search"
+                style="width: 300px;"
+              />
+              <el-tag style="margin-left: 12px;" type="info">共 {{ filteredSysProps.length }} 项</el-tag>
+            </div>
+            <el-table :data="filteredSysProps" border stripe size="small" max-height="500">
+              <el-table-column prop="key" label="属性名" min-width="250" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="value" label="属性值" min-width="300" show-overflow-tooltip></el-table-column>
+            </el-table>
+          </el-card>
+        </div>
+
+        <!-- 环境变量表格 -->
+        <div v-else-if="currentDiagType === 'env'" class="chart-container">
+          <el-card shadow="never">
+            <div class="chart-title">🌍 环境变量</div>
+            <div style="margin-bottom: 12px;">
+              <el-input
+                v-model="envVarsSearch"
+                placeholder="搜索变量名或值..."
+                clearable
+                prefix-icon="Search"
+                style="width: 300px;"
+              />
+              <el-tag style="margin-left: 12px;" type="info">共 {{ filteredEnvVars.length }} 项</el-tag>
+            </div>
+            <el-table :data="filteredEnvVars" border stripe size="small" max-height="500">
+              <el-table-column prop="key" label="变量名" min-width="250" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="value" label="变量值" min-width="300" show-overflow-tooltip></el-table-column>
+            </el-table>
+          </el-card>
+        </div>
+
         <!-- 其他文本模式 -->
         <div v-else class="text-mode">
           <el-input v-model="diagResult" type="textarea" :rows="25" readonly />
@@ -1204,120 +1840,216 @@
     </el-dialog>
 
     <!-- 配置管理对话框 -->
-    <el-dialog v-model="showConfigDialog" :title="configMode === 'app' ? '应用配置管理' : '实例配置管理'" width="900px">
-      <el-form :model="configForm" label-width="100px">
-        <el-form-item label="应用">
-          <span>{{ currentApp }}</span>
-        </el-form-item>
-        <el-form-item v-if="configMode === 'instance'" label="实例">
-          <span>{{ currentInst }}</span>
-        </el-form-item>
-        
-        <!-- 配置来源选择 -->
-        <el-tabs v-model="configSourceTab" type="border-card">
-          <el-tab-pane label="数据库配置" name="database">
-            <div class="config-hint">
-              <el-alert
-                title="这是存储在数据库中的配置，Agent 会在下次心跳时拉取并应用"
-                type="info"
-                :closable="false"
-                show-icon
-              />
+    <el-dialog v-model="showConfigDialog" :title="configDialogTitle" width="1100px" top="5vh">
+      <!-- 基本信息区域 -->
+      <div class="config-info-bar">
+        <el-tag :type="configMode === 'app' ? '' : 'success'" size="large">
+          {{ configMode === 'app' ? '📦 应用级配置' : '🔧 实例级配置' }}
+        </el-tag>
+        <span class="config-app-name">{{ currentApp }}</span>
+        <span v-if="configMode === 'instance'" class="config-inst-badge">
+          <el-tag type="warning" size="small">{{ currentInst }}</el-tag>
+        </span>
+        <span v-if="fullConfigInfo" class="config-version-tag">
+          <el-tag type="info" size="small">版本: {{ fullConfigInfo.finalVersion }}</el-tag>
+        </span>
+      </div>
+      
+      <!-- 配置来源选择 -->
+      <el-tabs v-model="configSourceTab" type="border-card" class="config-tabs">
+        <el-tab-pane name="database">
+          <template #label>
+            <span class="tab-label">
+              <el-icon><Document /></el-icon>
+              数据库配置
+            </span>
+          </template>
+          
+          <div class="config-section">
+            <el-alert
+              title="💾 数据库存储配置"
+              description="Agent 会在下次心跳时拉取并应用此配置。修改后立即生效，无需重启应用。"
+              type="info"
+              :closable="false"
+              show-icon
+              class="config-alert"
+            />
+            
+            <div class="editor-toolbar">
+              <el-button-group>
+                <el-button size="small" @click="formatConfig">
+                  <el-icon><MagicStick /></el-icon>
+                  格式化
+                </el-button>
+                <el-button size="small" @click="clearConfig">
+                  <el-icon><Delete /></el-icon>
+                  清空
+                </el-button>
+              </el-button-group>
+              <el-button size="small" type="primary" @click="submitConfig" :loading="submitting">
+                <el-icon><Upload /></el-icon>
+                保存配置
+              </el-button>
             </div>
+            
             <el-input 
               type="textarea" 
               v-model="dbConfigContent" 
-              :rows="16" 
+              :rows="20" 
               placeholder="# 请输入 YAML 格式的配置内容\nsampling:\n  rate: 1000\nplugins:\n  jdbc:\n    enabled: true"
+              class="config-editor"
             />
-          </el-tab-pane>
-          
-          <el-tab-pane label="Agent运行时配置" name="runtime">
-            <div class="config-hint">
-              <el-alert
-                :title="agentRuntimeConfig ? '这是 Agent 本地配置文件的内容（仅供参考）' : '无法获取 Agent 运行时配置，请确保 Agent 在线且已连接'"
-                :description="configMode === 'app' ? '注意：应用级和实例级共享同一个 Agent 配置文件。如需差异化配置，请在数据库标签页中分别设置应用配置和实例配置，Agent 拉取时会自动合并。' : '注意：实例配置会覆盖应用配置中的相同字段。最终生效配置 = 应用配置 + 实例配置(覆盖)。'"
-                :type="agentRuntimeConfig ? 'info' : 'warning'"
-                :closable="false"
-                show-icon
-              />
+            
+            <div class="config-footer-hint">
+              <el-text type="info" size="small">
+                📝 配置内容需符合 YAML 格式规范，Agent 会自动解析并应用
+              </el-text>
             </div>
+          </div>
+        </el-tab-pane>
+        
+        <el-tab-pane name="runtime">
+          <template #label>
+            <span class="tab-label">
+              <el-icon><Monitor /></el-icon>
+              Agent运行时
+            </span>
+          </template>
+          
+          <div class="config-section">
+            <el-alert
+              :title="agentRuntimeConfig ? '✅ Agent 本地配置文件' : '⚠️ 无法获取 Agent 运行时配置'"
+              :description="agentRuntimeConfig ? '这是 Agent 进程读取的配置文件内容（仅供参考）。如需修改，请在「数据库配置」标签页编辑，Agent 会在下次心跳时拉取。' : '请确保 Agent 在线且已连接。检查 Agent 状态或网络连接。'"
+              :type="agentRuntimeConfig ? 'success' : 'warning'"
+              :closable="false"
+              show-icon
+              class="config-alert"
+            />
+            
             <el-input 
               type="textarea" 
               v-model="agentRuntimeConfig" 
-              :rows="16" 
+              :rows="20" 
               readonly
               placeholder="加载中..."
+              class="config-editor"
             />
-          </el-tab-pane>
-          
-          <el-tab-pane label="查看所有配置" name="full">
-            <div class="config-hint">
-              <el-alert
-                title="完整的配置信息（包括应用配置、实例配置和合并后的最终配置）"
-                description="这里显示数据库中存储的配置以及合并后的最终配置。Agent 下次心跳时会拉取并应用这些配置。"
-                type="success"
-                :closable="false"
-                show-icon
-              />
+            
+            <div class="config-footer-hint">
+              <el-text type="info" size="small">
+                ℹ️ 此配置为只读，反映 Agent 当前使用的配置。如需修改，请切换到「数据库配置」标签页
+              </el-text>
             </div>
+          </div>
+        </el-tab-pane>
+        
+        <el-tab-pane name="full">
+          <template #label>
+            <span class="tab-label">
+              <el-icon><List /></el-icon>
+              完整配置
+            </span>
+          </template>
+          
+          <div class="config-section">
+            <el-alert
+              title="📊 完整配置信息"
+              description="展示应用配置、实例配置以及合并后的最终配置。Agent 实际生效的是最终配置。"
+              type="success"
+              :closable="false"
+              show-icon
+              class="config-alert"
+            />
             
-            <el-collapse v-if="fullConfigInfo" v-model="activeCollapsePanels">
-              <el-collapse-item title="应用级配置" name="app">
-                <div class="config-section">
-                  <div class="config-meta">版本: {{ fullConfigInfo.appConfigVersion }}</div>
-                  <el-input 
-                    type="textarea" 
-                    :model-value="fullConfigInfo.appConfig || '# 暂无应用配置'" 
-                    :rows="8" 
-                    readonly
-                  />
+            <template v-if="fullConfigInfo">
+              <!-- 应用级配置 -->
+              <div class="config-block">
+                <div class="config-block-header">
+                  <el-tag type="" effect="plain">
+                    <el-icon><Box /></el-icon>
+                    应用级配置
+                  </el-tag>
+                  <el-tag type="info" size="small">{{ fullConfigInfo.appConfigVersion }}</el-tag>
                 </div>
-              </el-collapse-item>
+                <el-input 
+                  type="textarea" 
+                  :model-value="fullConfigInfo.appConfig || '# 暂无应用配置'" 
+                  :rows="6" 
+                  readonly
+                  class="config-block-content"
+                />
+              </div>
               
-              <el-collapse-item v-if="configMode === 'instance'" title="实例级配置" name="instance">
-                <div class="config-section">
-                  <div class="config-meta">版本: {{ fullConfigInfo.instanceConfigVersion }}</div>
-                  <el-input 
-                    type="textarea" 
-                    :model-value="fullConfigInfo.instanceConfig || '# 暂无实例配置'" 
-                    :rows="8" 
-                    readonly
-                  />
+              <!-- 实例级配置 -->
+              <div v-if="configMode === 'instance'" class="config-block">
+                <div class="config-block-header">
+                  <el-tag type="warning" effect="plain">
+                    <el-icon><Tools /></el-icon>
+                    实例级配置
+                  </el-tag>
+                  <el-tag type="info" size="small">{{ fullConfigInfo.instanceConfigVersion }}</el-tag>
                 </div>
-              </el-collapse-item>
+                <el-input 
+                  type="textarea" 
+                  :model-value="fullConfigInfo.instanceConfig || '# 暂无实例配置'" 
+                  :rows="6" 
+                  readonly
+                  class="config-block-content"
+                />
+              </div>
               
-              <el-collapse-item title="合并后的最终配置" name="merged">
-                <div class="config-section">
-                  <div class="config-meta">最终版本: {{ fullConfigInfo.finalVersion }}</div>
-                  <el-alert
-                    :description="configMode === 'instance' ? '实例配置会覆盖应用配置中的相同字段' : '当前只有应用级配置'"
-                    type="info"
-                    :closable="false"
-                    show-icon
-                    style="margin-bottom: 10px"
-                  />
-                  <el-input 
-                    type="textarea" 
-                    :model-value="fullConfigInfo.mergedConfig || '# 无配置'" 
-                    :rows="12" 
-                    readonly
-                  />
+              <!-- 合并后的最终配置 -->
+              <div class="config-block config-block-highlight">
+                <div class="config-block-header">
+                  <el-tag type="success" effect="plain">
+                    <el-icon><Check /></el-icon>
+                    合并后的最终配置
+                  </el-tag>
+                  <el-tag type="success" size="small">{{ fullConfigInfo.finalVersion }}</el-tag>
                 </div>
-              </el-collapse-item>
-            </el-collapse>
+                <el-alert
+                  :description="configMode === 'instance' ? '实例配置会覆盖应用配置中的相同字段，优先级：实例配置 > 应用配置' : '当前只有应用级配置，无实例配置覆盖'"
+                  type="success"
+                  :closable="false"
+                  show-icon
+                  style="margin-bottom: 10px"
+                />
+                <el-input 
+                  type="textarea" 
+                  :model-value="fullConfigInfo.mergedConfig || '# 无配置'" 
+                  :rows="10" 
+                  readonly
+                  class="config-block-content"
+                />
+              </div>
+            </template>
             
-            <div v-else class="loading-text">加载中...</div>
-          </el-tab-pane>
-        </el-tabs>
-      </el-form>
+            <div v-else class="loading-state">
+              <el-skeleton :rows="10" animated />
+            </div>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
       
       <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="showConfigDialog = false">取消</el-button>
-          <el-button @click="syncFromRuntime" :disabled="!agentRuntimeConfig">从运行时同步</el-button>
-          <el-button type="primary" @click="submitConfig" :loading="submitting">确认更新</el-button>
-        </span>
+        <div class="dialog-footer">
+          <div class="footer-left">
+            <el-text type="info" size="small">
+              💡 提示: 修改配置后，Agent 会在下次心跳时自动拉取并应用
+            </el-text>
+          </div>
+          <div class="footer-right">
+            <el-button @click="showConfigDialog = false">取消</el-button>
+            <el-button @click="syncFromRuntime" :disabled="!agentRuntimeConfig">
+              <el-icon><RefreshRight /></el-icon>
+              从运行时同步
+            </el-button>
+            <el-button type="primary" @click="submitConfig" :loading="submitting">
+              <el-icon><Check /></el-icon>
+              确认保存
+            </el-button>
+          </div>
+        </div>
       </template>
     </el-dialog>
 
@@ -1357,7 +2089,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Connection, CircleClose, Bell, ArrowDown, Setting } from '@element-plus/icons-vue'
+import { Connection, CircleClose, Bell, ArrowDown, Setting, Document, Monitor, List, Box, Tools, Check, MagicStick, Delete, Upload, RefreshRight } from '@element-plus/icons-vue'
 import { fetchApplications, createApplication, fetchProjects, type Application, type Project } from '../../api/project'
 import { http } from '../../api/http'
 import {
@@ -1442,6 +2174,35 @@ const threadsData = ref<ThreadsData>({
   peakThreadCount: 0, totalStartedThreadCount: 0
 })
 
+// 系统属性数据结构
+interface KeyValueEntry {
+  key: string
+  value: string
+}
+
+const sysPropsData = ref<KeyValueEntry[]>([])
+const sysPropsSearch = ref('')
+
+const filteredSysProps = computed(() => {
+  if (!sysPropsSearch.value) return sysPropsData.value
+  const search = sysPropsSearch.value.toLowerCase()
+  return sysPropsData.value.filter(item => 
+    item.key.toLowerCase().includes(search) || item.value.toLowerCase().includes(search)
+  )
+})
+
+// 环境变量数据结构
+const envVarsData = ref<KeyValueEntry[]>([])
+const envVarsSearch = ref('')
+
+const filteredEnvVars = computed(() => {
+  if (!envVarsSearch.value) return envVarsData.value
+  const search = envVarsSearch.value.toLowerCase()
+  return envVarsData.value.filter(item => 
+    item.key.toLowerCase().includes(search) || item.value.toLowerCase().includes(search)
+  )
+})
+
 // 配置对话框相关
 const showConfigDialog = ref(false)
 const configMode = ref<'app' | 'instance'>('app')
@@ -1454,6 +2215,55 @@ const dbConfigContent = ref('')
 const agentRuntimeConfig = ref('')
 const fullConfigInfo = ref<AgentFullConfigInfo | null>(null)
 const activeCollapsePanels = ref<string[]>(['app', 'merged'])
+
+// 配置对话框标题
+const configDialogTitle = computed(() => {
+  if (configMode.value === 'instance') {
+    return `实例配置管理 - ${currentApp.value}@${currentInst.value}`
+  }
+  return `应用配置管理 - ${currentApp.value}`
+})
+
+// 格式化配置内容
+const formatConfig = () => {
+  // 简单的 YAML 格式化：确保一致的缩进
+  if (!dbConfigContent.value.trim()) {
+    ElMessage.warning('配置内容为空')
+    return
+  }
+  
+  try {
+    const lines = dbConfigContent.value.split('\n')
+    const formatted = lines.map(line => {
+      // 保留注释和空行
+      if (line.trim() === '' || line.trim().startsWith('#')) {
+        return line
+      }
+      return line
+    }).join('\n')
+    
+    dbConfigContent.value = formatted
+    ElMessage.success('配置已格式化')
+  } catch (e) {
+    ElMessage.error('格式化失败')
+  }
+}
+
+// 清空配置内容
+const clearConfig = () => {
+  ElMessageBox.confirm(
+    '确定要清空配置内容吗？此操作不可恢复。',
+    '清空确认',
+    {
+      confirmButtonText: '确定清空',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(() => {
+    dbConfigContent.value = '# 配置已清空\n# 请重新输入配置内容'
+    ElMessage.success('配置已清空')
+  }).catch(() => {})
+}
 
 // JVM数据结构
 interface JvmData {
@@ -1592,6 +2402,14 @@ const heapGrowthRateRef = ref<HTMLElement>()
 const gcPressureRef = ref<HTMLElement>()
 const systemLoadRef = ref<HTMLElement>()
 const diskIoRef = ref<HTMLElement>()
+const diskIoOpsRef = ref<HTMLElement>()
+const networkTrafficRef = ref<HTMLElement>()
+const ioCpuCorrelationRef = ref<HTMLElement>()
+const ioHeatmapRef = ref<HTMLElement>()
+const ioLatencyRef = ref<HTMLElement>()
+const ioGcCorrelationRef = ref<HTMLElement>()
+const memoryIoCorrelationRef = ref<HTMLElement>()
+const performanceScoreRef = ref<HTMLElement>()
 let memoryPoolsGridInstance: any = null
 let memoryUsageRateInstance: any = null
 let bufferPoolsChartInstance: any = null
@@ -1601,12 +2419,29 @@ let heapGrowthRateInstance: any = null
 let gcPressureInstance: any = null
 let systemLoadInstance: any = null
 let diskIoInstance: any = null
+let diskIoOpsInstance: any = null
+let networkTrafficInstance: any = null
+let ioCpuCorrelationInstance: any = null
+let ioHeatmapInstance: any = null
+let ioLatencyInstance: any = null
+let ioGcCorrelationInstance: any = null
+let memoryIoCorrelationInstance: any = null
+let performanceScoreInstance: any = null
 const minorVsFullGcChartRef = ref<HTMLElement>()
 const gcEfficiencyChartRef = ref<HTMLElement>()
+const gcVsHeapChartRef = ref<HTMLElement>()
+const gcVsCpuChartRef = ref<HTMLElement>()
 const threadStatesChartRef = ref<HTMLElement>()
 const classLoadingDetailChartRef = ref<HTMLElement>()
 const threadPoolsChartRef = ref<HTMLElement>()
 const classLoadingRateChartRef = ref<HTMLElement>()
+const daemonThreadChartRef = ref<HTMLElement>()
+const blockedThreadChartRef = ref<HTMLElement>()
+const topCpuThreadDetailChartRef = ref<HTMLElement>()
+const threadCreationRateChartRef = ref<HTMLElement>()
+const threadCpuCorrelationRef = ref<HTMLElement>()
+const threadLeakDetectionRef = ref<HTMLElement>()
+const threadStatesTrendRef = ref<HTMLElement>()
 // Phase 4: Memory Pools Detail
 const edenSurvivorChartRef = ref<HTMLElement>()
 const oldGenChartDetailRef = ref<HTMLElement>()
@@ -1634,10 +2469,19 @@ let classLoadingChartInstance: any = null
 let cpuChartInstance: any = null
 let minorVsFullGcChartInstance: any = null
 let gcEfficiencyChartInstance: any = null
+let gcVsHeapChartInstance: any = null
+let gcVsCpuChartInstance: any = null
 let threadStatesChartInstance: any = null
 let classLoadingDetailChartInstance: any = null
 let threadPoolsChartInstance: any = null
 let classLoadingRateChartInstance: any = null
+let daemonThreadChartInstance: any = null
+let blockedThreadChartInstance: any = null
+let topCpuThreadDetailChartInstance: any = null
+let threadCreationRateChartInstance: any = null
+let threadCpuCorrelationInstance: any = null
+let threadLeakDetectionInstance: any = null
+let threadStatesTrendInstance: any = null
 // Phase 4: Memory Pools Detail Chart Instances
 let edenSurvivorChartInstance: any = null
 let oldGenChartDetailInstance: any = null
@@ -1661,7 +2505,7 @@ interface MemoryPool {
 const selectedPools = ref<MemoryPool[]>([])
 
 const canShowChart = computed(() => {
-  return ['jvmInfo', 'memory', 'gcStats', 'threadsSummary'].includes(currentDiagType.value)
+  return ['jvmInfo', 'memory', 'gcStats', 'threadsSummary', 'sysProps', 'env'].includes(currentDiagType.value)
 })
 
 // Computed properties for key metrics cards
@@ -1788,6 +2632,314 @@ const latestJvmArgs = computed(() => {
   }
 })
 
+// ================= 内存监控相关计算属性 =================
+
+// 堆内存使用率
+const heapUsagePercent = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  if (latest.heapMax === 0) return '0%'
+  return ((latest.heapUsed / latest.heapMax) * 100).toFixed(1) + '%'
+})
+
+const heapUsageStatus = computed(() => {
+  const percent = parseFloat(heapUsagePercent.value) || 0
+  if (percent < 60) return 'success'
+  if (percent < 80) return 'warning'
+  return 'danger'
+})
+
+// 非堆内存使用率
+const nonHeapUsagePercent = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  if (latest.nonHeapMax === 0) return '0%'
+  return ((latest.nonHeapUsed / latest.nonHeapMax) * 100).toFixed(1) + '%'
+})
+
+const nonHeapUsageStatus = computed(() => {
+  const percent = parseFloat(nonHeapUsagePercent.value) || 0
+  if (percent < 70) return 'success'
+  if (percent < 85) return 'warning'
+  return 'danger'
+})
+
+// 新生代使用率
+const youngGenUsagePercent = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  if (!latest.youngGenMax || latest.youngGenMax === 0) return '0%'
+  return ((latest.youngGenUsed / latest.youngGenMax) * 100).toFixed(1) + '%'
+})
+
+const youngGenUsageStatus = computed(() => {
+  const percent = parseFloat(youngGenUsagePercent.value) || 0
+  if (percent < 70) return 'success'
+  if (percent < 85) return 'warning'
+  return 'danger'
+})
+
+// 老年代使用率
+const oldGenUsagePercent = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  if (!latest.oldGenMax || latest.oldGenMax === 0) return '0%'
+  return ((latest.oldGenUsed / latest.oldGenMax) * 100).toFixed(1) + '%'
+})
+
+const oldGenUsageStatus = computed(() => {
+  const percent = parseFloat(oldGenUsagePercent.value) || 0
+  if (percent < 70) return 'success'
+  if (percent < 85) return 'warning'
+  return 'danger'
+})
+
+// 内存增长速率
+const memoryGrowthRate = computed(() => {
+  if (memoryHistory.value.length < 2) return '-'
+  const first = memoryHistory.value[0]
+  const last = memoryHistory.value[memoryHistory.value.length - 1]
+  const timeDiffMinutes = (last.collectTime - first.collectTime) / 60000
+  if (timeDiffMinutes === 0) return '0 MB/min'
+  const heapDiff = last.heapUsed - first.heapUsed
+  const growthPerMin = heapDiff / timeDiffMinutes / (1024 * 1024)
+  return growthPerMin.toFixed(2) + ' MB/min'
+})
+
+const memoryGrowthStatus = computed(() => {
+  const rate = parseFloat(memoryGrowthRate.value) || 0
+  if (rate < 10) return 'success'
+  if (rate < 50) return 'warning'
+  return 'danger'
+})
+
+// GC压力指数
+const gcPressureIndex = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  let pressure = 0
+  
+  // 基于GC频率
+  const gcFreq = parseFloat(gcFrequency.value) || 0
+  if (gcFreq > 60) pressure += 30
+  else if (gcFreq > 30) pressure += 15
+  
+  // 基于平均GC耗时
+  const avgTime = parseFloat(avgGcTime.value) || 0
+  if (avgTime > 100) pressure += 30
+  else if (avgTime > 50) pressure += 15
+  
+  // 基于Full GC占比
+  const fullRatio = parseFloat(fullGcRatio.value) || 0
+  if (fullRatio > 15) pressure += 25
+  else if (fullRatio > 5) pressure += 10
+  
+  // 基于堆内存使用率
+  const heapUsage = parseFloat(heapUsagePercent.value) || 0
+  if (heapUsage > 90) pressure += 15
+  else if (heapUsage > 80) pressure += 8
+  
+  pressure = Math.min(100, pressure)
+  return `${pressure}`
+})
+
+const gcPressureStatus = computed(() => {
+  const index = parseInt(gcPressureIndex.value) || 0
+  if (index < 30) return 'success'
+  if (index < 60) return 'warning'
+  return 'danger'
+})
+
+// 内存泄漏风险
+const leakRiskLevel = computed(() => {
+  if (memoryHistory.value.length < 3) return '数据不足'
+  
+  const heapData = memoryHistory.value.map(m => m.heapUsed || 0)
+  const growthRate = parseFloat(memoryGrowthRate.value) || 0
+  
+  // 检测持续增长趋势
+  let increasingCount = 0
+  for (let i = 1; i < heapData.length; i++) {
+    if (heapData[i] > heapData[i-1]) {
+      increasingCount++
+    }
+  }
+  const increaseRatio = increasingCount / (heapData.length - 1)
+  
+  if (growthRate > 50 && increaseRatio > 0.8) {
+    return '高风险'
+  } else if (growthRate > 20 && increaseRatio > 0.6) {
+    return '中风险'
+  } else if (growthRate > 10) {
+    return '低风险'
+  } else {
+    return '无风险'
+  }
+})
+
+const leakRiskStatus = computed(() => {
+  const risk = leakRiskLevel.value
+  if (risk === '无风险') return 'success'
+  if (risk === '低风险') return 'info'
+  if (risk === '中风险') return 'warning'
+  return 'danger'
+})
+
+// 内存健康度评分
+const memoryHealthScore = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  let score = 100
+  
+  // 堆内存使用率扣分
+  const heapUsage = parseFloat(heapUsagePercent.value) || 0
+  if (heapUsage > 90) score -= 30
+  else if (heapUsage > 80) score -= 15
+  else if (heapUsage > 70) score -= 5
+  
+  // 内存增长速率扣分
+  const growthRate = parseFloat(memoryGrowthRate.value) || 0
+  if (growthRate > 50) score -= 25
+  else if (growthRate > 20) score -= 10
+  
+  // GC压力扣分
+  const gcPressure = parseInt(gcPressureIndex.value) || 0
+  if (gcPressure > 60) score -= 20
+  else if (gcPressure > 30) score -= 10
+  
+  // 泄漏风险扣分
+  const risk = leakRiskLevel.value
+  if (risk === '高风险') score -= 25
+  else if (risk === '中风险') score -= 10
+  else if (risk === '低风险') score -= 5
+  
+  score = Math.max(0, Math.min(100, score))
+  return `${score}分`
+})
+
+const memoryHealthStatus = computed(() => {
+  const score = parseInt(memoryHealthScore.value) || 0
+  if (score >= 80) return 'success'
+  if (score >= 60) return 'warning'
+  return 'danger'
+})
+
+// ================= GC分析相关计算属性 =================
+
+// GC关键指标
+const totalGcCount = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const total = (latest.minorGcCount || 0) + (latest.fullGcCount || 0)
+  return total > 0 ? `${total} 次` : '0 次'
+})
+
+const totalGcTime = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const total = (latest.minorGcTimeMs || 0) + (latest.fullGcTimeMs || 0)
+  return total > 0 ? `${total} ms` : '0 ms'
+})
+
+const avgGcTime = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const totalGcTime = (latest.minorGcTimeMs || 0) + (latest.fullGcTimeMs || 0)
+  const totalGcCount = (latest.minorGcCount || 0) + (latest.fullGcCount || 0)
+  if (totalGcCount === 0) return '0 ms'
+  const avg = totalGcTime / totalGcCount
+  return avg.toFixed(1) + ' ms'
+})
+
+const avgGcTimeStatus = computed(() => {
+  const time = parseFloat(avgGcTime.value) || 0
+  if (time < 10) return 'success'
+  if (time < 50) return 'warning'
+  return 'danger'
+})
+
+const fullGcRatio = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const minor = latest.minorGcCount || 0
+  const full = latest.fullGcCount || 0
+  const total = minor + full
+  if (total === 0) return '0%'
+  return ((full / total) * 100).toFixed(1) + '%'
+})
+
+const fullGcRatioStatus = computed(() => {
+  const ratio = parseFloat(fullGcRatio.value) || 0
+  if (ratio < 5) return 'success'
+  if (ratio < 15) return 'warning'
+  return 'danger'
+})
+
+const gcEfficiency = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const minor = latest.minorGcCount || 0
+  const full = latest.fullGcCount || 0
+  const total = minor + full
+  if (total === 0) return '0%'
+  // 效率 = (Minor GC次数 / 总GC次数) * 100
+  return ((minor / total) * 100).toFixed(1) + '%'
+})
+
+const gcEfficiencyStatus = computed(() => {
+  const eff = parseFloat(gcEfficiency.value) || 0
+  if (eff > 90) return 'success'
+  if (eff > 70) return 'warning'
+  return 'danger'
+})
+
+const maxGcDuration = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  let maxDuration = 0
+  for (let i = 1; i < memoryHistory.value.length; i++) {
+    const gcTimeDiff = (memoryHistory.value[i].gcTimeMs || 0) - (memoryHistory.value[i-1].gcTimeMs || 0)
+    if (gcTimeDiff > maxDuration) {
+      maxDuration = gcTimeDiff
+    }
+  }
+  return maxDuration > 0 ? `${maxDuration} ms` : '0 ms'
+})
+
+const gcHealthScore = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  let score = 100
+  
+  // Full GC占比扣分
+  const minor = latest.minorGcCount || 0
+  const full = latest.fullGcCount || 0
+  const total = minor + full
+  if (total > 0) {
+    const fullRatio = full / total
+    if (fullRatio > 0.3) score -= 30
+    else if (fullRatio > 0.15) score -= 15
+    else if (fullRatio > 0.05) score -= 5
+  }
+  
+  // GC频率扣分
+  const gcFreq = parseFloat(gcFrequency.value) || 0
+  if (gcFreq > 60) score -= 20  // > 1次/分钟
+  else if (gcFreq > 30) score -= 10  // > 0.5次/分钟
+  
+  // 平均GC耗时扣分
+  const avgTime = parseFloat(avgGcTime.value) || 0
+  if (avgTime > 100) score -= 20
+  else if (avgTime > 50) score -= 10
+  
+  score = Math.max(0, Math.min(100, score))
+  return `${score}分`
+})
+
+const gcHealthStatus = computed(() => {
+  const score = parseInt(gcHealthScore.value) || 0
+  if (score >= 80) return 'success'
+  if (score >= 60) return 'warning'
+  return 'danger'
+})
+
 // 检查是否有缓冲区池数据
 const hasBufferPoolsData = computed(() => {
   if (memoryHistory.value.length === 0) return false
@@ -1852,6 +3004,781 @@ const hasDiskIoData = computed(() => {
   // 修复：使用 != null 而不是 !== undefined，避免 null 被误判为有数据
   return (latest.diskReadBytes != null && latest.diskReadBytes > 0) || 
          (latest.diskWriteBytes != null && latest.diskWriteBytes > 0)
+})
+
+// IO/网络监控关键指标
+const maxDiskReadRate = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  let maxRate = 0
+  let maxTime = ''
+  for (let i = 1; i < memoryHistory.value.length; i++) {
+    const rate = Math.max(0, (memoryHistory.value[i].diskReadBytes || 0) - (memoryHistory.value[i-1].diskReadBytes || 0))
+    if (rate > maxRate) {
+      maxRate = rate
+      maxTime = new Date(memoryHistory.value[i].collectTime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    }
+  }
+  return maxRate > 0 ? `${formatBytes(maxRate)}/s` : '0 B/s'
+})
+
+const maxDiskWriteRate = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  let maxRate = 0
+  let maxTime = ''
+  for (let i = 1; i < memoryHistory.value.length; i++) {
+    const rate = Math.max(0, (memoryHistory.value[i].diskWriteBytes || 0) - (memoryHistory.value[i-1].diskWriteBytes || 0))
+    if (rate > maxRate) {
+      maxRate = rate
+      maxTime = new Date(memoryHistory.value[i].collectTime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    }
+  }
+  return maxRate > 0 ? `${formatBytes(maxRate)}/s` : '0 B/s'
+})
+
+const avgNetworkRecvRate = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  let totalRate = 0
+  let count = 0
+  for (let i = 1; i < memoryHistory.value.length; i++) {
+    const rate = Math.max(0, (memoryHistory.value[i].networkRecvBytes || 0) - (memoryHistory.value[i-1].networkRecvBytes || 0))
+    totalRate += rate
+    count++
+  }
+  return count > 0 ? `${formatBytes(totalRate / count)}/s` : '0 B/s'
+})
+
+const avgNetworkSentRate = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  let totalRate = 0
+  let count = 0
+  for (let i = 1; i < memoryHistory.value.length; i++) {
+    const rate = Math.max(0, (memoryHistory.value[i].networkSentBytes || 0) - (memoryHistory.value[i-1].networkSentBytes || 0))
+    totalRate += rate
+    count++
+  }
+  return count > 0 ? `${formatBytes(totalRate / count)}/s` : '0 B/s'
+})
+
+// IO智能分析
+const ioPatternAnalysis = computed(() => {
+  if (memoryHistory.value.length < 2) {
+    return { status: 'info', text: '数据不足', detail: '需要更多数据点才能分析IO模式' }
+  }
+  
+  let sequentialCount = 0
+  let randomCount = 0
+  let totalOps = 0
+  
+  for (let i = 1; i < memoryHistory.value.length; i++) {
+    const readBytes = Math.max(0, (memoryHistory.value[i].diskReadBytes || 0) - (memoryHistory.value[i-1].diskReadBytes || 0))
+    const writeBytes = Math.max(0, (memoryHistory.value[i].diskWriteBytes || 0) - (memoryHistory.value[i-1].diskWriteBytes || 0))
+    const readOps = Math.max(0, (memoryHistory.value[i].diskReadOps || 0) - (memoryHistory.value[i-1].diskReadOps || 0))
+    const writeOps = Math.max(0, (memoryHistory.value[i].diskWriteOps || 0) - (memoryHistory.value[i-1].diskWriteOps || 0))
+    
+    const totalBytes = readBytes + writeBytes
+    const totalOpCount = readOps + writeOps
+    totalOps += totalOpCount
+    
+    if (totalOpCount > 0) {
+      const avgBytesPerOp = totalBytes / totalOpCount
+      if (avgBytesPerOp > 65536) { // > 64KB per op = sequential
+        sequentialCount++
+      } else {
+        randomCount++
+      }
+    }
+  }
+  
+  if (totalOps === 0) {
+    return { status: 'info', text: '无IO活动', detail: '当前时间段内没有检测到磁盘IO操作' }
+  }
+  
+  const sequentialRatio = sequentialCount / (sequentialCount + randomCount)
+  if (sequentialRatio > 0.7) {
+    return { status: 'success', text: '顺序读写为主', detail: `顺序IO占比${(sequentialRatio * 100).toFixed(0)}%，性能良好` }
+  } else if (sequentialRatio > 0.4) {
+    return { status: 'warning', text: '混合IO模式', detail: `顺序IO占比${(sequentialRatio * 100).toFixed(0)}%，建议优化` }
+  } else {
+    return { status: 'danger', text: '随机IO为主', detail: `随机IO占比${((1 - sequentialRatio) * 100).toFixed(0)}%，性能较差` }
+  }
+})
+
+const ioLatencyAnalysis = computed(() => {
+  if (memoryHistory.value.length < 2) {
+    return { status: 'info', text: '数据不足', detail: '需要更多数据点才能计算IO延迟' }
+  }
+  
+  let totalLatency = 0
+  let count = 0
+  
+  for (let i = 1; i < memoryHistory.value.length; i++) {
+    const readOps = Math.max(0, (memoryHistory.value[i].diskReadOps || 0) - (memoryHistory.value[i-1].diskReadOps || 0))
+    const writeOps = Math.max(0, (memoryHistory.value[i].diskWriteOps || 0) - (memoryHistory.value[i-1].diskWriteOps || 0))
+    const totalOps = readOps + writeOps
+    
+    if (totalOps > 0) {
+      // 假设采集间隔为10秒，估算平均延迟
+      const avgLatency = 10000 / totalOps // ms
+      totalLatency += avgLatency
+      count++
+    }
+  }
+  
+  if (count === 0) {
+    return { status: 'info', text: '无IO活动', detail: '无法计算延迟' }
+  }
+  
+  const avgLatency = totalLatency / count
+  if (avgLatency < 1) {
+    return { status: 'success', text: `${avgLatency.toFixed(2)} ms`, detail: '延迟优秀' }
+  } else if (avgLatency < 5) {
+    return { status: 'success', text: `${avgLatency.toFixed(2)} ms`, detail: '延迟良好' }
+  } else if (avgLatency < 20) {
+    return { status: 'warning', text: `${avgLatency.toFixed(2)} ms`, detail: '延迟偏高，建议关注' }
+  } else {
+    return { status: 'danger', text: `${avgLatency.toFixed(2)} ms`, detail: '延迟过高，需要优化' }
+  }
+})
+
+const networkPatternAnalysis = computed(() => {
+  if (memoryHistory.value.length < 2) {
+    return { status: 'info', text: '数据不足', detail: '需要更多数据点才能分析网络模式' }
+  }
+  
+  let recvTotal = 0
+  let sentTotal = 0
+  let intervals = 0
+  
+  for (let i = 1; i < memoryHistory.value.length; i++) {
+    const recv = Math.max(0, (memoryHistory.value[i].networkRecvBytes || 0) - (memoryHistory.value[i-1].networkRecvBytes || 0))
+    const sent = Math.max(0, (memoryHistory.value[i].networkSentBytes || 0) - (memoryHistory.value[i-1].networkSentBytes || 0))
+    recvTotal += recv
+    sentTotal += sent
+    intervals++
+  }
+  
+  if (recvTotal === 0 && sentTotal === 0) {
+    return { status: 'info', text: '无网络活动', detail: '当前时间段内没有检测到网络流量' }
+  }
+  
+  const ratio = sentTotal / Math.max(1, recvTotal)
+  if (ratio > 2) {
+    return { status: 'warning', text: '发送密集型', detail: `发送/接收比${ratio.toFixed(1)}:1，可能存在数据积压` }
+  } else if (ratio < 0.5) {
+    return { status: 'success', text: '接收密集型', detail: `发送/接收比${ratio.toFixed(1)}:1，正常模式` }
+  } else {
+    return { status: 'success', text: '均衡模式', detail: `发送/接收比${ratio.toFixed(1)}:1，流量均衡` }
+  }
+})
+
+const ioSuggestions = computed(() => {
+  const suggestions: string[] = []
+  
+  // 基于IO模式给出建议
+  if (ioPatternAnalysis.value.status === 'danger') {
+    suggestions.push('检测到大量随机IO')
+    suggestions.push('建议：使用SSD存储、增大缓存、优化查询模式')
+  } else if (ioPatternAnalysis.value.status === 'warning') {
+    suggestions.push('混合IO模式')
+    suggestions.push('建议：考虑使用读写分离或增加缓存')
+  } else {
+    suggestions.push('IO模式良好')
+    suggestions.push('保持当前配置，定期监控性能变化')
+  }
+  
+  // 基于延迟给出额外建议
+  if (ioLatencyAnalysis.value.status === 'danger') {
+    suggestions[0] += ' + 高延迟'
+    suggestions[1] += '，检查磁盘健康状况'
+  }
+  
+  // 基于网络模式给出建议
+  if (networkPatternAnalysis.value.status === 'warning') {
+    suggestions[0] += ' + 网络发送压力大'
+    suggestions[1] += '，检查是否有大文件上传或数据同步'
+  }
+  
+  return suggestions
+})
+
+// ================= IO/网络监控关键指标计算属性 =================
+
+// 磁盘IO压力指数
+const diskIoPressureIndex = computed(() => {
+  if (memoryHistory.value.length < 2) return '-'
+  let pressure = 0
+  
+  // 基于读取速率
+  const readRates = memoryHistory.value.map((m, i) => {
+    if (i === 0) return 0
+    return Math.max(0, (m.diskReadBytes || 0) - (memoryHistory.value[i-1].diskReadBytes || 0))
+  })
+  const avgReadRate = readRates.reduce((a, b) => a + b, 0) / readRates.length
+  if (avgReadRate > 100 * 1024 * 1024) pressure += 30  // > 100MB/s
+  else if (avgReadRate > 50 * 1024 * 1024) pressure += 15  // > 50MB/s
+  
+  // 基于写入速率
+  const writeRates = memoryHistory.value.map((m, i) => {
+    if (i === 0) return 0
+    return Math.max(0, (m.diskWriteBytes || 0) - (memoryHistory.value[i-1].diskWriteBytes || 0))
+  })
+  const avgWriteRate = writeRates.reduce((a, b) => a + b, 0) / writeRates.length
+  if (avgWriteRate > 100 * 1024 * 1024) pressure += 30
+  else if (avgWriteRate > 50 * 1024 * 1024) pressure += 15
+  
+  // 基于IO操作次数
+  const opsRates = memoryHistory.value.map((m, i) => {
+    if (i === 0) return 0
+    const readOps = Math.max(0, (m.diskReadOps || 0) - (memoryHistory.value[i-1].diskReadOps || 0))
+    const writeOps = Math.max(0, (m.diskWriteOps || 0) - (memoryHistory.value[i-1].diskWriteOps || 0))
+    return readOps + writeOps
+  })
+  const avgOps = opsRates.reduce((a, b) => a + b, 0) / opsRates.length
+  if (avgOps > 1000) pressure += 20
+  else if (avgOps > 500) pressure += 10
+  
+  pressure = Math.min(100, pressure)
+  return `${pressure}`
+})
+
+const diskIoPressureStatus = computed(() => {
+  const index = parseInt(diskIoPressureIndex.value) || 0
+  if (index < 30) return 'success'
+  if (index < 60) return 'warning'
+  return 'danger'
+})
+
+// 网络流量负载指数
+const networkLoadIndex = computed(() => {
+  if (memoryHistory.value.length < 2) return '-'
+  let load = 0
+  
+  // 基于接收速率
+  const recvRates = memoryHistory.value.map((m, i) => {
+    if (i === 0) return 0
+    return Math.max(0, (m.networkRecvBytes || 0) - (memoryHistory.value[i-1].networkRecvBytes || 0))
+  })
+  const avgRecvRate = recvRates.reduce((a, b) => a + b, 0) / recvRates.length
+  if (avgRecvRate > 50 * 1024 * 1024) load += 25  // > 50MB/s
+  else if (avgRecvRate > 20 * 1024 * 1024) load += 12
+  
+  // 基于发送速率
+  const sentRates = memoryHistory.value.map((m, i) => {
+    if (i === 0) return 0
+    return Math.max(0, (m.networkSentBytes || 0) - (memoryHistory.value[i-1].networkSentBytes || 0))
+  })
+  const avgSentRate = sentRates.reduce((a, b) => a + b, 0) / sentRates.length
+  if (avgSentRate > 50 * 1024 * 1024) load += 25
+  else if (avgSentRate > 20 * 1024 * 1024) load += 12
+  
+  // 基于流量均衡性
+  const totalRecv = recvRates.reduce((a, b) => a + b, 0)
+  const totalSent = sentRates.reduce((a, b) => a + b, 0)
+  if (totalRecv > 0 && totalSent > 0) {
+    const ratio = Math.max(totalRecv, totalSent) / Math.min(totalRecv, totalSent)
+    if (ratio > 5) load += 20  // 严重不均衡
+    else if (ratio > 2) load += 10
+  }
+  
+  load = Math.min(100, load)
+  return `${load}`
+})
+
+const networkLoadStatus = computed(() => {
+  const index = parseInt(networkLoadIndex.value) || 0
+  if (index < 30) return 'success'
+  if (index < 60) return 'warning'
+  return 'danger'
+})
+
+// IO延迟指数
+const ioLatencyIndexValue = computed(() => {
+  if (memoryHistory.value.length < 2) return '-'
+  
+  let totalLatency = 0
+  let count = 0
+  
+  for (let i = 1; i < memoryHistory.value.length; i++) {
+    const readOps = Math.max(0, (memoryHistory.value[i].diskReadOps || 0) - (memoryHistory.value[i-1].diskReadOps || 0))
+    const writeOps = Math.max(0, (memoryHistory.value[i].diskWriteOps || 0) - (memoryHistory.value[i-1].diskWriteOps || 0))
+    const totalOps = readOps + writeOps
+    
+    if (totalOps > 0) {
+      const avgLatency = 10000 / totalOps  // ms
+      totalLatency += avgLatency
+      count++
+    }
+  }
+  
+  if (count === 0) return '0'
+  const avgLatency = totalLatency / count
+  
+  // 转换为0-100分指数
+  let index = 0
+  if (avgLatency < 1) index = 10
+  else if (avgLatency < 5) index = 30
+  else if (avgLatency < 20) index = 60
+  else if (avgLatency < 50) index = 80
+  else index = 100
+  
+  return `${index}`
+})
+
+const ioLatencyIndexStatus = computed(() => {
+  const index = parseInt(ioLatencyIndexValue.value) || 0
+  if (index < 30) return 'success'
+  if (index < 60) return 'warning'
+  return 'danger'
+})
+
+// IO健康度评分
+const ioHealthScore = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  let score = 100
+  
+  // 磁盘IO压力扣分
+  const diskPressure = parseInt(diskIoPressureIndex.value) || 0
+  if (diskPressure > 60) score -= 25
+  else if (diskPressure > 30) score -= 10
+  
+  // 网络负载扣分
+  const netLoad = parseInt(networkLoadIndex.value) || 0
+  if (netLoad > 60) score -= 25
+  else if (netLoad > 30) score -= 10
+  
+  // IO延迟扣分
+  const latencyIndex = parseInt(ioLatencyIndexValue.value) || 0
+  if (latencyIndex > 60) score -= 25
+  else if (latencyIndex > 30) score -= 10
+  
+  // IO模式扣分
+  if (ioPatternAnalysis.value.status === 'danger') score -= 15
+  else if (ioPatternAnalysis.value.status === 'warning') score -= 5
+  
+  score = Math.max(0, Math.min(100, score))
+  return `${score}分`
+})
+
+const ioHealthStatus = computed(() => {
+  const score = parseInt(ioHealthScore.value) || 0
+  if (score >= 80) return 'success'
+  if (score >= 60) return 'warning'
+  return 'danger'
+})
+
+// ================= 线程监控相关计算属性 =================
+
+// 线程关键指标
+const maxThreadCountValue = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  let maxCount = 0
+  let maxTime = ''
+  for (let i = 0; i < memoryHistory.value.length; i++) {
+    const count = memoryHistory.value[i].threadCount || 0
+    if (count > maxCount) {
+      maxCount = count
+      maxTime = new Date(memoryHistory.value[i].collectTime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    }
+  }
+  return maxCount > 0 ? `${maxCount} 线程` : '0 线程'
+})
+
+const avgThreadCount = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const total = memoryHistory.value.reduce((sum, m) => sum + (m.threadCount || 0), 0)
+  const avg = total / memoryHistory.value.length
+  return `${Math.round(avg)} 线程`
+})
+
+const blockedRatioText = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const blocked = latest.threadCountBlocked || 0
+  const total = latest.threadCount || 1
+  const ratio = (blocked / total) * 100
+  return ratio.toFixed(1) + '%'
+})
+
+const blockedRatioStatus = computed(() => {
+  if (memoryHistory.value.length === 0) return 'info'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const blocked = latest.threadCountBlocked || 0
+  const total = latest.threadCount || 1
+  const ratio = (blocked / total) * 100
+  if (ratio < 5) return 'success'
+  if (ratio < 15) return 'warning'
+  return 'danger'
+})
+
+const daemonRatioText = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const daemon = latest.daemonThreadCount || 0
+  const total = latest.threadCount || 1
+  const ratio = (daemon / total) * 100
+  return ratio.toFixed(1) + '%'
+})
+
+const peakThreadCountValue = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  let peak = 0
+  for (let i = 0; i < memoryHistory.value.length; i++) {
+    const count = memoryHistory.value[i].threadCount || 0
+    if (count > peak) peak = count
+  }
+  return peak > 0 ? `${peak} 线程` : '0 线程'
+})
+
+const runnableRatioText = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const runnable = latest.threadCountRunnable || 0
+  const total = latest.threadCount || 1
+  const ratio = (runnable / total) * 100
+  return ratio.toFixed(1) + '%'
+})
+
+const runnableRatioStatus = computed(() => {
+  if (memoryHistory.value.length === 0) return 'info'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const runnable = latest.threadCountRunnable || 0
+  const total = latest.threadCount || 1
+  const ratio = (runnable / total) * 100
+  if (ratio > 50) return 'success'
+  if (ratio > 30) return 'warning'
+  return 'danger'
+})
+
+const threadCreationRateValue = computed(() => {
+  if (memoryHistory.value.length < 2) return '-'
+  const first = memoryHistory.value[0]
+  const last = memoryHistory.value[memoryHistory.value.length - 1]
+  const timeDiff = (last.collectTime - first.collectTime) / 1000 // 秒
+  const threadDiff = (last.totalStartedThreadCount || 0) - (first.totalStartedThreadCount || 0)
+  if (timeDiff > 0) {
+    const rate = threadDiff / timeDiff
+    return rate.toFixed(2)
+  }
+  return '0'
+})
+
+const totalStartedThreadValue = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const total = latest.totalStartedThreadCount || 0
+  return total > 0 ? `${total}` : '0'
+})
+
+// 线程池关键指标
+const threadPoolCount = computed(() => {
+  if (!hasThreadPoolData.value) return '-'
+  try {
+    const latest = memoryHistory.value[memoryHistory.value.length - 1]
+    const pools = JSON.parse(latest.threadPools!)
+    return pools.length
+  } catch (e) {
+    return '-'
+  }
+})
+
+const threadPoolActivityRate = computed(() => {
+  if (!hasThreadPoolData.value) return '-'
+  try {
+    const latest = memoryHistory.value[memoryHistory.value.length - 1]
+    const pools = JSON.parse(latest.threadPools!)
+    let totalActive = 0
+    let totalThreads = 0
+    pools.forEach((pool: any) => {
+      totalActive += pool.activeCount || 0
+      totalThreads += pool.poolSize || 0
+    })
+    if (totalThreads === 0) return '0%'
+    return ((totalActive / totalThreads) * 100).toFixed(1) + '%'
+  } catch (e) {
+    return '-'
+  }
+})
+
+const threadPoolActivityStatus = computed(() => {
+  const rate = parseFloat(threadPoolActivityRate.value) || 0
+  if (rate < 50) return 'success'
+  if (rate < 80) return 'warning'
+  return 'danger'
+})
+
+const queueBacklogValue = computed(() => {
+  if (!hasThreadPoolData.value) return '-'
+  try {
+    const latest = memoryHistory.value[memoryHistory.value.length - 1]
+    const pools = JSON.parse(latest.threadPools!)
+    let totalQueue = 0
+    pools.forEach((pool: any) => {
+      totalQueue += pool.queueSize || 0
+    })
+    return totalQueue > 0 ? `${totalQueue}` : '0'
+  } catch (e) {
+    return '-'
+  }
+})
+
+const queueBacklogStatus = computed(() => {
+  const backlog = parseInt(queueBacklogValue.value) || 0
+  if (backlog === 0) return 'success'
+  if (backlog < 100) return 'warning'
+  return 'danger'
+})
+
+const rejectedTaskCount = computed(() => {
+  if (!hasThreadPoolData.value) return '-'
+  try {
+    const latest = memoryHistory.value[memoryHistory.value.length - 1]
+    const pools = JSON.parse(latest.threadPools!)
+    let totalRejected = 0
+    pools.forEach((pool: any) => {
+      totalRejected += pool.rejectedCount || 0
+    })
+    return totalRejected > 0 ? `${totalRejected}` : '0'
+  } catch (e) {
+    return '-'
+  }
+})
+
+const rejectedCountStatus = computed(() => {
+  const count = parseInt(rejectedTaskCount.value) || 0
+  if (count === 0) return 'success'
+  if (count < 10) return 'warning'
+  return 'danger'
+})
+
+// 类加载关键指标
+const loadedClassCount = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const count = latest.loadedClassCount || 0
+  return count > 0 ? `${count}` : '0'
+})
+
+const classLoadingRateValue = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const rate = latest.classLoadingRate || 0
+  return rate.toFixed(2)
+})
+
+const unloadedClassCount = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const count = latest.unloadedClassCount || 0
+  return count > 0 ? `${count}` : '0'
+})
+
+const classLoadErrorCount = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const count = latest.classLoadErrorCount || 0
+  return count > 0 ? `${count}` : '0'
+})
+
+const classLoadErrorStatus = computed(() => {
+  const count = parseInt(classLoadErrorCount.value) || 0
+  if (count === 0) return 'success'
+  if (count < 5) return 'warning'
+  return 'danger'
+})
+
+// GC智能分析
+const gcModeAnalysis = computed(() => {
+  if (memoryHistory.value.length === 0) {
+    return { status: 'info', text: '数据不足', detail: '无法分析GC模式' }
+  }
+  
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const minor = latest.minorGcCount || 0
+  const full = latest.fullGcCount || 0
+  const total = minor + full
+  
+  if (total === 0) {
+    return { status: 'info', text: '无GC活动', detail: '当前时间段内没有发生GC' }
+  }
+  
+  const fullRatio = full / total
+  if (fullRatio < 0.05) {
+    return { status: 'success', text: 'Minor GC为主', detail: `Full GC占比${(fullRatio * 100).toFixed(1)}%，GC策略正常` }
+  } else if (fullRatio < 0.15) {
+    return { status: 'warning', text: 'Full GC偏多', detail: `Full GC占比${(fullRatio * 100).toFixed(1)}%，建议调整堆大小` }
+  } else {
+    return { status: 'danger', text: 'Full GC过多', detail: `Full GC占比${(fullRatio * 100).toFixed(1)}%，存在内存问题` }
+  }
+})
+
+const fullGcTrendAnalysis = computed(() => {
+  if (memoryHistory.value.length < 3) {
+    return { status: 'info', text: '数据不足', detail: '需要更多数据点才能分析Full GC趋势' }
+  }
+  
+  const fullGcCounts = memoryHistory.value.map(m => m.fullGcCount || 0)
+  const first = fullGcCounts[0]
+  const last = fullGcCounts[fullGcCounts.length - 1]
+  const diff = last - first
+  
+  if (diff > 5) {
+    return { status: 'danger', text: '持续增长', detail: `Full GC次数增长${diff}次，可能存在内存泄漏` }
+  } else if (diff > 0) {
+    return { status: 'warning', text: '缓慢增长', detail: `Full GC次数增长${diff}次，需关注` }
+  } else {
+    return { status: 'success', text: '稳定', detail: 'Full GC次数未增加，内存使用正常' }
+  }
+})
+
+const gcHealthDetailAnalysis = computed(() => {
+  if (memoryHistory.value.length === 0) {
+    return { status: 'info', text: '数据不足', detail: '无法评估GC健康度' }
+  }
+  
+  const score = parseInt(gcHealthScore.value) || 0
+  
+  if (score >= 80) {
+    return { status: 'success', text: `优秀(${score}分)`, detail: 'GC表现良好，无需优化' }
+  } else if (score >= 60) {
+    return { status: 'warning', text: `良好(${score}分)`, detail: 'GC表现正常，建议优化' }
+  } else {
+    return { status: 'danger', text: `较差(${score}分)`, detail: 'GC存在问题，需要立即优化' }
+  }
+})
+
+const gcSuggestions = computed(() => {
+  const suggestions: string[] = []
+  
+  // 基于GC模式给出建议
+  if (gcModeAnalysis.value.status === 'danger') {
+    suggestions.push('Full GC过多，存在内存问题')
+    suggestions.push('建议：增大堆内存(-Xmx)、检查内存泄漏')
+  } else if (gcModeAnalysis.value.status === 'warning') {
+    suggestions.push('Full GC偏多，内存压力较大')
+    suggestions.push('建议：适当调整堆内存大小、优化对象创建')
+  } else {
+    suggestions.push('GC模式正常，Minor GC为主')
+    suggestions.push('保持当前配置，定期监控性能变化')
+  }
+  
+  // 基于Full GC趋势给出建议
+  if (fullGcTrendAnalysis.value.status === 'danger') {
+    suggestions[0] += ' + Full GC持续增长'
+    suggestions[1] += '，使用MAT分析堆转储'
+  }
+  
+  // 基于GC频率给出建议
+  const gcFreq = parseFloat(gcFrequency.value) || 0
+  if (gcFreq > 60) {
+    suggestions[0] += ' + GC频率过高'
+    suggestions[1] += '，检查是否有大量短期对象创建'
+  }
+  
+  return suggestions
+})
+
+// 线程智能分析
+const threadGrowthAnalysis = computed(() => {
+  if (memoryHistory.value.length < 3) {
+    return { status: 'info', text: '数据不足', detail: '需要更多数据点才能分析线程增长模式' }
+  }
+  
+  const threadCounts = memoryHistory.value.map(m => m.threadCount || 0)
+  const first = threadCounts[0]
+  const last = threadCounts[threadCounts.length - 1]
+  const diff = last - first
+  const avg = threadCounts.reduce((a, b) => a + b, 0) / threadCounts.length
+  
+  if (diff > avg * 0.2) {
+    return { status: 'warning', text: '持续增长', detail: `线程数增长${diff}个，可能存在线程泄漏风险` }
+  } else if (diff < -avg * 0.2) {
+    return { status: 'success', text: '逐渐减少', detail: `线程数减少${Math.abs(diff)}个，线程池可能正在回收` }
+  } else {
+    return { status: 'success', text: '稳定状态', detail: `线程数波动在${Math.round(avg * 0.9)}-${Math.round(avg * 1.1)}之间，运行稳定` }
+  }
+})
+
+const blockedThreadAnalysis = computed(() => {
+  if (memoryHistory.value.length === 0) {
+    return { status: 'info', text: '数据不足', detail: '无BLOCKED线程数据' }
+  }
+  
+  const blockedData = memoryHistory.value.map(m => m.threadCountBlocked || 0)
+  const maxBlocked = Math.max(...blockedData)
+  const avgBlocked = blockedData.reduce((a, b) => a + b, 0) / blockedData.length
+  
+  if (maxBlocked === 0) {
+    return { status: 'success', text: '无线程阻塞', detail: '未检测到BLOCKED线程，运行正常' }
+  } else if (avgBlocked < 5) {
+    return { status: 'success', text: '少量阻塞', detail: `平均${avgBlocked.toFixed(0)}个BLOCKED线程，影响不大` }
+  } else if (avgBlocked < 20) {
+    return { status: 'warning', text: '中度阻塞', detail: `平均${avgBlocked.toFixed(0)}个BLOCKED线程，建议关注锁竞争` }
+  } else {
+    return { status: 'danger', text: '严重阻塞', detail: `平均${avgBlocked.toFixed(0)}个BLOCKED线程，存在锁竞争问题` }
+  }
+})
+
+const threadHealthAnalysis = computed(() => {
+  if (memoryHistory.value.length === 0) {
+    return { status: 'info', text: '数据不足', detail: '无法评估线程健康度' }
+  }
+  
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const total = latest.threadCount || 0
+  const runnable = latest.threadCountRunnable || 0
+  const blocked = latest.threadCountBlocked || 0
+  
+  let score = 100
+  
+  // BLOCKED线程扣分
+  if (total > 0) {
+    const blockedRatio = blocked / total
+    score -= blockedRatio * 100 * 0.5
+  }
+  
+  // RUNNABLE线程占比低扣分
+  if (total > 0) {
+    const runnableRatio = runnable / total
+    if (runnableRatio < 0.3) score -= 20
+  }
+  
+  // 线程数过多扣分
+  if (total > 500) score -= 10
+  if (total > 1000) score -= 20
+  
+  score = Math.max(0, Math.min(100, score))
+  
+  if (score >= 80) {
+    return { status: 'success', text: `健康度${score.toFixed(0)}分`, detail: '线程状态良好' }
+  } else if (score >= 60) {
+    return { status: 'warning', text: `健康度${score.toFixed(0)}分`, detail: '存在一定问题，建议关注' }
+  } else {
+    return { status: 'danger', text: `健康度${score.toFixed(0)}分`, detail: '线程状态较差，需要优化' }
+  }
+})
+
+const threadSuggestions = computed(() => {
+  const suggestions: string[] = []
+  
+  // 基于线程增长给出建议
+  if (threadGrowthAnalysis.value.status === 'warning') {
+    suggestions.push('检测到线程持续增长')
+    suggestions.push('建议：检查线程池配置，排查线程泄漏')
+  } else {
+    suggestions.push('线程增长模式正常')
+    suggestions.push('保持当前配置，定期监控')
+  }
+  
+  // 基于BLOCKED线程给出建议
+  if (blockedThreadAnalysis.value.status === 'danger') {
+    suggestions[0] += ' + 严重阻塞'
+    suggestions[1] += '，使用jstack分析死锁'
+  } else if (blockedThreadAnalysis.value.status === 'warning') {
+    suggestions[0] += ' + 中度阻塞'
+    suggestions[1] += '，优化锁粒度或使用无锁数据结构'
+  }
+  
+  return suggestions
 })
 
 // 检查是否有CPU数据
@@ -2138,11 +4065,11 @@ const handleDiagCommand = async (cmd: string, row: AgentInstance) => {
       break
       
     case 'sysProps':
-      await executeDiagCommand('系统属性', () => agentSysProps(agentId))
+      await executeDiagCommand('系统属性', () => agentSysProps(agentId), 'sysProps')
       break
       
     case 'env':
-      await executeDiagCommand('环境变量', () => agentEnv(agentId))
+      await executeDiagCommand('环境变量', () => agentEnv(agentId), 'env')
       break
   }
 }
@@ -2173,6 +4100,10 @@ const executeDiagCommand = async (title: string, fn: () => Promise<string | unde
         parseGcData(result)
       } else if (type === 'threadsSummary') {
         parseThreadsData(result)
+      } else if (type === 'sysProps') {
+        parseSysPropsData(result)
+      } else if (type === 'env') {
+        parseEnvVarsData(result)
       }
     }
   } catch (e: any) {
@@ -2525,6 +4456,118 @@ const renderGcCharts = () => {
     })
     gcEfficiencyChartInstance.resize()
   }
+  
+  // 5. GC vs 堆内存关联分析
+  if (gcVsHeapChartRef.value) {
+    if (!gcVsHeapChartInstance) gcVsHeapChartInstance = echarts.init(gcVsHeapChartRef.value)
+    
+    const gcIncrements = memoryHistory.value.map((m, i) => {
+      if (i === 0) return 0
+      return (m.gcCount || 0) - (memoryHistory.value[i - 1].gcCount || 0)
+    })
+    const heapUsageData = memoryHistory.value.map(m => {
+      return m.heapMax > 0 ? ((m.heapUsed || 0) / m.heapMax * 100).toFixed(1) : 0
+    })
+    
+    gcVsHeapChartInstance.setOption({
+      title: { text: 'GC频率 vs 堆内存使用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => {
+            if (p.seriesName === '堆内存使用率') {
+              result += `${p.marker} ${p.seriesName}: ${p.value}%<br/>`
+            } else {
+              result += `${p.marker} ${p.seriesName}: ${p.value} 次<br/>`
+            }
+          })
+          return result
+        }
+      },
+      legend: { data: ['GC增量', '堆内存使用率'], bottom: 0 },
+      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: [
+        { type: 'value', name: 'GC次数', position: 'left' },
+        { type: 'value', name: '使用率(%)', max: 100, position: 'right' }
+      ],
+      series: [
+        { 
+          name: 'GC增量', 
+          type: 'bar', 
+          data: gcIncrements, 
+          itemStyle: { color: '#9c27b0' },
+          yAxisIndex: 0
+        },
+        { 
+          name: '堆内存使用率', 
+          type: 'line', 
+          data: heapUsageData, 
+          smooth: true, 
+          itemStyle: { color: '#f56c6c' },
+          lineStyle: { width: 2 },
+          yAxisIndex: 1
+        }
+      ]
+    })
+    gcVsHeapChartInstance.resize()
+  }
+  
+  // 6. GC vs CPU关联分析
+  if (gcVsCpuChartRef.value) {
+    if (!gcVsCpuChartInstance) gcVsCpuChartInstance = echarts.init(gcVsCpuChartRef.value)
+    
+    const gcIncrements = memoryHistory.value.map((m, i) => {
+      if (i === 0) return 0
+      return (m.gcCount || 0) - (memoryHistory.value[i - 1].gcCount || 0)
+    })
+    const cpuData = memoryHistory.value.map(m => ((m.processCpuLoad || 0) * 100).toFixed(2))
+    
+    gcVsCpuChartInstance.setOption({
+      title: { text: 'GC频率 vs CPU使用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => {
+            if (p.seriesName === 'CPU使用率') {
+              result += `${p.marker} ${p.seriesName}: ${p.value}%<br/>`
+            } else {
+              result += `${p.marker} ${p.seriesName}: ${p.value} 次<br/>`
+            }
+          })
+          return result
+        }
+      },
+      legend: { data: ['GC增量', 'CPU使用率'], bottom: 0 },
+      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: [
+        { type: 'value', name: 'GC次数', position: 'left' },
+        { type: 'value', name: 'CPU%', max: 100, position: 'right' }
+      ],
+      series: [
+        { 
+          name: 'GC增量', 
+          type: 'bar', 
+          data: gcIncrements, 
+          itemStyle: { color: '#9c27b0' },
+          yAxisIndex: 0
+        },
+        { 
+          name: 'CPU使用率', 
+          type: 'line', 
+          data: cpuData, 
+          smooth: true, 
+          itemStyle: { color: '#e6a23c' },
+          lineStyle: { width: 2 },
+          yAxisIndex: 1
+        }
+      ]
+    })
+    gcVsCpuChartInstance.resize()
+  }
 }
 
 // 渲染线程图表 - 只渲染线程相关图表
@@ -2636,47 +4679,28 @@ const renderThreadCharts = () => {
     } else if (hasRateData) {
       // 使用 classLoadingRate 字段
       const rates = memoryHistory.value.map(m => m.classLoadingRate || 0)
-      const allZero = rates.every(r => r === 0)
       
-      if (allZero) {
-        // 所有数据都是 0，显示空状态
-        classLoadingDetailChartInstance.setOption({
-          title: { text: '类加载速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
-          graphic: {
-            type: 'text',
-            left: 'center',
-            top: 'middle',
-            style: {
-              text: '无类加载活动\n所有类已加载完成，无新增或卸载',
-              fill: '#c0c4cc',
-              fontSize: 14,
-              textAlign: 'center'
-            }
+      // 始终显示图表，不再显示空状态
+      classLoadingDetailChartInstance.setOption({
+        title: { text: '类加载速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+        tooltip: { 
+          trigger: 'axis', 
+          formatter: (params: any) => {
+            return params[0].name + '<br/>加载速率: ' + params[0].value.toFixed(2) + ' 类/秒'
           }
-        })
-      } else {
-        // 有数据，正常显示
-        classLoadingDetailChartInstance.setOption({
-          title: { text: '类加载速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-          tooltip: { 
-            trigger: 'axis', 
-            formatter: (params: any) => {
-              return params[0].name + '<br/>加载速率: ' + params[0].value.toFixed(2) + ' 类/秒'
-            }
-          },
-          grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-          xAxis: { type: 'category', data: times, boundaryGap: false },
-          yAxis: { type: 'value', name: '类/秒' },
-          series: [{ 
-            name: '加载速率', 
-            type: 'line', 
-            data: rates, 
-            smooth: true, 
-            itemStyle: { color: '#9c27b0' },
-            areaStyle: { color: 'rgba(156, 39, 176, 0.1)' }
-          }]
-        })
-      }
+        },
+        grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
+        xAxis: { type: 'category', data: times, boundaryGap: false },
+        yAxis: { type: 'value', name: '类/秒' },
+        series: [{ 
+          name: '加载速率', 
+          type: 'line', 
+          data: rates, 
+          smooth: true, 
+          itemStyle: { color: '#9c27b0' },
+          areaStyle: { color: 'rgba(156, 39, 176, 0.1)' }
+        }]
+      })
       classLoadingDetailChartInstance.resize()
     } else {
       // 降级：使用 loadedClassCount 的差值
@@ -2684,37 +4708,18 @@ const renderThreadCharts = () => {
         if (i === 0) return 0
         return Math.max(0, m.loadedClassCount - memoryHistory.value[i - 1].loadedClassCount)
       })
-      const allZero = loadedRates.every(r => r === 0)
       
-      if (allZero) {
-        // 所有数据都是 0，显示空状态
-        classLoadingDetailChartInstance.setOption({
-          title: { text: '类加载速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
-          graphic: {
-            type: 'text',
-            left: 'center',
-            top: 'middle',
-            style: {
-              text: '无类加载活动\n所有类已加载完成，无新增或卸载',
-              fill: '#c0c4cc',
-              fontSize: 14,
-              textAlign: 'center'
-            }
-          }
-        })
-      } else {
-        // 有数据，正常显示
-        classLoadingDetailChartInstance.setOption({
-          title: { text: '类加载速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-          tooltip: { trigger: 'axis', formatter: (params: any) => {
-            return params[0].name + '<br/>新增类: ' + params[0].value
-          }},
-          grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-          xAxis: { type: 'category', data: times, boundaryGap: false },
-          yAxis: { type: 'value', name: '类数量' },
-          series: [{ name: '新增类', type: 'bar', data: loadedRates, itemStyle: { color: '#9c27b0' } }]
-        })
-      }
+      // 始终显示图表
+      classLoadingDetailChartInstance.setOption({
+        title: { text: '类加载速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+        tooltip: { trigger: 'axis', formatter: (params: any) => {
+          return params[0].name + '<br/>新增类: ' + params[0].value
+        }},
+        grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
+        xAxis: { type: 'category', data: times, boundaryGap: false },
+        yAxis: { type: 'value', name: '类数量' },
+        series: [{ name: '新增类', type: 'bar', data: loadedRates, itemStyle: { color: '#9c27b0' } }]
+      })
       classLoadingDetailChartInstance.resize()
     }
   }
@@ -2844,6 +4849,829 @@ const renderThreadCharts = () => {
       })
       cpuChartInstance.resize()
     }
+  }
+  
+  // 7. 守护线程趋势图
+  if (daemonThreadChartRef.value && memoryHistory.value.length > 0) {
+    if (!daemonThreadChartInstance) daemonThreadChartInstance = echarts.init(daemonThreadChartRef.value)
+    
+    const daemonData = memoryHistory.value.map(m => m.daemonThreadCount || 0)
+    const userData = memoryHistory.value.map((m, i) => {
+      const total = m.threadCount || 0
+      const daemon = m.daemonThreadCount || 0
+      return Math.max(0, total - daemon)
+    })
+    
+    daemonThreadChartInstance.setOption({
+      title: { text: '守护线程 vs 用户线程', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${p.value} 线程<br/>` })
+          return result
+        }
+      },
+      legend: { data: ['守护线程', '用户线程'], bottom: 0 },
+      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: { type: 'value', name: '线程数' },
+      series: [
+        { name: '守护线程', type: 'line', stack: 'total', data: daemonData, smooth: true, itemStyle: { color: '#67c23a' }, areaStyle: { color: 'rgba(103, 194, 58, 0.1)' } },
+        { name: '用户线程', type: 'line', stack: 'total', data: userData, smooth: true, itemStyle: { color: '#409eff' }, areaStyle: { color: 'rgba(64, 158, 255, 0.1)' } }
+      ]
+    })
+    daemonThreadChartInstance.resize()
+  }
+  
+  // 8. BLOCKED线程趋势图
+  if (blockedThreadChartRef.value && memoryHistory.value.length > 0) {
+    if (!blockedThreadChartInstance) blockedThreadChartInstance = echarts.init(blockedThreadChartRef.value)
+    
+    const blockedData = memoryHistory.value.map(m => m.threadCountBlocked || 0)
+    const runnableData = memoryHistory.value.map(m => m.threadCountRunnable || 0)
+    
+    blockedThreadChartInstance.setOption({
+      title: { text: 'BLOCKED线程趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${p.value} 线程<br/>` })
+          return result
+        }
+      },
+      legend: { data: ['BLOCKED', 'RUNNABLE'], bottom: 0 },
+      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: { type: 'value', name: '线程数' },
+      series: [
+        { 
+          name: 'BLOCKED', 
+          type: 'line', 
+          data: blockedData, 
+          smooth: true, 
+          itemStyle: { color: '#f56c6c' },
+          areaStyle: { color: 'rgba(245, 108, 108, 0.2)' },
+          markLine: {
+            data: [
+              { yAxis: 5, name: '警告', lineStyle: { color: '#e6a23c', type: 'dashed' } },
+              { yAxis: 20, name: '危险', lineStyle: { color: '#f56c6c', type: 'dashed' } }
+            ]
+          }
+        },
+        { 
+          name: 'RUNNABLE', 
+          type: 'line', 
+          data: runnableData, 
+          smooth: true, 
+          itemStyle: { color: '#67c23a' },
+          areaStyle: { color: 'rgba(103, 194, 58, 0.1)' }
+        }
+      ]
+    })
+    blockedThreadChartInstance.resize()
+  }
+  
+  // 9. Top CPU线程详情图
+  if (topCpuThreadDetailChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].topCpuThreadName) {
+    if (!topCpuThreadDetailChartInstance) topCpuThreadDetailChartInstance = echarts.init(topCpuThreadDetailChartRef.value)
+    
+    const threadNames = memoryHistory.value.map(m => m.topCpuThreadName || 'Unknown')
+    const cpuPercents = memoryHistory.value.map(m => m.topCpuThreadPercent || 0)
+    
+    topCpuThreadDetailChartInstance.setOption({
+      title: { text: 'Top CPU线程占用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          return params[0].name + '<br/>' + 
+                 params[0].marker + ' 线程: ' + threadNames[params[0].dataIndex] + '<br/>' +
+                 params[0].marker + ' CPU占用: ' + params[0].value.toFixed(2) + '%'
+        }
+      },
+      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: { type: 'value', name: 'CPU占用(%)' },
+      series: [
+        { 
+          name: 'CPU占用', 
+          type: 'line', 
+          data: cpuPercents, 
+          smooth: true, 
+          itemStyle: { color: '#f56c6c' },
+          areaStyle: { color: 'rgba(245, 108, 108, 0.2)' },
+          markPoint: {
+            data: [
+              { type: 'max', label: { formatter: '峰值' } },
+              { type: 'average', label: { formatter: '平均' } }
+            ]
+          }
+        }
+      ]
+    })
+    topCpuThreadDetailChartInstance.resize()
+  }
+  
+  // 10. 线程创建速率图
+  if (threadCreationRateChartRef.value && memoryHistory.value.length > 0) {
+    if (!threadCreationRateChartInstance) threadCreationRateChartInstance = echarts.init(threadCreationRateChartRef.value)
+    
+    const creationRates = memoryHistory.value.map((m, i) => {
+      if (i === 0) return 0
+      return Math.max(0, (m.totalStartedThreadCount || 0) - (memoryHistory.value[i - 1].totalStartedThreadCount || 0))
+    })
+    
+    threadCreationRateChartInstance.setOption({
+      title: { text: '线程创建速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          return params[0].name + '<br/>' + params[0].marker + ' 新创建线程: ' + params[0].value + ' 个'
+        }
+      },
+      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: { type: 'value', name: '线程数/间隔' },
+      series: [
+        { 
+          name: '创建速率', 
+          type: 'bar', 
+          data: creationRates, 
+          itemStyle: { 
+            color: (params: any) => {
+              return params.value > 10 ? '#f56c6c' : '#409eff'
+            }
+          },
+          label: { show: true, position: 'top' }
+        }
+      ]
+    })
+    threadCreationRateChartInstance.resize()
+  }
+  
+  // 11. 线程与CPU关联分析
+  if (threadCpuCorrelationRef.value && memoryHistory.value.length > 0) {
+    if (!threadCpuCorrelationInstance) threadCpuCorrelationInstance = echarts.init(threadCpuCorrelationRef.value)
+    
+    const threadData = memoryHistory.value.map(m => m.threadCount || 0)
+    const cpuData = memoryHistory.value.map(m => ((m.processCpuLoad || 0) * 100).toFixed(2))
+    
+    threadCpuCorrelationInstance.setOption({
+      title: { text: '线程数 vs CPU使用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => {
+            if (p.seriesName === '线程数') {
+              result += `${p.marker} ${p.seriesName}: ${p.value} 个<br/>`
+            } else {
+              result += `${p.marker} ${p.seriesName}: ${p.value}%<br/>`
+            }
+          })
+          return result
+        }
+      },
+      legend: { data: ['线程数', 'CPU使用率'], bottom: 0 },
+      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: [
+        { type: 'value', name: '线程数', axisLabel: { formatter: '{value} 个' } },
+        { type: 'value', name: 'CPU%', max: 100, axisLabel: { formatter: '{value}%' } }
+      ],
+      series: [
+        { 
+          name: '线程数', 
+          type: 'line', 
+          yAxisIndex: 0,
+          data: threadData, 
+          smooth: true, 
+          itemStyle: { color: '#409eff' },
+          areaStyle: { color: 'rgba(64, 158, 255, 0.1)' }
+        },
+        { 
+          name: 'CPU使用率', 
+          type: 'line', 
+          yAxisIndex: 1,
+          data: cpuData, 
+          smooth: true, 
+          itemStyle: { color: '#f56c6c' },
+          areaStyle: { color: 'rgba(245, 108, 108, 0.1)' }
+        }
+      ]
+    })
+    threadCpuCorrelationInstance.resize()
+  }
+  
+  // 12. 线程泄漏检测图
+  if (threadLeakDetectionRef.value && memoryHistory.value.length > 0) {
+    if (!threadLeakDetectionInstance) threadLeakDetectionInstance = echarts.init(threadLeakDetectionRef.value)
+    
+    const threadCountData = memoryHistory.value.map(m => m.threadCount || 0)
+    const totalStartedData = memoryHistory.value.map(m => m.totalStartedThreadCount || 0)
+    
+    // 计算差值（潜在泄漏的线程数）
+    const leakedThreadsData = memoryHistory.value.map((m, i) => {
+      return Math.max(0, (m.totalStartedThreadCount || 0) - (m.threadCount || 0))
+    })
+    
+    threadLeakDetectionInstance.setOption({
+      title: { text: '线程泄漏检测', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => {
+            result += `${p.marker} ${p.seriesName}: ${p.value} 个<br/>`
+          })
+          return result
+        }
+      },
+      legend: { data: ['当前线程', '累计启动', '潜在泄漏'], bottom: 0 },
+      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: { type: 'value', name: '线程数' },
+      series: [
+        { 
+          name: '当前线程', 
+          type: 'line', 
+          data: threadCountData, 
+          smooth: true, 
+          itemStyle: { color: '#67c23a' },
+          areaStyle: { color: 'rgba(103, 194, 58, 0.1)' }
+        },
+        { 
+          name: '累计启动', 
+          type: 'line', 
+          data: totalStartedData, 
+          smooth: true, 
+          itemStyle: { color: '#409eff' },
+          lineStyle: { type: 'dashed' }
+        },
+        { 
+          name: '潜在泄漏', 
+          type: 'bar', 
+          data: leakedThreadsData, 
+          itemStyle: { 
+            color: (params: any) => {
+              return params.value > 100 ? '#f56c6c' : '#e6a23c'
+            }
+          },
+          label: { show: true, position: 'top', fontSize: 10 }
+        }
+      ]
+    })
+    threadLeakDetectionInstance.resize()
+  }
+  
+  // 13. 线程状态趋势图
+  if (threadStatesTrendRef.value && memoryHistory.value.length > 0) {
+    if (!threadStatesTrendInstance) threadStatesTrendInstance = echarts.init(threadStatesTrendRef.value)
+    
+    const runnableData = memoryHistory.value.map(m => m.threadCountRunnable || 0)
+    const blockedData = memoryHistory.value.map(m => m.threadCountBlocked || 0)
+    // 计算WAITING+TIMED_WAITING（通过总数减去RUNNABLE和BLOCKED）
+    const waitingData = memoryHistory.value.map((m, i) => {
+      const total = m.threadCount || 0
+      const runnable = m.threadCountRunnable || 0
+      const blocked = m.threadCountBlocked || 0
+      return Math.max(0, total - runnable - blocked)
+    })
+    
+    threadStatesTrendInstance.setOption({
+      title: { text: '线程状态趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${p.value} 线程<br/>` })
+          return result
+        }
+      },
+      legend: { data: ['RUNNABLE', 'WAITING', 'BLOCKED'], bottom: 0 },
+      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: { type: 'value', name: '线程数' },
+      series: [
+        { 
+          name: 'RUNNABLE', 
+          type: 'line', 
+          stack: 'total',
+          data: runnableData, 
+          smooth: true, 
+          itemStyle: { color: '#67c23a' },
+          areaStyle: { color: 'rgba(103, 194, 58, 0.2)' }
+        },
+        { 
+          name: 'WAITING', 
+          type: 'line', 
+          stack: 'total',
+          data: waitingData, 
+          smooth: true, 
+          itemStyle: { color: '#409eff' },
+          areaStyle: { color: 'rgba(64, 158, 255, 0.2)' }
+        },
+        { 
+          name: 'BLOCKED', 
+          type: 'line', 
+          stack: 'total',
+          data: blockedData, 
+          smooth: true, 
+          itemStyle: { color: '#f56c6c' },
+          areaStyle: { color: 'rgba(245, 108, 108, 0.2)' },
+          markLine: {
+            data: [
+              { yAxis: 5, name: '警告', lineStyle: { color: '#e6a23c', type: 'dashed' } },
+              { yAxis: 20, name: '危险', lineStyle: { color: '#f56c6c', type: 'dashed' } }
+            ]
+          }
+        }
+      ]
+    })
+    threadStatesTrendInstance.resize()
+  }
+  
+  // 14. 磁盘I/O监控 - IO/网络监控页面专用
+  console.log('[DIAG-IO] ===== renderThreadCharts 开始渲染磁盘I/O图表 =====')
+  console.log('[DIAG-IO] diskIoRef.value:', diskIoRef.value)
+  console.log('[DIAG-IO] memoryHistory.length:', memoryHistory.value.length)
+  if (memoryHistory.value.length > 0) {
+    console.log('[DIAG-IO] memoryHistory[0]:', memoryHistory.value[0])
+    console.log('[DIAG-IO] diskReadBytes:', memoryHistory.value[0].diskReadBytes)
+    console.log('[DIAG-IO] diskWriteBytes:', memoryHistory.value[0].diskWriteBytes)
+    console.log('[DIAG-IO] hasDiskIoData:', hasDiskIoData.value)
+  }
+  
+  // 修改：只要有memoryHistory数据就渲染图表，即使IO数据为0
+  if (diskIoRef.value && memoryHistory.value.length > 0) {
+    console.log('[DIAG-IO] 开始初始化ECharts实例')
+    if (!diskIoInstance) diskIoInstance = echarts.init(diskIoRef.value)
+    
+    const diskReadData = memoryHistory.value.map((m, i) => {
+      if (i === 0) return 0
+      const val = (m.diskReadBytes || 0) - (memoryHistory.value[i - 1].diskReadBytes || 0)
+      return val >= 0 ? val : 0 // 确保增量不为负
+    })
+    const diskWriteData = memoryHistory.value.map((m, i) => {
+      if (i === 0) return 0
+      const val = (m.diskWriteBytes || 0) - (memoryHistory.value[i - 1].diskWriteBytes || 0)
+      return val >= 0 ? val : 0 // 确保增量不为负
+    })
+    
+    console.log('[DIAG-IO] 设置图表配置')
+    diskIoInstance.setOption({
+      title: { text: '磁盘I/O速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}/s<br/>` })
+          return result
+        }
+      },
+      legend: { data: ['读取速率', '写入速率'], bottom: 0 },
+      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: { type: 'value', name: 'B/s', axisLabel: { formatter: (val: number) => formatBytes(val) + '/s' } },
+      series: [
+        { name: '读取速率', type: 'line', data: diskReadData, smooth: true, itemStyle: { color: '#67c23a' }, areaStyle: { color: 'rgba(103, 194, 58, 0.1)' } },
+        { name: '写入速率', type: 'line', data: diskWriteData, smooth: true, itemStyle: { color: '#e6a23c' }, areaStyle: { color: 'rgba(230, 162, 60, 0.1)' } }
+      ]
+    })
+    console.log('[DIAG-IO] 图表渲染完成')
+    diskIoInstance.resize()
+  }
+  
+  // 8. 磁盘IO操作次数监控
+  if (diskIoOpsRef.value && memoryHistory.value.length > 0) {
+    if (!diskIoOpsInstance) diskIoOpsInstance = echarts.init(diskIoOpsRef.value)
+    
+    const diskReadOpsData = memoryHistory.value.map((m, i) => {
+      if (i === 0) return 0
+      const val = (m.diskReadOps || 0) - (memoryHistory.value[i - 1].diskReadOps || 0)
+      return val >= 0 ? val : 0
+    })
+    const diskWriteOpsData = memoryHistory.value.map((m, i) => {
+      if (i === 0) return 0
+      const val = (m.diskWriteOps || 0) - (memoryHistory.value[i - 1].diskWriteOps || 0)
+      return val >= 0 ? val : 0
+    })
+    
+    diskIoOpsInstance.setOption({
+      title: { text: '磁盘I/O操作频率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${p.value.toFixed(0)} ops/s<br/>` })
+          return result
+        }
+      },
+      legend: { data: ['读操作', '写操作'], bottom: 0 },
+      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: { type: 'value', name: 'ops/s' },
+      series: [
+        { name: '读操作', type: 'line', data: diskReadOpsData, smooth: true, itemStyle: { color: '#409eff' }, areaStyle: { color: 'rgba(64, 158, 255, 0.1)' } },
+        { name: '写操作', type: 'line', data: diskWriteOpsData, smooth: true, itemStyle: { color: '#e6a23c' }, areaStyle: { color: 'rgba(230, 162, 60, 0.1)' } }
+      ]
+    })
+    diskIoOpsInstance.resize()
+  }
+  
+  // 9. 网络流量监控
+  if (networkTrafficRef.value && memoryHistory.value.length > 0) {
+    if (!networkTrafficInstance) networkTrafficInstance = echarts.init(networkTrafficRef.value)
+    
+    const networkRecvData = memoryHistory.value.map((m, i) => {
+      if (i === 0) return 0
+      const val = (m.networkRecvBytes || 0) - (memoryHistory.value[i - 1].networkRecvBytes || 0)
+      return val >= 0 ? val : 0
+    })
+    const networkSentData = memoryHistory.value.map((m, i) => {
+      if (i === 0) return 0
+      const val = (m.networkSentBytes || 0) - (memoryHistory.value[i - 1].networkSentBytes || 0)
+      return val >= 0 ? val : 0
+    })
+    
+    networkTrafficInstance.setOption({
+      title: { text: '网络流量速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}/s<br/>` })
+          return result
+        }
+      },
+      legend: { data: ['接收速率', '发送速率'], bottom: 0 },
+      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: { type: 'value', name: 'B/s', axisLabel: { formatter: (val: number) => formatBytes(val) + '/s' } },
+      series: [
+        { name: '接收速率', type: 'line', data: networkRecvData, smooth: true, itemStyle: { color: '#67c23a' }, areaStyle: { color: 'rgba(103, 194, 58, 0.1)' } },
+        { name: '发送速率', type: 'line', data: networkSentData, smooth: true, itemStyle: { color: '#f56c6c' }, areaStyle: { color: 'rgba(245, 108, 108, 0.1)' } }
+      ]
+    })
+    networkTrafficInstance.resize()
+  }
+  
+  // 10. IO与CPU关联分析
+  if (ioCpuCorrelationRef.value && memoryHistory.value.length > 0) {
+    if (!ioCpuCorrelationInstance) ioCpuCorrelationInstance = echarts.init(ioCpuCorrelationRef.value)
+    
+    const ioData = memoryHistory.value.map((m, i) => {
+      if (i === 0) return 0
+      const read = (m.diskReadBytes || 0) - (memoryHistory.value[i - 1].diskReadBytes || 0)
+      const write = (m.diskWriteBytes || 0) - (memoryHistory.value[i - 1].diskWriteBytes || 0)
+      return Math.max(0, read + write)
+    })
+    const cpuData = memoryHistory.value.map(m => ((m.processCpuLoad || 0) * 100).toFixed(2))
+    
+    ioCpuCorrelationInstance.setOption({
+      title: { text: 'IO速率 vs CPU使用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => {
+            if (p.seriesName === 'IO速率') {
+              result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}/s<br/>`
+            } else {
+              result += `${p.marker} ${p.seriesName}: ${p.value}%<br/>`
+            }
+          })
+          return result
+        }
+      },
+      legend: { data: ['IO速率', 'CPU使用率'], bottom: 0 },
+      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: [
+        { type: 'value', name: 'IO速率', axisLabel: { formatter: (val: number) => formatBytes(val) + '/s' } },
+        { type: 'value', name: 'CPU%', max: 100, axisLabel: { formatter: '{value}%' } }
+      ],
+      series: [
+        { 
+          name: 'IO速率', 
+          type: 'line', 
+          yAxisIndex: 0,
+          data: ioData, 
+          smooth: true, 
+          itemStyle: { color: '#67c23a' }, 
+          areaStyle: { color: 'rgba(103, 194, 58, 0.1)' } 
+        },
+        { 
+          name: 'CPU使用率', 
+          type: 'line', 
+          yAxisIndex: 1,
+          data: cpuData, 
+          smooth: true, 
+          itemStyle: { color: '#f56c6c' },
+          areaStyle: { color: 'rgba(245, 108, 108, 0.1)' }
+        }
+      ]
+    })
+    ioCpuCorrelationInstance.resize()
+  }
+  
+  // 11. IO操作热力图
+  if (ioHeatmapRef.value && memoryHistory.value.length > 0) {
+    if (!ioHeatmapInstance) ioHeatmapInstance = echarts.init(ioHeatmapRef.value)
+    
+    // 准备热力图数据
+    const hours = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`)
+    const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+    
+    const heatmapData: [number, number, number][] = []
+    memoryHistory.value.forEach(m => {
+      const date = new Date(m.collectTime)
+      const hour = date.getHours()
+      const day = date.getDay()
+      const ioOps = (m.diskReadOps || 0) + (m.diskWriteOps || 0)
+      // 如果该时段已有数据，取最大值
+      const existingIndex = heatmapData.findIndex(d => d[0] === hour && d[1] === day)
+      if (existingIndex >= 0) {
+        heatmapData[existingIndex][2] = Math.max(heatmapData[existingIndex][2], ioOps)
+      } else {
+        heatmapData.push([hour, day, ioOps])
+      }
+    })
+    
+    // 找出最大值用于颜色映射
+    const maxOps = Math.max(...heatmapData.map(d => d[2]), 1)
+    
+    ioHeatmapInstance.setOption({
+      title: { text: 'IO操作频率热力图', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        position: 'top',
+        formatter: (params: any) => {
+          return `${days[params.data[1]]} ${hours[params.data[0]]}<br/>IO操作: ${params.data[2].toFixed(0)} ops`
+        }
+      },
+      grid: { left: '8%', right: '8%', bottom: '15%', top: '10%' },
+      xAxis: { 
+        type: 'category', 
+        data: hours,
+        splitArea: { show: true }
+      },
+      yAxis: { 
+        type: 'category', 
+        data: days,
+        splitArea: { show: true }
+      },
+      visualMap: {
+        min: 0,
+        max: maxOps,
+        calculable: true,
+        orient: 'horizontal',
+        left: 'center',
+        bottom: '0%',
+        inRange: {
+          color: ['#ffffff', '#ffeda0', '#feb24c', '#f03b20']
+        }
+      },
+      series: [{
+        name: 'IO操作',
+        type: 'heatmap',
+        data: heatmapData,
+        label: {
+          show: false
+        },
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }
+      }]
+    })
+    ioHeatmapInstance.resize()
+  }
+  
+  // 12. IO延迟趋势图
+  if (ioLatencyRef.value && memoryHistory.value.length > 0) {
+    if (!ioLatencyInstance) ioLatencyInstance = echarts.init(ioLatencyRef.value)
+    
+    const latencyData = memoryHistory.value.map((m, i) => {
+      if (i === 0) return 0
+      const readOps = Math.max(0, (m.diskReadOps || 0) - (memoryHistory.value[i - 1].diskReadOps || 0))
+      const writeOps = Math.max(0, (m.diskWriteOps || 0) - (memoryHistory.value[i - 1].diskWriteOps || 0))
+      const totalOps = readOps + writeOps
+      // 假设采集间隔为10秒，估算平均延迟
+      return totalOps > 0 ? 10000 / totalOps : 0 // ms
+    })
+    
+    ioLatencyInstance.setOption({
+      title: { text: '估算IO延迟趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          return params[0].name + '<br/>' + params[0].marker + ' 平均延迟: ' + params[0].value.toFixed(2) + ' ms'
+        }
+      },
+      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: { type: 'value', name: '延迟(ms)', axisLabel: { formatter: '{value} ms' } },
+      series: [
+        { 
+          name: 'IO延迟', 
+          type: 'line', 
+          data: latencyData, 
+          smooth: true, 
+          itemStyle: { color: '#409eff' },
+          areaStyle: { color: 'rgba(64, 158, 255, 0.1)' },
+          markLine: {
+            data: [
+              { yAxis: 1, name: '优秀', lineStyle: { color: '#67c23a' } },
+              { yAxis: 5, name: '良好', lineStyle: { color: '#e6a23c' } },
+              { yAxis: 20, name: '偏高', lineStyle: { color: '#f56c6c' } }
+            ]
+          }
+        }
+      ]
+    })
+    ioLatencyInstance.resize()
+  }
+  
+  // 13. IO与GC关联分析
+  if (ioGcCorrelationRef.value && memoryHistory.value.length > 0) {
+    if (!ioGcCorrelationInstance) ioGcCorrelationInstance = echarts.init(ioGcCorrelationRef.value)
+    
+    const ioData = memoryHistory.value.map((m, i) => {
+      if (i === 0) return 0
+      const read = (m.diskReadBytes || 0) - (memoryHistory.value[i - 1].diskReadBytes || 0)
+      const write = (m.diskWriteBytes || 0) - (memoryHistory.value[i - 1].diskWriteBytes || 0)
+      return Math.max(0, read + write)
+    })
+    const gcData = memoryHistory.value.map((m, i) => {
+      if (i === 0) return 0
+      return Math.max(0, (m.gcCount || 0) - (memoryHistory.value[i - 1].gcCount || 0))
+    })
+    
+    ioGcCorrelationInstance.setOption({
+      title: { text: 'IO速率 vs GC次数', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => {
+            if (p.seriesName === 'IO速率') {
+              result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}/s<br/>`
+            } else {
+              result += `${p.marker} ${p.seriesName}: ${p.value.toFixed(0)} 次<br/>`
+            }
+          })
+          return result
+        }
+      },
+      legend: { data: ['IO速率', 'GC次数'], bottom: 0 },
+      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: [
+        { type: 'value', name: 'IO速率', axisLabel: { formatter: (val: number) => formatBytes(val) + '/s' } },
+        { type: 'value', name: 'GC次数', axisLabel: { formatter: '{value} 次' } }
+      ],
+      series: [
+        { 
+          name: 'IO速率', 
+          type: 'line', 
+          yAxisIndex: 0,
+          data: ioData, 
+          smooth: true, 
+          itemStyle: { color: '#67c23a' }, 
+          areaStyle: { color: 'rgba(103, 194, 58, 0.1)' } 
+        },
+        { 
+          name: 'GC次数', 
+          type: 'bar', 
+          yAxisIndex: 1,
+          data: gcData, 
+          itemStyle: { color: 'rgba(245, 108, 108, 0.6)' }
+        }
+      ]
+    })
+    ioGcCorrelationInstance.resize()
+  }
+  
+  // 14. 内存分配与IO关联
+  if (memoryIoCorrelationRef.value && memoryHistory.value.length > 0) {
+    if (!memoryIoCorrelationInstance) memoryIoCorrelationInstance = echarts.init(memoryIoCorrelationRef.value)
+    
+    const allocRateData = memoryHistory.value.map(m => (m.memoryAllocationRate || 0))
+    const ioData = memoryHistory.value.map((m, i) => {
+      if (i === 0) return 0
+      const read = (m.diskReadBytes || 0) - (memoryHistory.value[i - 1].diskReadBytes || 0)
+      const write = (m.diskWriteBytes || 0) - (memoryHistory.value[i - 1].diskWriteBytes || 0)
+      return Math.max(0, read + write)
+    })
+    
+    memoryIoCorrelationInstance.setOption({
+      title: { text: '内存分配速率 vs IO速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          let result = params[0].name + '<br/>'
+          params.forEach((p: any) => {
+            result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}/s<br/>`
+          })
+          return result
+        }
+      },
+      legend: { data: ['内存分配速率', 'IO速率'], bottom: 0 },
+      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: { type: 'value', name: 'B/s', axisLabel: { formatter: (val: number) => formatBytes(val) + '/s' } },
+      series: [
+        { 
+          name: '内存分配速率', 
+          type: 'line', 
+          data: allocRateData, 
+          smooth: true, 
+          itemStyle: { color: '#409eff' },
+          areaStyle: { color: 'rgba(64, 158, 255, 0.1)' }
+        },
+        { 
+          name: 'IO速率', 
+          type: 'line', 
+          data: ioData, 
+          smooth: true, 
+          itemStyle: { color: '#e6a23c' },
+          areaStyle: { color: 'rgba(230, 162, 60, 0.1)' }
+        }
+      ]
+    })
+    memoryIoCorrelationInstance.resize()
+  }
+  
+  // 15. 综合性能评分趋势
+  if (performanceScoreRef.value && memoryHistory.value.length > 0) {
+    if (!performanceScoreInstance) performanceScoreInstance = echarts.init(performanceScoreRef.value)
+    
+    const scoreData = memoryHistory.value.map(m => {
+      const score = m.performanceScore || 0
+      return score > 0 ? score.toFixed(1) : null
+    })
+    
+    // 过滤掉null值
+    const validData = scoreData.filter(s => s !== null)
+    const avgScore = validData.length > 0 ? (validData.reduce((a, b) => a + parseFloat(b), 0) / validData.length).toFixed(1) : 'N/A'
+    
+    performanceScoreInstance.setOption({
+      title: { text: `综合性能评分 (平均: ${avgScore})`, left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+      tooltip: { 
+        trigger: 'axis',
+        formatter: (params: any) => {
+          if (params[0].value === null || params[0].value === undefined) {
+            return params[0].name + '<br/>无数据'
+          }
+          let score = parseFloat(params[0].value)
+          let status = score >= 80 ? '优秀' : score >= 60 ? '良好' : score >= 40 ? '一般' : '较差'
+          return params[0].name + '<br/>' + params[0].marker + ' 评分: ' + params[0].value + ' (' + status + ')'
+        }
+      },
+      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+      xAxis: { type: 'category', data: times, boundaryGap: false },
+      yAxis: { 
+        type: 'value', 
+        name: '评分', 
+        min: 0, 
+        max: 100,
+        axisLabel: { formatter: '{value} 分' } 
+      },
+      series: [
+        { 
+          name: '性能评分', 
+          type: 'line', 
+          data: scoreData, 
+          smooth: true, 
+          itemStyle: { 
+            color: (params: any) => {
+              const score = parseFloat(params.value)
+              if (score >= 80) return '#67c23a'
+              if (score >= 60) return '#e6a23c'
+              return '#f56c6c'
+            }
+          },
+          areaStyle: { 
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(103, 194, 58, 0.3)' },
+              { offset: 1, color: 'rgba(103, 194, 58, 0.05)' }
+            ])
+          },
+          markLine: {
+            silent: true,
+            data: [
+              { yAxis: 80, name: '优秀', lineStyle: { color: '#67c23a', type: 'dashed' } },
+              { yAxis: 60, name: '良好', lineStyle: { color: '#e6a23c', type: 'dashed' } },
+              { yAxis: 40, name: '警戒', lineStyle: { color: '#f56c6c', type: 'dashed' } }
+            ]
+          }
+        }
+      ]
+    })
+    performanceScoreInstance.resize()
   }
 }
 
@@ -3218,6 +6046,78 @@ const parseThreadsData = (text: string) => {
   }
 }
 
+// 解析系统属性数据
+const parseSysPropsData = (text: string) => {
+  try {
+    const lines = text.split('\n')
+    const props: KeyValueEntry[] = []
+    
+    lines.forEach(line => {
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith('===') || trimmed.startsWith('#')) return
+      
+      // 格式: key: value 或 key=value
+      const colonIndex = trimmed.indexOf(':')
+      const equalsIndex = trimmed.indexOf('=')
+      
+      let key = ''
+      let value = ''
+      
+      if (colonIndex > 0 && (equalsIndex === -1 || colonIndex < equalsIndex)) {
+        key = trimmed.substring(0, colonIndex).trim()
+        value = trimmed.substring(colonIndex + 1).trim()
+      } else if (equalsIndex > 0) {
+        key = trimmed.substring(0, equalsIndex).trim()
+        value = trimmed.substring(equalsIndex + 1).trim()
+      }
+      
+      if (key && value) {
+        props.push({ key, value })
+      }
+    })
+    
+    sysPropsData.value = props
+  } catch (e) {
+    console.error('Failed to parse system properties:', e)
+  }
+}
+
+// 解析环境变量数据
+const parseEnvVarsData = (text: string) => {
+  try {
+    const lines = text.split('\n')
+    const vars: KeyValueEntry[] = []
+    
+    lines.forEach(line => {
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith('===') || trimmed.startsWith('#')) return
+      
+      // 格式: key: value 或 key=value
+      const colonIndex = trimmed.indexOf(':')
+      const equalsIndex = trimmed.indexOf('=')
+      
+      let key = ''
+      let value = ''
+      
+      if (colonIndex > 0 && (equalsIndex === -1 || colonIndex < equalsIndex)) {
+        key = trimmed.substring(0, colonIndex).trim()
+        value = trimmed.substring(colonIndex + 1).trim()
+      } else if (equalsIndex > 0) {
+        key = trimmed.substring(0, equalsIndex).trim()
+        value = trimmed.substring(equalsIndex + 1).trim()
+      }
+      
+      if (key && value) {
+        vars.push({ key, value })
+      }
+    })
+    
+    envVarsData.value = vars
+  } catch (e) {
+    console.error('Failed to parse environment variables:', e)
+  }
+}
+
 const submitConfig = async () => {
   submitting.value = true
   try {
@@ -3267,6 +6167,27 @@ const copyDiagResult = async () => {
 // 切换模式
 const switchToTextMode = () => {
   diagMode.value = 'text'
+  
+  // 设置真实的原始数据
+  const historyChartTypes = ['memoryChart', 'gcChart', 'threadChart', 'ioNetworkChart']
+  
+  if (historyChartTypes.includes(currentDiagType.value)) {
+    // 历史监控图表：从 memoryHistory 生成数据
+    if (memoryHistory.value.length > 0) {
+      const dataInfo = {
+        memoryChart: '内存监控',
+        gcChart: 'GC分析',
+        threadChart: '线程监控',
+        ioNetworkChart: 'IO/网络监控'
+      }
+      
+      const title = dataInfo[currentDiagType.value as keyof typeof dataInfo] || '监控数据'
+      diagResult.value = `【${title} - 原始数据】\n\n记录总数: ${memoryHistory.value.length} 条\n时间范围: ${new Date(memoryHistory.value[0].collectTime).toLocaleString()} ~ ${new Date(memoryHistory.value[memoryHistory.value.length - 1].collectTime).toLocaleString()}\n\n${JSON.stringify(memoryHistory.value, null, 2)}`
+    } else {
+      diagResult.value = '暂无数据'
+    }
+  }
+  // 对于其他类型（sysProps、env、jvmInfo、memory、gcStats、threadsSummary），保持原有的 diagResult 不变
 }
 
 const switchToChartMode = () => {
@@ -4879,8 +7800,20 @@ const renderMemoryCharts = () => {
     systemLoadInstance.resize()
   }
   
-  // 新增：磁盘I/O监控（如果有数据）
-  if (diskIoRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].diskReadBytes !== undefined) {
+  // 新增：磁盘I/O监控（只要有memoryHistory数据就渲染）
+  console.log('[DIAG-IO] ===== 开始渲染磁盘I/O图表 =====')
+  console.log('[DIAG-IO] diskIoRef.value:', diskIoRef.value)
+  console.log('[DIAG-IO] memoryHistory.length:', memoryHistory.value.length)
+  if (memoryHistory.value.length > 0) {
+    console.log('[DIAG-IO] memoryHistory[0]:', memoryHistory.value[0])
+    console.log('[DIAG-IO] diskReadBytes:', memoryHistory.value[0].diskReadBytes)
+    console.log('[DIAG-IO] diskWriteBytes:', memoryHistory.value[0].diskWriteBytes)
+    console.log('[DIAG-IO] hasDiskIoData:', hasDiskIoData.value)
+  }
+  
+  // 修改：只要有memoryHistory数据就渲染图表，即使IO数据为0
+  if (diskIoRef.value && memoryHistory.value.length > 0) {
+    console.log('[DIAG-IO] 开始初始化ECharts实例')
     if (!diskIoInstance) diskIoInstance = echarts.init(diskIoRef.value)
     
     const diskReadData = memoryHistory.value.map((m, i) => {
@@ -4894,6 +7827,7 @@ const renderMemoryCharts = () => {
       return val >= 0 ? val : 0 // 确保增量不为负
     })
     
+    console.log('[DIAG-IO] 设置图表配置')
     diskIoInstance.setOption({
       title: { text: '磁盘I/O速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
       tooltip: { 
@@ -4909,10 +7843,11 @@ const renderMemoryCharts = () => {
       xAxis: { type: 'category', data: times, boundaryGap: false },
       yAxis: { type: 'value', name: 'B/s', axisLabel: { formatter: (val: number) => formatBytes(val) + '/s' } },
       series: [
-        { name: '读取速率', type: 'bar', data: diskReadData, itemStyle: { color: '#67c23a' } },
-        { name: '写入速率', type: 'bar', data: diskWriteData, itemStyle: { color: '#e6a23c' } }
+        { name: '读取速率', type: 'line', data: diskReadData, smooth: true, itemStyle: { color: '#67c23a' }, areaStyle: { color: 'rgba(103, 194, 58, 0.1)' } },
+        { name: '写入速率', type: 'line', data: diskWriteData, smooth: true, itemStyle: { color: '#e6a23c' }, areaStyle: { color: 'rgba(230, 162, 60, 0.1)' } }
       ]
     })
+    console.log('[DIAG-IO] 图表渲染完成')
     diskIoInstance.resize()
   }
   
@@ -5811,5 +8746,233 @@ watch(activeTab, (newTab) => {
 
 .jvm-args-container::-webkit-scrollbar-thumb:hover {
   background-color: #c0c4cc;
+}
+
+/* IO智能分析面板样式 */
+.io-analysis-panel {
+  padding: 16px 0;
+}
+
+.analysis-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.analysis-item:hover {
+  background: #ecf5ff;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.analysis-icon {
+  font-size: 28px;
+  margin-right: 12px;
+  line-height: 1;
+}
+
+.analysis-content {
+  flex: 1;
+}
+
+.analysis-label {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.analysis-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 4px;
+}
+
+.analysis-value.success {
+  color: #67c23a;
+}
+
+.analysis-value.warning {
+  color: #e6a23c;
+}
+
+.analysis-value.danger {
+  color: #f56c6c;
+}
+
+.analysis-value.info {
+  color: #909399;
+}
+
+.analysis-value.suggestion {
+  color: #409eff;
+  font-size: 14px;
+}
+
+.analysis-detail {
+  font-size: 12px;
+  color: #606266;
+  line-height: 1.4;
+}
+
+/* 配置管理对话框样式 */
+.config-info-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.config-app-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.config-inst-badge {
+  margin-left: 8px;
+}
+
+.config-version-tag {
+  margin-left: auto;
+}
+
+.config-tabs {
+  min-height: 600px;
+}
+
+.config-tabs :deep(.el-tabs__header) {
+  margin-bottom: 20px;
+}
+
+.config-tabs :deep(.el-tabs__item) {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.tab-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.config-section {
+  padding: 0 4px;
+}
+
+.config-alert {
+  margin-bottom: 16px;
+  border-radius: 8px;
+}
+
+.editor-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 8px;
+  background: #f5f7fa;
+  border-radius: 6px;
+}
+
+.config-editor {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+}
+
+.config-editor :deep(.el-textarea__inner) {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  line-height: 1.6;
+}
+
+.config-footer-hint {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: #f0f9ff;
+  border-radius: 6px;
+  border-left: 3px solid #409eff;
+}
+
+.config-block {
+  margin-bottom: 20px;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.config-block:hover {
+  border-color: #c0c4cc;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.config-block-highlight {
+  border: 2px solid #67c23a;
+  background: #f0f9ff;
+}
+
+.config-block-highlight:hover {
+  border-color: #67c23a;
+  box-shadow: 0 4px 12px rgba(103, 194, 58, 0.2);
+}
+
+.config-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #fafafa;
+  border-bottom: 1px solid #e4e7ed;
+}
+
+.config-block-header .el-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.config-block-content {
+  margin: 0;
+}
+
+.config-block-content :deep(.el-textarea__inner) {
+  border: none;
+  border-radius: 0;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.loading-state {
+  padding: 40px 0;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.footer-left {
+  flex: 1;
+}
+
+.footer-right {
+  display: flex;
+  gap: 12px;
+}
+
+.footer-right .el-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 </style>

@@ -152,6 +152,35 @@ public class DefaultFilters {
     ));
 
     /**
+     * 集合相关方法名
+     */
+    public static final Set<String> COLLECTION_METHOD_NAMES = new HashSet<>(Arrays.asList(
+            // 集合方法
+            "add", "addAll", "remove", "removeAll", "retainAll", "clear", "contains",
+            "containsAll", "size", "isEmpty", "iterator", "listIterator", "spliterator",
+            "toArray", "stream", "parallelStream", "forEach", "get", "set", "indexOf",
+            "lastIndexOf", "subList", "put", "putAll", "remove",
+            "get", "containsKey", "containsValue", "keySet", "values", "entrySet",
+            "isEmpty", "size", "clear", "replace", "replaceAll", "merge", "compute",
+            "computeIfAbsent", "computeIfPresent", "getOrDefault", "putIfAbsent",
+            "element", "peek", "poll", "offer"
+    ));
+
+    /**
+     * String 相关方法名
+     */
+    public static final Set<String> STRING_METHOD_NAMES = new HashSet<>(Arrays.asList(
+            // String/StringBuilder/StringBuffer 方法
+            "append", "insert", "delete", "deleteCharAt", "replace", "substring",
+            "subSequence", "concat", "trim", "strip", "stripLeading", "stripTrailing",
+            "toLowerCase", "toUpperCase", "charAt", "length", "isEmpty", "isBlank",
+            "compareTo", "compareToIgnoreCase", "contentEquals", "startsWith",
+            "endsWith", "indexOf", "lastIndexOf", "contains", "matches", "split",
+            "join", "repeat", "valueOf", "copyValueOf", "intern",
+            "format", "formatted", "stripIndent", "translateEscapes"
+    ));
+
+    /**
      * 判断是否是构造函数
      */
     public static boolean isConstructor(String methodName, String className) {
@@ -198,5 +227,24 @@ public class DefaultFilters {
                methodName.equals("toString") ||
                methodName.equals("canEqual") ||
                methodName.startsWith("with");
+    }
+
+    /**
+     * 判断是否是测试方法
+     */
+    public static boolean isTestMethod(String methodName) {
+        if (methodName == null) {
+            return false;
+        }
+        String lowerName = methodName.toLowerCase();
+        return lowerName.startsWith("test") ||
+               lowerName.startsWith("should") ||
+               lowerName.startsWith("when") ||
+               lowerName.startsWith("given") ||
+               lowerName.startsWith("then") ||
+               lowerName.startsWith("verify") ||
+               lowerName.startsWith("assert") ||
+               lowerName.endsWith("test") ||
+               lowerName.startsWith("check");
     }
 }

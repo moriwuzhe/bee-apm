@@ -1,9 +1,11 @@
 package org.xi.lt.flow.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,8 +19,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Git 仓库服务
@@ -34,165 +34,242 @@ public class GitRepositoryService {
     /**
      * 克隆 Git 仓库
      */
-    public GitRepository cloneRepository(String repoUrl, String branch, String username, String password) throws GitAPIException, IOException {
-        // 确保仓库目录存在
-        Path reposPath = Paths.get(gitReposDir);
-        if (!Files.exists(reposPath)) {
-            Files.createDirectories(reposPath);
-        }
+    public GitResponse cloneRepository(String repoUrl, String localPath, String username, String password, String branch) {
+        try {
+            Path repoPath;
+            String repoId;
+            if (localPath != null && !localPath.isEmpty()) {
+                repoPath = Paths.get(localPath);
+                repoId = localPath;
+            } else {
+                // 确保仓库目录存在
+                Path reposPath = Paths.get(gitReposDir);
+                if (!Files.exists(reposPath)) {
+                    Files.createDirectories(reposPath);
+                }
 
-        // 生成唯一的目录名
-        String repoId = UUID.randomUUID().toString();
-        Path repoPath = reposPath.resolve(repoId);
+                // 生成唯一的目录名
+                repoId = UUID.randomUUID().toString();
+                repoPath = reposPath.resolve(repoId);
+            }
 
-        log.info("正在克隆 Git 仓库: {} 到 {}", repoUrl, repoPath);
+            log.info("正在克隆 Git 仓库: {} 到 {}", repoUrl, repoPath);
 
-        // 配置克隆命令
-        CloneCommand cloneCommand = Git.cloneRepository()
-                .setURI(repoUrl)
-                .setDirectory(repoPath.toFile())
-                .setCloneAllBranches(false);
+            // 配置克隆命令
+            org.eclipse.jgit.api.CloneCommand cloneCommand = Git.cloneRepository()
+                    .setURI(repoUrl)
+                    .setDirectory(repoPath.toFile())
+                    .setCloneAllBranches(false);
 
-        // 如果指定了分支，只克隆该分支
-        if (branch != null && !branch.isEmpty()) {
-            cloneCommand.setBranch(branch);
-        }
+            // 如果指定了分支，只克隆该分支
+            if (branch != null && !branch.isEmpty()) {
+                cloneCommand.setBranch(branch);
+            }
 
-        // 如果提供了认证信息
-        if (username != null && !username.isEmpty() && password != null) {
-            CredentialsProvider credentialsProvider = new UsernamePasswordCredentialsProvider(username, password);
-            cloneCommand.setCredentialsProvider(credentialsProvider);
-        }
+            // 如果提供了认证信息
+            if (username != null && !username.isEmpty() && password != null) {
+                CredentialsProvider credentialsProvider = new UsernamePasswordCredentialsProvider(username, password);
+                cloneCommand.setCredentialsProvider(credentialsProvider);
+            }
 
-        // 执行克隆
-        try (Git git = cloneCommand.call()) {
-            String currentBranch = git.getRepository().getBranch();
-            log.info("Git 仓库克隆成功！当前分支: {}", currentBranch);
+            // 执行克隆
+            String currentBranch;
+            try (Git git = cloneCommand.call()) {
+                currentBranch = git.getRepository().getBranch();
+                log.info("Git 仓库克隆成功！当前分支: {}", currentBranch);
+            }
 
-            // 收集 Java 文件
-            List<File> javaFiles = findJavaFiles(repoPath.toFile());
+            List<String> branches = listBranches(repoId);
+            List<GitResponse.CommitInfo> commits = listRecentCommits(repoId, 20);
 
-            return GitRepository.builder()
+            return GitResponse.builder()
+                    .success(true)
+                    .message("仓库克隆成功！")
                     .repoId(repoId)
-                    .repoUrl(repoUrl)
-                    .branch(currentBranch)
-                    .localPath(repoPath.toAbsolutePath().toString())
-                    .javaFiles(javaFiles)
+                    .repoPath(repoPath.toAbsolutePath().toString())
+                    .defaultBranch(currentBranch)
+                    .branches(branches)
+                    .commits(commits)
                     .build();
+
+        } catch (Exception e) {
+            log.error("克隆仓库失败", e);
+            return GitResponse.error("克隆仓库失败: " + e.getMessage());
         }
     }
 
     /**
-     * 从已克隆的仓库中更新代码
+     * 获取仓库分支列表
      */
-    public GitRepository pullRepository(String repoId) throws GitAPIException, IOException {
+    public List<String> listBranches(String repoId) {
         Path repoPath = Paths.get(gitReposDir).resolve(repoId);
         if (!Files.exists(repoPath)) {
-            throw new RuntimeException("仓库不存在: " + repoId);
+            return new ArrayList<>();
         }
 
         try (Git git = Git.open(repoPath.toFile())) {
-            log.info("正在拉取仓库更新: {}", repoId);
-            git.pull().call();
+            return listBranches(git);
+        } catch (Exception e) {
+            log.error("获取分支列表失败", e);
+            return new ArrayList<>();
+        }
+    }
 
-            String currentBranch = git.getRepository().getBranch();
-            List<File> javaFiles = findJavaFiles(repoPath.toFile());
+    private List<String> listBranches(Git git) throws GitAPIException {
+        List<Ref> branches = git.branchList().setListMode(ListBranchCommand.ListMode.ALL).call();
+        List<String> branchNames = new ArrayList<>();
+        for (Ref branch : branches) {
+            String name = branch.getName();
+            if (name.startsWith("refs/heads/")) {
+                branchNames.add(name.substring("refs/heads/".length()));
+            } else if (name.startsWith("refs/remotes/")) {
+                String remoteBranch = name.substring("refs/remotes/".length());
+                if (!remoteBranch.contains("HEAD")) {
+                    branchNames.add(remoteBranch);
+                }
+            }
+        }
+        return branchNames;
+    }
 
-            return GitRepository.builder()
-                    .repoId(repoId)
-                    .localPath(repoPath.toAbsolutePath().toString())
-                    .branch(currentBranch)
-                    .javaFiles(javaFiles)
+    /**
+     * 获取最近提交记录
+     */
+    public List<GitResponse.CommitInfo> listRecentCommits(String repoId, int limit) {
+        Path repoPath = Paths.get(gitReposDir).resolve(repoId);
+        if (!Files.exists(repoPath)) {
+            return new ArrayList<>();
+        }
+
+        try (Git git = Git.open(repoPath.toFile())) {
+            return listRecentCommits(git, limit);
+        } catch (Exception e) {
+            log.error("获取提交记录失败", e);
+            return new ArrayList<>();
+        }
+    }
+
+    private List<GitResponse.CommitInfo> listRecentCommits(Git git, int limit) throws GitAPIException, IOException {
+        List<GitResponse.CommitInfo> commits = new ArrayList<>();
+        Iterable<RevCommit> logIterable = git.log().setMaxCount(limit).call();
+        for (RevCommit commit : logIterable) {
+            GitResponse.CommitInfo commitInfo = GitResponse.CommitInfo.builder()
+                    .id(commit.getName())
+                    .shortId(commit.getName().substring(0, 8))
+                    .message(commit.getShortMessage())
+                    .fullMessage(commit.getFullMessage())
+                    .author(commit.getAuthorIdent().getName())
+                    .authorEmail(commit.getAuthorIdent().getEmailAddress())
+                    .time(commit.getAuthorIdent().getWhen().getTime())
                     .build();
+            commits.add(commitInfo);
+        }
+        return commits;
+    }
+
+    /**
+     * 切换到指定分支或提交
+     */
+    public GitResponse checkout(String repoId, String ref) {
+        Path repoPath = Paths.get(gitReposDir).resolve(repoId);
+
+        if (!Files.exists(repoPath)) {
+            return GitResponse.error("仓库不存在: " + repoId);
+        }
+
+        try (Git git = Git.open(repoPath.toFile())) {
+            git.checkout().setName(ref).call();
+
+            List<String> branches = listBranches(git);
+            List<GitResponse.CommitInfo> commits = listRecentCommits(git, 20);
+            String currentBranch = git.getRepository().getBranch();
+
+            log.info("切换成功: {} -> {}", repoId, ref);
+
+            return GitResponse.builder()
+                    .success(true)
+                    .message("切换成功！")
+                    .currentBranch(currentBranch)
+                    .branches(branches)
+                    .commits(commits)
+                    .build();
+        } catch (Exception e) {
+            log.error("切换失败", e);
+            return GitResponse.error("切换失败: " + e.getMessage());
         }
     }
 
     /**
-     * 获取仓库的分支列表
+     * 获取仓库的本地路径
      */
-    public List<String> listBranches(String repoUrl, String username, String password) throws GitAPIException {
-        // 创建临时目录用于 ls-remote
-        Path tempDir = Paths.get(gitReposDir, "temp-" + UUID.randomUUID());
-        try {
-            Files.createDirectories(tempDir);
+    public File getRepositoryPath(String repoId) {
+        Path repoPath = Paths.get(gitReposDir).resolve(repoId);
+        if (Files.exists(repoPath)) {
+            return repoPath.toFile();
+        }
+        return null;
+    }
 
-            // 使用临时目录初始化 Git
-            try (Git git = Git.init().setDirectory(tempDir.toFile()).call()) {
-                // 配置远程仓库并列出分支
-                CredentialsProvider credentialsProvider = null;
-                if (username != null && !username.isEmpty() && password != null) {
-                    credentialsProvider = new UsernamePasswordCredentialsProvider(username, password);
-                }
-
-                // 使用 ls-remote 获取分支列表
-                List<String> branches = new ArrayList<>();
-                git.lsRemote()
-                        .setRemote(repoUrl)
-                        .setCredentialsProvider(credentialsProvider)
-                        .call()
-                        .forEach(ref -> {
-                            String refName = ref.getName();
-                            if (refName.startsWith("refs/heads/")) {
-                                branches.add(refName.substring("refs/heads/".length()));
-                            }
-                        });
-
-                return branches;
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("无法创建临时目录", e);
-        } finally {
-            // 清理临时目录
-            deleteDirectory(tempDir.toFile());
+    /**
+     * 通过路径获取分支列表
+     */
+    public List<String> listBranchesByPath(String repoPath) {
+        try (Git git = Git.open(new File(repoPath))) {
+            return listBranches(git);
+        } catch (Exception e) {
+            log.error("获取分支列表失败", e);
+            return new ArrayList<>();
         }
     }
 
     /**
-     * 递归查找所有 Java 文件
+     * 通过路径获取提交列表
      */
-    private List<File> findJavaFiles(File directory) {
-        List<File> javaFiles = new ArrayList<>();
-        findJavaFilesRecursive(directory, javaFiles);
-        return javaFiles;
-    }
-
-    private void findJavaFilesRecursive(File directory, List<File> result) {
-        File[] files = directory.listFiles();
-        if (files == null) {
-            return;
-        }
-
-        for (File file : files) {
-            if (file.isDirectory()) {
-                // 跳过 .git 目录
-                if (!file.getName().equals(".git")) {
-                    findJavaFilesRecursive(file, result);
-                }
-            } else if (file.getName().endsWith(".java")) {
-                result.add(file);
-            }
+    public List<GitResponse.CommitInfo> listRecentCommitsByPath(String repoPath, int limit) {
+        try (Git git = Git.open(new File(repoPath))) {
+            return listRecentCommits(git, limit);
+        } catch (Exception e) {
+            log.error("获取提交记录失败", e);
+            return new ArrayList<>();
         }
     }
 
     /**
-     * 读取 Java 文件内容
+     * 通过路径切换分支/提交
      */
-    public String readJavaFile(File file) throws IOException {
-        return new String(Files.readAllBytes(file.toPath()), "UTF-8");
+    public GitResponse checkoutByPath(String repoPath, String ref) {
+        try (Git git = Git.open(new File(repoPath))) {
+            git.checkout().setName(ref).call();
+
+            List<String> branches = listBranches(git);
+            List<GitResponse.CommitInfo> commits = listRecentCommits(git, 20);
+            String currentBranch = git.getRepository().getBranch();
+
+            log.info("切换成功: {} -> {}", repoPath, ref);
+
+            return GitResponse.builder()
+                    .success(true)
+                    .message("切换成功！")
+                    .currentBranch(currentBranch)
+                    .branches(branches)
+                    .commits(commits)
+                    .build();
+        } catch (Exception e) {
+            log.error("切换失败", e);
+            return GitResponse.error("切换失败: " + e.getMessage());
+        }
     }
 
     /**
-     * 删除仓库
+     * 删除本地仓库
      */
-    public void deleteRepository(String repoId) {
+    public boolean deleteRepository(String repoId) {
         Path repoPath = Paths.get(gitReposDir).resolve(repoId);
         deleteDirectory(repoPath.toFile());
         log.info("仓库已删除: {}", repoId);
+        return true;
     }
 
-    /**
-     * 递归删除目录
-     */
     private void deleteDirectory(File directory) {
         if (!directory.exists()) {
             return;
@@ -209,59 +286,5 @@ public class GitRepositoryService {
             }
         }
         directory.delete();
-    }
-
-    /**
-     * 获取仓库中的所有 Java 文件内容
-     */
-    public List<JavaFileContent> getAllJavaFileContents(String repoId) throws IOException {
-        Path repoPath = Paths.get(gitReposDir).resolve(repoId);
-        if (!Files.exists(repoPath)) {
-            throw new RuntimeException("仓库不存在: " + repoId);
-        }
-
-        List<File> javaFiles = findJavaFiles(repoPath.toFile());
-        List<JavaFileContent> contents = new ArrayList<>();
-
-        for (File file : javaFiles) {
-            String relativePath = repoPath.relativize(file.toPath()).toString();
-            contents.add(JavaFileContent.builder()
-                    .path(relativePath)
-                    .content(readJavaFile(file))
-                    .build());
-        }
-
-        return contents;
-    }
-
-    /**
-     * Git 仓库信息
-     */
-    @lombok.Data
-    @lombok.Builder
-    @lombok.NoArgsConstructor
-    @lombok.AllArgsConstructor
-    public static class GitRepository {
-        private String repoId;
-        private String repoUrl;
-        private String branch;
-        private String localPath;
-        private List<File> javaFiles;
-
-        public int getJavaFileCount() {
-            return javaFiles != null ? javaFiles.size() : 0;
-        }
-    }
-
-    /**
-     * Java 文件内容
-     */
-    @lombok.Data
-    @lombok.Builder
-    @lombok.NoArgsConstructor
-    @lombok.AllArgsConstructor
-    public static class JavaFileContent {
-        private String path;
-        private String content;
     }
 }

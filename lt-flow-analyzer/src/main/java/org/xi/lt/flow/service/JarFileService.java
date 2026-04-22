@@ -83,6 +83,17 @@ public class JarFileService {
     }
 
     /**
+     * 获取 JAR 文件解压路径
+     */
+    public File getJarExtractedPath(String jarId) {
+        Path extractPath = Paths.get(jarDir).resolve(jarId + "_extracted");
+        if (Files.exists(extractPath)) {
+            return extractPath.toFile();
+        }
+        return null;
+    }
+
+    /**
      * 解压 JAR 文件
      */
     private List<JarEntryInfo> extractJar(File jarFile, File extractDir) throws IOException {

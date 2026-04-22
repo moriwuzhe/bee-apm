@@ -242,3 +242,21 @@ export async function getMemoryHistory(
   const res = await http.get<{ data: AgentMemoryMetrics[] }>('/api/agent/memory/history', { params })
   return res.data?.data || []
 }
+
+// Plugin assignment APIs
+export interface AgentPluginConfig {
+  pluginCode: string
+  pluginName: string
+  enabled: boolean
+  version?: string
+}
+
+export async function getAgentPluginConfig(app: string, inst: string) {
+  const res = await http.get<{ data: AgentPluginConfig[] }>('/api/agent/plugin/config', { params: { app, inst } })
+  return res.data?.data || []
+}
+
+export async function updateAgentPluginConfig(app: string, inst: string, plugins: AgentPluginConfig[]) {
+  const res = await http.post('/api/agent/plugin/config/update', { app, inst, plugins })
+  return res.data
+}

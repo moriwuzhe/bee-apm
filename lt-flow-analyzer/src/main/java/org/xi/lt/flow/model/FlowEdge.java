@@ -5,6 +5,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * 流程图边
  * 表示方法调用关系
@@ -44,6 +47,12 @@ public class FlowEdge {
      * 调用条件描述（如果是条件调用）
      */
     private String condition;
+
+    /**
+     * 元数据（用于存储额外信息）
+     */
+    @Builder.Default
+    private Map<String, Object> metadata = new HashMap<>();
     
     /**
      * 调用类型枚举

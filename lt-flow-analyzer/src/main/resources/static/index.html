@@ -642,12 +642,36 @@
                         <input type="checkbox" id="filterLt" checked style="margin-right: 8px;">
                         <span style="font-size: 14px;">🏠 过滤LT相关</span>
                     </label>
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
+                        <input type="checkbox" id="filterTestMethods" style="margin-right: 8px;">
+                        <span style="font-size: 14px;">🧪 过滤测试方法</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
+                        <input type="checkbox" id="filterStaticMethods" style="margin-right: 8px;">
+                        <span style="font-size: 14px;">🔒 过滤静态方法</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
+                        <input type="checkbox" id="filterPrivateMethods" style="margin-right: 8px;">
+                        <span style="font-size: 14px;">🔐 过滤私有方法</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
+                        <input type="checkbox" id="filterCollectionMethods" style="margin-right: 8px;">
+                        <span style="font-size: 14px;">📚 过滤集合方法</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
+                        <input type="checkbox" id="filterStringMethods" style="margin-right: 8px;">
+                        <span style="font-size: 14px;">📝 过滤String方法</span>
+                    </label>
                 </div>
             </div>
 
             <div class="tabs">
                 <button class="tab active" onclick="switchTab('upload')">📁 上传文件</button>
                 <button class="tab" onclick="switchTab('code')">📝 粘贴代码</button>
+                <button class="tab" onclick="switchTab('project')">📂 项目解析</button>
+                <button class="tab" onclick="switchTab('git')">🔄 Git仓库</button>
+                <button class="tab" onclick="switchTab('jar')">📦 JAR文件</button>
+                <button class="tab" onclick="switchTab('diff')">🔍 差异对比</button>
                 <button class="tab" onclick="switchTab('apm')">🚀 动态 APM</button>
             </div>
 
@@ -661,11 +685,18 @@
                     </div>
                     <input type="file" id="fileInput" class="file-input" accept=".java" onchange="handleFileSelect(event)">
                 </div>
-                
+
                 <div class="file-info" id="fileInfo">
                     <span class="file-name" id="selectedFileName"></span>
                 </div>
-                
+
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; justify-content: center;">
+                    <label class="code-label" style="margin-right: 10px; margin-bottom: 0;">主题：</label>
+                    <div id="uploadThemeSelector" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="style-btn active" onclick="setUploadTheme('DEFAULT')" data-theme="DEFAULT">🎨 默认</button>
+                    </div>
+                </div>
+
                 <div style="text-align: center;">
                     <button class="btn btn-primary" id="uploadBtn" onclick="uploadFile()" disabled>
                         生成流程图
@@ -675,7 +706,7 @@
                     </button>
                 </div>
             </div>
-            
+
             <!-- 粘贴代码标签 -->
             <div id="code-tab" class="tab-content">
                 <div class="code-area">
@@ -688,13 +719,20 @@ public class TestClass {
         System.out.println(\"Method A\");
         methodB();
     }
-    
+
     public void methodB() {
         System.out.println(\"Method B\");
     }
 }"></textarea>
                 </div>
-                
+
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; justify-content: center;">
+                    <label class="code-label" style="margin-right: 10px; margin-bottom: 0;">主题：</label>
+                    <div id="codeThemeSelector" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="style-btn active" onclick="setCodeTheme('DEFAULT')" data-theme="DEFAULT">🎨 默认</button>
+                    </div>
+                </div>
+
                 <div style="text-align: center;">
                     <button class="btn btn-primary" onclick="parseCode()">
                         生成流程图
@@ -702,6 +740,305 @@ public class TestClass {
                     <button class="btn btn-secondary" onclick="clearCode()">
                         清除
                     </button>
+                </div>
+            </div>
+
+            <!-- 项目解析标签 -->
+            <div id="project-tab" class="tab-content">
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: #333; margin-bottom: 15px;">📂 本地项目解析</h3>
+                    <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                        <div style="flex: 1;">
+                            <label class="code-label">项目路径：</label>
+                            <input type="text" id="projectPath" class="code-input" style="height: 45px; padding: 10px 15px;" placeholder="输入本地项目根目录路径...">
+                        </div>
+                    </div>
+                    <!-- 流程图类型选择 -->
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-weight: 600; color: #333; margin-bottom: 12px; font-size: 16px;">📊 流程图类型</div>
+                        <div style="display: flex; gap: 10px;">
+                            <label id="flowType-project-callChain-label" class="style-label active" style="cursor: pointer; padding: 12px 20px; border-radius: 10px; border: 2px solid #667eea; background: #667eea; color: white; transition: all 0.3s ease;">
+                                <input type="radio" name="projectFlowType" value="callChain" checked style="display: none;" onchange="toggleProjectFlowType()">
+                                🔗 调用链图
+                            </label>
+                            <label id="flowType-project-umlClass-label" class="style-label" style="cursor: pointer; padding: 12px 20px; border-radius: 10px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                <input type="radio" name="projectFlowType" value="umlClass" style="display: none;" onchange="toggleProjectFlowType()">
+                                📦 类图
+                            </label>
+                            <label id="flowType-project-sequence-label" class="style-label" style="cursor: pointer; padding: 12px 20px; border-radius: 10px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                <input type="radio" name="projectFlowType" value="sequence" style="display: none;" onchange="toggleProjectFlowType()">
+                                🔄 时序图
+                            </label>
+                        </div>
+                    </div>
+                    <!-- 调用链样式选择 -->
+                    <div id="projectCallChainStyles" style="margin-bottom: 20px;">
+                        <div style="font-weight: 600; color: #333; margin-bottom: 12px; font-size: 16px;">🎨 调用链样式</div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="style-btn active" onclick="setProjectStyle('ACTIVITY')" data-style="ACTIVITY">🏃 活动图</button>
+                            <button class="style-btn" onclick="setProjectStyle('FLOWCHART')" data-style="FLOWCHART">🔀 流程图</button>
+                            <button class="style-btn" onclick="setProjectStyle('STATE')" data-style="STATE">🔄 状态图</button>
+                            <button class="style-btn" onclick="setProjectStyle('C4')" data-style="C4">📊 C4模型</button>
+                            <button class="style-btn" onclick="setProjectStyle('COMPONENT')" data-style="COMPONENT">🧩 组件图</button>
+                            <button class="style-btn" onclick="setProjectStyle('WORKFLOW')" data-style="WORKFLOW">⚙️ 工作流</button>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                        <div style="flex: 1;">
+                            <label class="code-label">包含包（可选，逗号分隔）：</label>
+                            <input type="text" id="includePackages" class="code-input" style="height: 45px; padding: 10px 15px;" placeholder="例如: com.example.service,com.example.controller">
+                        </div>
+                        <div style="flex: 1;">
+                            <label class="code-label">排除包（可选，逗号分隔）：</label>
+                            <input type="text" id="excludePackages" class="code-input" style="height: 45px; padding: 10px 15px;" placeholder="例如: com.example.util,com.example.config">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <label class="code-label" style="margin-right: 10px;">主题：</label>
+                        <div id="projectThemeSelector" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="style-btn active" onclick="setProjectTheme('DEFAULT')" data-theme="DEFAULT">🎨 默认</button>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="parseLocalProject()">🔍 解析项目</button>
+                </div>
+            </div>
+
+            <!-- Git仓库标签 -->
+            <div id="git-tab" class="tab-content">
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: #333; margin-bottom: 15px;">🔄 Git 仓库操作</h3>
+
+                    <!-- 克隆仓库 -->
+                    <div style="background: #f8f9ff; border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+                        <h4 style="color: #333; margin-bottom: 10px;">📥 克隆仓库</h4>
+                        <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                            <div style="flex: 2;">
+                                <label class="code-label">仓库 URL：</label>
+                                <input type="text" id="gitRepoUrl" class="code-input" style="height: 45px; padding: 10px 15px;" placeholder="https://github.com/user/repo.git">
+                            </div>
+                            <div style="flex: 1;">
+                                <label class="code-label">本地路径：</label>
+                                <input type="text" id="gitLocalPath" class="code-input" style="height: 45px; padding: 10px 15px;" placeholder="./temp/repo">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="cloneGitRepo()" style="margin-right: 10px;">📥 克隆</button>
+                    </div>
+
+                    <!-- 检出分支/提交 -->
+                    <div style="background: #f8f9ff; border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+                        <h4 style="color: #333; margin-bottom: 10px;">🔀 检出分支/提交</h4>
+                        <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                            <div style="flex: 1;">
+                                <label class="code-label">仓库路径：</label>
+                                <input type="text" id="gitCheckoutPath" class="code-input" style="height: 45px; padding: 10px 15px;" placeholder="./temp/repo">
+                            </div>
+                            <div style="flex: 1;">
+                                <label class="code-label">分支/提交：</label>
+                                <input type="text" id="gitCheckoutRef" class="code-input" style="height: 45px; padding: 10px 15px;" placeholder="main or commit-hash">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="checkoutGitRef()" style="margin-right: 10px;">🔀 检出</button>
+                        <button class="btn btn-secondary" onclick="listGitBranches()">📋 列分支</button>
+                        <button class="btn btn-secondary" onclick="listGitCommits()">📝 列提交</button>
+                    </div>
+
+                    <!-- 分支/提交列表 -->
+                    <div id="gitListResult" style="background: #f8f9ff; border-radius: 10px; padding: 15px; max-height: 300px; overflow-y: auto; display: none;">
+                    </div>
+
+                    <!-- 解析项目 -->
+                    <div style="background: #f8f9ff; border-radius: 10px; padding: 15px; margin-top: 20px;">
+                        <h4 style="color: #333; margin-bottom: 10px;">🔍 解析项目</h4>
+                        <!-- 流程图类型选择 -->
+                        <div style="margin-bottom: 15px;">
+                            <div style="font-weight: 600; color: #333; margin-bottom: 10px; font-size: 14px;">📊 流程图类型</div>
+                            <div style="display: flex; gap: 10px;">
+                                <label id="flowType-git-callChain-label" class="style-label active" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #667eea; background: #667eea; color: white; transition: all 0.3s ease;">
+                                    <input type="radio" name="gitFlowType" value="callChain" checked style="display: none;" onchange="toggleGitFlowType()">
+                                    🔗 调用链
+                                </label>
+                                <label id="flowType-git-umlClass-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="gitFlowType" value="umlClass" style="display: none;" onchange="toggleGitFlowType()">
+                                    📦 类图
+                                </label>
+                                <label id="flowType-git-sequence-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="gitFlowType" value="sequence" style="display: none;" onchange="toggleGitFlowType()">
+                                    🔄 时序图
+                                </label>
+                            </div>
+                        </div>
+                        <!-- 调用链样式选择 -->
+                        <div id="gitCallChainStyles" style="margin-bottom: 15px;">
+                            <div style="font-weight: 600; color: #333; margin-bottom: 10px; font-size: 14px;">🎨 调用链样式</div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button class="style-btn active" onclick="setGitStyle('ACTIVITY')" data-style="ACTIVITY">🏃 活动图</button>
+                                <button class="style-btn" onclick="setGitStyle('FLOWCHART')" data-style="FLOWCHART">🔀 流程图</button>
+                                <button class="style-btn" onclick="setGitStyle('STATE')" data-style="STATE">🔄 状态图</button>
+                                <button class="style-btn" onclick="setGitStyle('C4')" data-style="C4">📊 C4</button>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                            <div style="flex: 1;">
+                                <label class="code-label">包含包（可选）：</label>
+                                <input type="text" id="gitIncludePackages" class="code-input" style="height: 45px; padding: 10px 15px;" placeholder="com.example.service">
+                            </div>
+                            <div style="flex: 1;">
+                                <label class="code-label">排除包（可选）：</label>
+                                <input type="text" id="gitExcludePackages" class="code-input" style="height: 45px; padding: 10px 15px;" placeholder="com.example.util">
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <label class="code-label" style="margin-right: 10px;">主题：</label>
+                            <div id="gitThemeSelector" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button class="style-btn active" onclick="setGitTheme('DEFAULT')" data-theme="DEFAULT">🎨 默认</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="parseGitProject()">🔍 解析</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- JAR文件标签 -->
+            <div id="jar-tab" class="tab-content">
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: #333; margin-bottom: 15px;">📦 JAR 文件解析</h3>
+                    <div class="upload-area" id="jarUploadArea" onclick="document.getElementById('jarFileInput').click()">
+                        <div class="upload-icon">📦</div>
+                        <div class="upload-text">
+                            点击或拖拽 JAR 文件到此处<br>
+                            <span style="color: #999; font-size: 14px;">支持 .jar 文件</span>
+                        </div>
+                    </div>
+                    <input type="file" id="jarFileInput" class="file-input" accept=".jar" onchange="handleJarFileSelect(event)">
+                    <div class="file-info" id="jarFileInfo">
+                        <span class="file-name" id="jarSelectedFileName"></span>
+                    </div>
+                    <!-- 流程图类型选择 -->
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-weight: 600; color: #333; margin-bottom: 12px; font-size: 16px;">📊 流程图类型</div>
+                        <div style="display: flex; gap: 10px;">
+                            <label id="flowType-jar-callChain-label" class="style-label active" style="cursor: pointer; padding: 12px 20px; border-radius: 10px; border: 2px solid #667eea; background: #667eea; color: white; transition: all 0.3s ease;">
+                                <input type="radio" name="jarFlowType" value="callChain" checked style="display: none;" onchange="toggleJarFlowType()">
+                                🔗 调用链图
+                            </label>
+                            <label id="flowType-jar-umlClass-label" class="style-label" style="cursor: pointer; padding: 12px 20px; border-radius: 10px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                <input type="radio" name="jarFlowType" value="umlClass" style="display: none;" onchange="toggleJarFlowType()">
+                                📦 类图
+                            </label>
+                            <label id="flowType-jar-sequence-label" class="style-label" style="cursor: pointer; padding: 12px 20px; border-radius: 10px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                <input type="radio" name="jarFlowType" value="sequence" style="display: none;" onchange="toggleJarFlowType()">
+                                🔄 时序图
+                            </label>
+                        </div>
+                    </div>
+                    <!-- 调用链样式选择 -->
+                    <div id="jarCallChainStyles" style="margin-bottom: 20px;">
+                        <div style="font-weight: 600; color: #333; margin-bottom: 12px; font-size: 16px;">🎨 调用链样式</div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="style-btn active" onclick="setJarStyle('ACTIVITY')" data-style="ACTIVITY">🏃 活动图</button>
+                            <button class="style-btn" onclick="setJarStyle('FLOWCHART')" data-style="FLOWCHART">🔀 流程图</button>
+                            <button class="style-btn" onclick="setJarStyle('STATE')" data-style="STATE">🔄 状态图</button>
+                            <button class="style-btn" onclick="setJarStyle('C4')" data-style="C4">📊 C4模型</button>
+                            <button class="style-btn" onclick="setJarStyle('COMPONENT')" data-style="COMPONENT">🧩 组件图</button>
+                            <button class="style-btn" onclick="setJarStyle('WORKFLOW')" data-style="WORKFLOW">⚙️ 工作流</button>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                        <div style="flex: 1;">
+                            <label class="code-label">包含包（可选）：</label>
+                            <input type="text" id="jarIncludePackages" class="code-input" style="height: 45px; padding: 10px 15px;" placeholder="com.example.service">
+                        </div>
+                        <div style="flex: 1;">
+                            <label class="code-label">排除包（可选）：</label>
+                            <input type="text" id="jarExcludePackages" class="code-input" style="height: 45px; padding: 10px 15px;" placeholder="com.example.util">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <label class="code-label" style="margin-right: 10px;">主题：</label>
+                        <div id="jarThemeSelector" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="style-btn active" onclick="setJarTheme('DEFAULT')" data-theme="DEFAULT">🎨 默认</button>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="parseJarBtn" onclick="parseJarFile()" disabled>🔍 解析 JAR</button>
+                    <button class="btn btn-secondary" id="clearJarBtn" onclick="clearJarUpload()" style="display: none;">🗑️ 清除</button>
+                </div>
+            </div>
+
+            <!-- 差异对比标签 -->
+            <div id="diff-tab" class="tab-content">
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: #333; margin-bottom: 15px;">🔍 流程图差异对比</h3>
+
+                    <!-- 方式1: 选择已缓存的图 -->
+                    <div style="background: #f8f9ff; border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+                        <h4 style="color: #333; margin-bottom: 10px;">📋 选择已解析的流程图</h4>
+                        <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                            <div style="flex: 1;">
+                                <label class="code-label">旧版本图：</label>
+                                <select id="oldGraphSelect" class="code-input" style="height: 45px; padding: 10px 15px;">
+                                    <option value="">-- 请先解析流程图 --</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1;">
+                                <label class="code-label">新版本图：</label>
+                                <select id="newGraphSelect" class="code-input" style="height: 45px; padding: 10px 15px;">
+                                    <option value="">-- 请先解析流程图 --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="compareCachedGraphs()">🔍 对比</button>
+                        <button class="btn btn-secondary" onclick="refreshGraphList()">🔄 刷新列表</button>
+                    </div>
+
+                    <!-- 方式2: 上传两个文件 -->
+                    <div style="background: #f8f9ff; border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+                        <h4 style="color: #333; margin-bottom: 10px;">📁 或上传两个文件对比</h4>
+                        <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                            <div style="flex: 1;">
+                                <label class="code-label">旧版本文件：</label>
+                                <div class="upload-area" id="oldFileUploadArea" onclick="document.getElementById('oldFileInput').click()" style="padding: 20px;">
+                                    <div style="font-size: 24px;">📄</div>
+                                    <div style="font-size: 14px; color: #666;">点击上传旧版本</div>
+                                </div>
+                                <input type="file" id="oldFileInput" class="file-input" accept=".java" onchange="handleOldFileSelect(event)">
+                                <div id="oldFileName" style="margin-top: 8px; font-size: 14px; color: #2e7d32; display: none;"></div>
+                            </div>
+                            <div style="flex: 1;">
+                                <label class="code-label">新版本文件：</label>
+                                <div class="upload-area" id="newFileUploadArea" onclick="document.getElementById('newFileInput').click()" style="padding: 20px;">
+                                    <div style="font-size: 24px;">📄</div>
+                                    <div style="font-size: 14px; color: #666;">点击上传新版本</div>
+                                </div>
+                                <input type="file" id="newFileInput" class="file-input" accept=".java" onchange="handleNewFileSelect(event)">
+                                <div id="newFileName" style="margin-top: 8px; font-size: 14px; color: #2e7d32; display: none;"></div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <label class="code-label" style="margin-right: 10px;">主题：</label>
+                            <div id="diffThemeSelector" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button class="style-btn active" onclick="setDiffTheme('DEFAULT')" data-theme="DEFAULT">🎨 默认</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="compareFiles()">🔍 对比文件</button>
+                    </div>
+
+                    <!-- 差异结果 -->
+                    <div id="diffResult" style="display: none;">
+                        <div class="result-card" style="display: block;">
+                            <div class="result-header">
+                                <div class="result-title" id="diffResultTitle">📊 差异分析结果</div>
+                            </div>
+                            <div id="diffStats" style="display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;"></div>
+                            <div id="diffContent" style="margin-bottom: 20px;"></div>
+                            <div id="diffPlantumlPreview" style="margin-top: 20px;">
+                                <h4 style="color: #333; margin-bottom: 10px;">🖼️ 高亮差异 PlantUML 预览</h4>
+                                <img id="diffPreviewImage" style="max-width: 100%; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                            </div>
+                            <div style="margin-top: 15px;">
+                                <button class="btn btn-primary" onclick="downloadDiffPlantuml()">📥 下载 PlantUML</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -736,6 +1073,12 @@ public class TestClass {
             <div class="result-card" id="resultCard">
                 <div class="result-header">
                     <div class="result-title">✅ 流程图生成成功！</div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;" onclick="exportCurrentGraph('plantuml')">📥 PUML</button>
+                        <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;" onclick="exportCurrentGraph('svg')">📥 SVG</button>
+                        <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;" onclick="exportCurrentGraph('png')">📥 PNG</button>
+                        <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;" onclick="exportCurrentGraph('pdf')">📥 PDF</button>
+                    </div>
                     <div class="result-stats">
                         <div class="stat">
                             <div class="stat-value" id="nodeCount">0</div>
@@ -844,11 +1187,37 @@ public class TestClass {
             if (tab === 'upload') {
                 tabs[0].classList.add('active');
                 document.getElementById('upload-tab').classList.add('active');
+                // 加载主题列表
+                loadThemes('uploadThemeSelector', 'uploadTheme');
             } else if (tab === 'code') {
                 tabs[1].classList.add('active');
                 document.getElementById('code-tab').classList.add('active');
-            } else if (tab === 'apm') {
+                // 加载主题列表
+                loadThemes('codeThemeSelector', 'codeTheme');
+            } else if (tab === 'project') {
                 tabs[2].classList.add('active');
+                document.getElementById('project-tab').classList.add('active');
+                // 加载主题列表
+                loadThemes('projectThemeSelector', 'projectTheme');
+            } else if (tab === 'git') {
+                tabs[3].classList.add('active');
+                document.getElementById('git-tab').classList.add('active');
+                // 加载主题列表
+                loadThemes('gitThemeSelector', 'gitTheme');
+            } else if (tab === 'jar') {
+                tabs[4].classList.add('active');
+                document.getElementById('jar-tab').classList.add('active');
+                // 加载主题列表
+                loadThemes('jarThemeSelector', 'jarTheme');
+            } else if (tab === 'diff') {
+                tabs[5].classList.add('active');
+                document.getElementById('diff-tab').classList.add('active');
+                // 加载主题列表
+                loadThemes('diffThemeSelector', 'diffTheme');
+                // 刷新图列表
+                refreshGraphList();
+            } else if (tab === 'apm') {
+                tabs[6].classList.add('active');
                 document.getElementById('apm-tab').classList.add('active');
                 // 自动刷新 Trace 列表
                 refreshTraces();
@@ -961,6 +1330,12 @@ public class TestClass {
             formData.append('excludeBuilderMethods', document.getElementById('filterBuilderMethods').checked);
             formData.append('excludeLombokMethods', document.getElementById('filterLombokMethods').checked);
             formData.append('excludeLt', document.getElementById('filterLt').checked);
+            formData.append('excludeTestMethods', document.getElementById('filterTestMethods').checked);
+            formData.append('excludeStaticMethods', document.getElementById('filterStaticMethods').checked);
+            formData.append('excludePrivateMethods', document.getElementById('filterPrivateMethods').checked);
+            formData.append('excludeCollectionMethods', document.getElementById('filterCollectionMethods').checked);
+            formData.append('excludeStringMethods', document.getElementById('filterStringMethods').checked);
+            formData.append('theme', currentUploadTheme);
 
             if (flowType === 'callChain') {
                 formData.append('style', callChainStyle);
@@ -1021,6 +1396,12 @@ public class TestClass {
                 requestBody.excludeBuilderMethods = document.getElementById('filterBuilderMethods').checked;
                 requestBody.excludeLombokMethods = document.getElementById('filterLombokMethods').checked;
                 requestBody.excludeLt = document.getElementById('filterLt').checked;
+                requestBody.excludeTestMethods = document.getElementById('filterTestMethods').checked;
+                requestBody.excludeStaticMethods = document.getElementById('filterStaticMethods').checked;
+                requestBody.excludePrivateMethods = document.getElementById('filterPrivateMethods').checked;
+                requestBody.excludeCollectionMethods = document.getElementById('filterCollectionMethods').checked;
+                requestBody.excludeStringMethods = document.getElementById('filterStringMethods').checked;
+                requestBody.theme = currentCodeTheme;
 
                 if (flowType === 'callChain') {
                     url = '/api/flow/parse/code-enhanced';
@@ -1591,6 +1972,9 @@ public class TestClass {
         function showResults(result, flowType) {
             // 保存数据
             currentGraphData = result.graphData;
+            if (currentGraphData && result.graphId) {
+                currentGraphData.graphId = result.graphId;
+            }
             currentDotContent = result.dotContent;
             currentFlowType = flowType;
 
@@ -1739,10 +2123,788 @@ public class TestClass {
             }
         }
 
+        // ==================== 主题管理 ====================
+        let currentUploadTheme = 'DEFAULT';
+        let currentCodeTheme = 'DEFAULT';
+        let currentProjectTheme = 'DEFAULT';
+        let currentGitTheme = 'DEFAULT';
+        let currentJarTheme = 'DEFAULT';
+        let currentDiffTheme = 'DEFAULT';
+        let currentUploadStyle = 'ACTIVITY';
+        let currentCodeStyle = 'ACTIVITY';
+        let currentProjectStyle = 'ACTIVITY';
+        let currentGitStyle = 'ACTIVITY';
+        let currentJarStyle = 'ACTIVITY';
+        let currentThemes = [];
+        let defaultTheme = 'DEFAULT';
+
+        async function loadThemes(selectorId, themeVarName) {
+            try {
+                const response = await fetch('/api/flow/themes');
+                const result = await response.json();
+                if (result.success) {
+                    currentThemes = result.themes || [];
+                    defaultTheme = result.defaultTheme || 'DEFAULT';
+                    renderThemeSelector(selectorId, themeVarName);
+                }
+            } catch (error) {
+                console.warn('加载主题失败:', error);
+            }
+        }
+
+        function renderThemeSelector(selectorId, themeVarName) {
+            const selector = document.getElementById(selectorId);
+            if (!selector) return;
+
+            let html = '';
+            currentThemes.forEach(theme => {
+                const themeName = theme.name || theme;
+                const isActive = themeName === getCurrentTheme(themeVarName);
+                html += `<button class="style-btn ${isActive ? 'active' : ''}" onclick="setTheme('${themeVarName}', '${themeName}')" data-theme="${themeName}">${theme.icon || '🎨'} ${themeName}</button>`;
+            });
+            selector.innerHTML = html;
+        }
+
+        function getCurrentTheme(themeVarName) {
+            switch(themeVarName) {
+                case 'uploadTheme': return currentUploadTheme;
+                case 'codeTheme': return currentCodeTheme;
+                case 'projectTheme': return currentProjectTheme;
+                case 'gitTheme': return currentGitTheme;
+                case 'jarTheme': return currentJarTheme;
+                case 'diffTheme': return currentDiffTheme;
+                default: return 'DEFAULT';
+            }
+        }
+
+        function setTheme(themeVarName, theme) {
+            switch(themeVarName) {
+                case 'uploadTheme': currentUploadTheme = theme; break;
+                case 'codeTheme': currentCodeTheme = theme; break;
+                case 'projectTheme': currentProjectTheme = theme; break;
+                case 'gitTheme': currentGitTheme = theme; break;
+                case 'jarTheme': currentJarTheme = theme; break;
+                case 'diffTheme': currentDiffTheme = theme; break;
+            }
+            // 更新按钮状态
+            const selectorId = themeVarName.replace('Theme', 'ThemeSelector');
+            renderThemeSelector(selectorId, themeVarName);
+        }
+
+        function setUploadTheme(theme) { setTheme('uploadTheme', theme); }
+        function setCodeTheme(theme) { setTheme('codeTheme', theme); }
+        function setProjectTheme(theme) { setTheme('projectTheme', theme); }
+        function setGitTheme(theme) { setTheme('gitTheme', theme); }
+        function setJarTheme(theme) { setTheme('jarTheme', theme); }
+        function setDiffTheme(theme) { setTheme('diffTheme', theme); }
+
+        // ==================== 本地项目解析 ====================
+        function toggleProjectFlowType() {
+            const flowType = getSelectedProjectFlowType();
+            const callChainStyles = document.getElementById('projectCallChainStyles');
+
+            if (flowType === 'callChain') {
+                callChainStyles.style.display = 'block';
+            } else {
+                callChainStyles.style.display = 'none';
+            }
+
+            document.querySelectorAll('#flowType-project-callChain-label, #flowType-project-umlClass-label, #flowType-project-sequence-label').forEach(label => {
+                label.style.borderColor = '#e0e0e0';
+                label.style.background = '#f8f9ff';
+                label.style.color = '#333';
+            });
+
+            const selectedLabel = document.getElementById(`flowType-project-${flowType}-label`);
+            if (selectedLabel) {
+                selectedLabel.style.borderColor = '#667eea';
+                selectedLabel.style.background = '#667eea';
+                selectedLabel.style.color = 'white';
+            }
+        }
+
+        function getSelectedProjectFlowType() {
+            const selected = document.querySelector('input[name="projectFlowType"]:checked');
+            return selected ? selected.value : 'callChain';
+        }
+
+        function setProjectStyle(style) {
+            currentProjectStyle = style;
+            document.querySelectorAll('#projectCallChainStyles .style-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.style === style);
+            });
+        }
+
+        async function parseLocalProject() {
+            const projectPath = document.getElementById('projectPath').value.trim();
+            if (!projectPath) {
+                showError('请输入项目路径！');
+                return;
+            }
+
+            showLoading();
+            hideError();
+            hideResults();
+
+            try {
+                const includePackages = document.getElementById('includePackages').value.trim();
+                const excludePackages = document.getElementById('excludePackages').value.trim();
+                const flowType = getSelectedProjectFlowType();
+
+                const formData = new FormData();
+                formData.append('projectPath', projectPath);
+                if (includePackages) formData.append('includePackages', includePackages);
+                if (excludePackages) formData.append('excludePackages', excludePackages);
+                formData.append('flowType', flowType);
+                formData.append('style', currentProjectStyle);
+                formData.append('theme', currentProjectTheme);
+
+                // 过滤选项
+                formData.append('excludeJdk', document.getElementById('filterJdk').checked);
+                formData.append('excludeLogging', document.getElementById('filterLogging').checked);
+                formData.append('excludeGetterSetter', document.getElementById('filterGetterSetter').checked);
+                formData.append('excludeCommonObject', document.getElementById('filterCommonObject').checked);
+                formData.append('excludeBuilderMethods', document.getElementById('filterBuilderMethods').checked);
+                formData.append('excludeLombokMethods', document.getElementById('filterLombokMethods').checked);
+                formData.append('excludeLt', document.getElementById('filterLt').checked);
+                formData.append('excludeTestMethods', document.getElementById('filterTestMethods').checked);
+                formData.append('excludeStaticMethods', document.getElementById('filterStaticMethods').checked);
+                formData.append('excludePrivateMethods', document.getElementById('filterPrivateMethods').checked);
+                formData.append('excludeCollectionMethods', document.getElementById('filterCollectionMethods').checked);
+                formData.append('excludeStringMethods', document.getElementById('filterStringMethods').checked);
+
+                const response = await fetch('/api/flow/project/parse', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                hideLoading();
+
+                if (result.success) {
+                    switchTab('upload');
+                    showResults(result, flowType);
+                } else {
+                    showError(result.message || '解析项目失败');
+                }
+            } catch (error) {
+                hideLoading();
+                showError('请求失败: ' + error.message);
+            }
+        }
+
+        // ==================== Git 仓库操作 ====================
+        async function cloneGitRepo() {
+            const repoUrl = document.getElementById('gitRepoUrl').value.trim();
+            const localPath = document.getElementById('gitLocalPath').value.trim();
+            if (!repoUrl) {
+                showError('请输入仓库 URL！');
+                return;
+            }
+
+            showLoading();
+            hideError();
+
+            try {
+                const response = await fetch('/api/flow/git/clone', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ repoUrl, localPath })
+                });
+
+                const result = await response.json();
+                hideLoading();
+
+                if (result.success) {
+                    alert('克隆成功！仓库路径: ' + (result.repoPath || localPath));
+                    document.getElementById('gitCheckoutPath').value = result.repoPath || localPath;
+                } else {
+                    showError(result.message || '克隆失败');
+                }
+            } catch (error) {
+                hideLoading();
+                showError('请求失败: ' + error.message);
+            }
+        }
+
+        async function checkoutGitRef() {
+            const repoPath = document.getElementById('gitCheckoutPath').value.trim();
+            const ref = document.getElementById('gitCheckoutRef').value.trim();
+            if (!repoPath || !ref) {
+                showError('请输入仓库路径和分支/提交！');
+                return;
+            }
+
+            showLoading();
+            hideError();
+
+            try {
+                const response = await fetch('/api/flow/git/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ repositoryPath: repoPath, ref })
+                });
+
+                const result = await response.json();
+                hideLoading();
+
+                if (result.success) {
+                    alert('检出成功！');
+                } else {
+                    showError(result.message || '检出失败');
+                }
+            } catch (error) {
+                hideLoading();
+                showError('请求失败: ' + error.message);
+            }
+        }
+
+        async function listGitBranches() {
+            const repoPath = document.getElementById('gitCheckoutPath').value.trim();
+            if (!repoPath) {
+                showError('请输入仓库路径！');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/flow/git/branches?repositoryPath=${encodeURIComponent(repoPath)}`);
+                const result = await response.json();
+
+                const listDiv = document.getElementById('gitListResult');
+                listDiv.style.display = 'block';
+
+                if (result.success && result.branches) {
+                    let html = '<h4 style="color: #333; margin-bottom: 10px;">🌿 分支列表</h4><div style="display: flex; flex-direction: column; gap: 8px;">';
+                    result.branches.forEach(branch => {
+                        html += `<div style="padding: 8px 12px; background: white; border-radius: 6px; cursor: pointer;" onclick="document.getElementById('gitCheckoutRef').value='${branch}'; document.getElementById('gitListResult').style.display='none';">${branch}</div>`;
+                    });
+                    html += '</div>';
+                    listDiv.innerHTML = html;
+                } else {
+                    listDiv.innerHTML = '<p style="color: #c53030;">获取分支失败: ' + (result.message || '未知错误') + '</p>';
+                }
+            } catch (error) {
+                const listDiv = document.getElementById('gitListResult');
+                listDiv.style.display = 'block';
+                listDiv.innerHTML = '<p style="color: #c53030;">请求失败: ' + error.message + '</p>';
+            }
+        }
+
+        async function listGitCommits() {
+            const repoPath = document.getElementById('gitCheckoutPath').value.trim();
+            if (!repoPath) {
+                showError('请输入仓库路径！');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/flow/git/commits?repositoryPath=${encodeURIComponent(repoPath)}`);
+                const result = await response.json();
+
+                const listDiv = document.getElementById('gitListResult');
+                listDiv.style.display = 'block';
+
+                if (result.success && result.commits) {
+                    let html = '<h4 style="color: #333; margin-bottom: 10px;">📝 提交列表</h4><div style="display: flex; flex-direction: column; gap: 8px;">';
+                    result.commits.forEach(commit => {
+                        const commitId = commit.id || commit;
+                        const shortHash = commit.shortId || commitId.substring(0, 8);
+                        const message = commit.message || '';
+                        html += `<div style="padding: 8px 12px; background: white; border-radius: 6px; cursor: pointer;" onclick="document.getElementById('gitCheckoutRef').value='${commitId}'; document.getElementById('gitListResult').style.display='none';">
+                            <div style="font-family: monospace; color: #667eea;">${shortHash}</div>
+                            ${message ? `<div style="color: #666; font-size: 13px;">${message}</div>` : ''}
+                        </div>`;
+                    });
+                    html += '</div>';
+                    listDiv.innerHTML = html;
+                } else {
+                    listDiv.innerHTML = '<p style="color: #c53030;">获取提交失败: ' + (result.message || '未知错误') + '</p>';
+                }
+            } catch (error) {
+                const listDiv = document.getElementById('gitListResult');
+                listDiv.style.display = 'block';
+                listDiv.innerHTML = '<p style="color: #c53030;">请求失败: ' + error.message + '</p>';
+            }
+        }
+
+        function toggleGitFlowType() {
+            const flowType = getSelectedGitFlowType();
+            const callChainStyles = document.getElementById('gitCallChainStyles');
+
+            if (flowType === 'callChain') {
+                callChainStyles.style.display = 'block';
+            } else {
+                callChainStyles.style.display = 'none';
+            }
+
+            document.querySelectorAll('#flowType-git-callChain-label, #flowType-git-umlClass-label, #flowType-git-sequence-label').forEach(label => {
+                label.style.borderColor = '#e0e0e0';
+                label.style.background = '#f8f9ff';
+                label.style.color = '#333';
+            });
+
+            const selectedLabel = document.getElementById(`flowType-git-${flowType}-label`);
+            if (selectedLabel) {
+                selectedLabel.style.borderColor = '#667eea';
+                selectedLabel.style.background = '#667eea';
+                selectedLabel.style.color = 'white';
+            }
+        }
+
+        function getSelectedGitFlowType() {
+            const selected = document.querySelector('input[name="gitFlowType"]:checked');
+            return selected ? selected.value : 'callChain';
+        }
+
+        function setGitStyle(style) {
+            currentGitStyle = style;
+            document.querySelectorAll('#gitCallChainStyles .style-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.style === style);
+            });
+        }
+
+        async function parseGitProject() {
+            const repoPath = document.getElementById('gitCheckoutPath').value.trim();
+            if (!repoPath) {
+                showError('请输入仓库路径！');
+                return;
+            }
+
+            showLoading();
+            hideError();
+            hideResults();
+
+            try {
+                const includePackages = document.getElementById('gitIncludePackages').value.trim();
+                const excludePackages = document.getElementById('gitExcludePackages').value.trim();
+                const flowType = getSelectedGitFlowType();
+
+                const formData = new FormData();
+                formData.append('projectPath', repoPath);
+                if (includePackages) formData.append('includePackages', includePackages);
+                if (excludePackages) formData.append('excludePackages', excludePackages);
+                formData.append('flowType', flowType);
+                formData.append('style', currentGitStyle);
+                formData.append('theme', currentGitTheme);
+
+                // 过滤选项
+                formData.append('excludeJdk', document.getElementById('filterJdk').checked);
+                formData.append('excludeLogging', document.getElementById('filterLogging').checked);
+                formData.append('excludeGetterSetter', document.getElementById('filterGetterSetter').checked);
+                formData.append('excludeCommonObject', document.getElementById('filterCommonObject').checked);
+                formData.append('excludeBuilderMethods', document.getElementById('filterBuilderMethods').checked);
+                formData.append('excludeLombokMethods', document.getElementById('filterLombokMethods').checked);
+                formData.append('excludeLt', document.getElementById('filterLt').checked);
+                formData.append('excludeTestMethods', document.getElementById('filterTestMethods').checked);
+                formData.append('excludeStaticMethods', document.getElementById('filterStaticMethods').checked);
+                formData.append('excludePrivateMethods', document.getElementById('filterPrivateMethods').checked);
+                formData.append('excludeCollectionMethods', document.getElementById('filterCollectionMethods').checked);
+                formData.append('excludeStringMethods', document.getElementById('filterStringMethods').checked);
+
+                const response = await fetch('/api/flow/project/parse', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                hideLoading();
+
+                if (result.success) {
+                    switchTab('upload');
+                    showResults(result, flowType);
+                } else {
+                    showError(result.message || '解析项目失败');
+                }
+            } catch (error) {
+                hideLoading();
+                showError('请求失败: ' + error.message);
+            }
+        }
+
+        // ==================== JAR 文件解析 ====================
+        let selectedJarFile = null;
+
+        // JAR 拖拽上传
+        const jarUploadArea = document.getElementById('jarUploadArea');
+        if (jarUploadArea) {
+            jarUploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                jarUploadArea.classList.add('dragover');
+            });
+            jarUploadArea.addEventListener('dragleave', () => {
+                jarUploadArea.classList.remove('dragover');
+            });
+            jarUploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                jarUploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleJarFile(files[0]);
+                }
+            });
+        }
+
+        function handleJarFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleJarFile(file);
+            }
+        }
+
+        function handleJarFile(file) {
+            if (!file.name.endsWith('.jar')) {
+                showError('请选择 .jar 文件！');
+                return;
+            }
+
+            document.getElementById('jarSelectedFileName').textContent = '已选择: ' + file.name;
+            document.getElementById('jarFileInfo').classList.add('show');
+            document.getElementById('parseJarBtn').disabled = false;
+            document.getElementById('clearJarBtn').style.display = 'inline-block';
+
+            selectedJarFile = file;
+        }
+
+        function clearJarUpload() {
+            document.getElementById('jarFileInput').value = '';
+            document.getElementById('jarFileInfo').classList.remove('show');
+            document.getElementById('parseJarBtn').disabled = true;
+            document.getElementById('clearJarBtn').style.display = 'none';
+            selectedJarFile = null;
+        }
+
+        function toggleJarFlowType() {
+            const flowType = getSelectedJarFlowType();
+            const callChainStyles = document.getElementById('jarCallChainStyles');
+
+            if (flowType === 'callChain') {
+                callChainStyles.style.display = 'block';
+            } else {
+                callChainStyles.style.display = 'none';
+            }
+
+            // 更新选中样式
+            document.querySelectorAll('#flowType-jar-callChain-label, #flowType-jar-umlClass-label, #flowType-jar-sequence-label').forEach(label => {
+                label.style.borderColor = '#e0e0e0';
+                label.style.background = '#f8f9ff';
+                label.style.color = '#333';
+            });
+
+            const selectedLabel = document.getElementById(`flowType-jar-${flowType}-label`);
+            if (selectedLabel) {
+                selectedLabel.style.borderColor = '#667eea';
+                selectedLabel.style.background = '#667eea';
+                selectedLabel.style.color = 'white';
+            }
+        }
+
+        function getSelectedJarFlowType() {
+            const selected = document.querySelector('input[name="jarFlowType"]:checked');
+            return selected ? selected.value : 'callChain';
+        }
+
+        function setJarStyle(style) {
+            currentJarStyle = style;
+            document.querySelectorAll('#jarCallChainStyles .style-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.style === style);
+            });
+        }
+
+        async function parseJarFile() {
+            if (!selectedJarFile) {
+                showError('请先选择 JAR 文件！');
+                return;
+            }
+
+            showLoading();
+            hideError();
+            hideResults();
+
+            try {
+                const includePackages = document.getElementById('jarIncludePackages').value.trim();
+                const excludePackages = document.getElementById('jarExcludePackages').value.trim();
+                const flowType = getSelectedJarFlowType();
+
+                const formData = new FormData();
+                formData.append('jarFile', selectedJarFile);
+                if (includePackages) formData.append('includePackages', includePackages);
+                if (excludePackages) formData.append('excludePackages', excludePackages);
+                formData.append('flowType', flowType);
+                formData.append('style', currentJarStyle);
+                formData.append('theme', currentJarTheme);
+
+                // 过滤选项
+                formData.append('excludeJdk', document.getElementById('filterJdk').checked);
+                formData.append('excludeLogging', document.getElementById('filterLogging').checked);
+                formData.append('excludeGetterSetter', document.getElementById('filterGetterSetter').checked);
+                formData.append('excludeCommonObject', document.getElementById('filterCommonObject').checked);
+                formData.append('excludeBuilderMethods', document.getElementById('filterBuilderMethods').checked);
+                formData.append('excludeLombokMethods', document.getElementById('filterLombokMethods').checked);
+                formData.append('excludeLt', document.getElementById('filterLt').checked);
+                formData.append('excludeTestMethods', document.getElementById('filterTestMethods').checked);
+                formData.append('excludeStaticMethods', document.getElementById('filterStaticMethods').checked);
+                formData.append('excludePrivateMethods', document.getElementById('filterPrivateMethods').checked);
+                formData.append('excludeCollectionMethods', document.getElementById('filterCollectionMethods').checked);
+                formData.append('excludeStringMethods', document.getElementById('filterStringMethods').checked);
+
+                const response = await fetch('/api/flow/jar/parse', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                hideLoading();
+
+                if (result.success) {
+                    switchTab('upload');
+                    showResults(result, flowType);
+                } else {
+                    showError(result.message || '解析 JAR 失败');
+                }
+            } catch (error) {
+                hideLoading();
+                showError('请求失败: ' + error.message);
+            }
+        }
+
+        // ==================== 差异对比 ====================
+        let cachedGraphs = [];
+        let currentDiffResult = null;
+        let oldFile = null;
+        let newFile = null;
+
+        async function refreshGraphList() {
+            try {
+                const response = await fetch('/api/flow/diff/graphs');
+                const result = await response.json();
+                if (result.success && result.graphs) {
+                    cachedGraphs = result.graphs;
+                    updateGraphSelects();
+                }
+            } catch (error) {
+                console.warn('获取图列表失败:', error);
+            }
+        }
+
+        function updateGraphSelects() {
+            const oldSelect = document.getElementById('oldGraphSelect');
+            const newSelect = document.getElementById('newGraphSelect');
+
+            if (cachedGraphs.length === 0) {
+                oldSelect.innerHTML = '<option value="">-- 请先解析流程图 --</option>';
+                newSelect.innerHTML = '<option value="">-- 请先解析流程图 --</option>';
+                return;
+            }
+
+            let options = '';
+            cachedGraphs.forEach(graph => {
+                const label = graph.id ? `${graph.id} (${graph.timestamp || ''})` : graph;
+                const value = graph.id || graph;
+                options += `<option value="${value}">${label}</option>`;
+            });
+
+            oldSelect.innerHTML = '<option value="">-- 选择旧版本 --</option>' + options;
+            newSelect.innerHTML = '<option value="">-- 选择新版本 --</option>' + options;
+        }
+
+        async function compareCachedGraphs() {
+            const oldGraphId = document.getElementById('oldGraphSelect').value;
+            const newGraphId = document.getElementById('newGraphSelect').value;
+
+            if (!oldGraphId || !newGraphId) {
+                showError('请选择两个流程图进行对比！');
+                return;
+            }
+
+            showLoading();
+            hideError();
+
+            try {
+                const response = await fetch('/api/flow/diff/compare', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ oldGraphId, newGraphId, theme: currentDiffTheme })
+                });
+
+                const result = await response.json();
+                hideLoading();
+
+                if (result.success) {
+                    currentDiffResult = result;
+                    showDiffResult(result);
+                } else {
+                    showError(result.message || '对比失败');
+                }
+            } catch (error) {
+                hideLoading();
+                showError('请求失败: ' + error.message);
+            }
+        }
+
+        function handleOldFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                oldFile = file;
+                document.getElementById('oldFileName').textContent = file.name;
+                document.getElementById('oldFileName').style.display = 'block';
+            }
+        }
+
+        function handleNewFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                newFile = file;
+                document.getElementById('newFileName').textContent = file.name;
+                document.getElementById('newFileName').style.display = 'block';
+            }
+        }
+
+        async function compareFiles() {
+            if (!oldFile || !newFile) {
+                showError('请选择两个文件进行对比！');
+                return;
+            }
+
+            showLoading();
+            hideError();
+
+            try {
+                const formData = new FormData();
+                formData.append('oldFile', oldFile);
+                formData.append('newFile', newFile);
+                formData.append('theme', currentDiffTheme);
+
+                const response = await fetch('/api/flow/diff/compare-files', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                hideLoading();
+
+                if (result.success) {
+                    currentDiffResult = result;
+                    showDiffResult(result);
+                } else {
+                    showError(result.message || '对比失败');
+                }
+            } catch (error) {
+                hideLoading();
+                showError('请求失败: ' + error.message);
+            }
+        }
+
+        function showDiffResult(result) {
+            const diffResultDiv = document.getElementById('diffResult');
+            diffResultDiv.style.display = 'block';
+
+            // 标题
+            const title = document.getElementById('diffResultTitle');
+            title.textContent = result.hasChanges ? '📊 发现差异！' : '📊 无差异';
+
+            // 统计信息
+            const statsDiv = document.getElementById('diffStats');
+            let statsHtml = '';
+            if (result.stats) {
+                statsHtml += `<div class="stat"><div class="stat-value" style="color: #4caf50;">${result.stats.addedNodes || 0}</div><div class="stat-label">新增节点</div></div>`;
+                statsHtml += `<div class="stat"><div class="stat-value" style="color: #f44336;">${result.stats.removedNodes || 0}</div><div class="stat-label">删除节点</div></div>`;
+                statsHtml += `<div class="stat"><div class="stat-value" style="color: #4caf50;">${result.stats.addedEdges || 0}</div><div class="stat-label">新增边</div></div>`;
+                statsHtml += `<div class="stat"><div class="stat-value" style="color: #f44336;">${result.stats.removedEdges || 0}</div><div class="stat-label">删除边</div></div>`;
+                statsHtml += `<div class="stat"><div class="stat-value" style="color: #9e9e9e;">${result.stats.unchangedNodes || 0}</div><div class="stat-label">不变节点</div></div>`;
+            }
+            statsDiv.innerHTML = statsHtml;
+
+            // 详细内容
+            const contentDiv = document.getElementById('diffContent');
+            let contentHtml = '';
+
+            if (result.addedNodes && result.addedNodes.length > 0) {
+                contentHtml += `<div style="margin-bottom: 15px;"><h4 style="color: #4caf50; margin-bottom: 8px;">➕ 新增节点:</h4><div style="background: #e8f5e9; padding: 10px; border-radius: 8px;">${result.addedNodes.map(n => n.name || n).join(', ')}</div></div>`;
+            }
+            if (result.removedNodes && result.removedNodes.length > 0) {
+                contentHtml += `<div style="margin-bottom: 15px;"><h4 style="color: #f44336; margin-bottom: 8px;">➖ 删除节点:</h4><div style="background: #ffebee; padding: 10px; border-radius: 8px;">${result.removedNodes.map(n => n.name || n).join(', ')}</div></div>`;
+            }
+            if (result.addedEdges && result.addedEdges.length > 0) {
+                contentHtml += `<div style="margin-bottom: 15px;"><h4 style="color: #4caf50; margin-bottom: 8px;">➕ 新增边:</h4><div style="background: #e8f5e9; padding: 10px; border-radius: 8px;">${result.addedEdges.map(e => `${e.from || e.source} → ${e.to || e.target}`).join(', ')}</div></div>`;
+            }
+            if (result.removedEdges && result.removedEdges.length > 0) {
+                contentHtml += `<div style="margin-bottom: 15px;"><h4 style="color: #f44336; margin-bottom: 8px;">➖ 删除边:</h4><div style="background: #ffebee; padding: 10px; border-radius: 8px;">${result.removedEdges.map(e => `${e.from || e.source} → ${e.to || e.target}`).join(', ')}</div></div>`;
+            }
+
+            if (!contentHtml) {
+                contentHtml = '<p style="color: #9e9e9e; text-align: center; padding: 20px;">两个流程图完全一致</p>';
+            }
+            contentDiv.innerHTML = contentHtml;
+
+            // PlantUML 预览
+            if (result.highlightedPreviewImage) {
+                document.getElementById('diffPreviewImage').src = result.highlightedPreviewImage;
+                document.getElementById('diffPlantumlPreview').style.display = 'block';
+            } else if (result.highlightedPlantumlContent) {
+                // 如果有 PlantUML 内容但没有预览图，可以尝试渲染
+                document.getElementById('diffPlantumlPreview').style.display = 'none';
+            } else {
+                document.getElementById('diffPlantumlPreview').style.display = 'none';
+            }
+        }
+
+        function downloadDiffPlantuml() {
+            if (!currentDiffResult || !currentDiffResult.highlightedPlantumlContent) {
+                alert('没有可下载的 PlantUML 内容');
+                return;
+            }
+
+            const blob = new Blob([currentDiffResult.highlightedPlantumlContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'diff-diagram.puml';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // ==================== 导出功能 ====================
+        async function exportCurrentGraph(format) {
+            if (!currentGraphData) {
+                alert('请先生成流程图');
+                return;
+            }
+
+            try {
+                // 尝试从结果中获取 graphId
+                let graphId = currentGraphData.graphId;
+                if (!graphId && currentGraphData.graph) {
+                    graphId = currentGraphData.graph.id;
+                }
+
+                if (graphId) {
+                    // 通过 ID 导出
+                    window.open(`/api/flow/export/${format}/${graphId}`, '_blank');
+                } else {
+                    // 直接导出当前数据
+                    alert('导出功能需要图 ID，请重新生成流程图');
+                }
+            } catch (error) {
+                alert('导出失败: ' + error.message);
+            }
+        }
+
         // 页面加载时检查服务状态
         window.onload = async function() {
             // 初始化显示调用链样式
             toggleFlowType();
+            toggleProjectFlowType();
+            toggleGitFlowType();
+            toggleJarFlowType();
+            // 加载主题列表到所有标签页
+            loadThemes('uploadThemeSelector', 'uploadTheme');
+            loadThemes('codeThemeSelector', 'codeTheme');
+            loadThemes('projectThemeSelector', 'projectTheme');
+            loadThemes('gitThemeSelector', 'gitTheme');
+            loadThemes('jarThemeSelector', 'jarTheme');
+            loadThemes('diffThemeSelector', 'diffTheme');
             try {
                 const response = await fetch('/api/flow/health');
                 const data = await response.json();

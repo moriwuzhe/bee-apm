@@ -1,52 +1,140 @@
 <template>
   <div class="agent-container">
+    <!-- 统计卡片 -->
+    <div class="stats-cards">
+      <el-card shadow="hover" class="stat-card">
+        <div class="stat-content">
+          <div class="stat-icon" style="background: #67c23a;">
+            <el-icon><Connection /></el-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ onlineCount }}</div>
+            <div class="stat-label">在线 Agent</div>
+          </div>
+        </div>
+      </el-card>
+      <el-card shadow="hover" class="stat-card">
+        <div class="stat-content">
+          <div class="stat-icon" style="background: #f56c6c;">
+            <el-icon><CircleClose /></el-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ offlineCount }}</div>
+            <div class="stat-label">离线 Agent</div>
+          </div>
+        </div>
+      </el-card>
+      <el-card shadow="hover" class="stat-card">
+        <div class="stat-content">
+          <div class="stat-icon" style="background: #409eff;">
+            <el-icon><DataAnalysis /></el-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ agents.length }}</div>
+            <div class="stat-label">总实例数</div>
+          </div>
+        </div>
+      </el-card>
+    </div>
+
     <div class="page-head">
       <div class="title">Agent管理</div>
       <div class="controls">
-        <el-button :loading="loading" type="primary" @click="loadData">刷新</el-button>
+        <el-select v-model="filterApp" placeholder="筛选应用" clearable filterable style="width: 200px;" @change="applyFilters">
+          <el-option
+            v-for="app in uniqueApps"
+            :key="app"
+            :label="app"
+            :value="app"
+          />
+        </el-select>
+        <el-select v-model="filterStatus" placeholder="筛选状态" clearable style="width: 120px;" @change="applyFilters">
+          <el-option label="在线" :value="true" />
+          <el-option label="离线" :value="false" />
+        </el-select>
+        <el-input 
+          v-model="filterIp" 
+          placeholder="搜索IP" 
+          clearable 
+          style="width: 180px;"
+          @clear="applyFilters"
+          @keyup.enter="applyFilters"
+        >
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+        </el-input>
+        <el-switch 
+          v-model="autoRefresh" 
+          active-text="自动刷新" 
+          @change="toggleAutoRefresh"
+          style="margin-left: 10px;"
+        />
+        <el-select v-if="autoRefresh" v-model="refreshInterval" placeholder="间隔" style="width: 100px;" @change="restartAutoRefresh">
+          <el-option label="5秒" :value="5000" />
+          <el-option label="10秒" :value="10000" />
+          <el-option label="30秒" :value="30000" />
+        </el-select>
+        <el-button :loading="loading" type="primary" @click="loadData">
+          <el-icon><Refresh /></el-icon>
+          刷新
+        </el-button>
       </div>
     </div>
 
-    <el-table :data="agents" border stripe v-loading="loading" style="width: 100%">
-      <el-table-column prop="app" label="应用" width="150" />
-      <el-table-column prop="inst" label="实例" width="150" />
-      <el-table-column prop="ip" label="IP地址" width="130" />
-      <el-table-column prop="version" label="Agent版本" width="110" />
+    <el-table :data="filteredAgents" border stripe v-loading="loading" style="width: 100%" @row-click="handleRowClick">
+      <el-table-column prop="app" label="应用" width="160" />
+      <el-table-column prop="inst" label="实例" width="160" />
+      <el-table-column prop="ip" label="IP地址" width="140" />
+      <el-table-column prop="version" label="Agent版本" width="120" />
       <el-table-column prop="configVersion" label="配置版本" width="100" />
-      <el-table-column label="最后心跳" width="160">
+      <el-table-column label="最后心跳" width="180">
         <template #default="{ row }">
           {{ formatTime(row.lastHeartbeatTime) }}
         </template>
       </el-table-column>
-      <el-table-column prop="online" label="状态" width="80">
+      <el-table-column prop="online" label="状态" width="90">
         <template #default="{ row }">
           <el-tag :type="row.online ? 'success' : 'danger'" size="small">
             {{ row.online ? '在线' : '离线' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="320" fixed="right" align="center">
+      <el-table-column label="操作" width="160" fixed="right" align="center">
         <template #default="{ row }">
-          <el-dropdown trigger="click" @command="(cmd: string) => handleCommand(cmd, row)">
-            <el-button type="primary" link>
-              操作 <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          <el-button-group>
+            <el-button type="primary" size="small" @click.stop="handleCommand('pluginManage', row)">
+              <el-icon><Tools /></el-icon>
+              插件
             </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="config">应用配置</el-dropdown-item>
-                <el-dropdown-item command="instanceConfig">实例配置</el-dropdown-item>
-                <el-dropdown-item divided command="jvmInfo">JVM信息</el-dropdown-item>
-                <el-dropdown-item command="memory">内存信息</el-dropdown-item>
-                <el-dropdown-item command="threadDump">线程Dump</el-dropdown-item>
-                <el-dropdown-item command="threadsSummary">线程概要</el-dropdown-item>
-                <el-dropdown-item command="gcStats">GC统计</el-dropdown-item>
-                <el-dropdown-item command="deadlocks">死锁检测</el-dropdown-item>
-                <el-dropdown-item divided command="gc">执行GC</el-dropdown-item>
-                <el-dropdown-item command="sysProps">系统属性</el-dropdown-item>
-                <el-dropdown-item command="env">环境变量</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+            <el-dropdown trigger="click" @command="(cmd: string) => handleCommand(cmd, row)">
+              <el-button type="primary" size="small">
+                <el-icon><ArrowDown /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="config">⚙️ 应用配置</el-dropdown-item>
+                  <el-dropdown-item command="instanceConfig">🔧 实例配置</el-dropdown-item>
+                  <el-dropdown-item command="pluginManage">📦 插件管理</el-dropdown-item>
+                  
+                  <el-dropdown-item divided />
+                  <div class="dropdown-category">🔍 诊断工具</div>
+                  <el-dropdown-item command="jvmInfo">☕ JVM信息</el-dropdown-item>
+                  <el-dropdown-item command="memory">💾 内存信息</el-dropdown-item>
+                  <el-dropdown-item command="gcStats">♻️ GC统计</el-dropdown-item>
+                  <el-dropdown-item command="threadsSummary">🧵 线程概要</el-dropdown-item>
+                  <el-dropdown-item command="threadDump">📝 线程Dump</el-dropdown-item>
+                  <el-dropdown-item command="deadlocks">🔒 死锁检测</el-dropdown-item>
+                  
+                  <el-dropdown-item divided />
+                  <div class="dropdown-category">🛠️ 操作工具</div>
+                  <el-dropdown-item command="gc">♻️ 执行GC</el-dropdown-item>
+                  <el-dropdown-item command="sysProps">⚙️ 系统属性</el-dropdown-item>
+                  <el-dropdown-item command="env">🌍 环境变量</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </el-button-group>
         </template>
       </el-table-column>
     </el-table>
@@ -68,6 +156,47 @@
         <span class="dialog-footer">
           <el-button @click="showConfigDialog = false">取消</el-button>
           <el-button type="primary" @click="submitConfig" :loading="submitting">确认更新</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- 插件下发管理对话框 -->
+    <el-dialog v-model="showPluginDialog" title="插件下发管理" width="900px">
+      <div style="margin-bottom: 16px;">
+        <el-descriptions :column="3" border size="small">
+          <el-descriptions-item label="应用">{{ currentAgentApp }}</el-descriptions-item>
+          <el-descriptions-item label="实例">{{ currentAgentInst }}</el-descriptions-item>
+          <el-descriptions-item label="IP">{{ currentAgentIp }}</el-descriptions-item>
+        </el-descriptions>
+      </div>
+      
+      <el-table :data="pluginConfigs" border stripe style="width: 100%" max-height="400">
+        <el-table-column prop="pluginCode" label="插件编码" width="180" />
+        <el-table-column prop="pluginName" label="插件名称" width="150" />
+        <el-table-column prop="version" label="版本" width="100" />
+        <el-table-column label="是否下发" width="120">
+          <template #default="{ row }">
+            <el-switch 
+              v-model="row.enabled" 
+              :active-value="true" 
+              :inactive-value="false"
+              @change="onPluginToggleChange(row)"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column label="状态">
+          <template #default="{ row }">
+            <el-tag :type="row.enabled ? 'success' : 'info'" size="small">
+              {{ row.enabled ? '已下发' : '未下发' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+      </el-table>
+      
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="showPluginDialog = false">关闭</el-button>
+          <el-button type="primary" @click="savePluginConfig" :loading="savingPlugins">保存配置</el-button>
         </span>
       </template>
     </el-dialog>
@@ -248,9 +377,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowDown } from '@element-plus/icons-vue'
+import { 
+  ArrowDown, Connection, CircleClose, DataAnalysis, Search, Refresh, Tools 
+} from '@element-plus/icons-vue'
 import {
   fetchAgentInstances,
   updateAgentConfig,
@@ -267,12 +398,52 @@ import {
   agentSysProps,
   agentEnv,
   fetchAgentConnections,
-  type AgentInstanceInfo
+  getAgentPluginConfig,
+  updateAgentPluginConfig,
+  type AgentInstanceInfo,
+  type AgentPluginConfig
 } from '../../api/agent'
+import { fetchAllPlugins, type PluginInfo } from '../../api/plugin'
 
 const agents = ref<AgentInstanceInfo[]>([])
 const loading = ref(false)
 const submitting = ref(false)
+
+// 筛选和自动刷新相关
+const filterApp = ref('')
+const filterStatus = ref<boolean | undefined>(undefined)
+const filterIp = ref('')
+const autoRefresh = ref(false)
+const refreshInterval = ref(10000) // 默认10秒
+let refreshTimer: any = null
+
+// 计算属性：唯一的应用列表
+const uniqueApps = computed(() => {
+  return [...new Set(agents.value.map(a => a.app))]
+})
+
+// 计算属性：在线/离线计数
+const onlineCount = computed(() => agents.value.filter(a => a.online).length)
+const offlineCount = computed(() => agents.value.filter(a => !a.online).length)
+
+// 计算属性：过滤后的Agent列表
+const filteredAgents = computed(() => {
+  return agents.value.filter(agent => {
+    if (filterApp.value && agent.app !== filterApp.value) return false
+    if (filterStatus.value !== undefined && agent.online !== filterStatus.value) return false
+    if (filterIp.value && !agent.ip.includes(filterIp.value)) return false
+    return true
+  })
+})
+
+// 插件管理相关
+const showPluginDialog = ref(false)
+const pluginConfigs = ref<AgentPluginConfig[]>([])
+const allPlugins = ref<PluginInfo[]>([])
+const currentAgentApp = ref('')
+const currentAgentInst = ref('')
+const currentAgentIp = ref('')
+const savingPlugins = ref(false)
 
 // 配置对话框相关
 const showConfigDialog = ref(false)
@@ -425,6 +596,10 @@ const handleCommand = async (cmd: string, row: AgentInstanceInfo) => {
         console.error('Failed to load instance config:', e)
         configForm.value.config = ''
       }
+      break
+      
+    case 'pluginManage':
+      await openPluginManageDialog(row)
       break
       
     case 'jvmInfo':
@@ -707,6 +882,12 @@ const copyDiagResult = async () => {
 // 切换模式
 const switchToTextMode = () => {
   diagMode.value = 'text'
+  
+  // 如果当前是图表模式且已有解析的数据，则显示原始数据
+  // 注意：diagResult已经存储了原始数据，无需额外处理
+  if (!diagResult.value || diagResult.value === '正在执行...') {
+    diagResult.value = '暂无数据'
+  }
 }
 
 const switchToChartMode = () => {
@@ -760,6 +941,105 @@ const getUsageLevel = (percent: number): string => {
 onMounted(() => {
   loadData()
 })
+
+// 插件管理相关函数
+const openPluginManageDialog = async (row: AgentInstanceInfo) => {
+  currentAgentApp.value = row.app
+  currentAgentInst.value = row.inst
+  currentAgentIp.value = row.ip
+  
+  showPluginDialog.value = true
+  pluginConfigs.value = []
+  
+  try {
+    // 加载所有插件
+    allPlugins.value = await fetchAllPlugins()
+    
+    // 加载当前Agent的插件配置
+    const existingConfig = await getAgentPluginConfig(row.app, row.inst)
+    
+    // 构建插件配置列表
+    pluginConfigs.value = allPlugins.value.map(plugin => {
+      const existing = existingConfig.find(p => p.pluginCode === plugin.pluginCode)
+      return {
+        pluginCode: plugin.pluginCode,
+        pluginName: plugin.pluginName,
+        enabled: existing ? existing.enabled : false,
+        version: plugin.version
+      }
+    })
+  } catch (e: any) {
+    ElMessage.error('加载插件配置失败: ' + (e.message || ''))
+  }
+}
+
+const onPluginToggleChange = (row: AgentPluginConfig) => {
+  // 实时更新状态显示，但实际需要保存后才生效
+  console.log('Plugin toggle changed:', row.pluginCode, '->', row.enabled)
+}
+
+const savePluginConfig = async () => {
+  savingPlugins.value = true
+  try {
+    await updateAgentPluginConfig(currentAgentApp.value, currentAgentInst.value, pluginConfigs.value)
+    ElMessage.success('插件配置保存成功，Agent将在下次心跳时同步')
+    showPluginDialog.value = false
+    loadData() // 刷新Agent列表
+  } catch (e: any) {
+    ElMessage.error('插件配置保存失败: ' + (e.message || ''))
+  } finally {
+    savingPlugins.value = false
+  }
+}
+
+// 筛选和自动刷新相关函数
+const applyFilters = () => {
+  // 筛选由计算属性自动处理，这里可以添加额外的逻辑
+  console.log('Filters applied:', { 
+    app: filterApp.value, 
+    status: filterStatus.value, 
+    ip: filterIp.value 
+  })
+}
+
+const handleRowClick = (row: AgentInstanceInfo) => {
+  // 点击行可以跳转到应用详情页或展开详情
+  console.log('Row clicked:', row)
+}
+
+const toggleAutoRefresh = (enabled: boolean) => {
+  if (enabled) {
+    startAutoRefresh()
+  } else {
+    stopAutoRefresh()
+  }
+}
+
+const startAutoRefresh = () => {
+  stopAutoRefresh()
+  refreshTimer = setInterval(() => {
+    console.log('Auto refreshing agent list...')
+    loadData()
+  }, refreshInterval.value)
+}
+
+const stopAutoRefresh = () => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
+}
+
+const restartAutoRefresh = () => {
+  if (autoRefresh.value) {
+    startAutoRefresh()
+  }
+}
+
+// 组件卸载时清理定时器
+onUnmounted(() => {
+  stopAutoRefresh()
+})
 </script>
 
 <style scoped>
@@ -769,10 +1049,65 @@ onMounted(() => {
   gap: var(--space-4);
 }
 
+/* 统计卡片样式 */
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.stat-card {
+  border: none;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 24px;
+}
+
+.stat-info {
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #303133;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #909399;
+}
+
 .page-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .title {
@@ -785,6 +1120,17 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+/* 下拉菜单分类样式 */
+.dropdown-category {
+  padding: 4px 16px;
+  font-size: 12px;
+  color: #909399;
+  font-weight: 600;
+  background: #f5f7fa;
+  border-bottom: 1px solid #ebeef5;
 }
 
 .diag-content {
@@ -899,5 +1245,21 @@ onMounted(() => {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 12px;
   line-height: 1.5;
+}
+
+/* 按钮组样式优化 */
+:deep(.el-button-group) {
+  display: flex;
+  align-items: center;
+}
+
+:deep(.el-button-group .el-button--small) {
+  padding: 7px 12px;
+  font-size: 13px;
+}
+
+/* 表格行hover效果 */
+:deep(.el-table__body tr:hover) {
+  cursor: pointer;
 }
 </style>

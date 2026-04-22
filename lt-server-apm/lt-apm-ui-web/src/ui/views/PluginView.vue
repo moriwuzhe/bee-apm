@@ -108,7 +108,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { http } from '../../api/http'
-import { fetchAllPlugins, updatePlugin as updatePluginApi, deletePlugin as deletePluginApi, type PluginInfo } from '../../api/plugin'
+import { fetchAllPlugins, updatePlugin as updatePluginApi, deletePlugin as deletePluginApi, downloadPlugin as downloadPluginApi, type PluginInfo } from '../../api/plugin'
 
 const plugins = ref<PluginInfo[]>([])
 const loading = ref(false)
@@ -230,19 +230,25 @@ const toggleEnabled = async (plugin: PluginInfo) => {
   }
 }
 
-const downloadPlugin = (plugin: PluginInfo) => {
-  // 如果没有 downloadUrl，我们直接使用 /api/plugin/download?pluginCode=xxx
-  const downloadUrl = plugin.downloadUrl || `/api/plugin/download?pluginCode=${plugin.pluginCode}`
-  
-  // 创建一个临时的 a 标签来下载文件
-  const link = document.createElement('a')
-  link.href = downloadUrl
-  link.download = plugin.fileName || `${plugin.pluginCode}-${plugin.version}.jar`
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  
-  ElMessage.success('开始下载插件')
+const downloadPlugin = async (plugin: PluginInfo) => {
+  try {
+    const downloadUrl = await downloadPluginApi(plugin.pluginCode)
+    if (downloadUrl) {
+      // Create a temporary link to trigger download
+      const link = document.createElement('a')
+      link.href = downloadUrl
+      link.download = plugin.fileName || `${plugin.pluginCode}-${plugin.version}.jar`
+      link.style.display = 'none'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      ElMessage.success('下载已开始')
+    } else {
+      ElMessage.error('获取下载链接失败')
+    }
+  } catch (e: any) {
+    ElMessage.error('下载失败: ' + (e.message || ''))
+  }
 }
 
 const updatePlugin = async () => {

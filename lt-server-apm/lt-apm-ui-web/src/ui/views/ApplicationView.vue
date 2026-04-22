@@ -108,59 +108,49 @@
               </template>
             </el-table-column>
             <el-table-column prop="version" label="版本" width="120" />
-            <el-table-column label="操作" width="220" fixed="right">
+            <el-table-column label="操作" width="350" fixed="right">
               <template #default="{ row }">
-                <el-dropdown trigger="click" @command="(cmd: string) => handleDiagCommand(cmd, row)">
-                  <el-button type="primary" link size="small">
-                    操作 <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-                  </el-button>
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <!-- 配置管理 -->
-                      <el-dropdown-item command="config">⚙️ 应用配置</el-dropdown-item>
-                      <el-dropdown-item command="instanceConfig">🔧 实例配置</el-dropdown-item>
-                      
-                      <el-dropdown-item divided />
-                      <div class="dropdown-category">📊 实时监控</div>
-                      <el-dropdown-item command="memoryChart">
-                        <span style="display: flex; justify-content: space-between; align-items: center;">
-                          <span>💾 内存监控</span>
-                          <el-tag size="small" type="info">趋势</el-tag>
-                        </span>
-                      </el-dropdown-item>
-                      <el-dropdown-item command="gcChart">
-                        <span style="display: flex; justify-content: space-between; align-items: center;">
-                          <span>♻️ GC分析</span>
-                          <el-tag size="small" type="info">趋势</el-tag>
-                        </span>
-                      </el-dropdown-item>
-                      <el-dropdown-item command="threadChart">
-                        <span style="display: flex; justify-content: space-between; align-items: center;">
-                          <span>🧵 线程监控</span>
-                          <el-tag size="small" type="info">趋势</el-tag>
-                        </span>
-                      </el-dropdown-item>
-                      <el-dropdown-item command="ioNetworkChart">
-                        <span style="display: flex; justify-content: space-between; align-items: center;">
-                          <span>🌐 IO/网络监控</span>
-                          <el-tag size="small" type="info">趋势</el-tag>
-                        </span>
-                      </el-dropdown-item>
-                      
-                      <el-dropdown-item divided />
-                      <div class="dropdown-category">🔍 实时诊断</div>
-                      <el-dropdown-item command="jvmInfo">☕ JVM快照</el-dropdown-item>
-                      <el-dropdown-item command="threadDump">📝 线程Dump</el-dropdown-item>
-                      <el-dropdown-item command="deadlocks">🔒 死锁检测</el-dropdown-item>
-                      
-                      <el-dropdown-item divided />
-                      <div class="dropdown-category">🛠️ 工具</div>
-                      <el-dropdown-item command="gc">♻️ 执行GC</el-dropdown-item>
-                      <el-dropdown-item command="sysProps">⚙️ 系统属性</el-dropdown-item>
-                      <el-dropdown-item command="env">🌍 环境变量</el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
+                <el-button-group>
+                  <el-dropdown trigger="click" @command="(cmd: string) => handleDiagCommand(cmd, row)">
+                    <el-button type="primary" size="small">
+                      <el-icon><ArrowDown /></el-icon>
+                    </el-button>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <!-- 配置管理 -->
+                        <el-dropdown-item command="config">⚙️ 应用配置</el-dropdown-item>
+                        <el-dropdown-item command="instanceConfig">🔧 实例配置</el-dropdown-item>
+                        
+                        <el-dropdown-item divided />
+                        <div class="dropdown-category">📊 实时监控</div>
+                        <el-dropdown-item command="memoryChart">
+                          <span style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>💾 内存监控</span>
+                            <el-tag size="small" type="info">趋势</el-tag>
+                          </span>
+                        </el-dropdown-item>
+                        <el-dropdown-item command="gcChart">
+                          <span style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>♻️ GC分析</span>
+                            <el-tag size="small" type="info">趋势</el-tag>
+                          </span>
+                        </el-dropdown-item>
+                        <el-dropdown-item command="threadChart">
+                          <span style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>🧵 线程监控</span>
+                            <el-tag size="small" type="info">趋势</el-tag>
+                          </span>
+                        </el-dropdown-item>
+                        <el-dropdown-item command="ioNetworkChart">
+                          <span style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>🌐 IO/网络监控</span>
+                            <el-tag size="small" type="info">趋势</el-tag>
+                          </span>
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
+                </el-button-group>
               </template>
             </el-table-column>
           </el-table>
@@ -2089,7 +2079,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Connection, CircleClose, Bell, ArrowDown, Setting, Document, Monitor, List, Box, Tools, Check, MagicStick, Delete, Upload, RefreshRight } from '@element-plus/icons-vue'
+import { Connection, CircleClose, Bell, ArrowDown, Setting, Document, Monitor, List, Box, Tools, Check, MagicStick, Delete, Upload, RefreshRight, Search, DataAnalysis } from '@element-plus/icons-vue'
 import { fetchApplications, createApplication, fetchProjects, type Application, type Project } from '../../api/project'
 import { http } from '../../api/http'
 import {

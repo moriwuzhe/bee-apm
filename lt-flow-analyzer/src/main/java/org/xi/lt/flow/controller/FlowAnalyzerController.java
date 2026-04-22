@@ -1253,15 +1253,14 @@ public class FlowAnalyzerController {
     @GetMapping("/themes")
     public ThemesResponse getThemes() {
         List<ThemeInfo> themes = new ArrayList<>();
-        themes.add(ThemeInfo.from(ChartTheme.defaultTheme()));
-        themes.add(ThemeInfo.from(ChartTheme.darkTheme()));
-        themes.add(ThemeInfo.from(ChartTheme.freshTheme()));
-        themes.add(ThemeInfo.from(ChartTheme.warmTheme()));
+        for (ChartTheme theme : ChartTheme.getAllThemes()) {
+            themes.add(ThemeInfo.from(theme));
+        }
 
         return ThemesResponse.builder()
                 .success(true)
                 .themes(themes)
-                .defaultTheme("DEFAULT")
+                .defaultTheme("default")
                 .build();
     }
 

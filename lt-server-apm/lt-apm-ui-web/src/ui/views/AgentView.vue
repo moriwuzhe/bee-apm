@@ -100,9 +100,13 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="160" fixed="right" align="center">
+      <el-table-column label="操作" width="200" fixed="right" align="center">
         <template #default="{ row }">
           <el-button-group>
+            <el-button type="primary" size="small" @click.stop="openDiagPanel(row)">
+              <el-icon><Monitor /></el-icon>
+              诊断
+            </el-button>
             <el-button type="primary" size="small" @click.stop="handleCommand('pluginManage', row)">
               <el-icon><Tools /></el-icon>
               插件
@@ -115,22 +119,6 @@
                 <el-dropdown-menu>
                   <el-dropdown-item command="config">⚙️ 应用配置</el-dropdown-item>
                   <el-dropdown-item command="instanceConfig">🔧 实例配置</el-dropdown-item>
-                  <el-dropdown-item command="pluginManage">📦 插件管理</el-dropdown-item>
-                  
-                  <el-dropdown-item divided />
-                  <div class="dropdown-category">🔍 诊断工具</div>
-                  <el-dropdown-item command="jvmInfo">☕ JVM信息</el-dropdown-item>
-                  <el-dropdown-item command="memory">💾 内存信息</el-dropdown-item>
-                  <el-dropdown-item command="gcStats">♻️ GC统计</el-dropdown-item>
-                  <el-dropdown-item command="threadsSummary">🧵 线程概要</el-dropdown-item>
-                  <el-dropdown-item command="threadDump">📝 线程Dump</el-dropdown-item>
-                  <el-dropdown-item command="deadlocks">🔒 死锁检测</el-dropdown-item>
-                  
-                  <el-dropdown-item divided />
-                  <div class="dropdown-category">🛠️ 操作工具</div>
-                  <el-dropdown-item command="gc">♻️ 执行GC</el-dropdown-item>
-                  <el-dropdown-item command="sysProps">⚙️ 系统属性</el-dropdown-item>
-                  <el-dropdown-item command="env">🌍 环境变量</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -199,6 +187,16 @@
           <el-button type="primary" @click="savePluginConfig" :loading="savingPlugins">保存配置</el-button>
         </span>
       </template>
+    </el-dialog>
+
+    <!-- Agent诊断分析对话框 -->
+    <el-dialog v-model="showDiagPanelDialog" title="Agent 诊断分析" width="95%" top="5vh" destroy-on-close>
+      <AgentDiagPanel 
+        v-if="diagPanelAgentInfo"
+        :agent-info="diagPanelAgentInfo"
+        :enable-realtime-monitor="true"
+        @refresh="handleDiagPanelRefresh"
+      />
     </el-dialog>
 
     <!-- 诊断结果对话框 -->
@@ -380,7 +378,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
-  ArrowDown, Connection, CircleClose, DataAnalysis, Search, Refresh, Tools 
+  ArrowDown, Connection, CircleClose, DataAnalysis, Search, Refresh, Tools, Monitor
 } from '@element-plus/icons-vue'
 import {
   fetchAgentInstances,
@@ -404,10 +402,32 @@ import {
   type AgentPluginConfig
 } from '../../api/agent'
 import { fetchAllPlugins, type PluginInfo } from '../../api/plugin'
+import AgentDiagPanel from '../components/AgentDiagPanel.vue'
 
 const agents = ref<AgentInstanceInfo[]>([])
 const loading = ref(false)
 const submitting = ref(false)
+
+// Agent诊断面板相关
+const showDiagPanelDialog = ref(false)
+const diagPanelAgentInfo = ref<any>(null)
+
+// 打开诊断面板
+const openDiagPanel = (row: AgentInstanceInfo) => {
+  diagPanelAgentInfo.value = {
+    app: row.app,
+    inst: row.inst,
+    ip: row.ip,
+    online: row.online
+  }
+  showDiagPanelDialog.value = true
+}
+
+// 诊断面板刷新
+const handleDiagPanelRefresh = (agentInfo: any) => {
+  console.log('诊断面板刷新', agentInfo)
+  loadData()
+}
 
 // 筛选和自动刷新相关
 const filterApp = ref('')

@@ -21,6 +21,7 @@ import ProjectView from '../ui/views/ProjectView.vue'
 import ApplicationView from '../ui/views/ApplicationView.vue'
 import AgentView from '../ui/views/AgentView.vue'
 import PluginView from '../ui/views/PluginView.vue'
+import AgentDiagView from '../ui/views/AgentDiagView.vue'
 // JVM Monitoring Views
 import JvmMemoryView from '../ui/views/jvm/JvmMemoryView.vue'
 import JvmGcView from '../ui/views/jvm/JvmGcView.vue'
@@ -146,6 +147,12 @@ export const routes: RouteRecordRaw[] = [
         name: 'plugin',
         component: PluginView,
         meta: { title: '插件管理', nav: true, icon: Tools, order: 38 },
+      },
+      {
+        path: 'agent-diag',
+        name: 'agent-diag',
+        component: AgentDiagView,
+        meta: { title: 'Agent诊断分析', nav: true, icon: Monitor, order: 39 },
       },
     ],
   },

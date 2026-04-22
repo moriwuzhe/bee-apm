@@ -23,8 +23,10 @@ public class PlantUmlCallChainGenerator {
      */
     public enum DiagramStyle {
         ACTIVITY,       // 活动图
+        FLOWCHART,      // 流程图 (同活动图)
         SEQUENCE,       // 时序图
         COMPONENT,      // 组件图
+        C4,             // C4模型 (同组件图)
         STATE,          // 状态图
         MINDMAP,        // 思维导图
         OBJECT,         // 对象图
@@ -32,7 +34,8 @@ public class PlantUmlCallChainGenerator {
         USECASE,        // 用例图
         TIMING,         // 定时图
         GANTT,          // 甘特图
-        WBS             // 工作分解结构图
+        WBS,            // 工作分解结构图
+        WORKFLOW        // 工作流 (同活动图)
     }
 
     /**
@@ -330,6 +333,7 @@ public class PlantUmlCallChainGenerator {
             case SEQUENCE:
                 return generateSequenceDiagram(graph, theme);
             case COMPONENT:
+            case C4:
                 return generateComponentDiagram(graph, theme);
             case STATE:
                 return generateStateDiagram(graph, theme);
@@ -348,6 +352,8 @@ public class PlantUmlCallChainGenerator {
             case WBS:
                 return generateWbsDiagram(graph, theme);
             case ACTIVITY:
+            case FLOWCHART:
+            case WORKFLOW:
             default:
                 return generateActivityDiagram(graph, theme);
         }

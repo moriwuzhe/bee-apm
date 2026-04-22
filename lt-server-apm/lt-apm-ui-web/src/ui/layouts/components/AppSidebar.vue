@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router'
 import { useUiStore } from '../../../stores/ui'
 import {
   DataLine, Connection, Monitor, Tools, Cpu, Setting,
-  Grid, Tickets, Bell, Warning,
+  Grid, Tickets, Bell, Warning, DataAnalysis,
 } from '@element-plus/icons-vue'
 
 const ui = useUiStore()
@@ -27,6 +27,7 @@ const menuData: MenuItem[] = [
   { path: '/application', title: '应用管理', icon: Connection },
   { path: '/agent', title: 'Agent管理', icon: Setting },
   { path: '/plugin', title: '插件管理', icon: Tools },
+  { path: '/agent-diag', title: 'Agent诊断分析', icon: DataAnalysis },
   
   // JVM历史监控独立分组
   { divider: true, title: '──────────────' },

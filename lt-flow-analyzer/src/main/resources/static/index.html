@@ -568,12 +568,24 @@
                         <span style="font-size: 14px;">🎯 活动图</span>
                     </label>
                     <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" class="plantuml-style-label">
+                        <input type="radio" name="callChainStyle" value="FLOWCHART" style="margin-right: 6px;">
+                        <span style="font-size: 14px;">🔀 流程图</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" class="plantuml-style-label">
+                        <input type="radio" name="callChainStyle" value="WORKFLOW" style="margin-right: 6px;">
+                        <span style="font-size: 14px;">⚙️ 工作流</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" class="plantuml-style-label">
                         <input type="radio" name="callChainStyle" value="SEQUENCE" style="margin-right: 6px;">
                         <span style="font-size: 14px;">📋 时序图</span>
                     </label>
                     <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" class="plantuml-style-label">
                         <input type="radio" name="callChainStyle" value="COMPONENT" style="margin-right: 6px;">
                         <span style="font-size: 14px;">🧩 组件图</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" class="plantuml-style-label">
+                        <input type="radio" name="callChainStyle" value="C4" style="margin-right: 6px;">
+                        <span style="font-size: 14px;">📊 C4模型</span>
                     </label>
                     <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" class="plantuml-style-label">
                         <input type="radio" name="callChainStyle" value="STATE" style="margin-right: 6px;">
@@ -681,27 +693,35 @@
                     <div class="upload-icon">📄</div>
                     <div class="upload-text">
                         点击或拖拽 Java 文件到这里<br>
-                        <span style="font-size: 14px; color: #999;">支持 .java 文件</span>
+                        <span style="font-size: 14px; color: #999;">支持多文件 .java 上传</span>
                     </div>
-                    <input type="file" id="fileInput" class="file-input" accept=".java" onchange="handleFileSelect(event)">
+                    <input type="file" id="fileInput" class="file-input" accept=".java" multiple onchange="handleFileSelect(event)">
                 </div>
 
-                <div class="file-info" id="fileInfo">
+                <!-- 多文件列表 -->
+                <div id="fileListContainer" style="display: none; margin-top: 15px; max-height: 200px; overflow-y: auto;">
+                    <div id="fileList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                </div>
+
+                <div class="file-info" id="fileInfo" style="display: none;">
                     <span class="file-name" id="selectedFileName"></span>
                 </div>
 
-                <div style="display: flex; gap: 10px; margin-bottom: 15px; justify-content: center;">
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; justify-content: center; flex-wrap: wrap;">
                     <label class="code-label" style="margin-right: 10px; margin-bottom: 0;">主题：</label>
                     <div id="uploadThemeSelector" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button class="style-btn active" onclick="setUploadTheme('DEFAULT')" data-theme="DEFAULT">🎨 默认</button>
+                        <button class="style-btn active" onclick="setUploadTheme('default')" data-theme="default">🎨 默认</button>
                     </div>
                 </div>
 
-                <div style="text-align: center;">
+                <div style="text-align: center; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
                     <button class="btn btn-primary" id="uploadBtn" onclick="uploadFile()" disabled>
                         生成流程图
                     </button>
-                    <button class="btn btn-secondary" onclick="clearUpload()" style="display: none;" id="clearUploadBtn">
+                    <button class="btn btn-primary" id="batchUploadBtn" onclick="batchProcessFiles()" disabled style="display: none; background: #388e3c;">
+                        📦 批量处理
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearUpload()" id="clearUploadBtn">
                         清除
                     </button>
                 </div>
@@ -709,9 +729,60 @@
 
             <!-- 粘贴代码标签 -->
             <div id="code-tab" class="tab-content">
-                <div class="code-area">
-                    <label class="code-label">粘贴 Java 代码：</label>
-                    <textarea class="code-input" id="codeInput" placeholder="在此粘贴您的 Java 代码...
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: #333; margin-bottom: 15px;">📝 代码编辑器</h3>
+                </div>
+
+                <!-- 流程图类型选择 -->
+                <div style="margin-bottom: 20px;">
+                    <div style="font-weight: 600; color: #333; margin-bottom: 12px; font-size: 14px;">📊 流程图类型</div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <label id="flowType-code-callChain-label" class="style-label active" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #667eea; background: #667eea; color: white; transition: all 0.3s ease;">
+                            <input type="radio" name="codeFlowType" value="callChain" checked style="display: none;" onchange="toggleCodeFlowType()">
+                            🔗 调用链
+                        </label>
+                        <label id="flowType-code-umlClass-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                            <input type="radio" name="codeFlowType" value="umlClass" style="display: none;" onchange="toggleCodeFlowType()">
+                            📦 类图
+                        </label>
+                        <label id="flowType-code-sequence-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                            <input type="radio" name="codeFlowType" value="sequence" style="display: none;" onchange="toggleCodeFlowType()">
+                            🔄 时序图
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 调用链样式选择 -->
+                <div id="codeCallChainStyles" style="margin-bottom: 20px;">
+                    <div style="font-weight: 600; color: #333; margin-bottom: 12px; font-size: 14px;">🎨 调用链样式</div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="style-btn active" onclick="setCodeStyle('ACTIVITY')" data-style="ACTIVITY">🏃 活动图</button>
+                        <button class="style-btn" onclick="setCodeStyle('FLOWCHART')" data-style="FLOWCHART">🔀 流程图</button>
+                        <button class="style-btn" onclick="setCodeStyle('WORKFLOW')" data-style="WORKFLOW">⚙️ 工作流</button>
+                        <button class="style-btn" onclick="setCodeStyle('SEQUENCE')" data-style="SEQUENCE">📋 时序图</button>
+                        <button class="style-btn" onclick="setCodeStyle('COMPONENT')" data-style="COMPONENT">🧩 组件图</button>
+                        <button class="style-btn" onclick="setCodeStyle('C4')" data-style="C4">📊 C4模型</button>
+                        <button class="style-btn" onclick="setCodeStyle('STATE')" data-style="STATE">🔄 状态图</button>
+                        <button class="style-btn" onclick="setCodeStyle('OBJECT')" data-style="OBJECT">📦 对象图</button>
+                        <button class="style-btn" onclick="setCodeStyle('DEPLOYMENT')" data-style="DEPLOYMENT">🚀 部署图</button>
+                        <button class="style-btn" onclick="setCodeStyle('USECASE')" data-style="USECASE">📝 用例图</button>
+                        <button class="style-btn" onclick="setCodeStyle('TIMING')" data-style="TIMING">⏱️ 定时图</button>
+                        <button class="style-btn" onclick="setCodeStyle('GANTT')" data-style="GANTT">📊 甘特图</button>
+                        <button class="style-btn" onclick="setCodeStyle('WBS')" data-style="WBS">📋 WBS图</button>
+                        <button class="style-btn" onclick="setCodeStyle('MINDMAP')" data-style="MINDMAP">🗺️ 思维导图</button>
+                    </div>
+                </div>
+
+                <!-- 代码编辑器区域 -->
+                <div class="code-area" style="position: relative;">
+                    <label class="code-label">Java 代码：</label>
+                    <div style="display: flex; background: #1e1e1e; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+                        <!-- 行号 -->
+                        <div id="codeLineNumbers" style="background: #2d2d30; color: #858585; padding: 16px 12px; text-align: right; font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace; font-size: 14px; line-height: 1.6; user-select: none; border-right: 1px solid #404040; min-width: 50px;">
+                            1
+                        </div>
+                        <!-- 代码输入区 -->
+                        <textarea class="code-input" id="codeInput" placeholder="在此粘贴您的 Java 代码...
 
 示例：
 public class TestClass {
@@ -723,22 +794,26 @@ public class TestClass {
     public void methodB() {
         System.out.println(\"Method B\");
     }
-}"></textarea>
-                </div>
-
-                <div style="display: flex; gap: 10px; margin-bottom: 15px; justify-content: center;">
-                    <label class="code-label" style="margin-right: 10px; margin-bottom: 0;">主题：</label>
-                    <div id="codeThemeSelector" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button class="style-btn active" onclick="setCodeTheme('DEFAULT')" data-theme="DEFAULT">🎨 默认</button>
+}" style="flex: 1; background: #1e1e1e; color: #d4d4d4; border: none; padding: 16px; font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace; font-size: 14px; line-height: 1.6; resize: none; outline: none; min-height: 400px; max-height: 600px;"></textarea>
                     </div>
                 </div>
 
-                <div style="text-align: center;">
-                    <button class="btn btn-primary" onclick="parseCode()">
-                        生成流程图
+                <div style="display: flex; gap: 10px; margin-top: 20px; margin-bottom: 15px; justify-content: center; flex-wrap: wrap;">
+                    <label class="code-label" style="margin-right: 10px; margin-bottom: 0;">图表主题：</label>
+                    <div id="codeThemeSelector" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="style-btn active" onclick="setCodeTheme('default')" data-theme="default">🎨 默认</button>
+                    </div>
+                </div>
+
+                <div style="text-align: center; display: flex; gap: 10px; justify-content: center;">
+                    <button class="btn btn-primary" onclick="parseCode()" style="padding: 12px 30px; font-size: 15px;">
+                        ✨ 生成流程图
                     </button>
                     <button class="btn btn-secondary" onclick="clearCode()">
-                        清除
+                        🗑️ 清除
+                    </button>
+                    <button class="btn btn-secondary" onclick="formatCodeHint()">
+                        💡 格式化提示
                     </button>
                 </div>
             </div>
@@ -777,10 +852,18 @@ public class TestClass {
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                             <button class="style-btn active" onclick="setProjectStyle('ACTIVITY')" data-style="ACTIVITY">🏃 活动图</button>
                             <button class="style-btn" onclick="setProjectStyle('FLOWCHART')" data-style="FLOWCHART">🔀 流程图</button>
-                            <button class="style-btn" onclick="setProjectStyle('STATE')" data-style="STATE">🔄 状态图</button>
-                            <button class="style-btn" onclick="setProjectStyle('C4')" data-style="C4">📊 C4模型</button>
-                            <button class="style-btn" onclick="setProjectStyle('COMPONENT')" data-style="COMPONENT">🧩 组件图</button>
                             <button class="style-btn" onclick="setProjectStyle('WORKFLOW')" data-style="WORKFLOW">⚙️ 工作流</button>
+                            <button class="style-btn" onclick="setProjectStyle('SEQUENCE')" data-style="SEQUENCE">📋 时序图</button>
+                            <button class="style-btn" onclick="setProjectStyle('COMPONENT')" data-style="COMPONENT">🧩 组件图</button>
+                            <button class="style-btn" onclick="setProjectStyle('C4')" data-style="C4">📊 C4模型</button>
+                            <button class="style-btn" onclick="setProjectStyle('STATE')" data-style="STATE">🔄 状态图</button>
+                            <button class="style-btn" onclick="setProjectStyle('OBJECT')" data-style="OBJECT">📦 对象图</button>
+                            <button class="style-btn" onclick="setProjectStyle('DEPLOYMENT')" data-style="DEPLOYMENT">🚀 部署图</button>
+                            <button class="style-btn" onclick="setProjectStyle('USECASE')" data-style="USECASE">📝 用例图</button>
+                            <button class="style-btn" onclick="setProjectStyle('TIMING')" data-style="TIMING">⏱️ 定时图</button>
+                            <button class="style-btn" onclick="setProjectStyle('GANTT')" data-style="GANTT">📊 甘特图</button>
+                            <button class="style-btn" onclick="setProjectStyle('WBS')" data-style="WBS">📋 WBS图</button>
+                            <button class="style-btn" onclick="setProjectStyle('MINDMAP')" data-style="MINDMAP">🗺️ 思维导图</button>
                         </div>
                     </div>
                     <div style="display: flex; gap: 15px; margin-bottom: 20px;">
@@ -796,7 +879,7 @@ public class TestClass {
                     <div style="display: flex; gap: 10px; margin-bottom: 20px;">
                         <label class="code-label" style="margin-right: 10px;">主题：</label>
                         <div id="projectThemeSelector" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <button class="style-btn active" onclick="setProjectTheme('DEFAULT')" data-theme="DEFAULT">🎨 默认</button>
+                            <button class="style-btn active" onclick="setProjectTheme('default')" data-theme="default">🎨 默认</button>
                         </div>
                     </div>
                     <button class="btn btn-primary" onclick="parseLocalProject()">🔍 解析项目</button>
@@ -873,8 +956,18 @@ public class TestClass {
                             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                                 <button class="style-btn active" onclick="setGitStyle('ACTIVITY')" data-style="ACTIVITY">🏃 活动图</button>
                                 <button class="style-btn" onclick="setGitStyle('FLOWCHART')" data-style="FLOWCHART">🔀 流程图</button>
+                                <button class="style-btn" onclick="setGitStyle('WORKFLOW')" data-style="WORKFLOW">⚙️ 工作流</button>
+                                <button class="style-btn" onclick="setGitStyle('SEQUENCE')" data-style="SEQUENCE">📋 时序图</button>
+                                <button class="style-btn" onclick="setGitStyle('COMPONENT')" data-style="COMPONENT">🧩 组件图</button>
+                                <button class="style-btn" onclick="setGitStyle('C4')" data-style="C4">📊 C4模型</button>
                                 <button class="style-btn" onclick="setGitStyle('STATE')" data-style="STATE">🔄 状态图</button>
-                                <button class="style-btn" onclick="setGitStyle('C4')" data-style="C4">📊 C4</button>
+                                <button class="style-btn" onclick="setGitStyle('OBJECT')" data-style="OBJECT">📦 对象图</button>
+                                <button class="style-btn" onclick="setGitStyle('DEPLOYMENT')" data-style="DEPLOYMENT">🚀 部署图</button>
+                                <button class="style-btn" onclick="setGitStyle('USECASE')" data-style="USECASE">📝 用例图</button>
+                                <button class="style-btn" onclick="setGitStyle('TIMING')" data-style="TIMING">⏱️ 定时图</button>
+                                <button class="style-btn" onclick="setGitStyle('GANTT')" data-style="GANTT">📊 甘特图</button>
+                                <button class="style-btn" onclick="setGitStyle('WBS')" data-style="WBS">📋 WBS图</button>
+                                <button class="style-btn" onclick="setGitStyle('MINDMAP')" data-style="MINDMAP">🗺️ 思维导图</button>
                             </div>
                         </div>
                         <div style="display: flex; gap: 15px; margin-bottom: 15px;">
@@ -890,7 +983,7 @@ public class TestClass {
                         <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                             <label class="code-label" style="margin-right: 10px;">主题：</label>
                             <div id="gitThemeSelector" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                <button class="style-btn active" onclick="setGitTheme('DEFAULT')" data-theme="DEFAULT">🎨 默认</button>
+                                <button class="style-btn active" onclick="setGitTheme('default')" data-theme="default">🎨 默认</button>
                             </div>
                         </div>
                         <button class="btn btn-primary" onclick="parseGitProject()">🔍 解析</button>
@@ -937,10 +1030,18 @@ public class TestClass {
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                             <button class="style-btn active" onclick="setJarStyle('ACTIVITY')" data-style="ACTIVITY">🏃 活动图</button>
                             <button class="style-btn" onclick="setJarStyle('FLOWCHART')" data-style="FLOWCHART">🔀 流程图</button>
-                            <button class="style-btn" onclick="setJarStyle('STATE')" data-style="STATE">🔄 状态图</button>
-                            <button class="style-btn" onclick="setJarStyle('C4')" data-style="C4">📊 C4模型</button>
-                            <button class="style-btn" onclick="setJarStyle('COMPONENT')" data-style="COMPONENT">🧩 组件图</button>
                             <button class="style-btn" onclick="setJarStyle('WORKFLOW')" data-style="WORKFLOW">⚙️ 工作流</button>
+                            <button class="style-btn" onclick="setJarStyle('SEQUENCE')" data-style="SEQUENCE">📋 时序图</button>
+                            <button class="style-btn" onclick="setJarStyle('COMPONENT')" data-style="COMPONENT">🧩 组件图</button>
+                            <button class="style-btn" onclick="setJarStyle('C4')" data-style="C4">📊 C4模型</button>
+                            <button class="style-btn" onclick="setJarStyle('STATE')" data-style="STATE">🔄 状态图</button>
+                            <button class="style-btn" onclick="setJarStyle('OBJECT')" data-style="OBJECT">📦 对象图</button>
+                            <button class="style-btn" onclick="setJarStyle('DEPLOYMENT')" data-style="DEPLOYMENT">🚀 部署图</button>
+                            <button class="style-btn" onclick="setJarStyle('USECASE')" data-style="USECASE">📝 用例图</button>
+                            <button class="style-btn" onclick="setJarStyle('TIMING')" data-style="TIMING">⏱️ 定时图</button>
+                            <button class="style-btn" onclick="setJarStyle('GANTT')" data-style="GANTT">📊 甘特图</button>
+                            <button class="style-btn" onclick="setJarStyle('WBS')" data-style="WBS">📋 WBS图</button>
+                            <button class="style-btn" onclick="setJarStyle('MINDMAP')" data-style="MINDMAP">🗺️ 思维导图</button>
                         </div>
                     </div>
                     <div style="display: flex; gap: 15px; margin-bottom: 15px;">
@@ -956,7 +1057,7 @@ public class TestClass {
                     <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                         <label class="code-label" style="margin-right: 10px;">主题：</label>
                         <div id="jarThemeSelector" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <button class="style-btn active" onclick="setJarTheme('DEFAULT')" data-theme="DEFAULT">🎨 默认</button>
+                            <button class="style-btn active" onclick="setJarTheme('default')" data-theme="default">🎨 默认</button>
                         </div>
                     </div>
                     <button class="btn btn-primary" id="parseJarBtn" onclick="parseJarFile()" disabled>🔍 解析 JAR</button>
@@ -1016,7 +1117,7 @@ public class TestClass {
                         <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                             <label class="code-label" style="margin-right: 10px;">主题：</label>
                             <div id="diffThemeSelector" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                <button class="style-btn active" onclick="setDiffTheme('DEFAULT')" data-theme="DEFAULT">🎨 默认</button>
+                                <button class="style-btn active" onclick="setDiffTheme('default')" data-theme="default">🎨 默认</button>
                             </div>
                         </div>
                         <button class="btn btn-primary" onclick="compareFiles()">🔍 对比文件</button>
@@ -1074,10 +1175,10 @@ public class TestClass {
                 <div class="result-header">
                     <div class="result-title">✅ 流程图生成成功！</div>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;" onclick="exportCurrentGraph('plantuml')">📥 PUML</button>
-                        <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;" onclick="exportCurrentGraph('svg')">📥 SVG</button>
-                        <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;" onclick="exportCurrentGraph('png')">📥 PNG</button>
-                        <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;" onclick="exportCurrentGraph('pdf')">📥 PDF</button>
+                        <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;" onclick="showHistoryDialog()">📜 历史</button>
+                        <button class="btn btn-primary" style="padding: 8px 20px; font-size: 14px;" onclick="showExportDialog()">📥 导出</button>
+                        <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;" onclick="showShareDialog()">🔗 分享</button>
+                        <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;" onclick="copyDot()">📋 复制源码</button>
                     </div>
                     <div class="result-stats">
                         <div class="stat">
@@ -1224,57 +1325,191 @@ public class TestClass {
             }
         }
         
+        // 当前选择的文件列表
+        let selectedFiles = [];
+
         // 拖拽上传
         const uploadArea = document.getElementById('uploadArea');
-        
+
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadArea.classList.add('dragover');
         });
-        
+
         uploadArea.addEventListener('dragleave', () => {
             uploadArea.classList.remove('dragover');
         });
-        
+
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadArea.classList.remove('dragover');
-            
-            const files = e.dataTransfer.files;
+
+            const files = Array.from(e.dataTransfer.files);
             if (files.length > 0) {
-                handleFile(files[0]);
+                handleMultipleFiles(files);
             }
         });
-        
+
         // 处理文件选择
         function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (file) {
-                handleFile(file);
+            const files = Array.from(event.target.files);
+            if (files.length > 0) {
+                handleMultipleFiles(files);
             }
         }
-        
+
+        // 处理多个文件
+        function handleMultipleFiles(files) {
+            const javaFiles = files.filter(f => f.name.endsWith('.java'));
+
+            if (javaFiles.length === 0) {
+                showError('请选择 .java 文件！');
+                return;
+            }
+
+            selectedFiles = javaFiles;
+
+            if (selectedFiles.length === 1) {
+                // 单个文件
+                window.selectedFile = selectedFiles[0];
+                document.getElementById('selectedFileName').textContent = '已选择: ' + selectedFiles[0].name;
+                document.getElementById('fileInfo').style.display = 'block';
+                document.getElementById('fileListContainer').style.display = 'none';
+                document.getElementById('uploadBtn').disabled = false;
+                document.getElementById('batchUploadBtn').style.display = 'none';
+            } else {
+                // 多个文件
+                document.getElementById('fileInfo').style.display = 'none';
+                document.getElementById('fileListContainer').style.display = 'block';
+                document.getElementById('uploadBtn').style.display = 'none';
+                document.getElementById('batchUploadBtn').style.display = 'inline-block';
+                document.getElementById('batchUploadBtn').disabled = false;
+                renderFileList();
+            }
+
+            document.getElementById('clearUploadBtn').style.display = 'inline-block';
+        }
+
         function handleFile(file) {
             if (!file.name.endsWith('.java')) {
                 showError('请选择 .java 文件！');
                 return;
             }
-            
+
             document.getElementById('selectedFileName').textContent = '已选择: ' + file.name;
             document.getElementById('fileInfo').classList.add('show');
             document.getElementById('uploadBtn').disabled = false;
             document.getElementById('clearUploadBtn').style.display = 'inline-block';
-            
+
             // 保存文件引用
             window.selectedFile = file;
+        }
+
+        // 渲染文件列表
+        function renderFileList() {
+            const container = document.getElementById('fileList');
+            let html = '';
+            selectedFiles.forEach((file, index) => {
+                html += `
+                    <div id="file-${index}" style="display: flex; gap: 10px; align-items: center; padding: 10px 15px; background: #f8f9ff; border-radius: 8px;">
+                        <span style="font-size: 20px;">📄</span>
+                        <span style="flex: 1; font-size: 14px;">${file.name}</span>
+                        <span id="file-status-${index}" style="font-size: 13px; color: #999;">等待处理</span>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        // 批量处理文件
+        async function batchProcessFiles() {
+            const flowType = getSelectedFlowType();
+            const callChainStyle = getSelectedCallChainStyle();
+            showLoading();
+            hideError();
+
+            try {
+                let successCount = 0;
+
+                for (let i = 0; i < selectedFiles.length; i++) {
+                    const file = selectedFiles[i];
+                    const statusEl = document.getElementById(`file-status-${i}`);
+
+                    try {
+                        statusEl.textContent = '处理中...';
+                        statusEl.style.color = '#ff9800';
+
+                        const formData = new FormData();
+                        formData.append('file', file);
+
+                        // 过滤选项作为全局配置，所有流程图类型都发送
+                        formData.append('excludeJdk', document.getElementById('filterJdk').checked);
+                        formData.append('excludeLogging', document.getElementById('filterLogging').checked);
+                        formData.append('excludeGetterSetter', document.getElementById('filterGetterSetter').checked);
+                        formData.append('excludeConstructors', document.getElementById('filterConstructors').checked);
+                        formData.append('excludeBuilderMethods', document.getElementById('filterBuilderMethods').checked);
+                        formData.append('excludeLombokMethods', document.getElementById('filterLombokMethods').checked);
+                        formData.append('excludeLt', document.getElementById('filterLt').checked);
+                        formData.append('excludeTestMethods', document.getElementById('excludeTestMethods').checked);
+                        formData.append('excludeStaticMethods', document.getElementById('excludeStaticMethods').checked);
+                        formData.append('excludePrivateMethods', document.getElementById('excludePrivateMethods').checked);
+                        formData.append('excludeCollectionMethods', document.getElementById('excludeCollectionMethods').checked);
+                        formData.append('excludeStringMethods', document.getElementById('excludeStringMethods').checked);
+                        formData.append('theme', currentUploadTheme);
+
+                        let url;
+                        if (flowType === 'callChain') {
+                            url = '/api/flow/upload/file-enhanced';
+                            formData.append('style', callChainStyle);
+                        } else if (flowType === 'umlClass') {
+                            url = '/api/flow/uml/upload/file';
+                        } else if (flowType === 'sequence') {
+                            url = '/api/flow/sequence/upload/file';
+                        }
+
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            statusEl.textContent = '✅ 成功';
+                            statusEl.style.color = '#4caf50';
+                            successCount++;
+                        } else {
+                            statusEl.textContent = '❌ 失败';
+                            statusEl.style.color = '#f44336';
+                        }
+                    } catch (e) {
+                        statusEl.textContent = '❌ 错误';
+                        statusEl.style.color = '#f44336';
+                    }
+
+                    // 短暂延迟让用户看到进度
+                    await new Promise(r => setTimeout(r, 200));
+                }
+
+                hideLoading();
+                alert(`批量处理完成！成功 ${successCount}/${selectedFiles.length} 个文件`);
+            } catch (error) {
+                hideLoading();
+                showError('批量处理失败: ' + error.message);
+            }
         }
         
         function clearUpload() {
             document.getElementById('fileInput').value = '';
             document.getElementById('fileInfo').classList.remove('show');
+            document.getElementById('fileInfo').style.display = 'none';
+            document.getElementById('fileListContainer').style.display = 'none';
             document.getElementById('uploadBtn').disabled = true;
+            document.getElementById('uploadBtn').style.display = 'inline-block';
+            document.getElementById('batchUploadBtn').style.display = 'none';
             document.getElementById('clearUploadBtn').style.display = 'none';
             window.selectedFile = null;
+            selectedFiles = [];
             hideResults();
         }
         
@@ -1286,13 +1521,7 @@ public class TestClass {
 
         // 获取当前选择的调用链样式
         function getSelectedCallChainStyle() {
-            const radios = document.querySelectorAll('input[name="callChainStyle"]');
-            for (const radio of radios) {
-                if (radio.checked) {
-                    return radio.value;
-                }
-            }
-            return 'ACTIVITY'; // 默认
+            return currentUploadStyle;
         }
 
         // 获取当前选择的流程图类型
@@ -1378,8 +1607,8 @@ public class TestClass {
                 return;
             }
 
-            const flowType = getSelectedFlowType();
-            const callChainStyle = getSelectedCallChainStyle();
+            const flowType = getSelectedCodeFlowType();
+            const callChainStyle = currentCodeStyle;
             showLoading();
             hideError();
             hideResults();
@@ -2011,6 +2240,9 @@ public class TestClass {
             document.getElementById('dotOutput').textContent = result.dotContent;
             document.getElementById('resultCard').classList.add('show');
 
+            // 保存到历史记录
+            saveToHistory(result, flowType);
+
             // 隐藏节点详情
             document.getElementById('nodeDetailPanel').classList.remove('show');
 
@@ -2124,19 +2356,167 @@ public class TestClass {
         }
 
         // ==================== 主题管理 ====================
-        let currentUploadTheme = 'DEFAULT';
-        let currentCodeTheme = 'DEFAULT';
-        let currentProjectTheme = 'DEFAULT';
-        let currentGitTheme = 'DEFAULT';
-        let currentJarTheme = 'DEFAULT';
-        let currentDiffTheme = 'DEFAULT';
+        let currentUploadTheme = 'default';
+        let currentCodeTheme = 'default';
+        let currentProjectTheme = 'default';
+        let currentGitTheme = 'default';
+        let currentJarTheme = 'default';
+        let currentDiffTheme = 'default';
         let currentUploadStyle = 'ACTIVITY';
         let currentCodeStyle = 'ACTIVITY';
         let currentProjectStyle = 'ACTIVITY';
         let currentGitStyle = 'ACTIVITY';
         let currentJarStyle = 'ACTIVITY';
         let currentThemes = [];
-        let defaultTheme = 'DEFAULT';
+        let defaultTheme = 'default';
+
+        // ==================== 配置持久化 ====================
+        const CONFIG_KEY = 'flow-analyzer-config';
+
+        function saveConfig() {
+            const config = {
+                // 主题配置
+                uploadTheme: currentUploadTheme,
+                codeTheme: currentCodeTheme,
+                projectTheme: currentProjectTheme,
+                gitTheme: currentGitTheme,
+                jarTheme: currentJarTheme,
+                diffTheme: currentDiffTheme,
+                // 风格配置
+                uploadStyle: currentUploadStyle,
+                codeStyle: currentCodeStyle,
+                projectStyle: currentProjectStyle,
+                gitStyle: currentGitStyle,
+                jarStyle: currentJarStyle,
+                // 过滤选项配置
+                filterJdk: document.getElementById('filterJdk')?.checked,
+                filterLogging: document.getElementById('filterLogging')?.checked,
+                filterGetterSetter: document.getElementById('filterGetterSetter')?.checked,
+                filterConstructors: document.getElementById('filterConstructors')?.checked,
+                filterBuilderMethods: document.getElementById('filterBuilderMethods')?.checked,
+                filterLombokMethods: document.getElementById('filterLombokMethods')?.checked,
+                filterLt: document.getElementById('filterLt')?.checked,
+                filterTestMethods: document.getElementById('filterTestMethods')?.checked,
+                filterStaticMethods: document.getElementById('filterStaticMethods')?.checked,
+                filterPrivateMethods: document.getElementById('filterPrivateMethods')?.checked,
+                filterCollectionMethods: document.getElementById('filterCollectionMethods')?.checked,
+                filterStringMethods: document.getElementById('filterStringMethods')?.checked,
+            };
+            localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+        }
+
+        function loadConfig() {
+            try {
+                const savedConfig = localStorage.getItem(CONFIG_KEY);
+                if (!savedConfig) return;
+
+                const config = JSON.parse(savedConfig);
+
+                // 恢复主题配置
+                if (config.uploadTheme) currentUploadTheme = config.uploadTheme;
+                if (config.codeTheme) currentCodeTheme = config.codeTheme;
+                if (config.projectTheme) currentProjectTheme = config.projectTheme;
+                if (config.gitTheme) currentGitTheme = config.gitTheme;
+                if (config.jarTheme) currentJarTheme = config.jarTheme;
+                if (config.diffTheme) currentDiffTheme = config.diffTheme;
+
+                // 恢复风格配置
+                if (config.uploadStyle) currentUploadStyle = config.uploadStyle;
+                if (config.codeStyle) currentCodeStyle = config.codeStyle;
+                if (config.projectStyle) currentProjectStyle = config.projectStyle;
+                if (config.gitStyle) currentGitStyle = config.gitStyle;
+                if (config.jarStyle) currentJarStyle = config.jarStyle;
+
+                // 恢复过滤选项配置
+                if (typeof config.filterJdk === 'boolean' && document.getElementById('filterJdk')) {
+                    document.getElementById('filterJdk').checked = config.filterJdk;
+                }
+                if (typeof config.filterLogging === 'boolean' && document.getElementById('filterLogging')) {
+                    document.getElementById('filterLogging').checked = config.filterLogging;
+                }
+                if (typeof config.filterGetterSetter === 'boolean' && document.getElementById('filterGetterSetter')) {
+                    document.getElementById('filterGetterSetter').checked = config.filterGetterSetter;
+                }
+                if (typeof config.filterConstructors === 'boolean' && document.getElementById('filterConstructors')) {
+                    document.getElementById('filterConstructors').checked = config.filterConstructors;
+                }
+                if (typeof config.filterBuilderMethods === 'boolean' && document.getElementById('filterBuilderMethods')) {
+                    document.getElementById('filterBuilderMethods').checked = config.filterBuilderMethods;
+                }
+                if (typeof config.filterLombokMethods === 'boolean' && document.getElementById('filterLombokMethods')) {
+                    document.getElementById('filterLombokMethods').checked = config.filterLombokMethods;
+                }
+                if (typeof config.filterLt === 'boolean' && document.getElementById('filterLt')) {
+                    document.getElementById('filterLt').checked = config.filterLt;
+                }
+                if (typeof config.filterTestMethods === 'boolean' && document.getElementById('filterTestMethods')) {
+                    document.getElementById('filterTestMethods').checked = config.filterTestMethods;
+                }
+                if (typeof config.filterStaticMethods === 'boolean' && document.getElementById('filterStaticMethods')) {
+                    document.getElementById('filterStaticMethods').checked = config.filterStaticMethods;
+                }
+                if (typeof config.filterPrivateMethods === 'boolean' && document.getElementById('filterPrivateMethods')) {
+                    document.getElementById('filterPrivateMethods').checked = config.filterPrivateMethods;
+                }
+                if (typeof config.filterCollectionMethods === 'boolean' && document.getElementById('filterCollectionMethods')) {
+                    document.getElementById('filterCollectionMethods').checked = config.filterCollectionMethods;
+                }
+                if (typeof config.filterStringMethods === 'boolean' && document.getElementById('filterStringMethods')) {
+                    document.getElementById('filterStringMethods').checked = config.filterStringMethods;
+                }
+
+                // 更新风格按钮状态
+                updateStyleButtons();
+
+                // 更新callChainStyle单选按钮状态
+                updateCallChainStyleRadios();
+            } catch (error) {
+                console.warn('加载配置失败:', error);
+            }
+        }
+
+        function updateStyleButtons() {
+            // 更新代码风格按钮
+            document.querySelectorAll('#codeCallChainStyles .style-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.style === currentCodeStyle);
+            });
+            // 更新项目风格按钮
+            document.querySelectorAll('#projectCallChainStyles .style-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.style === currentProjectStyle);
+            });
+            // 更新Git风格按钮
+            document.querySelectorAll('#gitCallChainStyles .style-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.style === currentGitStyle);
+            });
+            // 更新Jar风格按钮
+            document.querySelectorAll('#jarCallChainStyles .style-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.style === currentJarStyle);
+            });
+        }
+
+        function updateCallChainStyleRadios() {
+            // 更新upload和code标签共享的callChainStyle单选按钮
+            const radios = document.querySelectorAll('input[name="callChainStyle"]');
+            radios.forEach(radio => {
+                radio.checked = radio.value === currentUploadStyle;
+            });
+        }
+
+        // 为过滤选项添加事件监听，自动保存
+        function setupFilterListeners() {
+            const filterCheckboxes = [
+                'filterJdk', 'filterLogging', 'filterGetterSetter', 'filterConstructors',
+                'filterBuilderMethods', 'filterLombokMethods', 'filterLt',
+                'filterTestMethods', 'filterStaticMethods', 'filterPrivateMethods',
+                'filterCollectionMethods', 'filterStringMethods'
+            ];
+            filterCheckboxes.forEach(id => {
+                const checkbox = document.getElementById(id);
+                if (checkbox) {
+                    checkbox.addEventListener('change', saveConfig);
+                }
+            });
+        }
 
         async function loadThemes(selectorId, themeVarName) {
             try {
@@ -2144,7 +2524,7 @@ public class TestClass {
                 const result = await response.json();
                 if (result.success) {
                     currentThemes = result.themes || [];
-                    defaultTheme = result.defaultTheme || 'DEFAULT';
+                    defaultTheme = result.defaultTheme || 'default';
                     renderThemeSelector(selectorId, themeVarName);
                 }
             } catch (error) {
@@ -2159,8 +2539,9 @@ public class TestClass {
             let html = '';
             currentThemes.forEach(theme => {
                 const themeName = theme.name || theme;
-                const isActive = themeName === getCurrentTheme(themeVarName);
-                html += `<button class="style-btn ${isActive ? 'active' : ''}" onclick="setTheme('${themeVarName}', '${themeName}')" data-theme="${themeName}">${theme.icon || '🎨'} ${themeName}</button>`;
+                const displayName = theme.displayName || themeName;
+                const isActive = themeName.toLowerCase() === getCurrentTheme(themeVarName).toLowerCase();
+                html += `<button class="style-btn ${isActive ? 'active' : ''}" onclick="setTheme('${themeVarName}', '${themeName}')" data-theme="${themeName}">${theme.icon || '🎨'} ${displayName}</button>`;
             });
             selector.innerHTML = html;
         }
@@ -2173,7 +2554,7 @@ public class TestClass {
                 case 'gitTheme': return currentGitTheme;
                 case 'jarTheme': return currentJarTheme;
                 case 'diffTheme': return currentDiffTheme;
-                default: return 'DEFAULT';
+                default: return 'default';
             }
         }
 
@@ -2189,6 +2570,8 @@ public class TestClass {
             // 更新按钮状态
             const selectorId = themeVarName.replace('Theme', 'ThemeSelector');
             renderThemeSelector(selectorId, themeVarName);
+            // 保存配置
+            saveConfig();
         }
 
         function setUploadTheme(theme) { setTheme('uploadTheme', theme); }
@@ -2233,6 +2616,66 @@ public class TestClass {
             document.querySelectorAll('#projectCallChainStyles .style-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.style === style);
             });
+            saveConfig();
+        }
+
+        // ==================== 代码标签相关 ====================
+
+        function toggleCodeFlowType() {
+            const flowType = getSelectedCodeFlowType();
+            const callChainStyles = document.getElementById('codeCallChainStyles');
+
+            if (flowType === 'callChain') {
+                callChainStyles.style.display = 'block';
+            } else {
+                callChainStyles.style.display = 'none';
+            }
+
+            document.querySelectorAll('#flowType-code-callChain-label, #flowType-code-umlClass-label, #flowType-code-sequence-label').forEach(label => {
+                label.style.borderColor = '#e0e0e0';
+                label.style.background = '#f8f9ff';
+                label.style.color = '#333';
+            });
+
+            const selectedLabel = document.getElementById(`flowType-code-${flowType}-label`);
+            if (selectedLabel) {
+                selectedLabel.style.borderColor = '#667eea';
+                selectedLabel.style.background = '#667eea';
+                selectedLabel.style.color = 'white';
+            }
+        }
+
+        function getSelectedCodeFlowType() {
+            const selected = document.querySelector('input[name="codeFlowType"]:checked');
+            return selected ? selected.value : 'callChain';
+        }
+
+        function setCodeStyle(style) {
+            currentCodeStyle = style;
+            document.querySelectorAll('#codeCallChainStyles .style-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.style === style);
+            });
+            saveConfig();
+        }
+
+        // 更新行号
+        function updateCodeLineNumbers() {
+            const codeInput = document.getElementById('codeInput');
+            const lineNumbersDiv = document.getElementById('codeLineNumbers');
+
+            if (!codeInput || !lineNumbersDiv) return;
+
+            const lines = codeInput.value.split('\n');
+            let lineNumbersHtml = '';
+            for (let i = 1; i <= lines.length; i++) {
+                lineNumbersHtml += i + '\n';
+            }
+            lineNumbersDiv.textContent = lineNumbersHtml.trim();
+        }
+
+        // 格式化提示
+        function formatCodeHint() {
+            alert('💡 提示：\n\n在IDEA或VS Code中格式化后再粘贴效果更好！\n\n快捷键：\n- IDEA: Ctrl+Alt+L (Win) / Cmd+Opt+L (Mac)\n- VS Code: Shift+Alt+F (Win) / Shift+Opt+F (Mac)\n\n格式化后的代码解析更准确！');
         }
 
         async function parseLocalProject() {
@@ -2461,6 +2904,7 @@ public class TestClass {
             document.querySelectorAll('#gitCallChainStyles .style-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.style === style);
             });
+            saveConfig();
         }
 
         async function parseGitProject() {
@@ -2608,6 +3052,7 @@ public class TestClass {
             document.querySelectorAll('#jarCallChainStyles .style-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.style === style);
             });
+            saveConfig();
         }
 
         async function parseJarFile() {
@@ -2882,22 +3327,548 @@ public class TestClass {
                 if (graphId) {
                     // 通过 ID 导出
                     window.open(`/api/flow/export/${format}/${graphId}`, '_blank');
+                } else if (currentDotContent) {
+                    // 使用 PlantUML 内容直接导出
+                    await exportWithPlantUmlContent(format, currentDotContent);
                 } else {
-                    // 直接导出当前数据
-                    alert('导出功能需要图 ID，请重新生成流程图');
+                    alert('导出功能需要图 ID 或 PlantUML 内容，请重新生成流程图');
                 }
             } catch (error) {
                 alert('导出失败: ' + error.message);
             }
         }
 
+        async function exportWithPlantUmlContent(format, plantUmlContent) {
+            try {
+                const response = await fetch(`/api/flow/export/${format}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ plantUmlContent: plantUmlContent })
+                });
+
+                if (!response.ok) {
+                    throw new Error('导出请求失败');
+                }
+
+                // 获取文件名
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = 'flow_diagram.' + format.toLowerCase();
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+                    if (filenameMatch) {
+                        filename = filenameMatch[1];
+                    }
+                }
+
+                // 创建下载链接
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                alert('导出失败: ' + error.message);
+            }
+        }
+
+        // 显示导出选项对话框
+        function showExportDialog() {
+            if (!currentGraphData) {
+                alert('请先生成流程图');
+                return;
+            }
+
+            // 创建模态对话框
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+            `;
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.remove();
+            };
+
+            const dialog = document.createElement('div');
+            dialog.style.cssText = `
+                background: white;
+                padding: 30px;
+                border-radius: 16px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                max-width: 500px;
+                width: 90%;
+            `;
+
+            dialog.innerHTML = `
+                <h3 style="margin: 0 0 20px 0; color: #333; font-size: 20px;">📥 导出流程图</h3>
+                <p style="margin: 0 0 20px 0; color: #666; font-size: 14px;">选择要导出的格式：</p>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px;">
+                    <button onclick="exportCurrentGraph('PNG'); this.closest('div').parentElement.parentElement.remove();"
+                            style="padding: 16px; border: 2px solid #e0e0e0; border-radius: 12px; background: #f8f9ff; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px;"
+                            onmouseover="this.style.borderColor='#667eea'; this.style.background='#e8f0fe'"
+                            onmouseout="this.style.borderColor='#e0e0e0'; this.style.background='#f8f9ff'">
+                        <span style="font-size: 28px;">🖼️</span>
+                        <span style="font-weight: 600; color: #333;">PNG</span>
+                        <span style="font-size: 12px; color: #666;">图片</span>
+                    </button>
+                    <button onclick="exportCurrentGraph('SVG'); this.closest('div').parentElement.parentElement.remove();"
+                            style="padding: 16px; border: 2px solid #e0e0e0; border-radius: 12px; background: #f8f9ff; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px;"
+                            onmouseover="this.style.borderColor='#667eea'; this.style.background='#e8f0fe'"
+                            onmouseout="this.style.borderColor='#e0e0e0'; this.style.background='#f8f9ff'">
+                        <span style="font-size: 28px;">📐</span>
+                        <span style="font-weight: 600; color: #333;">SVG</span>
+                        <span style="font-size: 12px; color: #666;">矢量图</span>
+                    </button>
+                    <button onclick="exportCurrentGraph('PDF'); this.closest('div').parentElement.parentElement.remove();"
+                            style="padding: 16px; border: 2px solid #e0e0e0; border-radius: 12px; background: #f8f9ff; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px;"
+                            onmouseover="this.style.borderColor='#667eea'; this.style.background='#e8f0fe'"
+                            onmouseout="this.style.borderColor='#e0e0e0'; this.style.background='#f8f9ff'">
+                        <span style="font-size: 28px;">📄</span>
+                        <span style="font-weight: 600; color: #333;">PDF</span>
+                        <span style="font-size: 12px; color: #666;">文档</span>
+                    </button>
+                    <button onclick="exportCurrentGraph('EPS'); this.closest('div').parentElement.parentElement.remove();"
+                            style="padding: 16px; border: 2px solid #e0e0e0; border-radius: 12px; background: #f8f9ff; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px;"
+                            onmouseover="this.style.borderColor='#667eea'; this.style.background='#e8f0fe'"
+                            onmouseout="this.style.borderColor='#e0e0e0'; this.style.background='#f8f9ff'">
+                        <span style="font-size: 28px;">📝</span>
+                        <span style="font-weight: 600; color: #333;">EPS</span>
+                        <span style="font-size: 12px; color: #666;">打印格式</span>
+                    </button>
+                    <button onclick="exportCurrentGraph('TEXT'); this.closest('div').parentElement.parentElement.remove();"
+                            style="padding: 16px; border: 2px solid #e0e0e0; border-radius: 12px; background: #f8f9ff; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px;"
+                            onmouseover="this.style.borderColor='#667eea'; this.style.background='#e8f0fe'"
+                            onmouseout="this.style.borderColor='#e0e0e0'; this.style.background='#f8f9ff'">
+                        <span style="font-size: 28px;">📋</span>
+                        <span style="font-weight: 600; color: #333;">PlantUML</span>
+                        <span style="font-size: 12px; color: #666;">源码</span>
+                    </button>
+                    <button onclick="exportCurrentGraph('HTML'); this.closest('div').parentElement.parentElement.remove();"
+                            style="padding: 16px; border: 2px solid #e0e0e0; border-radius: 12px; background: #f8f9ff; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px;"
+                            onmouseover="this.style.borderColor='#667eea'; this.style.background='#e8f0fe'"
+                            onmouseout="this.style.borderColor='#e0e0e0'; this.style.background='#f8f9ff'">
+                        <span style="font-size: 28px;">🌐</span>
+                        <span style="font-weight: 600; color: #333;">HTML</span>
+                        <span style="font-size: 12px; color: #666;">网页</span>
+                    </button>
+                </div>
+                <div style="display: flex; justify-content: flex-end;">
+                    <button onclick="this.closest('div').parentElement.parentElement.remove();"
+                            style="padding: 10px 24px; border: none; border-radius: 8px; background: #e0e0e0; color: #333; cursor: pointer; font-size: 14px; font-weight: 500;">
+                        取消
+                    </button>
+                </div>
+            `;
+
+            modal.appendChild(dialog);
+            document.body.appendChild(modal);
+        }
+
+        // ==================== 分享功能 ====================
+
+        // 显示分享对话框
+        async function showShareDialog() {
+            if (!currentGraphData || !currentDotContent) {
+                alert('请先生成流程图');
+                return;
+            }
+
+            // 创建模态对话框
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+            `;
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.remove();
+            };
+
+            const dialog = document.createElement('div');
+            dialog.style.cssText = `
+                background: white;
+                padding: 30px;
+                border-radius: 16px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                max-width: 500px;
+                width: 90%;
+            `;
+
+            dialog.innerHTML = `
+                <h3 style="margin: 0 0 20px 0; color: #333; font-size: 20px;">🔗 分享流程图</h3>
+                <p style="margin: 0 0 20px 0; color: #666; font-size: 14px;">创建分享链接，7天内有效：</p>
+                <div id="shareUrlSection" style="display: none;">
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <input type="text" id="shareUrlInput" readonly
+                               style="flex: 1; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; background: #f8f9ff;">
+                        <button id="copyShareUrlBtn"
+                                style="padding: 12px 20px; border: none; border-radius: 8px; background: #667eea; color: white; cursor: pointer; font-weight: 500;">
+                            📋 复制
+                        </button>
+                    </div>
+                    <p style="margin: 0; color: #666; font-size: 12px;">提示：此链接7天内有效</p>
+                </div>
+                <div id="shareLoadingSection" style="text-align: center; padding: 20px;">
+                    <div style="font-size: 14px; color: #666;">正在创建分享链接...</div>
+                </div>
+                <div style="display: flex; justify-content: flex-end; margin-top: 24px;">
+                    <button onclick="this.closest('div').parentElement.parentElement.remove();"
+                            style="padding: 10px 24px; border: none; border-radius: 8px; background: #e0e0e0; color: #333; cursor: pointer; font-size: 14px; font-weight: 500;">
+                        取消
+                    </button>
+                </div>
+            `;
+
+            modal.appendChild(dialog);
+            document.body.appendChild(modal);
+
+            // 自动创建分享
+            await createShare();
+        }
+
+        // 创建分享
+        async function createShare() {
+            try {
+                const response = await fetch('/api/flow/share/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        plantUmlContent: currentDotContent,
+                        diagramType: currentFlowType,
+                        theme: currentUploadTheme
+                    })
+                });
+
+                const result = await response.json();
+
+                document.getElementById('shareLoadingSection').style.display = 'none';
+
+                if (result.success) {
+                    const shareUrlSection = document.getElementById('shareUrlSection');
+                    shareUrlSection.style.display = 'block';
+
+                    const shareUrlInput = document.getElementById('shareUrlInput');
+                    const fullUrl = window.location.origin + result.shareUrl;
+                    shareUrlInput.value = fullUrl;
+
+                    // 复制按钮事件
+                    document.getElementById('copyShareUrlBtn').onclick = function() {
+                        shareUrlInput.select();
+                        document.execCommand('copy');
+                        this.textContent = '✅ 已复制';
+                        setTimeout(() => {
+                            this.textContent = '📋 复制';
+                        }, 2000);
+                    };
+                } else {
+                    alert('创建分享失败: ' + (result.message || '未知错误'));
+                }
+            } catch (error) {
+                document.getElementById('shareLoadingSection').style.display = 'none';
+                alert('创建分享失败: ' + error.message);
+            }
+        }
+
+        // 检查URL是否有分享参数
+        async function checkShareParam() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const shareId = urlParams.get('share');
+
+            if (shareId) {
+                try {
+                    const response = await fetch('/api/flow/share/' + shareId);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        // 显示分享的图表
+                        showSharedDiagram(result);
+                    }
+                } catch (error) {
+                    console.warn('加载分享失败', error);
+                }
+            }
+        }
+
+        // 显示分享的图表
+        async function showSharedDiagram(shareData) {
+            try {
+                showLoading();
+
+                currentDotContent = shareData.plantUmlContent;
+
+                // 先隐藏输入区域
+                document.getElementById('upload-tab').classList.remove('active');
+                document.getElementById('code-tab').classList.remove('active');
+                document.getElementById('project-tab').classList.remove('active');
+                document.getElementById('git-tab').classList.remove('active');
+                document.getElementById('jar-tab').classList.remove('active');
+                document.getElementById('diff-tab').classList.remove('active');
+                document.getElementById('apm-tab').classList.remove('active');
+
+                // 渲染PlantUML预览
+                document.getElementById('dotOutput').textContent = currentDotContent;
+
+                // 尝试渲染图片（我们直接在showResults里处理，这里就简化了）
+
+                document.getElementById('resultCard').classList.add('show');
+
+                // 显示PlantUML视图
+                setViewMode('plantuml');
+
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                alert('加载分享失败: ' + error.message);
+            }
+        }
+
+        // 为callChainStyle单选按钮添加事件监听
+        function setupCallChainStyleListeners() {
+            const radios = document.querySelectorAll('input[name="callChainStyle"]');
+            radios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    currentUploadStyle = this.value;
+                    currentCodeStyle = this.value;
+                    saveConfig();
+                });
+            });
+        }
+
+        // 设置代码编辑器监听器
+        function setupCodeEditorListeners() {
+            const codeInput = document.getElementById('codeInput');
+            if (codeInput) {
+                codeInput.addEventListener('input', updateCodeLineNumbers);
+                // 初始化行号
+                updateCodeLineNumbers();
+            }
+        }
+
+        // ==================== 历史记录功能 ====================
+
+        const HISTORY_KEY = 'flow-analyzer-history';
+        const MAX_HISTORY = 20;
+
+        // 保存到历史记录
+        function saveToHistory(result, flowType) {
+            try {
+                let history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+
+                const historyItem = {
+                    id: Date.now().toString(),
+                    timestamp: new Date().toISOString(),
+                    flowType: flowType,
+                    dotContent: currentDotContent,
+                    graphData: currentGraphData,
+                    preview: result.previewImage || null
+                };
+
+                // 不保存重复的内容（如果dotContent一样）
+                const lastItem = history[0];
+                if (lastItem && lastItem.dotContent === historyItem.dotContent) {
+                    return;
+                }
+
+                history.unshift(historyItem);
+
+                // 限制数量
+                if (history.length > MAX_HISTORY) {
+                    history = history.slice(0, MAX_HISTORY);
+                }
+
+                localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+            } catch (e) {
+                console.warn('保存历史记录失败', e);
+            }
+        }
+
+        // 获取历史记录
+        function getHistory() {
+            try {
+                return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+            } catch (e) {
+                return [];
+            }
+        }
+
+        // 显示历史记录对话框
+        function showHistoryDialog() {
+            const history = getHistory();
+
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+            `;
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.remove();
+            };
+
+            const dialog = document.createElement('div');
+            dialog.style.cssText = `
+                background: white;
+                padding: 30px;
+                border-radius: 16px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                max-width: 700px;
+                width: 90%;
+                max-height: 80vh;
+                overflow: auto;
+            `;
+
+            const formatDate = (dateStr) => {
+                const d = new Date(dateStr);
+                return d.toLocaleString('zh-CN', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            };
+
+            const getFlowTypeLabel = (type) => {
+                switch(type) {
+                    case 'callChain': return '🔗 调用链';
+                    case 'umlClass': return '📦 类图';
+                    case 'sequence': return '🔄 时序图';
+                    default: return '📊 流程图';
+                }
+            };
+
+            let historyHtml = '';
+            if (history.length === 0) {
+                historyHtml = '<p style="text-align: center; color: #999; padding: 40px;">还没有历史记录</p>';
+            } else {
+                historyHtml = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+                history.forEach((item, index) => {
+                    historyHtml += `
+                        <div style="display: flex; gap: 15px; padding: 15px; background: #f8f9ff; border-radius: 12px; border: 1px solid #e0e0e0; cursor: pointer; transition: all 0.2s;"
+                             onmouseover="this.style.borderColor='#667eea'; this.style.background='#e8f0fe'"
+                             onmouseout="this.style.borderColor='#e0e0e0'; this.style.background='#f8f9ff'"
+                             onclick="restoreFromHistory('${item.id}'); this.closest('div').parentElement.parentElement.remove();">
+                            <div style="font-size: 28px; width: 48px; display: flex; align-items: center; justify-content: center;">${getFlowTypeLabel(item.flowType).split(' ')[0]}</div>
+                            <div style="flex: 1;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                    <span style="font-weight: 600; color: #333;">${getFlowTypeLabel(item.flowType)}</span>
+                                    <span style="font-size: 12px; color: #999;">${formatDate(item.timestamp)}</span>
+                                </div>
+                                <div style="font-size: 12px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.dotContent.substring(0, 100)}...</div>
+                            </div>
+                            <div style="display: flex; align-items: center;">
+                                <button onclick="event.stopPropagation(); deleteHistoryItem('${item.id}'); this.closest('div').parentElement.remove();"
+                                        style="padding: 8px 12px; border: none; border-radius: 8px; background: #ffebee; color: #c62828; cursor: pointer; font-size: 13px;">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                historyHtml += '</div>';
+            }
+
+            dialog.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; color: #333; font-size: 20px;">📜 历史记录</h3>
+                    <button onclick="clearHistory(); this.closest('div').parentElement.querySelector('[style*=flex-direction]').innerHTML='<p style=\\'text-align:center;color:#999;padding:40px;\\'>已清空</p>'"
+                            style="padding: 8px 16px; border: none; border-radius: 8px; background: #f5f5f5; color: #666; cursor: pointer; font-size: 13px;">
+                        清空
+                    </button>
+                </div>
+                ${historyHtml}
+                <div style="display: flex; justify-content: flex-end; margin-top: 24px;">
+                    <button onclick="this.closest('div').parentElement.parentElement.remove();"
+                            style="padding: 10px 24px; border: none; border-radius: 8px; background: #e0e0e0; color: #333; cursor: pointer; font-size: 14px; font-weight: 500;">
+                        关闭
+                    </button>
+                </div>
+            `;
+
+            modal.appendChild(dialog);
+            document.body.appendChild(modal);
+        }
+
+        // 从历史记录恢复
+        function restoreFromHistory(id) {
+            const history = getHistory();
+            const item = history.find(h => h.id === id);
+
+            if (!item) {
+                alert('找不到历史记录');
+                return;
+            }
+
+            currentDotContent = item.dotContent;
+            currentGraphData = item.graphData;
+            document.getElementById('dotOutput').textContent = item.dotContent;
+            document.getElementById('resultCard').classList.add('show');
+
+            if (item.preview) {
+                document.getElementById('previewImage').src = item.preview;
+            }
+
+            // 切换到对应标签页
+            switchTab('upload');
+        }
+
+        // 删除历史记录项
+        function deleteHistoryItem(id) {
+            let history = getHistory();
+            history = history.filter(h => h.id !== id);
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        }
+
+        // 清空历史记录
+        function clearHistory() {
+            if (confirm('确定要清空所有历史记录吗？')) {
+                localStorage.removeItem(HISTORY_KEY);
+            }
+        }
+
         // 页面加载时检查服务状态
         window.onload = async function() {
+            // 先加载配置
+            loadConfig();
+
+            // 检查分享参数
+            await checkShareParam();
+
             // 初始化显示调用链样式
             toggleFlowType();
             toggleProjectFlowType();
             toggleGitFlowType();
             toggleJarFlowType();
+            toggleCodeFlowType();
+
             // 加载主题列表到所有标签页
             loadThemes('uploadThemeSelector', 'uploadTheme');
             loadThemes('codeThemeSelector', 'codeTheme');
@@ -2905,6 +3876,18 @@ public class TestClass {
             loadThemes('gitThemeSelector', 'gitTheme');
             loadThemes('jarThemeSelector', 'jarTheme');
             loadThemes('diffThemeSelector', 'diffTheme');
+
+            // 设置事件监听器
+            setupFilterListeners();
+            setupCallChainStyleListeners();
+            setupCodeEditorListeners();
+
+            // 更新代码标签的样式按钮
+            const codeStyleBtns = document.querySelectorAll('#codeCallChainStyles .style-btn');
+            codeStyleBtns.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.style === currentCodeStyle);
+            });
+
             try {
                 const response = await fetch('/api/flow/health');
                 const data = await response.json();

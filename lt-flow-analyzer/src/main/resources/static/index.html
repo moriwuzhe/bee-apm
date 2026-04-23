@@ -515,7 +515,16 @@
 
         /* 流程图类型选择样式 */
         #flowType-callChain-label:has(input:checked),
-        #flowType-umlClass-label:has(input:checked) {
+        #flowType-umlClass-label:has(input:checked),
+        #flowType-sequence-label:has(input:checked),
+        #flowType-activity-label:has(input:checked),
+        #flowType-component-label:has(input:checked),
+        #flowType-state-label:has(input:checked),
+        #flowType-mindmap-label:has(input:checked),
+        #flowType-object-label:has(input:checked),
+        #flowType-deployment-label:has(input:checked),
+        #flowType-usecase-label:has(input:checked),
+        #flowType-c4-label:has(input:checked) {
             border-color: #667eea;
             background: #667eea;
             color: white;
@@ -540,85 +549,82 @@
         </div>
         
         <div class="main-card">
-            <!-- 流程图类型选择 -->
+            <!-- 流程图类型选择 - 合并后的版本 -->
             <div style="margin-bottom: 20px;">
                 <div style="font-weight: 600; color: #333; margin-bottom: 12px; font-size: 16px;">📌 选择流程图类型</div>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 18px; background: #f8f9ff; border-radius: 10px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" id="flowType-callChain-label">
-                        <input type="radio" name="flowType" value="callChain" checked style="margin-right: 10px; transform: scale(1.3);" onchange="toggleFlowType()">
-                        <span style="font-size: 15px; font-weight: 500;">🔗 方法调用链</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 18px; background: #f8f9ff; border-radius: 10px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" id="flowType-umlClass-label">
-                        <input type="radio" name="flowType" value="umlClass" style="margin-right: 10px; transform: scale(1.3);" onchange="toggleFlowType()">
-                        <span style="font-size: 15px; font-weight: 500;">📊 UML 类图</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 18px; background: #f8f9ff; border-radius: 10px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" id="flowType-sequence-label">
-                        <input type="radio" name="flowType" value="sequence" style="margin-right: 10px; transform: scale(1.3);" onchange="toggleFlowType()">
-                        <span style="font-size: 15px; font-weight: 500;">📋 UML 时序图</span>
-                    </label>
-                </div>
-            </div>
 
-            <!-- 方法调用链样式选择 -->
-            <div id="callChainStyles" style="margin-bottom: 20px;">
-                <div style="font-weight: 600; color: #333; margin-bottom: 12px; font-size: 16px;">🎨 选择 PlantUML 样式</div>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" class="plantuml-style-label">
-                        <input type="radio" name="callChainStyle" value="ACTIVITY" checked style="margin-right: 6px;">
-                        <span style="font-size: 14px;">🎯 活动图</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" class="plantuml-style-label">
-                        <input type="radio" name="callChainStyle" value="FLOWCHART" style="margin-right: 6px;">
-                        <span style="font-size: 14px;">🔀 流程图</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" class="plantuml-style-label">
-                        <input type="radio" name="callChainStyle" value="WORKFLOW" style="margin-right: 6px;">
-                        <span style="font-size: 14px;">⚙️ 工作流</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" class="plantuml-style-label">
-                        <input type="radio" name="callChainStyle" value="SEQUENCE" style="margin-right: 6px;">
-                        <span style="font-size: 14px;">📋 时序图</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" class="plantuml-style-label">
-                        <input type="radio" name="callChainStyle" value="COMPONENT" style="margin-right: 6px;">
-                        <span style="font-size: 14px;">🧩 组件图</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" class="plantuml-style-label">
-                        <input type="radio" name="callChainStyle" value="C4" style="margin-right: 6px;">
-                        <span style="font-size: 14px;">📊 C4模型</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" class="plantuml-style-label">
-                        <input type="radio" name="callChainStyle" value="STATE" style="margin-right: 6px;">
-                        <span style="font-size: 14px;">🔄 状态图</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" class="plantuml-style-label">
-                        <input type="radio" name="callChainStyle" value="OBJECT" style="margin-right: 6px;">
-                        <span style="font-size: 14px;">📦 对象图</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" class="plantuml-style-label">
-                        <input type="radio" name="callChainStyle" value="DEPLOYMENT" style="margin-right: 6px;">
-                        <span style="font-size: 14px;">🚀 部署图</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" class="plantuml-style-label">
-                        <input type="radio" name="callChainStyle" value="USECASE" style="margin-right: 6px;">
-                        <span style="font-size: 14px;">📝 用例图</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" class="plantuml-style-label">
-                        <input type="radio" name="callChainStyle" value="TIMING" style="margin-right: 6px;">
-                        <span style="font-size: 14px;">⏱️ 定时图</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" class="plantuml-style-label">
-                        <input type="radio" name="callChainStyle" value="GANTT" style="margin-right: 6px;">
-                        <span style="font-size: 14px;">📊 甘特图</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" class="plantuml-style-label">
-                        <input type="radio" name="callChainStyle" value="WBS" style="margin-right: 6px;">
-                        <span style="font-size: 14px;">📋 WBS图</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" class="plantuml-style-label">
-                        <input type="radio" name="callChainStyle" value="MINDMAP" style="margin-right: 6px;">
-                        <span style="font-size: 14px;">🗺️ 思维导图</span>
-                    </label>
+                <!-- 第一组：方法调用链（多种展示形式） -->
+                <div style="margin-bottom: 15px;">
+                    <div style="font-size: 14px; color: #666; margin-bottom: 8px;">🔗 方法调用链 - 可选择不同的展示形式：</div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 18px; background: #f8f9ff; border-radius: 10px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" id="flowType-activity-label">
+                            <input type="radio" name="flowType" value="activity" checked style="margin-right: 10px; transform: scale(1.3);" onchange="toggleFlowType()">
+                            <span style="font-size: 15px; font-weight: 500;">🏃 活动图</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 18px; background: #f8f9ff; border-radius: 10px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" id="flowType-flowchart-label">
+                            <input type="radio" name="flowType" value="flowchart" style="margin-right: 10px; transform: scale(1.3);" onchange="toggleFlowType()">
+                            <span style="font-size: 15px; font-weight: 500;">🔀 流程图</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 18px; background: #f8f9ff; border-radius: 10px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" id="flowType-workflow-label">
+                            <input type="radio" name="flowType" value="workflow" style="margin-right: 10px; transform: scale(1.3);" onchange="toggleFlowType()">
+                            <span style="font-size: 15px; font-weight: 500;">⚙️ 工作流</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 18px; background: #f8f9ff; border-radius: 10px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" id="flowType-component-label">
+                            <input type="radio" name="flowType" value="component" style="margin-right: 10px; transform: scale(1.3);" onchange="toggleFlowType()">
+                            <span style="font-size: 15px; font-weight: 500;">🧩 组件图</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 18px; background: #f8f9ff; border-radius: 10px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" id="flowType-c4-label">
+                            <input type="radio" name="flowType" value="c4" style="margin-right: 10px; transform: scale(1.3);" onchange="toggleFlowType()">
+                            <span style="font-size: 15px; font-weight: 500;">📊 C4模型</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 18px; background: #f8f9ff; border-radius: 10px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" id="flowType-state-label">
+                            <input type="radio" name="flowType" value="state" style="margin-right: 10px; transform: scale(1.3);" onchange="toggleFlowType()">
+                            <span style="font-size: 15px; font-weight: 500;">🔄 状态图</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 18px; background: #f8f9ff; border-radius: 10px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" id="flowType-object-label">
+                            <input type="radio" name="flowType" value="object" style="margin-right: 10px; transform: scale(1.3);" onchange="toggleFlowType()">
+                            <span style="font-size: 15px; font-weight: 500;">📦 对象图</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 18px; background: #f8f9ff; border-radius: 10px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" id="flowType-deployment-label">
+                            <input type="radio" name="flowType" value="deployment" style="margin-right: 10px; transform: scale(1.3);" onchange="toggleFlowType()">
+                            <span style="font-size: 15px; font-weight: 500;">🚀 部署图</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 18px; background: #f8f9ff; border-radius: 10px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" id="flowType-usecase-label">
+                            <input type="radio" name="flowType" value="usecase" style="margin-right: 10px; transform: scale(1.3);" onchange="toggleFlowType()">
+                            <span style="font-size: 15px; font-weight: 500;">📝 用例图</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 18px; background: #f8f9ff; border-radius: 10px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" id="flowType-mindmap-label">
+                            <input type="radio" name="flowType" value="mindmap" style="margin-right: 10px; transform: scale(1.3);" onchange="toggleFlowType()">
+                            <span style="font-size: 15px; font-weight: 500;">🗺️ 思维导图</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 18px; background: #f8f9ff; border-radius: 10px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" id="flowType-timing-label">
+                            <input type="radio" name="flowType" value="timing" style="margin-right: 10px; transform: scale(1.3);" onchange="toggleFlowType()">
+                            <span style="font-size: 15px; font-weight: 500;">⏱️ 定时图</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 18px; background: #f8f9ff; border-radius: 10px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" id="flowType-gantt-label">
+                            <input type="radio" name="flowType" value="gantt" style="margin-right: 10px; transform: scale(1.3);" onchange="toggleFlowType()">
+                            <span style="font-size: 15px; font-weight: 500;">📊 甘特图</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 18px; background: #f8f9ff; border-radius: 10px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" id="flowType-wbs-label">
+                            <input type="radio" name="flowType" value="wbs" style="margin-right: 10px; transform: scale(1.3);" onchange="toggleFlowType()">
+                            <span style="font-size: 15px; font-weight: 500;">📋 WBS图</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 第二组：UML结构分析 -->
+                <div>
+                    <div style="font-size: 14px; color: #666; margin-bottom: 8px;">📊 UML 结构分析：</div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 18px; background: #f8f9ff; border-radius: 10px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" id="flowType-umlClass-label">
+                            <input type="radio" name="flowType" value="umlClass" style="margin-right: 10px; transform: scale(1.3);" onchange="toggleFlowType()">
+                            <span style="font-size: 15px; font-weight: 500;">📦 UML 类图</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 18px; background: #f8f9ff; border-radius: 10px; border: 2px solid #e0e0e0; transition: all 0.3s ease;" id="flowType-sequence-label">
+                            <input type="radio" name="flowType" value="sequence" style="margin-right: 10px; transform: scale(1.3);" onchange="toggleFlowType()">
+                            <span style="font-size: 15px; font-weight: 500;">🔄 UML 时序图</span>
+                        </label>
+                    </div>
                 </div>
             </div>
 
@@ -626,53 +632,54 @@
             <div id="filterOptions" style="margin-bottom: 20px;">
                 <div style="font-weight: 600; color: #333; margin-bottom: 12px; font-size: 16px;">🔧 过滤选项</div>
                 <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 16px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
                         <input type="checkbox" id="filterJdk" checked style="margin-right: 8px;">
-                        <span style="font-size: 14px;">☕ 过滤JDK方法</span>
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 14px;">☕ 过滤JDK方法</span>
+                            <span style="font-size: 11px; color: #888;">(Java内置类方法)</span>
+                        </div>
                     </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 16px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
                         <input type="checkbox" id="filterLogging" checked style="margin-right: 8px;">
-                        <span style="font-size: 14px;">📝 过滤日志方法</span>
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 14px;">📝 过滤日志方法</span>
+                            <span style="font-size: 11px; color: #888;">(log/logger/slf4j等)</span>
+                        </div>
                     </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
-                        <input type="checkbox" id="filterGetterSetter" checked style="margin-right: 8px;">
-                        <span style="font-size: 14px;">⚙️ 过滤Getter/Setter</span>
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 16px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
+                        <input type="checkbox" id="filterBoilerplate" checked style="margin-right: 8px;">
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 14px;">⚙️ 过滤样板代码</span>
+                            <span style="font-size: 11px; color: #888;">(Getter/Setter/构造/Builder/Lombok)</span>
+                        </div>
                     </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
-                        <input type="checkbox" id="filterConstructors" checked style="margin-right: 8px;">
-                        <span style="font-size: 14px;">🏗️ 过滤构造函数</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
-                        <input type="checkbox" id="filterBuilderMethods" checked style="margin-right: 8px;">
-                        <span style="font-size: 14px;">🔨 过滤Builder方法</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
-                        <input type="checkbox" id="filterLombokMethods" checked style="margin-right: 8px;">
-                        <span style="font-size: 14px;">📦 过滤Lombok方法</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 16px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
                         <input type="checkbox" id="filterLt" checked style="margin-right: 8px;">
-                        <span style="font-size: 14px;">🏠 过滤LT相关</span>
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 14px;">🏠 过滤LT相关</span>
+                            <span style="font-size: 11px; color: #888;">(本框架内部方法)</span>
+                        </div>
                     </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 16px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
                         <input type="checkbox" id="filterTestMethods" style="margin-right: 8px;">
-                        <span style="font-size: 14px;">🧪 过滤测试方法</span>
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 14px;">🧪 过滤测试方法</span>
+                            <span style="font-size: 11px; color: #888;">(JUnit/Test测试代码)</span>
+                        </div>
                     </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
-                        <input type="checkbox" id="filterStaticMethods" style="margin-right: 8px;">
-                        <span style="font-size: 14px;">🔒 过滤静态方法</span>
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 16px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
+                        <input type="checkbox" id="filterMethodModifiers" style="margin-right: 8px;">
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 14px;">🔐 过滤特殊方法</span>
+                            <span style="font-size: 11px; color: #888;">(静态/私有方法)</span>
+                        </div>
                     </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
-                        <input type="checkbox" id="filterPrivateMethods" style="margin-right: 8px;">
-                        <span style="font-size: 14px;">🔐 过滤私有方法</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
-                        <input type="checkbox" id="filterCollectionMethods" style="margin-right: 8px;">
-                        <span style="font-size: 14px;">📚 过滤集合方法</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer; padding: 8px 14px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
-                        <input type="checkbox" id="filterStringMethods" style="margin-right: 8px;">
-                        <span style="font-size: 14px;">📝 过滤String方法</span>
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 10px 16px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s ease;">
+                        <input type="checkbox" id="filterUtilityMethods" style="margin-right: 8px;">
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 14px;">📚 过滤工具类方法</span>
+                            <span style="font-size: 11px; color: #888;">(集合/String操作)</span>
+                        </div>
                     </label>
                 </div>
             </div>
@@ -733,43 +740,82 @@
                     <h3 style="color: #333; margin-bottom: 15px;">📝 代码编辑器</h3>
                 </div>
 
-                <!-- 流程图类型选择 -->
+                <!-- 流程图类型选择 - 合并后的版本 -->
                 <div style="margin-bottom: 20px;">
-                    <div style="font-weight: 600; color: #333; margin-bottom: 12px; font-size: 14px;">📊 流程图类型</div>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <label id="flowType-code-callChain-label" class="style-label active" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #667eea; background: #667eea; color: white; transition: all 0.3s ease;">
-                            <input type="radio" name="codeFlowType" value="callChain" checked style="display: none;" onchange="toggleCodeFlowType()">
-                            🔗 调用链
-                        </label>
-                        <label id="flowType-code-umlClass-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
-                            <input type="radio" name="codeFlowType" value="umlClass" style="display: none;" onchange="toggleCodeFlowType()">
-                            📦 类图
-                        </label>
-                        <label id="flowType-code-sequence-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
-                            <input type="radio" name="codeFlowType" value="sequence" style="display: none;" onchange="toggleCodeFlowType()">
-                            🔄 时序图
-                        </label>
-                    </div>
-                </div>
+                    <div style="font-weight: 600; color: #333; margin-bottom: 12px; font-size: 14px;">📌 选择流程图类型</div>
 
-                <!-- 调用链样式选择 -->
-                <div id="codeCallChainStyles" style="margin-bottom: 20px;">
-                    <div style="font-weight: 600; color: #333; margin-bottom: 12px; font-size: 14px;">🎨 调用链样式</div>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button class="style-btn active" onclick="setCodeStyle('ACTIVITY')" data-style="ACTIVITY">🏃 活动图</button>
-                        <button class="style-btn" onclick="setCodeStyle('FLOWCHART')" data-style="FLOWCHART">🔀 流程图</button>
-                        <button class="style-btn" onclick="setCodeStyle('WORKFLOW')" data-style="WORKFLOW">⚙️ 工作流</button>
-                        <button class="style-btn" onclick="setCodeStyle('SEQUENCE')" data-style="SEQUENCE">📋 时序图</button>
-                        <button class="style-btn" onclick="setCodeStyle('COMPONENT')" data-style="COMPONENT">🧩 组件图</button>
-                        <button class="style-btn" onclick="setCodeStyle('C4')" data-style="C4">📊 C4模型</button>
-                        <button class="style-btn" onclick="setCodeStyle('STATE')" data-style="STATE">🔄 状态图</button>
-                        <button class="style-btn" onclick="setCodeStyle('OBJECT')" data-style="OBJECT">📦 对象图</button>
-                        <button class="style-btn" onclick="setCodeStyle('DEPLOYMENT')" data-style="DEPLOYMENT">🚀 部署图</button>
-                        <button class="style-btn" onclick="setCodeStyle('USECASE')" data-style="USECASE">📝 用例图</button>
-                        <button class="style-btn" onclick="setCodeStyle('TIMING')" data-style="TIMING">⏱️ 定时图</button>
-                        <button class="style-btn" onclick="setCodeStyle('GANTT')" data-style="GANTT">📊 甘特图</button>
-                        <button class="style-btn" onclick="setCodeStyle('WBS')" data-style="WBS">📋 WBS图</button>
-                        <button class="style-btn" onclick="setCodeStyle('MINDMAP')" data-style="MINDMAP">🗺️ 思维导图</button>
+                    <!-- 第一组：方法调用链（多种展示形式） -->
+                    <div style="margin-bottom: 15px;">
+                        <div style="font-size: 13px; color: #666; margin-bottom: 8px;">🔗 方法调用链 - 可选择不同的展示形式：</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <label id="flowType-code-activity-label" class="style-label active" style="cursor: pointer; padding: 8px 14px; border-radius: 8px; border: 2px solid #667eea; background: #667eea; color: white; transition: all 0.3s ease;">
+                                <input type="radio" name="codeFlowType" value="activity" checked style="display: none;" onchange="toggleCodeFlowType()">
+                                🏃 活动图
+                            </label>
+                            <label id="flowType-code-flowchart-label" class="style-label" style="cursor: pointer; padding: 8px 14px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                <input type="radio" name="codeFlowType" value="flowchart" style="display: none;" onchange="toggleCodeFlowType()">
+                                🔀 流程图
+                            </label>
+                            <label id="flowType-code-workflow-label" class="style-label" style="cursor: pointer; padding: 8px 14px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                <input type="radio" name="codeFlowType" value="workflow" style="display: none;" onchange="toggleCodeFlowType()">
+                                ⚙️ 工作流
+                            </label>
+                            <label id="flowType-code-component-label" class="style-label" style="cursor: pointer; padding: 8px 14px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                <input type="radio" name="codeFlowType" value="component" style="display: none;" onchange="toggleCodeFlowType()">
+                                🧩 组件图
+                            </label>
+                            <label id="flowType-code-c4-label" class="style-label" style="cursor: pointer; padding: 8px 14px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                <input type="radio" name="codeFlowType" value="c4" style="display: none;" onchange="toggleCodeFlowType()">
+                                📊 C4模型
+                            </label>
+                            <label id="flowType-code-state-label" class="style-label" style="cursor: pointer; padding: 8px 14px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                <input type="radio" name="codeFlowType" value="state" style="display: none;" onchange="toggleCodeFlowType()">
+                                🔄 状态图
+                            </label>
+                            <label id="flowType-code-object-label" class="style-label" style="cursor: pointer; padding: 8px 14px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                <input type="radio" name="codeFlowType" value="object" style="display: none;" onchange="toggleCodeFlowType()">
+                                📦 对象图
+                            </label>
+                            <label id="flowType-code-deployment-label" class="style-label" style="cursor: pointer; padding: 8px 14px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                <input type="radio" name="codeFlowType" value="deployment" style="display: none;" onchange="toggleCodeFlowType()">
+                                🚀 部署图
+                            </label>
+                            <label id="flowType-code-usecase-label" class="style-label" style="cursor: pointer; padding: 8px 14px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                <input type="radio" name="codeFlowType" value="usecase" style="display: none;" onchange="toggleCodeFlowType()">
+                                📝 用例图
+                            </label>
+                            <label id="flowType-code-mindmap-label" class="style-label" style="cursor: pointer; padding: 8px 14px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                <input type="radio" name="codeFlowType" value="mindmap" style="display: none;" onchange="toggleCodeFlowType()">
+                                🗺️ 思维导图
+                            </label>
+                            <label id="flowType-code-timing-label" class="style-label" style="cursor: pointer; padding: 8px 14px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                <input type="radio" name="codeFlowType" value="timing" style="display: none;" onchange="toggleCodeFlowType()">
+                                ⏱️ 定时图
+                            </label>
+                            <label id="flowType-code-gantt-label" class="style-label" style="cursor: pointer; padding: 8px 14px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                <input type="radio" name="codeFlowType" value="gantt" style="display: none;" onchange="toggleCodeFlowType()">
+                                📊 甘特图
+                            </label>
+                            <label id="flowType-code-wbs-label" class="style-label" style="cursor: pointer; padding: 8px 14px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                <input type="radio" name="codeFlowType" value="wbs" style="display: none;" onchange="toggleCodeFlowType()">
+                                📋 WBS图
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 第二组：UML结构分析 -->
+                    <div>
+                        <div style="font-size: 13px; color: #666; margin-bottom: 8px;">📊 UML 结构分析：</div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <label id="flowType-code-umlClass-label" class="style-label" style="cursor: pointer; padding: 8px 14px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                <input type="radio" name="codeFlowType" value="umlClass" style="display: none;" onchange="toggleCodeFlowType()">
+                                📦 UML 类图
+                            </label>
+                            <label id="flowType-code-sequence-label" class="style-label" style="cursor: pointer; padding: 8px 14px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                <input type="radio" name="codeFlowType" value="sequence" style="display: none;" onchange="toggleCodeFlowType()">
+                                🔄 UML 时序图
+                            </label>
+                        </div>
                     </div>
                 </div>
 
@@ -828,42 +874,82 @@ public class TestClass {
                             <input type="text" id="projectPath" class="code-input" style="height: 45px; padding: 10px 15px;" placeholder="输入本地项目根目录路径...">
                         </div>
                     </div>
-                    <!-- 流程图类型选择 -->
+                    <!-- 流程图类型选择 - 合并后的版本 -->
                     <div style="margin-bottom: 20px;">
-                        <div style="font-weight: 600; color: #333; margin-bottom: 12px; font-size: 16px;">📊 流程图类型</div>
-                        <div style="display: flex; gap: 10px;">
-                            <label id="flowType-project-callChain-label" class="style-label active" style="cursor: pointer; padding: 12px 20px; border-radius: 10px; border: 2px solid #667eea; background: #667eea; color: white; transition: all 0.3s ease;">
-                                <input type="radio" name="projectFlowType" value="callChain" checked style="display: none;" onchange="toggleProjectFlowType()">
-                                🔗 调用链图
-                            </label>
-                            <label id="flowType-project-umlClass-label" class="style-label" style="cursor: pointer; padding: 12px 20px; border-radius: 10px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
-                                <input type="radio" name="projectFlowType" value="umlClass" style="display: none;" onchange="toggleProjectFlowType()">
-                                📦 类图
-                            </label>
-                            <label id="flowType-project-sequence-label" class="style-label" style="cursor: pointer; padding: 12px 20px; border-radius: 10px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
-                                <input type="radio" name="projectFlowType" value="sequence" style="display: none;" onchange="toggleProjectFlowType()">
-                                🔄 时序图
-                            </label>
+                        <div style="font-weight: 600; color: #333; margin-bottom: 12px; font-size: 16px;">📌 选择流程图类型</div>
+
+                        <!-- 第一组：方法调用链（多种展示形式） -->
+                        <div style="margin-bottom: 15px;">
+                            <div style="font-size: 13px; color: #666; margin-bottom: 8px;">🔗 方法调用链 - 可选择不同的展示形式：</div>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <label id="flowType-project-activity-label" class="style-label active" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #667eea; background: #667eea; color: white; transition: all 0.3s ease;">
+                                    <input type="radio" name="projectFlowType" value="activity" checked style="display: none;" onchange="toggleProjectFlowType()">
+                                    🏃 活动图
+                                </label>
+                                <label id="flowType-project-flowchart-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="projectFlowType" value="flowchart" style="display: none;" onchange="toggleProjectFlowType()">
+                                    🔀 流程图
+                                </label>
+                                <label id="flowType-project-workflow-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="projectFlowType" value="workflow" style="display: none;" onchange="toggleProjectFlowType()">
+                                    ⚙️ 工作流
+                                </label>
+                                <label id="flowType-project-component-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="projectFlowType" value="component" style="display: none;" onchange="toggleProjectFlowType()">
+                                    🧩 组件图
+                                </label>
+                                <label id="flowType-project-c4-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="projectFlowType" value="c4" style="display: none;" onchange="toggleProjectFlowType()">
+                                    📊 C4模型
+                                </label>
+                                <label id="flowType-project-state-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="projectFlowType" value="state" style="display: none;" onchange="toggleProjectFlowType()">
+                                    🔄 状态图
+                                </label>
+                                <label id="flowType-project-object-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="projectFlowType" value="object" style="display: none;" onchange="toggleProjectFlowType()">
+                                    📦 对象图
+                                </label>
+                                <label id="flowType-project-deployment-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="projectFlowType" value="deployment" style="display: none;" onchange="toggleProjectFlowType()">
+                                    🚀 部署图
+                                </label>
+                                <label id="flowType-project-usecase-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="projectFlowType" value="usecase" style="display: none;" onchange="toggleProjectFlowType()">
+                                    📝 用例图
+                                </label>
+                                <label id="flowType-project-mindmap-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="projectFlowType" value="mindmap" style="display: none;" onchange="toggleProjectFlowType()">
+                                    🗺️ 思维导图
+                                </label>
+                                <label id="flowType-project-timing-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="projectFlowType" value="timing" style="display: none;" onchange="toggleProjectFlowType()">
+                                    ⏱️ 定时图
+                                </label>
+                                <label id="flowType-project-gantt-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="projectFlowType" value="gantt" style="display: none;" onchange="toggleProjectFlowType()">
+                                    📊 甘特图
+                                </label>
+                                <label id="flowType-project-wbs-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="projectFlowType" value="wbs" style="display: none;" onchange="toggleProjectFlowType()">
+                                    📋 WBS图
+                                </label>
+                            </div>
                         </div>
-                    </div>
-                    <!-- 调用链样式选择 -->
-                    <div id="projectCallChainStyles" style="margin-bottom: 20px;">
-                        <div style="font-weight: 600; color: #333; margin-bottom: 12px; font-size: 16px;">🎨 调用链样式</div>
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button class="style-btn active" onclick="setProjectStyle('ACTIVITY')" data-style="ACTIVITY">🏃 活动图</button>
-                            <button class="style-btn" onclick="setProjectStyle('FLOWCHART')" data-style="FLOWCHART">🔀 流程图</button>
-                            <button class="style-btn" onclick="setProjectStyle('WORKFLOW')" data-style="WORKFLOW">⚙️ 工作流</button>
-                            <button class="style-btn" onclick="setProjectStyle('SEQUENCE')" data-style="SEQUENCE">📋 时序图</button>
-                            <button class="style-btn" onclick="setProjectStyle('COMPONENT')" data-style="COMPONENT">🧩 组件图</button>
-                            <button class="style-btn" onclick="setProjectStyle('C4')" data-style="C4">📊 C4模型</button>
-                            <button class="style-btn" onclick="setProjectStyle('STATE')" data-style="STATE">🔄 状态图</button>
-                            <button class="style-btn" onclick="setProjectStyle('OBJECT')" data-style="OBJECT">📦 对象图</button>
-                            <button class="style-btn" onclick="setProjectStyle('DEPLOYMENT')" data-style="DEPLOYMENT">🚀 部署图</button>
-                            <button class="style-btn" onclick="setProjectStyle('USECASE')" data-style="USECASE">📝 用例图</button>
-                            <button class="style-btn" onclick="setProjectStyle('TIMING')" data-style="TIMING">⏱️ 定时图</button>
-                            <button class="style-btn" onclick="setProjectStyle('GANTT')" data-style="GANTT">📊 甘特图</button>
-                            <button class="style-btn" onclick="setProjectStyle('WBS')" data-style="WBS">📋 WBS图</button>
-                            <button class="style-btn" onclick="setProjectStyle('MINDMAP')" data-style="MINDMAP">🗺️ 思维导图</button>
+
+                        <!-- 第二组：UML结构分析 -->
+                        <div>
+                            <div style="font-size: 13px; color: #666; margin-bottom: 8px;">📊 UML 结构分析：</div>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <label id="flowType-project-umlClass-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="projectFlowType" value="umlClass" style="display: none;" onchange="toggleProjectFlowType()">
+                                    📦 UML 类图
+                                </label>
+                                <label id="flowType-project-sequence-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="projectFlowType" value="sequence" style="display: none;" onchange="toggleProjectFlowType()">
+                                    🔄 UML 时序图
+                                </label>
+                            </div>
                         </div>
                     </div>
                     <div style="display: flex; gap: 15px; margin-bottom: 20px;">
@@ -932,42 +1018,82 @@ public class TestClass {
                     <!-- 解析项目 -->
                     <div style="background: #f8f9ff; border-radius: 10px; padding: 15px; margin-top: 20px;">
                         <h4 style="color: #333; margin-bottom: 10px;">🔍 解析项目</h4>
-                        <!-- 流程图类型选择 -->
+                        <!-- 流程图类型选择 - 合并后的版本 -->
                         <div style="margin-bottom: 15px;">
-                            <div style="font-weight: 600; color: #333; margin-bottom: 10px; font-size: 14px;">📊 流程图类型</div>
-                            <div style="display: flex; gap: 10px;">
-                                <label id="flowType-git-callChain-label" class="style-label active" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #667eea; background: #667eea; color: white; transition: all 0.3s ease;">
-                                    <input type="radio" name="gitFlowType" value="callChain" checked style="display: none;" onchange="toggleGitFlowType()">
-                                    🔗 调用链
-                                </label>
-                                <label id="flowType-git-umlClass-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
-                                    <input type="radio" name="gitFlowType" value="umlClass" style="display: none;" onchange="toggleGitFlowType()">
-                                    📦 类图
-                                </label>
-                                <label id="flowType-git-sequence-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
-                                    <input type="radio" name="gitFlowType" value="sequence" style="display: none;" onchange="toggleGitFlowType()">
-                                    🔄 时序图
-                                </label>
+                            <div style="font-weight: 600; color: #333; margin-bottom: 10px; font-size: 14px;">📌 选择流程图类型</div>
+
+                            <!-- 第一组：方法调用链（多种展示形式） -->
+                            <div style="margin-bottom: 12px;">
+                                <div style="font-size: 12px; color: #666; margin-bottom: 6px;">🔗 方法调用链 - 可选择不同的展示形式：</div>
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                    <label id="flowType-git-activity-label" class="style-label active" style="cursor: pointer; padding: 8px 12px; border-radius: 6px; border: 2px solid #667eea; background: #667eea; color: white; transition: all 0.3s ease;">
+                                        <input type="radio" name="gitFlowType" value="activity" checked style="display: none;" onchange="toggleGitFlowType()">
+                                        🏃 活动图
+                                    </label>
+                                    <label id="flowType-git-flowchart-label" class="style-label" style="cursor: pointer; padding: 8px 12px; border-radius: 6px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                        <input type="radio" name="gitFlowType" value="flowchart" style="display: none;" onchange="toggleGitFlowType()">
+                                        🔀 流程图
+                                    </label>
+                                    <label id="flowType-git-workflow-label" class="style-label" style="cursor: pointer; padding: 8px 12px; border-radius: 6px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                        <input type="radio" name="gitFlowType" value="workflow" style="display: none;" onchange="toggleGitFlowType()">
+                                        ⚙️ 工作流
+                                    </label>
+                                    <label id="flowType-git-component-label" class="style-label" style="cursor: pointer; padding: 8px 12px; border-radius: 6px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                        <input type="radio" name="gitFlowType" value="component" style="display: none;" onchange="toggleGitFlowType()">
+                                        🧩 组件图
+                                    </label>
+                                    <label id="flowType-git-c4-label" class="style-label" style="cursor: pointer; padding: 8px 12px; border-radius: 6px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                        <input type="radio" name="gitFlowType" value="c4" style="display: none;" onchange="toggleGitFlowType()">
+                                        📊 C4模型
+                                    </label>
+                                    <label id="flowType-git-state-label" class="style-label" style="cursor: pointer; padding: 8px 12px; border-radius: 6px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                        <input type="radio" name="gitFlowType" value="state" style="display: none;" onchange="toggleGitFlowType()">
+                                        🔄 状态图
+                                    </label>
+                                    <label id="flowType-git-object-label" class="style-label" style="cursor: pointer; padding: 8px 12px; border-radius: 6px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                        <input type="radio" name="gitFlowType" value="object" style="display: none;" onchange="toggleGitFlowType()">
+                                        📦 对象图
+                                    </label>
+                                    <label id="flowType-git-deployment-label" class="style-label" style="cursor: pointer; padding: 8px 12px; border-radius: 6px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                        <input type="radio" name="gitFlowType" value="deployment" style="display: none;" onchange="toggleGitFlowType()">
+                                        🚀 部署图
+                                    </label>
+                                    <label id="flowType-git-usecase-label" class="style-label" style="cursor: pointer; padding: 8px 12px; border-radius: 6px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                        <input type="radio" name="gitFlowType" value="usecase" style="display: none;" onchange="toggleGitFlowType()">
+                                        📝 用例图
+                                    </label>
+                                    <label id="flowType-git-mindmap-label" class="style-label" style="cursor: pointer; padding: 8px 12px; border-radius: 6px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                        <input type="radio" name="gitFlowType" value="mindmap" style="display: none;" onchange="toggleGitFlowType()">
+                                        🗺️ 思维导图
+                                    </label>
+                                    <label id="flowType-git-timing-label" class="style-label" style="cursor: pointer; padding: 8px 12px; border-radius: 6px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                        <input type="radio" name="gitFlowType" value="timing" style="display: none;" onchange="toggleGitFlowType()">
+                                        ⏱️ 定时图
+                                    </label>
+                                    <label id="flowType-git-gantt-label" class="style-label" style="cursor: pointer; padding: 8px 12px; border-radius: 6px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                        <input type="radio" name="gitFlowType" value="gantt" style="display: none;" onchange="toggleGitFlowType()">
+                                        📊 甘特图
+                                    </label>
+                                    <label id="flowType-git-wbs-label" class="style-label" style="cursor: pointer; padding: 8px 12px; border-radius: 6px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                        <input type="radio" name="gitFlowType" value="wbs" style="display: none;" onchange="toggleGitFlowType()">
+                                        📋 WBS图
+                                    </label>
+                                </div>
                             </div>
-                        </div>
-                        <!-- 调用链样式选择 -->
-                        <div id="gitCallChainStyles" style="margin-bottom: 15px;">
-                            <div style="font-weight: 600; color: #333; margin-bottom: 10px; font-size: 14px;">🎨 调用链样式</div>
-                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                <button class="style-btn active" onclick="setGitStyle('ACTIVITY')" data-style="ACTIVITY">🏃 活动图</button>
-                                <button class="style-btn" onclick="setGitStyle('FLOWCHART')" data-style="FLOWCHART">🔀 流程图</button>
-                                <button class="style-btn" onclick="setGitStyle('WORKFLOW')" data-style="WORKFLOW">⚙️ 工作流</button>
-                                <button class="style-btn" onclick="setGitStyle('SEQUENCE')" data-style="SEQUENCE">📋 时序图</button>
-                                <button class="style-btn" onclick="setGitStyle('COMPONENT')" data-style="COMPONENT">🧩 组件图</button>
-                                <button class="style-btn" onclick="setGitStyle('C4')" data-style="C4">📊 C4模型</button>
-                                <button class="style-btn" onclick="setGitStyle('STATE')" data-style="STATE">🔄 状态图</button>
-                                <button class="style-btn" onclick="setGitStyle('OBJECT')" data-style="OBJECT">📦 对象图</button>
-                                <button class="style-btn" onclick="setGitStyle('DEPLOYMENT')" data-style="DEPLOYMENT">🚀 部署图</button>
-                                <button class="style-btn" onclick="setGitStyle('USECASE')" data-style="USECASE">📝 用例图</button>
-                                <button class="style-btn" onclick="setGitStyle('TIMING')" data-style="TIMING">⏱️ 定时图</button>
-                                <button class="style-btn" onclick="setGitStyle('GANTT')" data-style="GANTT">📊 甘特图</button>
-                                <button class="style-btn" onclick="setGitStyle('WBS')" data-style="WBS">📋 WBS图</button>
-                                <button class="style-btn" onclick="setGitStyle('MINDMAP')" data-style="MINDMAP">🗺️ 思维导图</button>
+
+                            <!-- 第二组：UML结构分析 -->
+                            <div>
+                                <div style="font-size: 12px; color: #666; margin-bottom: 6px;">📊 UML 结构分析：</div>
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                    <label id="flowType-git-umlClass-label" class="style-label" style="cursor: pointer; padding: 8px 12px; border-radius: 6px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                        <input type="radio" name="gitFlowType" value="umlClass" style="display: none;" onchange="toggleGitFlowType()">
+                                        📦 UML 类图
+                                    </label>
+                                    <label id="flowType-git-sequence-label" class="style-label" style="cursor: pointer; padding: 8px 12px; border-radius: 6px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                        <input type="radio" name="gitFlowType" value="sequence" style="display: none;" onchange="toggleGitFlowType()">
+                                        🔄 UML 时序图
+                                    </label>
+                                </div>
                             </div>
                         </div>
                         <div style="display: flex; gap: 15px; margin-bottom: 15px;">
@@ -1006,42 +1132,82 @@ public class TestClass {
                     <div class="file-info" id="jarFileInfo">
                         <span class="file-name" id="jarSelectedFileName"></span>
                     </div>
-                    <!-- 流程图类型选择 -->
+                    <!-- 流程图类型选择 - 合并后的版本 -->
                     <div style="margin-bottom: 20px;">
-                        <div style="font-weight: 600; color: #333; margin-bottom: 12px; font-size: 16px;">📊 流程图类型</div>
-                        <div style="display: flex; gap: 10px;">
-                            <label id="flowType-jar-callChain-label" class="style-label active" style="cursor: pointer; padding: 12px 20px; border-radius: 10px; border: 2px solid #667eea; background: #667eea; color: white; transition: all 0.3s ease;">
-                                <input type="radio" name="jarFlowType" value="callChain" checked style="display: none;" onchange="toggleJarFlowType()">
-                                🔗 调用链图
-                            </label>
-                            <label id="flowType-jar-umlClass-label" class="style-label" style="cursor: pointer; padding: 12px 20px; border-radius: 10px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
-                                <input type="radio" name="jarFlowType" value="umlClass" style="display: none;" onchange="toggleJarFlowType()">
-                                📦 类图
-                            </label>
-                            <label id="flowType-jar-sequence-label" class="style-label" style="cursor: pointer; padding: 12px 20px; border-radius: 10px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
-                                <input type="radio" name="jarFlowType" value="sequence" style="display: none;" onchange="toggleJarFlowType()">
-                                🔄 时序图
-                            </label>
+                        <div style="font-weight: 600; color: #333; margin-bottom: 12px; font-size: 16px;">📌 选择流程图类型</div>
+
+                        <!-- 第一组：方法调用链（多种展示形式） -->
+                        <div style="margin-bottom: 15px;">
+                            <div style="font-size: 13px; color: #666; margin-bottom: 8px;">🔗 方法调用链 - 可选择不同的展示形式：</div>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <label id="flowType-jar-activity-label" class="style-label active" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #667eea; background: #667eea; color: white; transition: all 0.3s ease;">
+                                    <input type="radio" name="jarFlowType" value="activity" checked style="display: none;" onchange="toggleJarFlowType()">
+                                    🏃 活动图
+                                </label>
+                                <label id="flowType-jar-flowchart-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="jarFlowType" value="flowchart" style="display: none;" onchange="toggleJarFlowType()">
+                                    🔀 流程图
+                                </label>
+                                <label id="flowType-jar-workflow-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="jarFlowType" value="workflow" style="display: none;" onchange="toggleJarFlowType()">
+                                    ⚙️ 工作流
+                                </label>
+                                <label id="flowType-jar-component-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="jarFlowType" value="component" style="display: none;" onchange="toggleJarFlowType()">
+                                    🧩 组件图
+                                </label>
+                                <label id="flowType-jar-c4-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="jarFlowType" value="c4" style="display: none;" onchange="toggleJarFlowType()">
+                                    📊 C4模型
+                                </label>
+                                <label id="flowType-jar-state-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="jarFlowType" value="state" style="display: none;" onchange="toggleJarFlowType()">
+                                    🔄 状态图
+                                </label>
+                                <label id="flowType-jar-object-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="jarFlowType" value="object" style="display: none;" onchange="toggleJarFlowType()">
+                                    📦 对象图
+                                </label>
+                                <label id="flowType-jar-deployment-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="jarFlowType" value="deployment" style="display: none;" onchange="toggleJarFlowType()">
+                                    🚀 部署图
+                                </label>
+                                <label id="flowType-jar-usecase-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="jarFlowType" value="usecase" style="display: none;" onchange="toggleJarFlowType()">
+                                    📝 用例图
+                                </label>
+                                <label id="flowType-jar-mindmap-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="jarFlowType" value="mindmap" style="display: none;" onchange="toggleJarFlowType()">
+                                    🗺️ 思维导图
+                                </label>
+                                <label id="flowType-jar-timing-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="jarFlowType" value="timing" style="display: none;" onchange="toggleJarFlowType()">
+                                    ⏱️ 定时图
+                                </label>
+                                <label id="flowType-jar-gantt-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="jarFlowType" value="gantt" style="display: none;" onchange="toggleJarFlowType()">
+                                    📊 甘特图
+                                </label>
+                                <label id="flowType-jar-wbs-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="jarFlowType" value="wbs" style="display: none;" onchange="toggleJarFlowType()">
+                                    📋 WBS图
+                                </label>
+                            </div>
                         </div>
-                    </div>
-                    <!-- 调用链样式选择 -->
-                    <div id="jarCallChainStyles" style="margin-bottom: 20px;">
-                        <div style="font-weight: 600; color: #333; margin-bottom: 12px; font-size: 16px;">🎨 调用链样式</div>
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button class="style-btn active" onclick="setJarStyle('ACTIVITY')" data-style="ACTIVITY">🏃 活动图</button>
-                            <button class="style-btn" onclick="setJarStyle('FLOWCHART')" data-style="FLOWCHART">🔀 流程图</button>
-                            <button class="style-btn" onclick="setJarStyle('WORKFLOW')" data-style="WORKFLOW">⚙️ 工作流</button>
-                            <button class="style-btn" onclick="setJarStyle('SEQUENCE')" data-style="SEQUENCE">📋 时序图</button>
-                            <button class="style-btn" onclick="setJarStyle('COMPONENT')" data-style="COMPONENT">🧩 组件图</button>
-                            <button class="style-btn" onclick="setJarStyle('C4')" data-style="C4">📊 C4模型</button>
-                            <button class="style-btn" onclick="setJarStyle('STATE')" data-style="STATE">🔄 状态图</button>
-                            <button class="style-btn" onclick="setJarStyle('OBJECT')" data-style="OBJECT">📦 对象图</button>
-                            <button class="style-btn" onclick="setJarStyle('DEPLOYMENT')" data-style="DEPLOYMENT">🚀 部署图</button>
-                            <button class="style-btn" onclick="setJarStyle('USECASE')" data-style="USECASE">📝 用例图</button>
-                            <button class="style-btn" onclick="setJarStyle('TIMING')" data-style="TIMING">⏱️ 定时图</button>
-                            <button class="style-btn" onclick="setJarStyle('GANTT')" data-style="GANTT">📊 甘特图</button>
-                            <button class="style-btn" onclick="setJarStyle('WBS')" data-style="WBS">📋 WBS图</button>
-                            <button class="style-btn" onclick="setJarStyle('MINDMAP')" data-style="MINDMAP">🗺️ 思维导图</button>
+
+                        <!-- 第二组：UML结构分析 -->
+                        <div>
+                            <div style="font-size: 13px; color: #666; margin-bottom: 8px;">📊 UML 结构分析：</div>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <label id="flowType-jar-umlClass-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="jarFlowType" value="umlClass" style="display: none;" onchange="toggleJarFlowType()">
+                                    📦 UML 类图
+                                </label>
+                                <label id="flowType-jar-sequence-label" class="style-label" style="cursor: pointer; padding: 10px 16px; border-radius: 8px; border: 2px solid #e0e0e0; background: #f8f9ff; color: #333; transition: all 0.3s ease;">
+                                    <input type="radio" name="jarFlowType" value="sequence" style="display: none;" onchange="toggleJarFlowType()">
+                                    🔄 UML 时序图
+                                </label>
+                            </div>
                         </div>
                     </div>
                     <div style="display: flex; gap: 15px; margin-bottom: 15px;">
@@ -1405,6 +1571,29 @@ public class TestClass {
             window.selectedFile = file;
         }
 
+        // 获取过滤选项（合并后的选项映射到原选项）
+        function getFilterOptions() {
+            const boilerplate = document.getElementById('filterBoilerplate')?.checked ?? true;
+            const methodModifiers = document.getElementById('filterMethodModifiers')?.checked ?? false;
+            const utilityMethods = document.getElementById('filterUtilityMethods')?.checked ?? false;
+
+            return {
+                excludeJdk: document.getElementById('filterJdk')?.checked ?? true,
+                excludeLogging: document.getElementById('filterLogging')?.checked ?? true,
+                excludeGetterSetter: boilerplate,
+                excludeConstructors: boilerplate,
+                excludeBuilderMethods: boilerplate,
+                excludeLombokMethods: boilerplate,
+                excludeCommonObject: false,
+                excludeLt: document.getElementById('filterLt')?.checked ?? true,
+                excludeTestMethods: document.getElementById('filterTestMethods')?.checked ?? false,
+                excludeStaticMethods: methodModifiers,
+                excludePrivateMethods: methodModifiers,
+                excludeCollectionMethods: utilityMethods,
+                excludeStringMethods: utilityMethods
+            };
+        }
+
         // 渲染文件列表
         function renderFileList() {
             const container = document.getElementById('fileList');
@@ -1424,7 +1613,7 @@ public class TestClass {
         // 批量处理文件
         async function batchProcessFiles() {
             const flowType = getSelectedFlowType();
-            const callChainStyle = getSelectedCallChainStyle();
+            const callChainStyle = mapFlowTypeToStyle(flowType);
             showLoading();
             hideError();
 
@@ -1443,22 +1632,23 @@ public class TestClass {
                         formData.append('file', file);
 
                         // 过滤选项作为全局配置，所有流程图类型都发送
-                        formData.append('excludeJdk', document.getElementById('filterJdk').checked);
-                        formData.append('excludeLogging', document.getElementById('filterLogging').checked);
-                        formData.append('excludeGetterSetter', document.getElementById('filterGetterSetter').checked);
-                        formData.append('excludeConstructors', document.getElementById('filterConstructors').checked);
-                        formData.append('excludeBuilderMethods', document.getElementById('filterBuilderMethods').checked);
-                        formData.append('excludeLombokMethods', document.getElementById('filterLombokMethods').checked);
-                        formData.append('excludeLt', document.getElementById('filterLt').checked);
-                        formData.append('excludeTestMethods', document.getElementById('excludeTestMethods').checked);
-                        formData.append('excludeStaticMethods', document.getElementById('excludeStaticMethods').checked);
-                        formData.append('excludePrivateMethods', document.getElementById('excludePrivateMethods').checked);
-                        formData.append('excludeCollectionMethods', document.getElementById('excludeCollectionMethods').checked);
-                        formData.append('excludeStringMethods', document.getElementById('excludeStringMethods').checked);
+                        const filters = getFilterOptions();
+                        formData.append('excludeJdk', filters.excludeJdk);
+                        formData.append('excludeLogging', filters.excludeLogging);
+                        formData.append('excludeGetterSetter', filters.excludeGetterSetter);
+                        formData.append('excludeConstructors', filters.excludeConstructors);
+                        formData.append('excludeBuilderMethods', filters.excludeBuilderMethods);
+                        formData.append('excludeLombokMethods', filters.excludeLombokMethods);
+                        formData.append('excludeLt', filters.excludeLt);
+                        formData.append('excludeTestMethods', filters.excludeTestMethods);
+                        formData.append('excludeStaticMethods', filters.excludeStaticMethods);
+                        formData.append('excludePrivateMethods', filters.excludePrivateMethods);
+                        formData.append('excludeCollectionMethods', filters.excludeCollectionMethods);
+                        formData.append('excludeStringMethods', filters.excludeStringMethods);
                         formData.append('theme', currentUploadTheme);
 
                         let url;
-                        if (flowType === 'callChain') {
+                        if (isCallChainVariant(flowType)) {
                             url = '/api/flow/upload/file-enhanced';
                             formData.append('style', callChainStyle);
                         } else if (flowType === 'umlClass') {
@@ -1524,6 +1714,32 @@ public class TestClass {
             return currentUploadStyle;
         }
 
+        // 把流程图类型映射为DiagramStyle
+        function mapFlowTypeToStyle(flowType) {
+            switch(flowType) {
+                case 'activity': return 'ACTIVITY';
+                case 'flowchart': return 'FLOWCHART';
+                case 'workflow': return 'WORKFLOW';
+                case 'component': return 'COMPONENT';
+                case 'c4': return 'C4';
+                case 'state': return 'STATE';
+                case 'object': return 'OBJECT';
+                case 'deployment': return 'DEPLOYMENT';
+                case 'usecase': return 'USECASE';
+                case 'mindmap': return 'MINDMAP';
+                case 'timing': return 'TIMING';
+                case 'gantt': return 'GANTT';
+                case 'wbs': return 'WBS';
+                default: return 'ACTIVITY';
+            }
+        }
+
+        // 判断是否是调用链类型的变体
+        function isCallChainVariant(flowType) {
+            const callChainVariants = ['activity', 'flowchart', 'workflow', 'component', 'c4', 'state', 'object', 'deployment', 'usecase', 'mindmap', 'timing', 'gantt', 'wbs'];
+            return callChainVariants.includes(flowType);
+        }
+
         // 获取当前选择的流程图类型
         function getSelectedFlowType() {
             const radios = document.querySelectorAll('input[name="flowType"]');
@@ -1534,7 +1750,7 @@ public class TestClass {
             }
             return 'callChain'; // 默认
         }
-        
+
         // 上传文件
         async function uploadFile() {
             if (!window.selectedFile) {
@@ -1543,7 +1759,7 @@ public class TestClass {
             }
 
             const flowType = getSelectedFlowType();
-            const callChainStyle = getSelectedCallChainStyle();
+            const callChainStyle = mapFlowTypeToStyle(flowType);
             showLoading();
             hideError();
             hideResults();
@@ -1552,27 +1768,28 @@ public class TestClass {
             formData.append('file', window.selectedFile);
 
             // 过滤选项作为全局配置，所有流程图类型都发送
-            formData.append('excludeJdk', document.getElementById('filterJdk').checked);
-            formData.append('excludeLogging', document.getElementById('filterLogging').checked);
-            formData.append('excludeGetterSetter', document.getElementById('filterGetterSetter').checked);
-            formData.append('excludeConstructors', document.getElementById('filterConstructors').checked);
-            formData.append('excludeBuilderMethods', document.getElementById('filterBuilderMethods').checked);
-            formData.append('excludeLombokMethods', document.getElementById('filterLombokMethods').checked);
-            formData.append('excludeLt', document.getElementById('filterLt').checked);
-            formData.append('excludeTestMethods', document.getElementById('filterTestMethods').checked);
-            formData.append('excludeStaticMethods', document.getElementById('filterStaticMethods').checked);
-            formData.append('excludePrivateMethods', document.getElementById('filterPrivateMethods').checked);
-            formData.append('excludeCollectionMethods', document.getElementById('filterCollectionMethods').checked);
-            formData.append('excludeStringMethods', document.getElementById('filterStringMethods').checked);
+            const filters = getFilterOptions();
+            formData.append('excludeJdk', filters.excludeJdk);
+            formData.append('excludeLogging', filters.excludeLogging);
+            formData.append('excludeGetterSetter', filters.excludeGetterSetter);
+            formData.append('excludeConstructors', filters.excludeConstructors);
+            formData.append('excludeBuilderMethods', filters.excludeBuilderMethods);
+            formData.append('excludeLombokMethods', filters.excludeLombokMethods);
+            formData.append('excludeLt', filters.excludeLt);
+            formData.append('excludeTestMethods', filters.excludeTestMethods);
+            formData.append('excludeStaticMethods', filters.excludeStaticMethods);
+            formData.append('excludePrivateMethods', filters.excludePrivateMethods);
+            formData.append('excludeCollectionMethods', filters.excludeCollectionMethods);
+            formData.append('excludeStringMethods', filters.excludeStringMethods);
             formData.append('theme', currentUploadTheme);
 
-            if (flowType === 'callChain') {
+            if (isCallChainVariant(flowType)) {
                 formData.append('style', callChainStyle);
             }
 
             try {
                 let url;
-                if (flowType === 'callChain') {
+                if (isCallChainVariant(flowType)) {
                     url = '/api/flow/upload/file-enhanced';
                 } else if (flowType === 'umlClass') {
                     url = '/api/flow/uml/upload/file';
@@ -1608,7 +1825,7 @@ public class TestClass {
             }
 
             const flowType = getSelectedCodeFlowType();
-            const callChainStyle = currentCodeStyle;
+            const callChainStyle = mapFlowTypeToStyle(flowType);
             showLoading();
             hideError();
             hideResults();
@@ -1618,21 +1835,22 @@ public class TestClass {
                 const requestBody = { code: code };
 
                 // 过滤选项作为全局配置，所有流程图类型都发送
-                requestBody.excludeJdk = document.getElementById('filterJdk').checked;
-                requestBody.excludeLogging = document.getElementById('filterLogging').checked;
-                requestBody.excludeGetterSetter = document.getElementById('filterGetterSetter').checked;
-                requestBody.excludeConstructors = document.getElementById('filterConstructors').checked;
-                requestBody.excludeBuilderMethods = document.getElementById('filterBuilderMethods').checked;
-                requestBody.excludeLombokMethods = document.getElementById('filterLombokMethods').checked;
-                requestBody.excludeLt = document.getElementById('filterLt').checked;
-                requestBody.excludeTestMethods = document.getElementById('filterTestMethods').checked;
-                requestBody.excludeStaticMethods = document.getElementById('filterStaticMethods').checked;
-                requestBody.excludePrivateMethods = document.getElementById('filterPrivateMethods').checked;
-                requestBody.excludeCollectionMethods = document.getElementById('filterCollectionMethods').checked;
-                requestBody.excludeStringMethods = document.getElementById('filterStringMethods').checked;
+                const filters = getFilterOptions();
+                requestBody.excludeJdk = filters.excludeJdk;
+                requestBody.excludeLogging = filters.excludeLogging;
+                requestBody.excludeGetterSetter = filters.excludeGetterSetter;
+                requestBody.excludeConstructors = filters.excludeConstructors;
+                requestBody.excludeBuilderMethods = filters.excludeBuilderMethods;
+                requestBody.excludeLombokMethods = filters.excludeLombokMethods;
+                requestBody.excludeLt = filters.excludeLt;
+                requestBody.excludeTestMethods = filters.excludeTestMethods;
+                requestBody.excludeStaticMethods = filters.excludeStaticMethods;
+                requestBody.excludePrivateMethods = filters.excludePrivateMethods;
+                requestBody.excludeCollectionMethods = filters.excludeCollectionMethods;
+                requestBody.excludeStringMethods = filters.excludeStringMethods;
                 requestBody.theme = currentCodeTheme;
 
-                if (flowType === 'callChain') {
+                if (isCallChainVariant(flowType)) {
                     url = '/api/flow/parse/code-enhanced';
                     requestBody.style = callChainStyle;
                 } else if (flowType === 'umlClass') {
@@ -1909,7 +2127,6 @@ public class TestClass {
         // 切换流程图类型
         function toggleFlowType() {
             const flowType = getSelectedFlowType();
-            const callChainStyles = document.getElementById('callChainStyles');
             const filterOptions = document.getElementById('filterOptions');
             const echartsStyleSelector = document.getElementById('echartsStyleSelector');
             const viewToggle = document.getElementById('viewToggle');
@@ -1917,24 +2134,16 @@ public class TestClass {
             // 过滤选项作为全局配置，始终显示
             filterOptions.style.display = 'block';
 
-            if (flowType === 'callChain') {
-                callChainStyles.style.display = 'block';
+            // 对于调用链类型（第一组），显示ECharts样式选择器和视图切换
+            if (isCallChainVariant(flowType)) {
                 if (echartsStyleSelector) {
                     echartsStyleSelector.style.display = 'flex';
                 }
                 if (viewToggle) {
                     viewToggle.style.display = 'flex';
                 }
-            } else if (flowType === 'sequence') {
-                callChainStyles.style.display = 'none';
-                if (echartsStyleSelector) {
-                    echartsStyleSelector.style.display = 'none';
-                }
-                if (viewToggle) {
-                    viewToggle.style.display = 'none';
-                }
             } else {
-                callChainStyles.style.display = 'none';
+                // UML类图或时序图，不显示ECharts相关选择器
                 if (echartsStyleSelector) {
                     echartsStyleSelector.style.display = 'none';
                 }
@@ -1944,7 +2153,7 @@ public class TestClass {
             }
 
             // 更新选中样式
-            document.querySelectorAll('#flowType-callChain-label, #flowType-umlClass-label, #flowType-sequence-label').forEach(label => {
+            document.querySelectorAll('[id^="flowType-"][id$="-label"]').forEach(label => {
                 label.style.borderColor = '#e0e0e0';
                 label.style.background = '#f8f9ff';
                 label.style.color = '#333';
@@ -2388,19 +2597,14 @@ public class TestClass {
                 projectStyle: currentProjectStyle,
                 gitStyle: currentGitStyle,
                 jarStyle: currentJarStyle,
-                // 过滤选项配置
+                // 过滤选项配置（新的合并选项）
                 filterJdk: document.getElementById('filterJdk')?.checked,
                 filterLogging: document.getElementById('filterLogging')?.checked,
-                filterGetterSetter: document.getElementById('filterGetterSetter')?.checked,
-                filterConstructors: document.getElementById('filterConstructors')?.checked,
-                filterBuilderMethods: document.getElementById('filterBuilderMethods')?.checked,
-                filterLombokMethods: document.getElementById('filterLombokMethods')?.checked,
+                filterBoilerplate: document.getElementById('filterBoilerplate')?.checked,
                 filterLt: document.getElementById('filterLt')?.checked,
                 filterTestMethods: document.getElementById('filterTestMethods')?.checked,
-                filterStaticMethods: document.getElementById('filterStaticMethods')?.checked,
-                filterPrivateMethods: document.getElementById('filterPrivateMethods')?.checked,
-                filterCollectionMethods: document.getElementById('filterCollectionMethods')?.checked,
-                filterStringMethods: document.getElementById('filterStringMethods')?.checked,
+                filterMethodModifiers: document.getElementById('filterMethodModifiers')?.checked,
+                filterUtilityMethods: document.getElementById('filterUtilityMethods')?.checked,
             };
             localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
         }
@@ -2434,17 +2638,16 @@ public class TestClass {
                 if (typeof config.filterLogging === 'boolean' && document.getElementById('filterLogging')) {
                     document.getElementById('filterLogging').checked = config.filterLogging;
                 }
-                if (typeof config.filterGetterSetter === 'boolean' && document.getElementById('filterGetterSetter')) {
-                    document.getElementById('filterGetterSetter').checked = config.filterGetterSetter;
-                }
-                if (typeof config.filterConstructors === 'boolean' && document.getElementById('filterConstructors')) {
-                    document.getElementById('filterConstructors').checked = config.filterConstructors;
-                }
-                if (typeof config.filterBuilderMethods === 'boolean' && document.getElementById('filterBuilderMethods')) {
-                    document.getElementById('filterBuilderMethods').checked = config.filterBuilderMethods;
-                }
-                if (typeof config.filterLombokMethods === 'boolean' && document.getElementById('filterLombokMethods')) {
-                    document.getElementById('filterLombokMethods').checked = config.filterLombokMethods;
+                // 兼容新旧配置：如果有新配置则用新配置，否则从旧配置推导
+                if (typeof config.filterBoilerplate === 'boolean' && document.getElementById('filterBoilerplate')) {
+                    document.getElementById('filterBoilerplate').checked = config.filterBoilerplate;
+                } else if (typeof config.filterGetterSetter === 'boolean') {
+                    // 从旧配置推导：如果有任意一个样板代码选项被设置，则用它们的组合值
+                    const boilerplateValue = config.filterGetterSetter || config.filterConstructors ||
+                                             config.filterBuilderMethods || config.filterLombokMethods;
+                    if (document.getElementById('filterBoilerplate')) {
+                        document.getElementById('filterBoilerplate').checked = boilerplateValue;
+                    }
                 }
                 if (typeof config.filterLt === 'boolean' && document.getElementById('filterLt')) {
                     document.getElementById('filterLt').checked = config.filterLt;
@@ -2452,17 +2655,23 @@ public class TestClass {
                 if (typeof config.filterTestMethods === 'boolean' && document.getElementById('filterTestMethods')) {
                     document.getElementById('filterTestMethods').checked = config.filterTestMethods;
                 }
-                if (typeof config.filterStaticMethods === 'boolean' && document.getElementById('filterStaticMethods')) {
-                    document.getElementById('filterStaticMethods').checked = config.filterStaticMethods;
+                // 兼容新旧配置：methodModifiers
+                if (typeof config.filterMethodModifiers === 'boolean' && document.getElementById('filterMethodModifiers')) {
+                    document.getElementById('filterMethodModifiers').checked = config.filterMethodModifiers;
+                } else if (typeof config.filterStaticMethods === 'boolean') {
+                    const modifierValue = config.filterStaticMethods || config.filterPrivateMethods;
+                    if (document.getElementById('filterMethodModifiers')) {
+                        document.getElementById('filterMethodModifiers').checked = modifierValue;
+                    }
                 }
-                if (typeof config.filterPrivateMethods === 'boolean' && document.getElementById('filterPrivateMethods')) {
-                    document.getElementById('filterPrivateMethods').checked = config.filterPrivateMethods;
-                }
-                if (typeof config.filterCollectionMethods === 'boolean' && document.getElementById('filterCollectionMethods')) {
-                    document.getElementById('filterCollectionMethods').checked = config.filterCollectionMethods;
-                }
-                if (typeof config.filterStringMethods === 'boolean' && document.getElementById('filterStringMethods')) {
-                    document.getElementById('filterStringMethods').checked = config.filterStringMethods;
+                // 兼容新旧配置：utilityMethods
+                if (typeof config.filterUtilityMethods === 'boolean' && document.getElementById('filterUtilityMethods')) {
+                    document.getElementById('filterUtilityMethods').checked = config.filterUtilityMethods;
+                } else if (typeof config.filterCollectionMethods === 'boolean') {
+                    const utilityValue = config.filterCollectionMethods || config.filterStringMethods;
+                    if (document.getElementById('filterUtilityMethods')) {
+                        document.getElementById('filterUtilityMethods').checked = utilityValue;
+                    }
                 }
 
                 // 更新风格按钮状态
@@ -2584,15 +2793,9 @@ public class TestClass {
         // ==================== 本地项目解析 ====================
         function toggleProjectFlowType() {
             const flowType = getSelectedProjectFlowType();
-            const callChainStyles = document.getElementById('projectCallChainStyles');
 
-            if (flowType === 'callChain') {
-                callChainStyles.style.display = 'block';
-            } else {
-                callChainStyles.style.display = 'none';
-            }
-
-            document.querySelectorAll('#flowType-project-callChain-label, #flowType-project-umlClass-label, #flowType-project-sequence-label').forEach(label => {
+            // 更新选中样式 - 使用通用选择器
+            document.querySelectorAll('[id^="flowType-project-"][id$="-label"]').forEach(label => {
                 label.style.borderColor = '#e0e0e0';
                 label.style.background = '#f8f9ff';
                 label.style.color = '#333';
@@ -2623,15 +2826,9 @@ public class TestClass {
 
         function toggleCodeFlowType() {
             const flowType = getSelectedCodeFlowType();
-            const callChainStyles = document.getElementById('codeCallChainStyles');
 
-            if (flowType === 'callChain') {
-                callChainStyles.style.display = 'block';
-            } else {
-                callChainStyles.style.display = 'none';
-            }
-
-            document.querySelectorAll('#flowType-code-callChain-label, #flowType-code-umlClass-label, #flowType-code-sequence-label').forEach(label => {
+            // 更新选中样式 - 使用通用选择器
+            document.querySelectorAll('[id^="flowType-code-"][id$="-label"]').forEach(label => {
                 label.style.borderColor = '#e0e0e0';
                 label.style.background = '#f8f9ff';
                 label.style.color = '#333';
@@ -2693,28 +2890,32 @@ public class TestClass {
                 const includePackages = document.getElementById('includePackages').value.trim();
                 const excludePackages = document.getElementById('excludePackages').value.trim();
                 const flowType = getSelectedProjectFlowType();
+                const callChainStyle = mapFlowTypeToStyle(flowType);
 
                 const formData = new FormData();
                 formData.append('projectPath', projectPath);
                 if (includePackages) formData.append('includePackages', includePackages);
                 if (excludePackages) formData.append('excludePackages', excludePackages);
                 formData.append('flowType', flowType);
-                formData.append('style', currentProjectStyle);
+                if (isCallChainVariant(flowType)) {
+                    formData.append('style', callChainStyle);
+                }
                 formData.append('theme', currentProjectTheme);
 
                 // 过滤选项
-                formData.append('excludeJdk', document.getElementById('filterJdk').checked);
-                formData.append('excludeLogging', document.getElementById('filterLogging').checked);
-                formData.append('excludeGetterSetter', document.getElementById('filterGetterSetter').checked);
-                formData.append('excludeCommonObject', document.getElementById('filterCommonObject').checked);
-                formData.append('excludeBuilderMethods', document.getElementById('filterBuilderMethods').checked);
-                formData.append('excludeLombokMethods', document.getElementById('filterLombokMethods').checked);
-                formData.append('excludeLt', document.getElementById('filterLt').checked);
-                formData.append('excludeTestMethods', document.getElementById('filterTestMethods').checked);
-                formData.append('excludeStaticMethods', document.getElementById('filterStaticMethods').checked);
-                formData.append('excludePrivateMethods', document.getElementById('filterPrivateMethods').checked);
-                formData.append('excludeCollectionMethods', document.getElementById('filterCollectionMethods').checked);
-                formData.append('excludeStringMethods', document.getElementById('filterStringMethods').checked);
+                const filters = getFilterOptions();
+                formData.append('excludeJdk', filters.excludeJdk);
+                formData.append('excludeLogging', filters.excludeLogging);
+                formData.append('excludeGetterSetter', filters.excludeGetterSetter);
+                formData.append('excludeCommonObject', filters.excludeCommonObject);
+                formData.append('excludeBuilderMethods', filters.excludeBuilderMethods);
+                formData.append('excludeLombokMethods', filters.excludeLombokMethods);
+                formData.append('excludeLt', filters.excludeLt);
+                formData.append('excludeTestMethods', filters.excludeTestMethods);
+                formData.append('excludeStaticMethods', filters.excludeStaticMethods);
+                formData.append('excludePrivateMethods', filters.excludePrivateMethods);
+                formData.append('excludeCollectionMethods', filters.excludeCollectionMethods);
+                formData.append('excludeStringMethods', filters.excludeStringMethods);
 
                 const response = await fetch('/api/flow/project/parse', {
                     method: 'POST',
@@ -2872,15 +3073,9 @@ public class TestClass {
 
         function toggleGitFlowType() {
             const flowType = getSelectedGitFlowType();
-            const callChainStyles = document.getElementById('gitCallChainStyles');
 
-            if (flowType === 'callChain') {
-                callChainStyles.style.display = 'block';
-            } else {
-                callChainStyles.style.display = 'none';
-            }
-
-            document.querySelectorAll('#flowType-git-callChain-label, #flowType-git-umlClass-label, #flowType-git-sequence-label').forEach(label => {
+            // 更新选中样式 - 使用通用选择器
+            document.querySelectorAll('[id^="flowType-git-"][id$="-label"]').forEach(label => {
                 label.style.borderColor = '#e0e0e0';
                 label.style.background = '#f8f9ff';
                 label.style.color = '#333';
@@ -2922,28 +3117,32 @@ public class TestClass {
                 const includePackages = document.getElementById('gitIncludePackages').value.trim();
                 const excludePackages = document.getElementById('gitExcludePackages').value.trim();
                 const flowType = getSelectedGitFlowType();
+                const callChainStyle = mapFlowTypeToStyle(flowType);
 
                 const formData = new FormData();
                 formData.append('projectPath', repoPath);
                 if (includePackages) formData.append('includePackages', includePackages);
                 if (excludePackages) formData.append('excludePackages', excludePackages);
                 formData.append('flowType', flowType);
-                formData.append('style', currentGitStyle);
+                if (isCallChainVariant(flowType)) {
+                    formData.append('style', callChainStyle);
+                }
                 formData.append('theme', currentGitTheme);
 
                 // 过滤选项
-                formData.append('excludeJdk', document.getElementById('filterJdk').checked);
-                formData.append('excludeLogging', document.getElementById('filterLogging').checked);
-                formData.append('excludeGetterSetter', document.getElementById('filterGetterSetter').checked);
-                formData.append('excludeCommonObject', document.getElementById('filterCommonObject').checked);
-                formData.append('excludeBuilderMethods', document.getElementById('filterBuilderMethods').checked);
-                formData.append('excludeLombokMethods', document.getElementById('filterLombokMethods').checked);
-                formData.append('excludeLt', document.getElementById('filterLt').checked);
-                formData.append('excludeTestMethods', document.getElementById('filterTestMethods').checked);
-                formData.append('excludeStaticMethods', document.getElementById('filterStaticMethods').checked);
-                formData.append('excludePrivateMethods', document.getElementById('filterPrivateMethods').checked);
-                formData.append('excludeCollectionMethods', document.getElementById('filterCollectionMethods').checked);
-                formData.append('excludeStringMethods', document.getElementById('filterStringMethods').checked);
+                const filters = getFilterOptions();
+                formData.append('excludeJdk', filters.excludeJdk);
+                formData.append('excludeLogging', filters.excludeLogging);
+                formData.append('excludeGetterSetter', filters.excludeGetterSetter);
+                formData.append('excludeCommonObject', filters.excludeCommonObject);
+                formData.append('excludeBuilderMethods', filters.excludeBuilderMethods);
+                formData.append('excludeLombokMethods', filters.excludeLombokMethods);
+                formData.append('excludeLt', filters.excludeLt);
+                formData.append('excludeTestMethods', filters.excludeTestMethods);
+                formData.append('excludeStaticMethods', filters.excludeStaticMethods);
+                formData.append('excludePrivateMethods', filters.excludePrivateMethods);
+                formData.append('excludeCollectionMethods', filters.excludeCollectionMethods);
+                formData.append('excludeStringMethods', filters.excludeStringMethods);
 
                 const response = await fetch('/api/flow/project/parse', {
                     method: 'POST',
@@ -3021,14 +3220,17 @@ public class TestClass {
             const flowType = getSelectedJarFlowType();
             const callChainStyles = document.getElementById('jarCallChainStyles');
 
-            if (flowType === 'callChain') {
+            // 定义哪些类型是callChain的变体（显示样式选择器）
+            const callChainVariants = ['callChain', 'activity', 'component', 'state', 'mindmap', 'object', 'deployment', 'usecase', 'c4'];
+
+            if (callChainVariants.includes(flowType)) {
                 callChainStyles.style.display = 'block';
             } else {
                 callChainStyles.style.display = 'none';
             }
 
-            // 更新选中样式
-            document.querySelectorAll('#flowType-jar-callChain-label, #flowType-jar-umlClass-label, #flowType-jar-sequence-label').forEach(label => {
+            // 更新选中样式 - 使用通用选择器
+            document.querySelectorAll('[id^="flowType-jar-"][id$="-label"]').forEach(label => {
                 label.style.borderColor = '#e0e0e0';
                 label.style.background = '#f8f9ff';
                 label.style.color = '#333';
@@ -3069,28 +3271,32 @@ public class TestClass {
                 const includePackages = document.getElementById('jarIncludePackages').value.trim();
                 const excludePackages = document.getElementById('jarExcludePackages').value.trim();
                 const flowType = getSelectedJarFlowType();
+                const callChainStyle = mapFlowTypeToStyle(flowType);
 
                 const formData = new FormData();
                 formData.append('jarFile', selectedJarFile);
                 if (includePackages) formData.append('includePackages', includePackages);
                 if (excludePackages) formData.append('excludePackages', excludePackages);
                 formData.append('flowType', flowType);
-                formData.append('style', currentJarStyle);
+                if (isCallChainVariant(flowType)) {
+                    formData.append('style', callChainStyle);
+                }
                 formData.append('theme', currentJarTheme);
 
                 // 过滤选项
-                formData.append('excludeJdk', document.getElementById('filterJdk').checked);
-                formData.append('excludeLogging', document.getElementById('filterLogging').checked);
-                formData.append('excludeGetterSetter', document.getElementById('filterGetterSetter').checked);
-                formData.append('excludeCommonObject', document.getElementById('filterCommonObject').checked);
-                formData.append('excludeBuilderMethods', document.getElementById('filterBuilderMethods').checked);
-                formData.append('excludeLombokMethods', document.getElementById('filterLombokMethods').checked);
-                formData.append('excludeLt', document.getElementById('filterLt').checked);
-                formData.append('excludeTestMethods', document.getElementById('filterTestMethods').checked);
-                formData.append('excludeStaticMethods', document.getElementById('filterStaticMethods').checked);
-                formData.append('excludePrivateMethods', document.getElementById('filterPrivateMethods').checked);
-                formData.append('excludeCollectionMethods', document.getElementById('filterCollectionMethods').checked);
-                formData.append('excludeStringMethods', document.getElementById('filterStringMethods').checked);
+                const filters = getFilterOptions();
+                formData.append('excludeJdk', filters.excludeJdk);
+                formData.append('excludeLogging', filters.excludeLogging);
+                formData.append('excludeGetterSetter', filters.excludeGetterSetter);
+                formData.append('excludeCommonObject', filters.excludeCommonObject);
+                formData.append('excludeBuilderMethods', filters.excludeBuilderMethods);
+                formData.append('excludeLombokMethods', filters.excludeLombokMethods);
+                formData.append('excludeLt', filters.excludeLt);
+                formData.append('excludeTestMethods', filters.excludeTestMethods);
+                formData.append('excludeStaticMethods', filters.excludeStaticMethods);
+                formData.append('excludePrivateMethods', filters.excludePrivateMethods);
+                formData.append('excludeCollectionMethods', filters.excludeCollectionMethods);
+                formData.append('excludeStringMethods', filters.excludeStringMethods);
 
                 const response = await fetch('/api/flow/jar/parse', {
                     method: 'POST',

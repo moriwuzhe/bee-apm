@@ -159,7 +159,7 @@
     </el-tabs>
 
     <!-- 诊断结果对话框 -->
-    <el-dialog v-model="showDiagDialog" :title="diagDialogTitle" width="900px">
+    <el-dialog v-model="showDiagDialog" :title="diagDialogTitle" width="900px" @opened="handleDialogOpened">
       
       <!-- 图表模式 -->
       <div v-if="diagMode === 'chart' && currentDiagType" class="diag-chart-content">
@@ -321,7 +321,7 @@
 
         <!-- 内存信息图表 -->
         <div v-else-if="currentDiagType === 'memory'" class="chart-container">
-          <el-tabs v-model="memoryTab" type="border-card">
+          <el-tabs v-model="memoryTab" type="border-card" :lazy="false">
             <!-- 实时数据标签页 -->
             <el-tab-pane label="实时数据" name="realtime">
           <!-- Memory Overview -->
@@ -564,10 +564,10 @@
                   </div>
                   <el-row :gutter="16" class="charts-row">
                     <el-col :span="12">
-                      <div ref="minorVsFullGcChartRef" class="chart-box-large"></div>
+                      <div ref="minorVsFullGcChartRef" class="chart-box-large" data-chart="minor-vs-full-gc"></div>
                     </el-col>
                     <el-col :span="12">
-                      <div ref="gcEfficiencyChartRef" class="chart-box-large"></div>
+                      <div ref="gcEfficiencyChartRef" class="chart-box-large" data-chart="gc-efficiency"></div>
                     </el-col>
                   </el-row>
                   
@@ -577,10 +577,10 @@
                   </div>
                   <el-row :gutter="16" class="charts-row">
                     <el-col :span="12">
-                      <div ref="edenSurvivorChartRef" class="chart-box-large"></div>
+                      <div ref="edenSurvivorChartRef" class="chart-box-large" data-chart="eden-survivor"></div>
                     </el-col>
                     <el-col :span="12">
-                      <div ref="oldGenChartDetailRef" class="chart-box-large"></div>
+                      <div ref="oldGenChartDetailRef" class="chart-box-large" data-chart="old-gen"></div>
                     </el-col>
                   </el-row>
                   <el-row :gutter="16" class="charts-row">
@@ -2075,18 +2075,12 @@
     </el-dialog>
   </div>
 </template>
-
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Connection, CircleClose, Bell, ArrowDown, Setting, Document, Monitor, List, Box, Tools, Check, MagicStick, Delete, Upload, RefreshRight, Search, DataAnalysis } from '@element-plus/icons-vue'
-import { fetchApplications, createApplication, fetchProjects, type Application, type Project } from '../../api/project'
-import { http } from '../../api/http'
+import type { Application, Project } from '../../api/project'
 import {
-  getAppConfig,
-  getInstanceConfig,
-  updateAgentConfig,
-  updateAgentInstanceConfig,
   agentThreadDump,
   agentJvmInfo,
   agentGc,
@@ -2096,422 +2090,220 @@ import {
   agentDeadlocks,
   agentSysProps,
   agentEnv,
-  agentReadConfig,
-  fetchAgentConnections,
-  getFullConfigInfo,
-  getMemoryHistory,
-  type AgentFullConfigInfo,
-  type AgentMemoryMetrics
+  getMemoryHistory
 } from '../../api/agent'
-import * as echarts from 'echarts'
 
+// 导入 Composables
+import { useApplicationManagement } from '../composables/useApplicationManagement'
+import { useAgentInstances } from '../composables/useAgentInstances'
+import { useDiagnosis } from '../composables/useDiagnosis'
+import { useMemoryMonitoring } from '../composables/useMemoryMonitoring'
+import { useConfigManagement } from '../composables/useConfigManagement'
+import { useGcAnalysis } from '../composables/useGcAnalysis'
+import { useThreadMonitoring } from '../composables/useThreadMonitoring'
+import { useIoNetworkMonitoring } from '../composables/useIoNetworkMonitoring'
+
+// ==================== Tab 状态 ====================
 const activeTab = ref('definition')
-const applications = ref<Application[]>([])
-const projects = ref<Project[]>([])
-const loading = ref(false)
-const showCreateDialog = ref(false)
+
+// ==================== 应用管理 ====================
+const appMgmt = useApplicationManagement()
+const { 
+  applications, 
+  projects, 
+  loading, 
+  showCreateDialog, 
+  form, 
+  rules,
+  loadData,
+  submitCreate,
+  resetForm 
+} = appMgmt
+
 const formRef = ref()
-const form = ref({
-  projectCode: '',
-  appCode: '',
-  appName: '',
-  appType: 'self-built',
-  description: '',
-})
 
-// 运行实例相关
-interface AgentInstance {
-  projectCode: string
-  app: string
-  inst: string
-  ip: string
-  version: string | null
-  configVersion: string | null
-  lastHeartbeatTime: number
-  online: boolean
-  secretKey: string | null
-}
+// ==================== Agent 实例监控 ====================
+const agentInst = useAgentInstances()
+const { 
+  instances, 
+  instancesLoading, 
+  onlineCount, 
+  offlineCount, 
+  alertedCount,
+  loadInstances,
+  isAlerted,
+  formatTimestamp
+} = agentInst
 
-const instances = ref<AgentInstance[]>([])
-const instancesLoading = ref(false)
-const alertedAgents = ref<string[]>([]) // 已告警的 Agent 列表
+// ==================== JVM 诊断 ====================
+const diagnosis = useDiagnosis()
+const {
+  showDiagDialog,
+  diagDialogTitle,
+  diagResult,
+  diagMode,
+  currentDiagType,
+  currentDiagRow,
+  jvmData,
+  gcData,
+  threadsData,
+  canShowChart,
+  executeDiagCommand,
+  copyDiagResult,
+  switchToTextMode,
+  switchToChartMode,
+  // refreshHistoryChart 在下方重新定义，以添加渲染逻辑
+  parseJvmData,
+  parseMemoryData,
+  parseGcData,
+  parseThreadsData
+} = diagnosis
 
-// 诊断相关
-const showDiagDialog = ref(false)
-const diagDialogTitle = ref('')
-const diagResult = ref('')
-const diagMode = ref<'chart' | 'text'>('chart')
-const currentDiagType = ref('')
-const currentDiagRow = ref<any>(null) // 保存当前诊断的实例行
+// 注意：handleDiagCommand 和 refreshHistoryChart 在下方重新定义，以添加渲染逻辑
 
-// GC数据结构
-interface GcData {
-  collectors: Array<{ name: string; count: number; timeMs: number; pools: string }>
-}
+// ==================== 内存监控 ====================
+const memoryMon = useMemoryMonitoring()
+const {
+  memoryTab,
+  historyTimeRange,
+  historyLoading,
+  memoryHistory,
+  enableRealtime,
+  pollingInterval,
+  enableAutoRefresh,
+  autoRefreshInterval,
+  heapChartRef,
+  nonHeapChartRef,
+  youngGenChartRef,
+  oldGenChartRef,
+  gcCountChartRef,
+  gcDurationChartRef,
+  threadChartRef,
+  classLoadingChartRef,
+  cpuChartRef,
+  memoryPoolsGridRef,
+  heapUsagePercent,
+  heapUsageStatus,
+  nonHeapUsagePercent,
+  nonHeapUsageStatus,
+  youngGenUsagePercent,
+  youngGenUsageStatus,
+  oldGenUsagePercent,
+  oldGenUsageStatus,
+  memoryGrowthRate,
+  memoryGrowthStatus,
+  gcPressureIndex,
+  gcPressureStatus,
+  leakRiskLevel,
+  leakRiskStatus,
+  memoryHealthScore,
+  memoryHealthStatus,
+  loadMemoryHistory,
+  toggleRealtime,
+  toggleAutoRefresh,
+  renderMemoryCharts,
+  formatBytes,
+  getProgressColor,
+  cleanup: cleanupMemory
+} = memoryMon
 
-const gcData = ref<GcData>({ collectors: [] })
-
-// 线程数据结构
-interface ThreadsData {
-  threadCount: number
-  daemonThreadCount: number
-  peakThreadCount: number
-  totalStartedThreadCount: number
-}
-
-const threadsData = ref<ThreadsData>({
-  threadCount: 0, daemonThreadCount: 0,
-  peakThreadCount: 0, totalStartedThreadCount: 0
-})
-
-// 系统属性数据结构
-interface KeyValueEntry {
-  key: string
-  value: string
-}
-
-const sysPropsData = ref<KeyValueEntry[]>([])
-const sysPropsSearch = ref('')
-
-const filteredSysProps = computed(() => {
-  if (!sysPropsSearch.value) return sysPropsData.value
-  const search = sysPropsSearch.value.toLowerCase()
-  return sysPropsData.value.filter(item => 
-    item.key.toLowerCase().includes(search) || item.value.toLowerCase().includes(search)
-  )
-})
-
-// 环境变量数据结构
-const envVarsData = ref<KeyValueEntry[]>([])
-const envVarsSearch = ref('')
-
-const filteredEnvVars = computed(() => {
-  if (!envVarsSearch.value) return envVarsData.value
-  const search = envVarsSearch.value.toLowerCase()
-  return envVarsData.value.filter(item => 
-    item.key.toLowerCase().includes(search) || item.value.toLowerCase().includes(search)
-  )
-})
-
-// 配置对话框相关
-const showConfigDialog = ref(false)
-const configMode = ref<'app' | 'instance'>('app')
-const currentApp = ref('')
-const currentInst = ref('')
-const configForm = ref({ config: '' })
-const submitting = ref(false)
-const configSourceTab = ref('database')
-const dbConfigContent = ref('')
-const agentRuntimeConfig = ref('')
-const fullConfigInfo = ref<AgentFullConfigInfo | null>(null)
-const activeCollapsePanels = ref<string[]>(['app', 'merged'])
-
-// 配置对话框标题
-const configDialogTitle = computed(() => {
-  if (configMode.value === 'instance') {
-    return `实例配置管理 - ${currentApp.value}@${currentInst.value}`
-  }
-  return `应用配置管理 - ${currentApp.value}`
-})
-
-// 格式化配置内容
-const formatConfig = () => {
-  // 简单的 YAML 格式化：确保一致的缩进
-  if (!dbConfigContent.value.trim()) {
-    ElMessage.warning('配置内容为空')
-    return
-  }
-  
-  try {
-    const lines = dbConfigContent.value.split('\n')
-    const formatted = lines.map(line => {
-      // 保留注释和空行
-      if (line.trim() === '' || line.trim().startsWith('#')) {
-        return line
-      }
-      return line
-    }).join('\n')
-    
-    dbConfigContent.value = formatted
-    ElMessage.success('配置已格式化')
-  } catch (e) {
-    ElMessage.error('格式化失败')
-  }
-}
-
-// 清空配置内容
-const clearConfig = () => {
-  ElMessageBox.confirm(
-    '确定要清空配置内容吗？此操作不可恢复。',
-    '清空确认',
-    {
-      confirmButtonText: '确定清空',
-      cancelButtonText: '取消',
-      type: 'warning',
-    }
-  ).then(() => {
-    dbConfigContent.value = '# 配置已清空\n# 请重新输入配置内容'
-    ElMessage.success('配置已清空')
-  }).catch(() => {})
-}
-
-// JVM数据结构
-interface JvmData {
-  // Runtime
-  pid: string
-  uptimeMs: number
-  startTimeMs: number
-  vmName: string
-  vmVersion: string
-  
-  // Memory
-  heapUsed: number
-  heapMax: number
-  heapPercent: number
-  nonHeapUsed: number
-  nonHeapMax: number
-  nonHeapPercent: number
-  
-  // Thread
-  threadCount: number
-  peakThreadCount: number
-  daemonThreadCount: number
-  totalStartedThreadCount: number
-  
-  // Class Loading
-  loadedClassCount: number
-  totalLoadedClassCount: number
-  unloadedClassCount: number
-  
-  // OS
-  osName: string
-  osVersion: string
-  availableProcessors: number
-  systemLoadAverage: number
-  totalPhysicalMemory: number
-  freePhysicalMemory: number
-  processCpuLoad: number
-  systemCpuLoad: number
-  
-  // GC
-  totalGcCount: number
-  totalGcTime: number
-}
-
-const jvmData = ref<JvmData>({
-  pid: '',
-  uptimeMs: 0,
-  startTimeMs: 0,
-  vmName: '',
-  vmVersion: '',
-  heapUsed: 0, heapMax: 0, heapPercent: 0,
-  nonHeapUsed: 0, nonHeapMax: 0, nonHeapPercent: 0,
-  threadCount: 0, peakThreadCount: 0,
-  daemonThreadCount: 0, totalStartedThreadCount: 0,
-  loadedClassCount: 0, totalLoadedClassCount: 0, unloadedClassCount: 0,
-  osName: '', osVersion: '', availableProcessors: 0,
-  systemLoadAverage: 0, totalPhysicalMemory: 0, freePhysicalMemory: 0,
-  processCpuLoad: 0, systemCpuLoad: 0,
-  totalGcCount: 0, totalGcTime: 0
-})
-
-// 内存数据结构
-interface MemoryData {
-  // Heap
-  heapUsed: number
-  heapCommitted: number
-  heapMax: number
-  heapPercent: number
-  
-  // Non-Heap
-  nonHeapUsed: number
-  nonHeapCommitted: number
-  nonHeapMax: number
-  nonHeapPercent: number
-  
-  // Memory Pools
-  pools: Array<{ 
-    name: string
-    type: string
-    used: number
-    committed: number
-    max: number
-    init: number
-    percent: number
-    collectionUsed?: number
-    collectionCommitted?: number
-    collectionMax?: number
-    peakUsed?: number
-    peakCommitted?: number
-  }>
-  
-  // Buffer Pools
-  bufferPools: Array<{
-    name: string
-    count: number
-    memoryUsed: number
-    totalCapacity: number
-  }>
-}
-
-const memoryData = ref<MemoryData>({
-  heapUsed: 0, heapCommitted: 0, heapMax: 0, heapPercent: 0,
-  nonHeapUsed: 0, nonHeapCommitted: 0, nonHeapMax: 0, nonHeapPercent: 0,
-  pools: [],
-  bufferPools: []
-})
-
-// 内存历史相关
-const memoryTab = ref('realtime')
-const historyTimeRange = ref(6) // 默认6小时
-const historyLoading = ref(false)
-const memoryHistory = ref<AgentMemoryMetrics[]>([])
-
-// Phase 1: 实时监控相关
-const enableRealtime = ref(false)
-const pollingInterval = ref(5000) // 默认5秒
-const enableAutoRefresh = ref(false) // 是否启用自动刷新
-const autoRefreshInterval = ref(10) // 自动刷新间隔(秒)
-let realtimeTimer: number | null = null
-let autoRefreshTimer: number | null = null
-const heapChartRef = ref<HTMLElement>()
-const nonHeapChartRef = ref<HTMLElement>()
-const youngGenChartRef = ref<HTMLElement>()
-const oldGenChartRef = ref<HTMLElement>()
-const gcCountChartRef = ref<HTMLElement>()
-const gcDurationChartRef = ref<HTMLElement>()
-const threadChartRef = ref<HTMLElement>()
-const classLoadingChartRef = ref<HTMLElement>()
-const cpuChartRef = ref<HTMLElement>()
-const memoryPoolsGridRef = ref<HTMLElement>()
-const memoryUsageRateRef = ref<HTMLElement>()
-const bufferPoolsChartRef = ref<HTMLElement>()
-const memoryAllocationRef = ref<HTMLElement>()
-const physicalMemoryRef = ref<HTMLElement>()
-const heapGrowthRateRef = ref<HTMLElement>()
-const gcPressureRef = ref<HTMLElement>()
-const systemLoadRef = ref<HTMLElement>()
-const diskIoRef = ref<HTMLElement>()
-const diskIoOpsRef = ref<HTMLElement>()
-const networkTrafficRef = ref<HTMLElement>()
-const ioCpuCorrelationRef = ref<HTMLElement>()
-const ioHeatmapRef = ref<HTMLElement>()
-const ioLatencyRef = ref<HTMLElement>()
-const ioGcCorrelationRef = ref<HTMLElement>()
-const memoryIoCorrelationRef = ref<HTMLElement>()
-const performanceScoreRef = ref<HTMLElement>()
-let memoryPoolsGridInstance: any = null
-let memoryUsageRateInstance: any = null
-let bufferPoolsChartInstance: any = null
-let memoryAllocationInstance: any = null
-let physicalMemoryInstance: any = null
-let heapGrowthRateInstance: any = null
-let gcPressureInstance: any = null
-let systemLoadInstance: any = null
-let diskIoInstance: any = null
-let diskIoOpsInstance: any = null
-let networkTrafficInstance: any = null
-let ioCpuCorrelationInstance: any = null
-let ioHeatmapInstance: any = null
-let ioLatencyInstance: any = null
-let ioGcCorrelationInstance: any = null
-let memoryIoCorrelationInstance: any = null
-let performanceScoreInstance: any = null
-const minorVsFullGcChartRef = ref<HTMLElement>()
-const gcEfficiencyChartRef = ref<HTMLElement>()
-const gcVsHeapChartRef = ref<HTMLElement>()
-const gcVsCpuChartRef = ref<HTMLElement>()
-const threadStatesChartRef = ref<HTMLElement>()
-const classLoadingDetailChartRef = ref<HTMLElement>()
-const threadPoolsChartRef = ref<HTMLElement>()
-const classLoadingRateChartRef = ref<HTMLElement>()
-const daemonThreadChartRef = ref<HTMLElement>()
-const blockedThreadChartRef = ref<HTMLElement>()
-const topCpuThreadDetailChartRef = ref<HTMLElement>()
-const threadCreationRateChartRef = ref<HTMLElement>()
-const threadCpuCorrelationRef = ref<HTMLElement>()
-const threadLeakDetectionRef = ref<HTMLElement>()
-const threadStatesTrendRef = ref<HTMLElement>()
-// Phase 4: Memory Pools Detail
+// 额外的图表 ref（必须在组件中直接定义，Vue 才能自动绑定 DOM）
 const edenSurvivorChartRef = ref<HTMLElement>()
 const oldGenChartDetailRef = ref<HTMLElement>()
 const metaspaceChartRef = ref<HTMLElement>()
 const codeCacheChartRef = ref<HTMLElement>()
-// Phase 5: Advanced Monitoring
 const memoryAllocationRateChartRef = ref<HTMLElement>()
 const gcPressureChartRef = ref<HTMLElement>()
-// Phase 6: Comprehensive Monitoring
 const gcReclaimedChartRef = ref<HTMLElement>()
 const cpuMemoryCorrelationChartRef = ref<HTMLElement>()
-// Phase 7: Real-time Dashboard
 const topCpuThreadChartRef = ref<HTMLElement>()
 const threadStateChartRef = ref<HTMLElement>()
-// Phase 8: Performance Dashboard
 const performanceDashboardChartRef = ref<HTMLElement>()
-let heapChartInstance: any = null
-let nonHeapChartInstance: any = null
-let youngGenChartInstance: any = null
-let oldGenChartInstance: any = null
-let gcCountChartInstance: any = null
-let gcDurationChartInstance: any = null
-let threadChartInstance: any = null
-let classLoadingChartInstance: any = null
-let cpuChartInstance: any = null
-let minorVsFullGcChartInstance: any = null
-let gcEfficiencyChartInstance: any = null
-let gcVsHeapChartInstance: any = null
-let gcVsCpuChartInstance: any = null
-let threadStatesChartInstance: any = null
-let classLoadingDetailChartInstance: any = null
-let threadPoolsChartInstance: any = null
-let classLoadingRateChartInstance: any = null
-let daemonThreadChartInstance: any = null
-let blockedThreadChartInstance: any = null
-let topCpuThreadDetailChartInstance: any = null
-let threadCreationRateChartInstance: any = null
-let threadCpuCorrelationInstance: any = null
-let threadLeakDetectionInstance: any = null
-let threadStatesTrendInstance: any = null
-// Phase 4: Memory Pools Detail Chart Instances
-let edenSurvivorChartInstance: any = null
-let oldGenChartDetailInstance: any = null
-let metaspaceChartInstance: any = null
-let codeCacheChartInstance: any = null
-// Phase 5: Advanced Monitoring Chart Instances
-let memoryAllocationRateChartInstance: any = null
-let gcPressureChartInstance: any = null
-// Phase 6: Comprehensive Monitoring Chart Instances
-let gcReclaimedChartInstance: any = null
-let cpuMemoryCorrelationChartInstance: any = null
-// Phase 7: Real-time Dashboard Chart Instances
-let topCpuThreadChartInstance: any = null
-let threadStateChartInstance: any = null
-// Phase 8: Performance Dashboard Chart Instance
-let performanceDashboardChartInstance: any = null
-interface MemoryPool {
-  name: string
-  type: string
-}
-const selectedPools = ref<MemoryPool[]>([])
 
-const canShowChart = computed(() => {
-  return ['jvmInfo', 'memory', 'gcStats', 'threadsSummary', 'sysProps', 'env'].includes(currentDiagType.value)
-})
+// ==================== GC 分析 ====================
+const gcAnalysis = useGcAnalysis()
+const {
+  minorVsFullGcChartRef,
+  gcEfficiencyChartRef,
+  totalGcCount,
+  totalGcTime,
+  avgGcTime,
+  fullGcRatio,
+  gcEfficiency,
+  maxGcDuration,
+  gcHealthScore,
+  renderGcCharts,
+  cleanup: cleanupGc
+} = gcAnalysis
 
-// Computed properties for key metrics cards
+// ==================== 线程监控 ====================
+const threadMon = useThreadMonitoring()
+const {
+  threadStatesChartRef,
+  classLoadingDetailChartRef,
+  threadPoolsChartRef,
+  maxThreadCountValue,
+  avgThreadCount,
+  blockedRatioText,
+  daemonRatioText,
+  threadCreationRateValue,
+  hasThreadPoolData,
+  renderThreadCharts,
+  formatNanoTime,
+  cleanup: cleanupThread
+} = threadMon
+
+// ==================== IO/网络监控 ====================
+const ioNetworkMon = useIoNetworkMonitoring()
+const {
+  diskIoRef,
+  networkTrafficRef,
+  avgDiskReadRate,
+  avgDiskWriteRate,
+  maxDiskReadRate,
+  maxDiskWriteRate,
+  avgNetworkRecvRate,
+  avgNetworkSentRate,
+  ioPatternAnalysis,
+  ioLatencyAnalysis,
+  networkPatternAnalysis,
+  renderIoNetworkCharts,
+  cleanup: cleanupIo
+} = ioNetworkMon
+
+// ==================== 配置管理 ====================
+const configMgmt = useConfigManagement()
+const {
+  showConfigDialog,
+  configMode,
+  currentApp,
+  currentInst,
+  dbConfigContent,
+  agentRuntimeConfig,
+  fullConfigInfo,
+  submitting,
+  configSourceTab,
+  activeCollapsePanels,
+  configDialogTitle,
+  openConfigDialog,
+  loadConfigs,
+  formatConfig,
+  clearConfig,
+  syncFromRuntime,
+  submitConfig
+} = configMgmt
+
+// ==================== 计算属性 - 从 memoryHistory 派生 ====================
 const latestHeapPercent = computed(() => {
   if (memoryHistory.value.length === 0) return 0
   const latest = memoryHistory.value[memoryHistory.value.length - 1]
   return latest.heapMax > 0 ? Math.round((latest.heapUsed / latest.heapMax) * 100) : 0
 })
 
-const gcFrequency = computed(() => {
-  if (memoryHistory.value.length < 2) return '0'
-  const first = memoryHistory.value[0]
-  const last = memoryHistory.value[memoryHistory.value.length - 1]
-  const timeDiffMinutes = (last.collectTime - first.collectTime) / 60000
-  const gcDiff = last.gcCount - first.gcCount
-  return timeDiffMinutes > 0 ? (gcDiff / timeDiffMinutes).toFixed(1) : '0'
+const latestCpuPercent = computed(() => {
+  if (memoryHistory.value.length === 0) return 0
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  return latest.processCpuLoad ? Math.round(latest.processCpuLoad * 100) : 0
 })
 
 const latestThreadCount = computed(() => {
@@ -2524,336 +2316,20 @@ const maxThreadCount = computed(() => {
   return Math.max(...memoryHistory.value.map(m => m.threadCount || 0))
 })
 
-const latestCpuPercent = computed(() => {
-  if (memoryHistory.value.length === 0) return 0
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  return latest.processCpuLoad ? Math.round(latest.processCpuLoad * 100) : 0
-})
-
-// New computed properties for advanced charts
-const latestPeakThreadCount = computed(() => {
-  if (memoryHistory.value.length === 0) return 0
-  return memoryHistory.value[memoryHistory.value.length - 1].peakThreadCount || 0
-})
-
-const latestDaemonThreadCount = computed(() => {
-  if (memoryHistory.value.length === 0) return 0
-  return memoryHistory.value[memoryHistory.value.length - 1].daemonThreadCount || 0
-})
-
-const latestTotalLoadedClass = computed(() => {
-  if (memoryHistory.value.length === 0) return 0
-  return memoryHistory.value[memoryHistory.value.length - 1].totalLoadedClassCount || 0
-})
-
-const latestUnloadedClass = computed(() => {
-  if (memoryHistory.value.length === 0) return 0
-  return memoryHistory.value[memoryHistory.value.length - 1].unloadedClassCount || 0
-})
-
-const latestMinorGcCount = computed(() => {
-  if (memoryHistory.value.length === 0) return 0
-  return memoryHistory.value[memoryHistory.value.length - 1].minorGcCount || 0
-})
-
-const latestFullGcCount = computed(() => {
-  if (memoryHistory.value.length === 0) return 0
-  return memoryHistory.value[memoryHistory.value.length - 1].fullGcCount || 0
-})
-
-const jvmStartTimeStr = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  const startTime = memoryHistory.value[memoryHistory.value.length - 1].jvmStartTime
-  if (!startTime) return '-'
-  const date = new Date(startTime)
-  return date.toLocaleString('zh-CN')
-})
-
-const jvmUptimeStr = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  const startTime = memoryHistory.value[memoryHistory.value.length - 1].jvmStartTime
-  const collectTime = memoryHistory.value[memoryHistory.value.length - 1].collectTime
-  if (!startTime || !collectTime) return '-'
-  const uptimeMs = collectTime - startTime
-  const hours = Math.floor(uptimeMs / 3600000)
-  const minutes = Math.floor((uptimeMs % 3600000) / 60000)
-  return `${hours}小时${minutes}分钟`
-})
-
-// JVM启动信息
-const latestJvmVersion = computed(() => {
-  if (memoryHistory.value.length === 0) return ''
-  return memoryHistory.value[memoryHistory.value.length - 1].jvmVersion || ''
-})
-
-const latestJvmVendor = computed(() => {
-  if (memoryHistory.value.length === 0) return ''
-  return memoryHistory.value[memoryHistory.value.length - 1].jvmVendor || ''
-})
-
-const latestJavaVersion = computed(() => {
-  if (memoryHistory.value.length === 0) return ''
-  return memoryHistory.value[memoryHistory.value.length - 1].javaVersion || ''
-})
-
-const latestOsName = computed(() => {
-  if (memoryHistory.value.length === 0) return ''
-  return memoryHistory.value[memoryHistory.value.length - 1].osName || ''
-})
-
-const latestOsArch = computed(() => {
-  if (memoryHistory.value.length === 0) return ''
-  return memoryHistory.value[memoryHistory.value.length - 1].osArch || ''
-})
-
-const latestProcessId = computed(() => {
-  if (memoryHistory.value.length === 0) return ''
-  return memoryHistory.value[memoryHistory.value.length - 1].processId || ''
-})
-
-const latestJvmArgs = computed(() => {
-  if (memoryHistory.value.length === 0) return []
-  const args = memoryHistory.value[memoryHistory.value.length - 1].jvmArgs
-  if (!args) return []
-  try {
-    return JSON.parse(args)
-  } catch (e) {
-    return []
-  }
-})
-
-// ================= 内存监控相关计算属性 =================
-
-// 堆内存使用率
-const heapUsagePercent = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  if (latest.heapMax === 0) return '0%'
-  return ((latest.heapUsed / latest.heapMax) * 100).toFixed(1) + '%'
-})
-
-const heapUsageStatus = computed(() => {
-  const percent = parseFloat(heapUsagePercent.value) || 0
-  if (percent < 60) return 'success'
-  if (percent < 80) return 'warning'
-  return 'danger'
-})
-
-// 非堆内存使用率
-const nonHeapUsagePercent = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  if (latest.nonHeapMax === 0) return '0%'
-  return ((latest.nonHeapUsed / latest.nonHeapMax) * 100).toFixed(1) + '%'
-})
-
-const nonHeapUsageStatus = computed(() => {
-  const percent = parseFloat(nonHeapUsagePercent.value) || 0
-  if (percent < 70) return 'success'
-  if (percent < 85) return 'warning'
-  return 'danger'
-})
-
-// 新生代使用率
-const youngGenUsagePercent = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  if (!latest.youngGenMax || latest.youngGenMax === 0) return '0%'
-  return ((latest.youngGenUsed / latest.youngGenMax) * 100).toFixed(1) + '%'
-})
-
-const youngGenUsageStatus = computed(() => {
-  const percent = parseFloat(youngGenUsagePercent.value) || 0
-  if (percent < 70) return 'success'
-  if (percent < 85) return 'warning'
-  return 'danger'
-})
-
-// 老年代使用率
-const oldGenUsagePercent = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  if (!latest.oldGenMax || latest.oldGenMax === 0) return '0%'
-  return ((latest.oldGenUsed / latest.oldGenMax) * 100).toFixed(1) + '%'
-})
-
-const oldGenUsageStatus = computed(() => {
-  const percent = parseFloat(oldGenUsagePercent.value) || 0
-  if (percent < 70) return 'success'
-  if (percent < 85) return 'warning'
-  return 'danger'
-})
-
-// 内存增长速率
-const memoryGrowthRate = computed(() => {
-  if (memoryHistory.value.length < 2) return '-'
+const gcFrequency = computed(() => {
+  if (memoryHistory.value.length < 2) return '0'
   const first = memoryHistory.value[0]
   const last = memoryHistory.value[memoryHistory.value.length - 1]
   const timeDiffMinutes = (last.collectTime - first.collectTime) / 60000
-  if (timeDiffMinutes === 0) return '0 MB/min'
-  const heapDiff = last.heapUsed - first.heapUsed
-  const growthPerMin = heapDiff / timeDiffMinutes / (1024 * 1024)
-  return growthPerMin.toFixed(2) + ' MB/min'
-})
-
-const memoryGrowthStatus = computed(() => {
-  const rate = parseFloat(memoryGrowthRate.value) || 0
-  if (rate < 10) return 'success'
-  if (rate < 50) return 'warning'
-  return 'danger'
-})
-
-// GC压力指数
-const gcPressureIndex = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  let pressure = 0
-  
-  // 基于GC频率
-  const gcFreq = parseFloat(gcFrequency.value) || 0
-  if (gcFreq > 60) pressure += 30
-  else if (gcFreq > 30) pressure += 15
-  
-  // 基于平均GC耗时
-  const avgTime = parseFloat(avgGcTime.value) || 0
-  if (avgTime > 100) pressure += 30
-  else if (avgTime > 50) pressure += 15
-  
-  // 基于Full GC占比
-  const fullRatio = parseFloat(fullGcRatio.value) || 0
-  if (fullRatio > 15) pressure += 25
-  else if (fullRatio > 5) pressure += 10
-  
-  // 基于堆内存使用率
-  const heapUsage = parseFloat(heapUsagePercent.value) || 0
-  if (heapUsage > 90) pressure += 15
-  else if (heapUsage > 80) pressure += 8
-  
-  pressure = Math.min(100, pressure)
-  return `${pressure}`
-})
-
-const gcPressureStatus = computed(() => {
-  const index = parseInt(gcPressureIndex.value) || 0
-  if (index < 30) return 'success'
-  if (index < 60) return 'warning'
-  return 'danger'
-})
-
-// 内存泄漏风险
-const leakRiskLevel = computed(() => {
-  if (memoryHistory.value.length < 3) return '数据不足'
-  
-  const heapData = memoryHistory.value.map(m => m.heapUsed || 0)
-  const growthRate = parseFloat(memoryGrowthRate.value) || 0
-  
-  // 检测持续增长趋势
-  let increasingCount = 0
-  for (let i = 1; i < heapData.length; i++) {
-    if (heapData[i] > heapData[i-1]) {
-      increasingCount++
-    }
-  }
-  const increaseRatio = increasingCount / (heapData.length - 1)
-  
-  if (growthRate > 50 && increaseRatio > 0.8) {
-    return '高风险'
-  } else if (growthRate > 20 && increaseRatio > 0.6) {
-    return '中风险'
-  } else if (growthRate > 10) {
-    return '低风险'
-  } else {
-    return '无风险'
-  }
-})
-
-const leakRiskStatus = computed(() => {
-  const risk = leakRiskLevel.value
-  if (risk === '无风险') return 'success'
-  if (risk === '低风险') return 'info'
-  if (risk === '中风险') return 'warning'
-  return 'danger'
-})
-
-// 内存健康度评分
-const memoryHealthScore = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  let score = 100
-  
-  // 堆内存使用率扣分
-  const heapUsage = parseFloat(heapUsagePercent.value) || 0
-  if (heapUsage > 90) score -= 30
-  else if (heapUsage > 80) score -= 15
-  else if (heapUsage > 70) score -= 5
-  
-  // 内存增长速率扣分
-  const growthRate = parseFloat(memoryGrowthRate.value) || 0
-  if (growthRate > 50) score -= 25
-  else if (growthRate > 20) score -= 10
-  
-  // GC压力扣分
-  const gcPressure = parseInt(gcPressureIndex.value) || 0
-  if (gcPressure > 60) score -= 20
-  else if (gcPressure > 30) score -= 10
-  
-  // 泄漏风险扣分
-  const risk = leakRiskLevel.value
-  if (risk === '高风险') score -= 25
-  else if (risk === '中风险') score -= 10
-  else if (risk === '低风险') score -= 5
-  
-  score = Math.max(0, Math.min(100, score))
-  return `${score}分`
-})
-
-const memoryHealthStatus = computed(() => {
-  const score = parseInt(memoryHealthScore.value) || 0
-  if (score >= 80) return 'success'
-  if (score >= 60) return 'warning'
-  return 'danger'
-})
-
-// ================= GC分析相关计算属性 =================
-
-// GC关键指标
-const totalGcCount = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  const total = (latest.minorGcCount || 0) + (latest.fullGcCount || 0)
-  return total > 0 ? `${total} 次` : '0 次'
-})
-
-const totalGcTime = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  const total = (latest.minorGcTimeMs || 0) + (latest.fullGcTimeMs || 0)
-  return total > 0 ? `${total} ms` : '0 ms'
-})
-
-const avgGcTime = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  const totalGcTime = (latest.minorGcTimeMs || 0) + (latest.fullGcTimeMs || 0)
-  const totalGcCount = (latest.minorGcCount || 0) + (latest.fullGcCount || 0)
-  if (totalGcCount === 0) return '0 ms'
-  const avg = totalGcTime / totalGcCount
-  return avg.toFixed(1) + ' ms'
+  const gcDiff = last.gcCount - first.gcCount
+  return timeDiffMinutes > 0 ? (gcDiff / timeDiffMinutes).toFixed(1) : '0'
 })
 
 const avgGcTimeStatus = computed(() => {
   const time = parseFloat(avgGcTime.value) || 0
-  if (time < 10) return 'success'
-  if (time < 50) return 'warning'
+  if (time < 50) return 'success'
+  if (time < 100) return 'warning'
   return 'danger'
-})
-
-const fullGcRatio = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  const minor = latest.minorGcCount || 0
-  const full = latest.fullGcCount || 0
-  const total = minor + full
-  if (total === 0) return '0%'
-  return ((full / total) * 100).toFixed(1) + '%'
 })
 
 const fullGcRatioStatus = computed(() => {
@@ -2863,64 +2339,11 @@ const fullGcRatioStatus = computed(() => {
   return 'danger'
 })
 
-const gcEfficiency = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  const minor = latest.minorGcCount || 0
-  const full = latest.fullGcCount || 0
-  const total = minor + full
-  if (total === 0) return '0%'
-  // 效率 = (Minor GC次数 / 总GC次数) * 100
-  return ((minor / total) * 100).toFixed(1) + '%'
-})
-
 const gcEfficiencyStatus = computed(() => {
   const eff = parseFloat(gcEfficiency.value) || 0
-  if (eff > 90) return 'success'
-  if (eff > 70) return 'warning'
+  if (eff > 80) return 'success'
+  if (eff > 60) return 'warning'
   return 'danger'
-})
-
-const maxGcDuration = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  let maxDuration = 0
-  for (let i = 1; i < memoryHistory.value.length; i++) {
-    const gcTimeDiff = (memoryHistory.value[i].gcTimeMs || 0) - (memoryHistory.value[i-1].gcTimeMs || 0)
-    if (gcTimeDiff > maxDuration) {
-      maxDuration = gcTimeDiff
-    }
-  }
-  return maxDuration > 0 ? `${maxDuration} ms` : '0 ms'
-})
-
-const gcHealthScore = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  let score = 100
-  
-  // Full GC占比扣分
-  const minor = latest.minorGcCount || 0
-  const full = latest.fullGcCount || 0
-  const total = minor + full
-  if (total > 0) {
-    const fullRatio = full / total
-    if (fullRatio > 0.3) score -= 30
-    else if (fullRatio > 0.15) score -= 15
-    else if (fullRatio > 0.05) score -= 5
-  }
-  
-  // GC频率扣分
-  const gcFreq = parseFloat(gcFrequency.value) || 0
-  if (gcFreq > 60) score -= 20  // > 1次/分钟
-  else if (gcFreq > 30) score -= 10  // > 0.5次/分钟
-  
-  // 平均GC耗时扣分
-  const avgTime = parseFloat(avgGcTime.value) || 0
-  if (avgTime > 100) score -= 20
-  else if (avgTime > 50) score -= 10
-  
-  score = Math.max(0, Math.min(100, score))
-  return `${score}分`
 })
 
 const gcHealthStatus = computed(() => {
@@ -2930,653 +2353,6 @@ const gcHealthStatus = computed(() => {
   return 'danger'
 })
 
-// 检查是否有缓冲区池数据
-const hasBufferPoolsData = computed(() => {
-  if (memoryHistory.value.length === 0) return false
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  if (!latest.bufferPools) return false
-  try {
-    const buffers = JSON.parse(latest.bufferPools)
-    return buffers && buffers.length > 0
-  } catch (e) {
-    return false
-  }
-})
-
-// 检查是否有内存池数据
-const hasMemoryPoolsData = computed(() => {
-  if (memoryHistory.value.length === 0) {
-    console.log('[hasMemoryPoolsData] No history data')
-    return false
-  }
-
-  console.log(`[hasMemoryPoolsData] Checking ${memoryHistory.value.length} records`)
-  
-  // 检查所有记录中是否有实际的内存池数据
-  for (let i = 0; i < memoryHistory.value.length; i++) {
-    const record = memoryHistory.value[i]
-    if (record.memoryPools) {
-      try {
-        const pools = JSON.parse(record.memoryPools)
-        console.log(`[hasMemoryPoolsData] Record ${i}: Found ${pools.length} pools`, pools.map((p: any) => p.name))
-        if (pools && pools.length > 0) {
-          return true
-        }
-      } catch (e) {
-        console.warn(`[hasMemoryPoolsData] Record ${i}: Failed to parse memoryPools`, e)
-      }
-    } else {
-      console.log(`[hasMemoryPoolsData] Record ${i}: No memoryPools field`)
-    }
-  }
-  console.log('[hasMemoryPoolsData] No valid pool data found')
-  return false
-})
-
-// 检查是否有物理内存数据
-const hasPhysicalMemoryData = computed(() => {
-  if (memoryHistory.value.length === 0) return false
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  return latest.totalPhysicalMemory !== undefined && latest.totalPhysicalMemory > 0
-})
-
-// 检查是否有系统负载数据
-const hasSystemLoadData = computed(() => {
-  if (memoryHistory.value.length === 0) return false
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  return latest.systemCpuLoad !== undefined || latest.processCpuLoad !== undefined
-})
-
-// 检查是否有磁盘I/O数据
-const hasDiskIoData = computed(() => {
-  if (memoryHistory.value.length === 0) return false
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  // 修复：使用 != null 而不是 !== undefined，避免 null 被误判为有数据
-  return (latest.diskReadBytes != null && latest.diskReadBytes > 0) || 
-         (latest.diskWriteBytes != null && latest.diskWriteBytes > 0)
-})
-
-// IO/网络监控关键指标
-const maxDiskReadRate = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  let maxRate = 0
-  let maxTime = ''
-  for (let i = 1; i < memoryHistory.value.length; i++) {
-    const rate = Math.max(0, (memoryHistory.value[i].diskReadBytes || 0) - (memoryHistory.value[i-1].diskReadBytes || 0))
-    if (rate > maxRate) {
-      maxRate = rate
-      maxTime = new Date(memoryHistory.value[i].collectTime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-    }
-  }
-  return maxRate > 0 ? `${formatBytes(maxRate)}/s` : '0 B/s'
-})
-
-const maxDiskWriteRate = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  let maxRate = 0
-  let maxTime = ''
-  for (let i = 1; i < memoryHistory.value.length; i++) {
-    const rate = Math.max(0, (memoryHistory.value[i].diskWriteBytes || 0) - (memoryHistory.value[i-1].diskWriteBytes || 0))
-    if (rate > maxRate) {
-      maxRate = rate
-      maxTime = new Date(memoryHistory.value[i].collectTime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-    }
-  }
-  return maxRate > 0 ? `${formatBytes(maxRate)}/s` : '0 B/s'
-})
-
-const avgNetworkRecvRate = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  let totalRate = 0
-  let count = 0
-  for (let i = 1; i < memoryHistory.value.length; i++) {
-    const rate = Math.max(0, (memoryHistory.value[i].networkRecvBytes || 0) - (memoryHistory.value[i-1].networkRecvBytes || 0))
-    totalRate += rate
-    count++
-  }
-  return count > 0 ? `${formatBytes(totalRate / count)}/s` : '0 B/s'
-})
-
-const avgNetworkSentRate = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  let totalRate = 0
-  let count = 0
-  for (let i = 1; i < memoryHistory.value.length; i++) {
-    const rate = Math.max(0, (memoryHistory.value[i].networkSentBytes || 0) - (memoryHistory.value[i-1].networkSentBytes || 0))
-    totalRate += rate
-    count++
-  }
-  return count > 0 ? `${formatBytes(totalRate / count)}/s` : '0 B/s'
-})
-
-// IO智能分析
-const ioPatternAnalysis = computed(() => {
-  if (memoryHistory.value.length < 2) {
-    return { status: 'info', text: '数据不足', detail: '需要更多数据点才能分析IO模式' }
-  }
-  
-  let sequentialCount = 0
-  let randomCount = 0
-  let totalOps = 0
-  
-  for (let i = 1; i < memoryHistory.value.length; i++) {
-    const readBytes = Math.max(0, (memoryHistory.value[i].diskReadBytes || 0) - (memoryHistory.value[i-1].diskReadBytes || 0))
-    const writeBytes = Math.max(0, (memoryHistory.value[i].diskWriteBytes || 0) - (memoryHistory.value[i-1].diskWriteBytes || 0))
-    const readOps = Math.max(0, (memoryHistory.value[i].diskReadOps || 0) - (memoryHistory.value[i-1].diskReadOps || 0))
-    const writeOps = Math.max(0, (memoryHistory.value[i].diskWriteOps || 0) - (memoryHistory.value[i-1].diskWriteOps || 0))
-    
-    const totalBytes = readBytes + writeBytes
-    const totalOpCount = readOps + writeOps
-    totalOps += totalOpCount
-    
-    if (totalOpCount > 0) {
-      const avgBytesPerOp = totalBytes / totalOpCount
-      if (avgBytesPerOp > 65536) { // > 64KB per op = sequential
-        sequentialCount++
-      } else {
-        randomCount++
-      }
-    }
-  }
-  
-  if (totalOps === 0) {
-    return { status: 'info', text: '无IO活动', detail: '当前时间段内没有检测到磁盘IO操作' }
-  }
-  
-  const sequentialRatio = sequentialCount / (sequentialCount + randomCount)
-  if (sequentialRatio > 0.7) {
-    return { status: 'success', text: '顺序读写为主', detail: `顺序IO占比${(sequentialRatio * 100).toFixed(0)}%，性能良好` }
-  } else if (sequentialRatio > 0.4) {
-    return { status: 'warning', text: '混合IO模式', detail: `顺序IO占比${(sequentialRatio * 100).toFixed(0)}%，建议优化` }
-  } else {
-    return { status: 'danger', text: '随机IO为主', detail: `随机IO占比${((1 - sequentialRatio) * 100).toFixed(0)}%，性能较差` }
-  }
-})
-
-const ioLatencyAnalysis = computed(() => {
-  if (memoryHistory.value.length < 2) {
-    return { status: 'info', text: '数据不足', detail: '需要更多数据点才能计算IO延迟' }
-  }
-  
-  let totalLatency = 0
-  let count = 0
-  
-  for (let i = 1; i < memoryHistory.value.length; i++) {
-    const readOps = Math.max(0, (memoryHistory.value[i].diskReadOps || 0) - (memoryHistory.value[i-1].diskReadOps || 0))
-    const writeOps = Math.max(0, (memoryHistory.value[i].diskWriteOps || 0) - (memoryHistory.value[i-1].diskWriteOps || 0))
-    const totalOps = readOps + writeOps
-    
-    if (totalOps > 0) {
-      // 假设采集间隔为10秒，估算平均延迟
-      const avgLatency = 10000 / totalOps // ms
-      totalLatency += avgLatency
-      count++
-    }
-  }
-  
-  if (count === 0) {
-    return { status: 'info', text: '无IO活动', detail: '无法计算延迟' }
-  }
-  
-  const avgLatency = totalLatency / count
-  if (avgLatency < 1) {
-    return { status: 'success', text: `${avgLatency.toFixed(2)} ms`, detail: '延迟优秀' }
-  } else if (avgLatency < 5) {
-    return { status: 'success', text: `${avgLatency.toFixed(2)} ms`, detail: '延迟良好' }
-  } else if (avgLatency < 20) {
-    return { status: 'warning', text: `${avgLatency.toFixed(2)} ms`, detail: '延迟偏高，建议关注' }
-  } else {
-    return { status: 'danger', text: `${avgLatency.toFixed(2)} ms`, detail: '延迟过高，需要优化' }
-  }
-})
-
-const networkPatternAnalysis = computed(() => {
-  if (memoryHistory.value.length < 2) {
-    return { status: 'info', text: '数据不足', detail: '需要更多数据点才能分析网络模式' }
-  }
-  
-  let recvTotal = 0
-  let sentTotal = 0
-  let intervals = 0
-  
-  for (let i = 1; i < memoryHistory.value.length; i++) {
-    const recv = Math.max(0, (memoryHistory.value[i].networkRecvBytes || 0) - (memoryHistory.value[i-1].networkRecvBytes || 0))
-    const sent = Math.max(0, (memoryHistory.value[i].networkSentBytes || 0) - (memoryHistory.value[i-1].networkSentBytes || 0))
-    recvTotal += recv
-    sentTotal += sent
-    intervals++
-  }
-  
-  if (recvTotal === 0 && sentTotal === 0) {
-    return { status: 'info', text: '无网络活动', detail: '当前时间段内没有检测到网络流量' }
-  }
-  
-  const ratio = sentTotal / Math.max(1, recvTotal)
-  if (ratio > 2) {
-    return { status: 'warning', text: '发送密集型', detail: `发送/接收比${ratio.toFixed(1)}:1，可能存在数据积压` }
-  } else if (ratio < 0.5) {
-    return { status: 'success', text: '接收密集型', detail: `发送/接收比${ratio.toFixed(1)}:1，正常模式` }
-  } else {
-    return { status: 'success', text: '均衡模式', detail: `发送/接收比${ratio.toFixed(1)}:1，流量均衡` }
-  }
-})
-
-const ioSuggestions = computed(() => {
-  const suggestions: string[] = []
-  
-  // 基于IO模式给出建议
-  if (ioPatternAnalysis.value.status === 'danger') {
-    suggestions.push('检测到大量随机IO')
-    suggestions.push('建议：使用SSD存储、增大缓存、优化查询模式')
-  } else if (ioPatternAnalysis.value.status === 'warning') {
-    suggestions.push('混合IO模式')
-    suggestions.push('建议：考虑使用读写分离或增加缓存')
-  } else {
-    suggestions.push('IO模式良好')
-    suggestions.push('保持当前配置，定期监控性能变化')
-  }
-  
-  // 基于延迟给出额外建议
-  if (ioLatencyAnalysis.value.status === 'danger') {
-    suggestions[0] += ' + 高延迟'
-    suggestions[1] += '，检查磁盘健康状况'
-  }
-  
-  // 基于网络模式给出建议
-  if (networkPatternAnalysis.value.status === 'warning') {
-    suggestions[0] += ' + 网络发送压力大'
-    suggestions[1] += '，检查是否有大文件上传或数据同步'
-  }
-  
-  return suggestions
-})
-
-// ================= IO/网络监控关键指标计算属性 =================
-
-// 磁盘IO压力指数
-const diskIoPressureIndex = computed(() => {
-  if (memoryHistory.value.length < 2) return '-'
-  let pressure = 0
-  
-  // 基于读取速率
-  const readRates = memoryHistory.value.map((m, i) => {
-    if (i === 0) return 0
-    return Math.max(0, (m.diskReadBytes || 0) - (memoryHistory.value[i-1].diskReadBytes || 0))
-  })
-  const avgReadRate = readRates.reduce((a, b) => a + b, 0) / readRates.length
-  if (avgReadRate > 100 * 1024 * 1024) pressure += 30  // > 100MB/s
-  else if (avgReadRate > 50 * 1024 * 1024) pressure += 15  // > 50MB/s
-  
-  // 基于写入速率
-  const writeRates = memoryHistory.value.map((m, i) => {
-    if (i === 0) return 0
-    return Math.max(0, (m.diskWriteBytes || 0) - (memoryHistory.value[i-1].diskWriteBytes || 0))
-  })
-  const avgWriteRate = writeRates.reduce((a, b) => a + b, 0) / writeRates.length
-  if (avgWriteRate > 100 * 1024 * 1024) pressure += 30
-  else if (avgWriteRate > 50 * 1024 * 1024) pressure += 15
-  
-  // 基于IO操作次数
-  const opsRates = memoryHistory.value.map((m, i) => {
-    if (i === 0) return 0
-    const readOps = Math.max(0, (m.diskReadOps || 0) - (memoryHistory.value[i-1].diskReadOps || 0))
-    const writeOps = Math.max(0, (m.diskWriteOps || 0) - (memoryHistory.value[i-1].diskWriteOps || 0))
-    return readOps + writeOps
-  })
-  const avgOps = opsRates.reduce((a, b) => a + b, 0) / opsRates.length
-  if (avgOps > 1000) pressure += 20
-  else if (avgOps > 500) pressure += 10
-  
-  pressure = Math.min(100, pressure)
-  return `${pressure}`
-})
-
-const diskIoPressureStatus = computed(() => {
-  const index = parseInt(diskIoPressureIndex.value) || 0
-  if (index < 30) return 'success'
-  if (index < 60) return 'warning'
-  return 'danger'
-})
-
-// 网络流量负载指数
-const networkLoadIndex = computed(() => {
-  if (memoryHistory.value.length < 2) return '-'
-  let load = 0
-  
-  // 基于接收速率
-  const recvRates = memoryHistory.value.map((m, i) => {
-    if (i === 0) return 0
-    return Math.max(0, (m.networkRecvBytes || 0) - (memoryHistory.value[i-1].networkRecvBytes || 0))
-  })
-  const avgRecvRate = recvRates.reduce((a, b) => a + b, 0) / recvRates.length
-  if (avgRecvRate > 50 * 1024 * 1024) load += 25  // > 50MB/s
-  else if (avgRecvRate > 20 * 1024 * 1024) load += 12
-  
-  // 基于发送速率
-  const sentRates = memoryHistory.value.map((m, i) => {
-    if (i === 0) return 0
-    return Math.max(0, (m.networkSentBytes || 0) - (memoryHistory.value[i-1].networkSentBytes || 0))
-  })
-  const avgSentRate = sentRates.reduce((a, b) => a + b, 0) / sentRates.length
-  if (avgSentRate > 50 * 1024 * 1024) load += 25
-  else if (avgSentRate > 20 * 1024 * 1024) load += 12
-  
-  // 基于流量均衡性
-  const totalRecv = recvRates.reduce((a, b) => a + b, 0)
-  const totalSent = sentRates.reduce((a, b) => a + b, 0)
-  if (totalRecv > 0 && totalSent > 0) {
-    const ratio = Math.max(totalRecv, totalSent) / Math.min(totalRecv, totalSent)
-    if (ratio > 5) load += 20  // 严重不均衡
-    else if (ratio > 2) load += 10
-  }
-  
-  load = Math.min(100, load)
-  return `${load}`
-})
-
-const networkLoadStatus = computed(() => {
-  const index = parseInt(networkLoadIndex.value) || 0
-  if (index < 30) return 'success'
-  if (index < 60) return 'warning'
-  return 'danger'
-})
-
-// IO延迟指数
-const ioLatencyIndexValue = computed(() => {
-  if (memoryHistory.value.length < 2) return '-'
-  
-  let totalLatency = 0
-  let count = 0
-  
-  for (let i = 1; i < memoryHistory.value.length; i++) {
-    const readOps = Math.max(0, (memoryHistory.value[i].diskReadOps || 0) - (memoryHistory.value[i-1].diskReadOps || 0))
-    const writeOps = Math.max(0, (memoryHistory.value[i].diskWriteOps || 0) - (memoryHistory.value[i-1].diskWriteOps || 0))
-    const totalOps = readOps + writeOps
-    
-    if (totalOps > 0) {
-      const avgLatency = 10000 / totalOps  // ms
-      totalLatency += avgLatency
-      count++
-    }
-  }
-  
-  if (count === 0) return '0'
-  const avgLatency = totalLatency / count
-  
-  // 转换为0-100分指数
-  let index = 0
-  if (avgLatency < 1) index = 10
-  else if (avgLatency < 5) index = 30
-  else if (avgLatency < 20) index = 60
-  else if (avgLatency < 50) index = 80
-  else index = 100
-  
-  return `${index}`
-})
-
-const ioLatencyIndexStatus = computed(() => {
-  const index = parseInt(ioLatencyIndexValue.value) || 0
-  if (index < 30) return 'success'
-  if (index < 60) return 'warning'
-  return 'danger'
-})
-
-// IO健康度评分
-const ioHealthScore = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  let score = 100
-  
-  // 磁盘IO压力扣分
-  const diskPressure = parseInt(diskIoPressureIndex.value) || 0
-  if (diskPressure > 60) score -= 25
-  else if (diskPressure > 30) score -= 10
-  
-  // 网络负载扣分
-  const netLoad = parseInt(networkLoadIndex.value) || 0
-  if (netLoad > 60) score -= 25
-  else if (netLoad > 30) score -= 10
-  
-  // IO延迟扣分
-  const latencyIndex = parseInt(ioLatencyIndexValue.value) || 0
-  if (latencyIndex > 60) score -= 25
-  else if (latencyIndex > 30) score -= 10
-  
-  // IO模式扣分
-  if (ioPatternAnalysis.value.status === 'danger') score -= 15
-  else if (ioPatternAnalysis.value.status === 'warning') score -= 5
-  
-  score = Math.max(0, Math.min(100, score))
-  return `${score}分`
-})
-
-const ioHealthStatus = computed(() => {
-  const score = parseInt(ioHealthScore.value) || 0
-  if (score >= 80) return 'success'
-  if (score >= 60) return 'warning'
-  return 'danger'
-})
-
-// ================= 线程监控相关计算属性 =================
-
-// 线程关键指标
-const maxThreadCountValue = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  let maxCount = 0
-  let maxTime = ''
-  for (let i = 0; i < memoryHistory.value.length; i++) {
-    const count = memoryHistory.value[i].threadCount || 0
-    if (count > maxCount) {
-      maxCount = count
-      maxTime = new Date(memoryHistory.value[i].collectTime).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-    }
-  }
-  return maxCount > 0 ? `${maxCount} 线程` : '0 线程'
-})
-
-const avgThreadCount = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  const total = memoryHistory.value.reduce((sum, m) => sum + (m.threadCount || 0), 0)
-  const avg = total / memoryHistory.value.length
-  return `${Math.round(avg)} 线程`
-})
-
-const blockedRatioText = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  const blocked = latest.threadCountBlocked || 0
-  const total = latest.threadCount || 1
-  const ratio = (blocked / total) * 100
-  return ratio.toFixed(1) + '%'
-})
-
-const blockedRatioStatus = computed(() => {
-  if (memoryHistory.value.length === 0) return 'info'
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  const blocked = latest.threadCountBlocked || 0
-  const total = latest.threadCount || 1
-  const ratio = (blocked / total) * 100
-  if (ratio < 5) return 'success'
-  if (ratio < 15) return 'warning'
-  return 'danger'
-})
-
-const daemonRatioText = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  const daemon = latest.daemonThreadCount || 0
-  const total = latest.threadCount || 1
-  const ratio = (daemon / total) * 100
-  return ratio.toFixed(1) + '%'
-})
-
-const peakThreadCountValue = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  let peak = 0
-  for (let i = 0; i < memoryHistory.value.length; i++) {
-    const count = memoryHistory.value[i].threadCount || 0
-    if (count > peak) peak = count
-  }
-  return peak > 0 ? `${peak} 线程` : '0 线程'
-})
-
-const runnableRatioText = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  const runnable = latest.threadCountRunnable || 0
-  const total = latest.threadCount || 1
-  const ratio = (runnable / total) * 100
-  return ratio.toFixed(1) + '%'
-})
-
-const runnableRatioStatus = computed(() => {
-  if (memoryHistory.value.length === 0) return 'info'
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  const runnable = latest.threadCountRunnable || 0
-  const total = latest.threadCount || 1
-  const ratio = (runnable / total) * 100
-  if (ratio > 50) return 'success'
-  if (ratio > 30) return 'warning'
-  return 'danger'
-})
-
-const threadCreationRateValue = computed(() => {
-  if (memoryHistory.value.length < 2) return '-'
-  const first = memoryHistory.value[0]
-  const last = memoryHistory.value[memoryHistory.value.length - 1]
-  const timeDiff = (last.collectTime - first.collectTime) / 1000 // 秒
-  const threadDiff = (last.totalStartedThreadCount || 0) - (first.totalStartedThreadCount || 0)
-  if (timeDiff > 0) {
-    const rate = threadDiff / timeDiff
-    return rate.toFixed(2)
-  }
-  return '0'
-})
-
-const totalStartedThreadValue = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  const total = latest.totalStartedThreadCount || 0
-  return total > 0 ? `${total}` : '0'
-})
-
-// 线程池关键指标
-const threadPoolCount = computed(() => {
-  if (!hasThreadPoolData.value) return '-'
-  try {
-    const latest = memoryHistory.value[memoryHistory.value.length - 1]
-    const pools = JSON.parse(latest.threadPools!)
-    return pools.length
-  } catch (e) {
-    return '-'
-  }
-})
-
-const threadPoolActivityRate = computed(() => {
-  if (!hasThreadPoolData.value) return '-'
-  try {
-    const latest = memoryHistory.value[memoryHistory.value.length - 1]
-    const pools = JSON.parse(latest.threadPools!)
-    let totalActive = 0
-    let totalThreads = 0
-    pools.forEach((pool: any) => {
-      totalActive += pool.activeCount || 0
-      totalThreads += pool.poolSize || 0
-    })
-    if (totalThreads === 0) return '0%'
-    return ((totalActive / totalThreads) * 100).toFixed(1) + '%'
-  } catch (e) {
-    return '-'
-  }
-})
-
-const threadPoolActivityStatus = computed(() => {
-  const rate = parseFloat(threadPoolActivityRate.value) || 0
-  if (rate < 50) return 'success'
-  if (rate < 80) return 'warning'
-  return 'danger'
-})
-
-const queueBacklogValue = computed(() => {
-  if (!hasThreadPoolData.value) return '-'
-  try {
-    const latest = memoryHistory.value[memoryHistory.value.length - 1]
-    const pools = JSON.parse(latest.threadPools!)
-    let totalQueue = 0
-    pools.forEach((pool: any) => {
-      totalQueue += pool.queueSize || 0
-    })
-    return totalQueue > 0 ? `${totalQueue}` : '0'
-  } catch (e) {
-    return '-'
-  }
-})
-
-const queueBacklogStatus = computed(() => {
-  const backlog = parseInt(queueBacklogValue.value) || 0
-  if (backlog === 0) return 'success'
-  if (backlog < 100) return 'warning'
-  return 'danger'
-})
-
-const rejectedTaskCount = computed(() => {
-  if (!hasThreadPoolData.value) return '-'
-  try {
-    const latest = memoryHistory.value[memoryHistory.value.length - 1]
-    const pools = JSON.parse(latest.threadPools!)
-    let totalRejected = 0
-    pools.forEach((pool: any) => {
-      totalRejected += pool.rejectedCount || 0
-    })
-    return totalRejected > 0 ? `${totalRejected}` : '0'
-  } catch (e) {
-    return '-'
-  }
-})
-
-const rejectedCountStatus = computed(() => {
-  const count = parseInt(rejectedTaskCount.value) || 0
-  if (count === 0) return 'success'
-  if (count < 10) return 'warning'
-  return 'danger'
-})
-
-// 类加载关键指标
-const loadedClassCount = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  const count = latest.loadedClassCount || 0
-  return count > 0 ? `${count}` : '0'
-})
-
-const classLoadingRateValue = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  const rate = latest.classLoadingRate || 0
-  return rate.toFixed(2)
-})
-
-const unloadedClassCount = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  const count = latest.unloadedClassCount || 0
-  return count > 0 ? `${count}` : '0'
-})
-
-const classLoadErrorCount = computed(() => {
-  if (memoryHistory.value.length === 0) return '-'
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  const count = latest.classLoadErrorCount || 0
-  return count > 0 ? `${count}` : '0'
-})
-
-const classLoadErrorStatus = computed(() => {
-  const count = parseInt(classLoadErrorCount.value) || 0
-  if (count === 0) return 'success'
-  if (count < 5) return 'warning'
-  return 'danger'
-})
-
-// GC智能分析
 const gcModeAnalysis = computed(() => {
   if (memoryHistory.value.length === 0) {
     return { status: 'info', text: '数据不足', detail: '无法分析GC模式' }
@@ -3601,508 +2377,131 @@ const gcModeAnalysis = computed(() => {
   }
 })
 
-const fullGcTrendAnalysis = computed(() => {
-  if (memoryHistory.value.length < 3) {
-    return { status: 'info', text: '数据不足', detail: '需要更多数据点才能分析Full GC趋势' }
-  }
-  
-  const fullGcCounts = memoryHistory.value.map(m => m.fullGcCount || 0)
-  const first = fullGcCounts[0]
-  const last = fullGcCounts[fullGcCounts.length - 1]
-  const diff = last - first
-  
-  if (diff > 5) {
-    return { status: 'danger', text: '持续增长', detail: `Full GC次数增长${diff}次，可能存在内存泄漏` }
-  } else if (diff > 0) {
-    return { status: 'warning', text: '缓慢增长', detail: `Full GC次数增长${diff}次，需关注` }
-  } else {
-    return { status: 'success', text: '稳定', detail: 'Full GC次数未增加，内存使用正常' }
-  }
-})
-
-const gcHealthDetailAnalysis = computed(() => {
-  if (memoryHistory.value.length === 0) {
-    return { status: 'info', text: '数据不足', detail: '无法评估GC健康度' }
-  }
-  
-  const score = parseInt(gcHealthScore.value) || 0
-  
-  if (score >= 80) {
-    return { status: 'success', text: `优秀(${score}分)`, detail: 'GC表现良好，无需优化' }
-  } else if (score >= 60) {
-    return { status: 'warning', text: `良好(${score}分)`, detail: 'GC表现正常，建议优化' }
-  } else {
-    return { status: 'danger', text: `较差(${score}分)`, detail: 'GC存在问题，需要立即优化' }
-  }
-})
-
-const gcSuggestions = computed(() => {
-  const suggestions: string[] = []
-  
-  // 基于GC模式给出建议
-  if (gcModeAnalysis.value.status === 'danger') {
-    suggestions.push('Full GC过多，存在内存问题')
-    suggestions.push('建议：增大堆内存(-Xmx)、检查内存泄漏')
-  } else if (gcModeAnalysis.value.status === 'warning') {
-    suggestions.push('Full GC偏多，内存压力较大')
-    suggestions.push('建议：适当调整堆内存大小、优化对象创建')
-  } else {
-    suggestions.push('GC模式正常，Minor GC为主')
-    suggestions.push('保持当前配置，定期监控性能变化')
-  }
-  
-  // 基于Full GC趋势给出建议
-  if (fullGcTrendAnalysis.value.status === 'danger') {
-    suggestions[0] += ' + Full GC持续增长'
-    suggestions[1] += '，使用MAT分析堆转储'
-  }
-  
-  // 基于GC频率给出建议
-  const gcFreq = parseFloat(gcFrequency.value) || 0
-  if (gcFreq > 60) {
-    suggestions[0] += ' + GC频率过高'
-    suggestions[1] += '，检查是否有大量短期对象创建'
-  }
-  
-  return suggestions
-})
-
-// 线程智能分析
-const threadGrowthAnalysis = computed(() => {
-  if (memoryHistory.value.length < 3) {
-    return { status: 'info', text: '数据不足', detail: '需要更多数据点才能分析线程增长模式' }
-  }
-  
-  const threadCounts = memoryHistory.value.map(m => m.threadCount || 0)
-  const first = threadCounts[0]
-  const last = threadCounts[threadCounts.length - 1]
-  const diff = last - first
-  const avg = threadCounts.reduce((a, b) => a + b, 0) / threadCounts.length
-  
-  if (diff > avg * 0.2) {
-    return { status: 'warning', text: '持续增长', detail: `线程数增长${diff}个，可能存在线程泄漏风险` }
-  } else if (diff < -avg * 0.2) {
-    return { status: 'success', text: '逐渐减少', detail: `线程数减少${Math.abs(diff)}个，线程池可能正在回收` }
-  } else {
-    return { status: 'success', text: '稳定状态', detail: `线程数波动在${Math.round(avg * 0.9)}-${Math.round(avg * 1.1)}之间，运行稳定` }
-  }
-})
-
-const blockedThreadAnalysis = computed(() => {
-  if (memoryHistory.value.length === 0) {
-    return { status: 'info', text: '数据不足', detail: '无BLOCKED线程数据' }
-  }
-  
-  const blockedData = memoryHistory.value.map(m => m.threadCountBlocked || 0)
-  const maxBlocked = Math.max(...blockedData)
-  const avgBlocked = blockedData.reduce((a, b) => a + b, 0) / blockedData.length
-  
-  if (maxBlocked === 0) {
-    return { status: 'success', text: '无线程阻塞', detail: '未检测到BLOCKED线程，运行正常' }
-  } else if (avgBlocked < 5) {
-    return { status: 'success', text: '少量阻塞', detail: `平均${avgBlocked.toFixed(0)}个BLOCKED线程，影响不大` }
-  } else if (avgBlocked < 20) {
-    return { status: 'warning', text: '中度阻塞', detail: `平均${avgBlocked.toFixed(0)}个BLOCKED线程，建议关注锁竞争` }
-  } else {
-    return { status: 'danger', text: '严重阻塞', detail: `平均${avgBlocked.toFixed(0)}个BLOCKED线程，存在锁竞争问题` }
-  }
-})
-
-const threadHealthAnalysis = computed(() => {
-  if (memoryHistory.value.length === 0) {
-    return { status: 'info', text: '数据不足', detail: '无法评估线程健康度' }
-  }
-  
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  const total = latest.threadCount || 0
-  const runnable = latest.threadCountRunnable || 0
-  const blocked = latest.threadCountBlocked || 0
-  
-  let score = 100
-  
-  // BLOCKED线程扣分
-  if (total > 0) {
-    const blockedRatio = blocked / total
-    score -= blockedRatio * 100 * 0.5
-  }
-  
-  // RUNNABLE线程占比低扣分
-  if (total > 0) {
-    const runnableRatio = runnable / total
-    if (runnableRatio < 0.3) score -= 20
-  }
-  
-  // 线程数过多扣分
-  if (total > 500) score -= 10
-  if (total > 1000) score -= 20
-  
-  score = Math.max(0, Math.min(100, score))
-  
-  if (score >= 80) {
-    return { status: 'success', text: `健康度${score.toFixed(0)}分`, detail: '线程状态良好' }
-  } else if (score >= 60) {
-    return { status: 'warning', text: `健康度${score.toFixed(0)}分`, detail: '存在一定问题，建议关注' }
-  } else {
-    return { status: 'danger', text: `健康度${score.toFixed(0)}分`, detail: '线程状态较差，需要优化' }
-  }
-})
-
-const threadSuggestions = computed(() => {
-  const suggestions: string[] = []
-  
-  // 基于线程增长给出建议
-  if (threadGrowthAnalysis.value.status === 'warning') {
-    suggestions.push('检测到线程持续增长')
-    suggestions.push('建议：检查线程池配置，排查线程泄漏')
-  } else {
-    suggestions.push('线程增长模式正常')
-    suggestions.push('保持当前配置，定期监控')
-  }
-  
-  // 基于BLOCKED线程给出建议
-  if (blockedThreadAnalysis.value.status === 'danger') {
-    suggestions[0] += ' + 严重阻塞'
-    suggestions[1] += '，使用jstack分析死锁'
-  } else if (blockedThreadAnalysis.value.status === 'warning') {
-    suggestions[0] += ' + 中度阻塞'
-    suggestions[1] += '，优化锁粒度或使用无锁数据结构'
-  }
-  
-  return suggestions
-})
-
-// 检查是否有CPU数据
-const hasCpuData = computed(() => {
+const hasBufferPoolsData = computed(() => {
   if (memoryHistory.value.length === 0) return false
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  return latest.cpuUsage !== undefined || latest.systemCpuUsage !== undefined
+  return !!memoryHistory.value[memoryHistory.value.length - 1].bufferPools
 })
 
-// 检查是否有线程池数据
-const hasThreadPoolData = computed(() => {
+const hasPhysicalMemoryData = computed(() => {
   if (memoryHistory.value.length === 0) return false
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  if (!latest.threadPools) return false
-  try {
-    const pools = JSON.parse(latest.threadPools)
-    return pools && pools.length > 0
-  } catch (e) {
-    return false
-  }
+  return !!memoryHistory.value[0].totalPhysicalMemory
 })
 
-// 检查是否有类加载速率数据
-const hasClassLoadingRateData = computed(() => {
-  if (memoryHistory.value.length === 0) return false
-  const latest = memoryHistory.value[memoryHistory.value.length - 1]
-  return latest.classLoadingRate !== undefined
+const jvmStartTimeStr = computed(() => {
+  if (!jvmData.value.startTimeMs) return '-'
+  return new Date(jvmData.value.startTimeMs).toLocaleString('zh-CN')
 })
 
-// Phase 2: Top CPU Threads Table Data
+const jvmUptimeStr = computed(() => {
+  if (!jvmData.value.uptimeMs) return '-'
+  const hours = Math.floor(jvmData.value.uptimeMs / 3600000)
+  const minutes = Math.floor((jvmData.value.uptimeMs % 3600000) / 60000)
+  return `${hours}小时 ${minutes}分钟`
+})
+
+const latestPeakThreadCount = computed(() => jvmData.value.peakThreadCount || '-')
+const latestDaemonThreadCount = computed(() => jvmData.value.daemonThreadCount || '-')
+const latestTotalLoadedClass = computed(() => jvmData.value.totalLoadedClassCount || '-')
+const latestUnloadedClass = computed(() => jvmData.value.unloadedClassCount || '-')
+const latestMinorGcCount = computed(() => gcData.value.collectors?.find(c => c.name.includes('Young'))?.count || '-')
+const latestFullGcCount = computed(() => gcData.value.collectors?.find(c => c.name.includes('Old'))?.count || '-')
+
 const topCpuThreadsTable = computed(() => {
-  if (memoryHistory.value.length === 0 || !memoryHistory.value[0].topCpuThreads) return []
-  try {
-    const latest = memoryHistory.value[memoryHistory.value.length - 1]
-    const threads: any[] = JSON.parse(latest.topCpuThreads!)
-    return threads.map(t => ({
-      ...t,
-      cpuTimeNs: t.cpuTimeNs || 0
-    }))
-  } catch (e) {
-    console.error('Failed to parse topCpuThreads:', e)
-    return []
-  }
+  // TODO: 从 threadsData 中提取 Top CPU 线程
+  return []
 })
 
-// Helper function to format nanoseconds to readable time
-const formatNanoTime = (ns: number) => {
-  if (!ns) return '0s'
-  const ms = ns / 1000000
-  if (ms < 1000) return `${ms.toFixed(2)}ms`
-  const seconds = ms / 1000
-  if (seconds < 60) return `${seconds.toFixed(2)}s`
-  const minutes = seconds / 60
-  return `${minutes.toFixed(2)}min`
-}
+// ==================== 方法 ====================
 
-const loadInstances = async () => {
-  instancesLoading.value = true
-  try {
-    const res = await http.get('/api/agent/instances')
-    instances.value = (res.data as any)?.result || []
-    
-    // 同时加载告警状态
-    await loadAlertedAgents()
-  } catch (e: any) {
-    ElMessage.error(e.message || '加载失败')
-  } finally {
-    instancesLoading.value = false
-  }
-}
+// 处理诊断命令（覆盖 Composable 中的版本，添加渲染逻辑）
+const handleDiagCommand = async (command: string, row: any) => {
+  const agentId = `${row.app}@${row.inst}`
+  currentDiagRow.value = row
 
-const loadAlertedAgents = async () => {
-  try {
-    const res = await http.get('/api/alert/list', { params: { limit: 100 } })
-    const alerts = (res.data as any)?.result || []
-    // 提取活跃的 AGENT_OFFLINE 告警
-    const activeAlerts = alerts.filter((a: any) => 
-      a.alertType === 'AGENT_OFFLINE' && a.status === 'ACTIVE'
-    )
-    alertedAgents.value = activeAlerts.map((a: any) => a.app)
-  } catch (e: any) {
-    console.error('Failed to load alerted agents:', e)
-  }
-}
-
-// 计算属性
-const onlineCount = computed(() => instances.value.filter(i => i.online).length)
-const offlineCount = computed(() => instances.value.filter(i => !i.online).length)
-const alertedCount = computed(() => alertedAgents.value.length)
-
-// 判断 Agent 是否已告警
-const isAlerted = (row: AgentInstance) => {
-  return alertedAgents.value.includes(row.app) && !row.online
-}
-
-// 处理诊断命令
-const handleDiagCommand = async (cmd: string, row: AgentInstance) => {
-  // 构建简化的 agentId 用于匹配
-  const simpleAgentId = `${row.app}@${row.inst}`
-  
-  // 从在线 Agent 列表中查找完整的 agentId
-  let agentId = simpleAgentId
-  try {
-    const connections = await fetchAgentConnections()
-    const matched = connections.find(conn => {
-      return conn.agentId === simpleAgentId || 
-             conn.agentId.startsWith(simpleAgentId + '@') ||
-             conn.agentId.includes(`@${row.inst}@`)
-    })
-    if (matched) {
-      agentId = matched.agentId
-    }
-  } catch (e) {
-    console.warn('Failed to fetch agent connections, using simple agentId')
-  }
-  
-  switch (cmd) {
+  switch (command) {
     case 'config':
-      configMode.value = 'app'
-      currentApp.value = row.app
-      currentInst.value = ''
-      showConfigDialog.value = true
-      configSourceTab.value = 'database'
-      dbConfigContent.value = '加载中...'
-      agentRuntimeConfig.value = ''
-      fullConfigInfo.value = null
-      
-      // 从数据库获取配置
-      getAppConfig(row.app).then(config => {
-        dbConfigContent.value = config || '# 暂无配置\n# 请在此输入 YAML 格式的配置内容'
-      }).catch(e => {
-        console.error('Failed to load app config:', e)
-        dbConfigContent.value = '# 加载失败\n' + e.message
-      })
-      
-      // 加载完整配置信息
-      getFullConfigInfo(row.app).then(info => {
-        fullConfigInfo.value = info || null
-      }).catch(e => {
-        console.error('Failed to load full config:', e)
-      })
-      
-      // 尝试从 Agent 获取运行时配置
-      fetchAgentConnections().then(connections => {
-        const matched = connections.find(conn => {
-          // agentId 格式: order@dev@test01@127.0.0.1:8081
-          // 需要匹配 app=order, inst=test01
-          return conn.agentId.includes(`@${row.inst}@`) ||
-                 (conn.agentId.startsWith(`${row.app}@`) && conn.agentId.includes(`@${row.inst}@`))
-        })
-        if (matched && matched.connected) {
-          console.log('Found connected agent:', matched.agentId)
-          // 直接读取 Agent 的 config.yml 文件内容
-          return agentReadConfig(matched.agentId)
-        }
-        console.warn('No matching agent found for', row.app, row.inst)
-        return null
-      }).then(configContent => {
-        if (configContent && configContent.trim()) {
-          agentRuntimeConfig.value = configContent
-        } else {
-          agentRuntimeConfig.value = '# Agent 配置文件为空或无法读取\n# 请检查 Agent 是否正常启动'
-        }
-      }).catch(e => {
-        console.warn('Failed to get runtime config from agent:', e)
-        agentRuntimeConfig.value = '# 无法获取 Agent 运行时配置\n# 请确保 Agent 在线且已连接'
-      })
+      // 配置管理 - 由父组件处理
       break
-      
     case 'instanceConfig':
-      configMode.value = 'instance'
-      currentApp.value = row.app
-      currentInst.value = row.inst
-      showConfigDialog.value = true
-      configSourceTab.value = 'database'
-      dbConfigContent.value = '加载中...'
-      agentRuntimeConfig.value = ''
-      fullConfigInfo.value = null
-      
-      // 从数据库获取配置
-      getInstanceConfig(row.app, row.inst).then(config => {
-        dbConfigContent.value = config || '# 暂无实例配置\n# 实例配置会覆盖应用级配置\n# 请在此输入 YAML 格式的配置内容'
-      }).catch(e => {
-        console.error('Failed to load instance config:', e)
-        dbConfigContent.value = '# 加载失败\n' + e.message
-      })
-      
-      // 加载完整配置信息
-      getFullConfigInfo(row.app, row.inst).then(info => {
-        fullConfigInfo.value = info || null
-      }).catch(e => {
-        console.error('Failed to load full config:', e)
-      })
-      
-      // 尝试从 Agent 获取运行时配置
-      fetchAgentConnections().then(connections => {
-        const matched = connections.find(conn => {
-          // agentId 格式: order@dev@test01@127.0.0.1:8081
-          // 需要匹配 app=order, inst=test01
-          return conn.agentId.includes(`@${row.inst}@`) ||
-                 (conn.agentId.startsWith(`${row.app}@`) && conn.agentId.includes(`@${row.inst}@`))
-        })
-        if (matched && matched.connected) {
-          console.log('Found connected agent:', matched.agentId)
-          // 直接读取 Agent 的 config.yml 文件内容
-          return agentReadConfig(matched.agentId)
-        }
-        console.warn('No matching agent found for', row.app, row.inst)
-        return null
-      }).then(configContent => {
-        if (configContent && configContent.trim()) {
-          agentRuntimeConfig.value = configContent
-        } else {
-          agentRuntimeConfig.value = '# Agent 配置文件为空或无法读取\n# 请检查 Agent 是否正常启动'
-        }
-      }).catch(e => {
-        console.warn('Failed to get runtime config from agent:', e)
-        agentRuntimeConfig.value = '# 无法获取 Agent 运行时配置\n# 请确保 Agent 在线且已连接'
-      })
+      // 实例配置 - 由父组件处理
       break
-      
     case 'memoryChart':
-      // 在当前对话框中显示内存历史监控图表
-      currentDiagRow.value = row
       await showMemoryHistoryChart(row)
       break
-      
     case 'gcChart':
-      currentDiagRow.value = row
       await showGcHistoryChart(row)
       break
-      
     case 'threadChart':
-      currentDiagRow.value = row
       await showThreadHistoryChart(row)
       break
-      
     case 'ioNetworkChart':
-      currentDiagRow.value = row
       await showIoNetworkHistoryChart(row)
       break
-      
     case 'jvmInfo':
       await executeDiagCommand('JVM信息', () => agentJvmInfo(agentId), 'jvmInfo')
       break
-      
     case 'memory':
       await executeDiagCommand('内存信息', () => agentMemory(agentId), 'memory')
       break
-      
     case 'threadDump':
       await executeDiagCommand('线程Dump', () => agentThreadDump(agentId))
       break
-      
     case 'threadsSummary':
       await executeDiagCommand('线程概要', () => agentThreadsSummary(agentId), 'threadsSummary')
       break
-      
     case 'gcStats':
       await executeDiagCommand('GC统计', () => agentGcStats(agentId), 'gcStats')
       break
-      
     case 'deadlocks':
       await executeDiagCommand('死锁检测', () => agentDeadlocks(agentId))
       break
-      
     case 'gc':
       try {
         await ElMessageBox.confirm(
           `确定要对 ${row.app}@${row.inst} 执行 GC 吗？这可能会导致短暂的停顿。`,
           '执行 GC 确认',
-          {
-            confirmButtonText: '确定执行',
-            cancelButtonText: '取消',
-            type: 'warning',
-          }
+          { confirmButtonText: '确定执行', cancelButtonText: '取消', type: 'warning' }
         )
         await executeDiagCommand('执行GC', () => agentGc(agentId))
       } catch (e: any) {
-        if (e !== 'cancel') {
-          ElMessage.error('操作失败')
-        }
+        if (e !== 'cancel') ElMessage.error('操作失败')
       }
       break
-      
     case 'sysProps':
       await executeDiagCommand('系统属性', () => agentSysProps(agentId), 'sysProps')
       break
-      
     case 'env':
       await executeDiagCommand('环境变量', () => agentEnv(agentId), 'env')
       break
   }
 }
 
-// 执行诊断命令
-const executeDiagCommand = async (title: string, fn: () => Promise<string | undefined>, type?: string) => {
-  diagDialogTitle.value = title
-  diagResult.value = '正在执行...'
-  showDiagDialog.value = true
-  currentDiagType.value = type || ''
-  diagMode.value = 'chart'
+// 刷新历史图表（覆盖 Composable 中的版本）
+const refreshHistoryChart = () => {
+  if (!currentDiagRow.value) {
+    ElMessage.warning('无法获取实例信息')
+    return
+  }
   
-  try {
-    const result = await fn()
-    if (result === undefined || result === null) {
-      diagResult.value = '返回数据为空'
-    } else if (result === '') {
-      diagResult.value = '返回空字符串'
-    } else {
-      diagResult.value = result
-      
-      // 解析数据用于图表展示
-      if (type === 'jvmInfo') {
-        parseJvmData(result)
-      } else if (type === 'memory') {
-        parseMemoryData(result)
-      } else if (type === 'gcStats') {
-        parseGcData(result)
-      } else if (type === 'threadsSummary') {
-        parseThreadsData(result)
-      } else if (type === 'sysProps') {
-        parseSysPropsData(result)
-      } else if (type === 'env') {
-        parseEnvVarsData(result)
-      }
-    }
-  } catch (e: any) {
-    const errorMsg = e.response?.data || e.message || '未知错误'
-    diagResult.value = `执行失败: ${JSON.stringify(errorMsg, null, 2)}`
+  switch (currentDiagType.value) {
+    case 'memoryChart':
+      showMemoryHistoryChart(currentDiagRow.value, true)
+      break
+    case 'gcChart':
+      showGcHistoryChart(currentDiagRow.value, true)
+      break
+    case 'threadChart':
+      showThreadHistoryChart(currentDiagRow.value, true)
+      break
+    case 'ioNetworkChart':
+      showIoNetworkHistoryChart(currentDiagRow.value, true)
+      break
+    default:
+      ElMessage.info('当前不是历史监控视图')
   }
 }
 
-// 显示内存历史监控图表
+// 显示内存历史监控图表（覆盖 Composable 中的版本，添加渲染逻辑）
 const showMemoryHistoryChart = async (row: any, refresh = false) => {
   if (!refresh) {
     diagDialogTitle.value = `💾 内存监控 - ${row.app}@${row.inst}`
@@ -4115,7 +2514,7 @@ const showMemoryHistoryChart = async (row: any, refresh = false) => {
   try {
     historyLoading.value = true
     const endTime = Date.now()
-    const startTime = endTime - historyTimeRange.value * 3600 * 1000 // 根据选择的时间范围计算
+    const startTime = endTime - historyTimeRange.value * 3600 * 1000
     
     const data = await getMemoryHistory(row.app, row.inst, startTime, endTime, 100)
     
@@ -4127,11 +2526,14 @@ const showMemoryHistoryChart = async (row: any, refresh = false) => {
     memoryHistory.value = data.sort((a, b) => a.collectTime - b.collectTime)
     diagResult.value = 'loaded'
     
-    // 使用nextTick确保DOM更新后再渲染
-    setTimeout(() => {
-      console.log('准备渲染内存图表, memoryHistory长度:', memoryHistory.value.length)
-      renderMemoryCharts()
-    }, 500)
+    // 如果不是刷新，等待 Dialog 打开后再渲染
+    if (!refresh) {
+      // Dialog 打开后会触发 handleDialogOpened
+      console.log('⏳ 等待 Dialog 打开...')
+    } else {
+      // 刷新时直接渲染
+      renderChartsAfterDialogOpen()
+    }
     
     if (!refresh) {
       ElMessage.success(`加载了 ${data.length} 条历史记录`)
@@ -4143,6 +2545,80 @@ const showMemoryHistoryChart = async (row: any, refresh = false) => {
   } finally {
     historyLoading.value = false
   }
+}
+
+// Dialog 打开后的回调
+const handleDialogOpened = () => {
+  console.log('✅ Dialog 已打开')
+  
+  // 根据当前诊断类型渲染对应的图表
+  if (currentDiagType.value === 'memoryChart') {
+    renderChartsAfterDialogOpen()
+  }
+}
+
+// 在 Dialog 打开后渲染图表
+const renderChartsAfterDialogOpen = () => {
+  console.log('🎨 开始渲染图表...')
+  
+  // 强制切换到 history Tab，并等待多个 tick
+  memoryTab.value = 'history'
+  
+  // 使用多层 nextTick 确保 Vue 完成所有更新
+  nextTick(() => {
+    nextTick(() => {
+      nextTick(() => {
+        setTimeout(() => {
+          console.log('⏰ 开始检测 DOM...')
+          
+          // 直接检查 DOM
+          const edenEl = document.querySelector('[data-chart="eden-survivor"]')
+          const oldGenEl = document.querySelector('[data-chart="old-gen"]')
+          const minorVsFullGcEl = document.querySelector('[data-chart="minor-vs-full-gc"]')
+          const gcEfficiencyEl = document.querySelector('[data-chart="gc-efficiency"]')
+          
+          console.log('DOM 检查结果:', {
+            eden: !!edenEl,
+            oldGen: !!oldGenEl,
+            minorVsFullGc: !!minorVsFullGcEl,
+            gcEfficiency: !!gcEfficiencyEl
+          })
+          
+          // 如果找到了，立即渲染
+          if (edenEl && oldGenEl && minorVsFullGcEl && gcEfficiencyEl) {
+            console.log('✅ 所有图表容器已就绪')
+            renderMemoryCharts()
+            renderGcCharts(memoryHistory.value)
+            console.log('✅ 所有图表渲染完成')
+          } else {
+            // 如果没找到，尝试再次切换 Tab
+            console.warn('⚠️ 图表容器未找到，尝试重新切换 Tab...')
+            memoryTab.value = 'realtime'
+            setTimeout(() => {
+              memoryTab.value = 'history'
+              setTimeout(() => {
+                const edenEl2 = document.querySelector('[data-chart="eden-survivor"]')
+                const oldGenEl2 = document.querySelector('[data-chart="old-gen"]')
+                const minorVsFullGcEl2 = document.querySelector('[data-chart="minor-vs-full-gc"]')
+                const gcEfficiencyEl2 = document.querySelector('[data-chart="gc-efficiency"]')
+                
+                console.log('第二次 DOM 检查结果:', {
+                  eden: !!edenEl2,
+                  oldGen: !!oldGenEl2,
+                  minorVsFullGc: !!minorVsFullGcEl2,
+                  gcEfficiency: !!gcEfficiencyEl2
+                })
+                
+                renderMemoryCharts()
+                renderGcCharts(memoryHistory.value)
+                console.log('✅ 所有图表渲染完成（强制）')
+              }, 500)
+            }, 100)
+          }
+        }, 800) // 等待 800ms
+      })
+    })
+  })
 }
 
 // 显示GC历史监控图表
@@ -4163,17 +2639,16 @@ const showGcHistoryChart = async (row: any, refresh = false) => {
     const data = await getMemoryHistory(row.app, row.inst, startTime, endTime, 100)
     
     if (data.length === 0) {
-      diagResult.value = '暂无历史数据，请确保Agent正常运行并上报数据'
+      diagResult.value = '暂无历史数据'
       return
     }
     
     memoryHistory.value = data.sort((a, b) => a.collectTime - b.collectTime)
     diagResult.value = 'loaded'
     
-    // 使用nextTick确保DOM更新后再渲染
+    // 渲染GC图表
     setTimeout(() => {
-      console.log('准备渲染GC图表, memoryHistory长度:', memoryHistory.value.length)
-      renderGcCharts()
+      gcAnalysis.renderGcCharts(memoryHistory.value)
     }, 500)
     
     if (!refresh) {
@@ -4206,17 +2681,16 @@ const showThreadHistoryChart = async (row: any, refresh = false) => {
     const data = await getMemoryHistory(row.app, row.inst, startTime, endTime, 100)
     
     if (data.length === 0) {
-      diagResult.value = '暂无历史数据，请确保Agent正常运行并上报数据'
+      diagResult.value = '暂无历史数据'
       return
     }
     
     memoryHistory.value = data.sort((a, b) => a.collectTime - b.collectTime)
     diagResult.value = 'loaded'
     
-    // 使用nextTick确保DOM更新后再渲染
+    // 渲染线程图表
     setTimeout(() => {
-      console.log('准备渲染线程图表, memoryHistory长度:', memoryHistory.value.length)
-      renderThreadCharts()
+      threadMon.renderThreadCharts(memoryHistory.value)
     }, 500)
     
     if (!refresh) {
@@ -4249,17 +2723,16 @@ const showIoNetworkHistoryChart = async (row: any, refresh = false) => {
     const data = await getMemoryHistory(row.app, row.inst, startTime, endTime, 100)
     
     if (data.length === 0) {
-      diagResult.value = '暂无历史数据，请确保Agent正常运行并上报数据'
+      diagResult.value = '暂无历史数据'
       return
     }
     
     memoryHistory.value = data.sort((a, b) => a.collectTime - b.collectTime)
     diagResult.value = 'loaded'
     
-    // 使用nextTick确保DOM更新后再渲染
+    // 渲染IO/网络图表
     setTimeout(() => {
-      console.log('准备渲染IO/网络图表, memoryHistory长度:', memoryHistory.value.length)
-      renderThreadCharts() // 复用线程图表的渲染函数（包含磁盘I/O）
+      ioNetworkMon.renderIoNetworkCharts(memoryHistory.value)
     }, 500)
     
     if (!refresh) {
@@ -4274,3982 +2747,74 @@ const showIoNetworkHistoryChart = async (row: any, refresh = false) => {
   }
 }
 
-// 刷新当前历史监控数据
-const refreshHistoryChart = () => {
-  if (!currentDiagRow.value) {
-    ElMessage.warning('无法获取实例信息')
-    return
-  }
-  
-  switch (currentDiagType.value) {
-    case 'memoryChart':
-      showMemoryHistoryChart(currentDiagRow.value, true)
-      break
-    case 'gcChart':
-      showGcHistoryChart(currentDiagRow.value, true)
-      break
-    case 'threadChart':
-      showThreadHistoryChart(currentDiagRow.value, true)
-      break
-    case 'ioNetworkChart':
-      showIoNetworkHistoryChart(currentDiagRow.value, true)
-      break
-    default:
-      ElMessage.info('当前不是历史监控视图')
-  }
-}
-
-// 渲染GC图表 - 只渲染GC相关图表
-const renderGcCharts = () => {
-  if (memoryHistory.value.length === 0) return
-  
-  const times = memoryHistory.value.map(m => {
-    const date = new Date(m.collectTime)
-    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
-  })
-  
-  // 1. GC Count Chart
-  if (gcCountChartRef.value) {
-    if (!gcCountChartInstance) gcCountChartInstance = echarts.init(gcCountChartRef.value)
-    
-    const gcIncrements = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      return m.gcCount - memoryHistory.value[i - 1].gcCount
-    })
-    
-    gcCountChartInstance.setOption({
-      title: { text: 'GC次数增量', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { trigger: 'axis', formatter: (params: any) => {
-        return params[0].name + '<br/>GC增量: ' + params[0].value + ' 次'
-      }},
-      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '次数' },
-      series: [{ name: 'GC增量', type: 'bar', data: gcIncrements, itemStyle: { color: '#9c27b0' } }]
-    })
-    gcCountChartInstance.resize()
-  }
-  
-  // 2. GC Duration Chart
-  if (gcDurationChartRef.value) {
-    if (!gcDurationChartInstance) gcDurationChartInstance = echarts.init(gcDurationChartRef.value)
-    
-    const gcTimeIncrements = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      return m.gcTimeMs - memoryHistory.value[i - 1].gcTimeMs
-    })
-    
-    gcDurationChartInstance.setOption({
-      title: { text: 'GC耗时分析', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { trigger: 'axis', formatter: (params: any) => {
-        return params[0].name + '<br/>GC耗时: ' + params[0].value + ' ms'
-      }},
-      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '耗时(ms)' },
-      series: [{ name: 'GC耗时', type: 'line', data: gcTimeIncrements, smooth: true, itemStyle: { color: '#ff6b6b' }, areaStyle: { color: 'rgba(255, 107, 107, 0.1)' } }]
-    })
-    gcDurationChartInstance.resize()
-  }
-  
-  // 3. Minor vs Full GC Chart
-  if (minorVsFullGcChartRef.value) {
-    if (!minorVsFullGcChartInstance) minorVsFullGcChartInstance = echarts.init(minorVsFullGcChartRef.value)
-    
-    const minorGcData = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      return (m.minorGcCount || 0) - (memoryHistory.value[i - 1].minorGcCount || 0)
-    })
-    const fullGcData = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      return (m.fullGcCount || 0) - (memoryHistory.value[i - 1].fullGcCount || 0)
-    })
-    
-    minorVsFullGcChartInstance.setOption({
-      title: { text: 'Minor vs Full GC', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { trigger: 'axis', formatter: (params: any) => {
-        let result = params[0].name + '<br/>'
-        params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${p.value} 次<br/>` })
-        return result
-      }},
-      legend: { data: ['Minor GC', 'Full GC'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '次数' },
-      series: [
-        { name: 'Minor GC', type: 'bar', data: minorGcData, itemStyle: { color: '#409eff' } },
-        { name: 'Full GC', type: 'bar', data: fullGcData, itemStyle: { color: '#f56c6c' } }
-      ]
-    })
-    minorVsFullGcChartInstance.resize()
-  }
-  
-  // 4. GC Efficiency Chart
-  if (gcEfficiencyChartRef.value && memoryHistory.value[0].memoryPools) {
-    if (!gcEfficiencyChartInstance) gcEfficiencyChartInstance = echarts.init(gcEfficiencyChartRef.value)
-    
-    const gcEfficiencyData: number[] = []
-    memoryHistory.value.forEach((m, i) => {
-      if (i === 0) {
-        gcEfficiencyData.push(0)
-        return
-      }
-      try {
-        const pools: any[] = JSON.parse(m.memoryPools!)
-        const prevPools: any[] = JSON.parse(memoryHistory.value[i - 1].memoryPools!)
-        const eden = pools.find(p => p.name.includes('Eden'))
-        const prevEden = prevPools.find(p => p.name.includes('Eden'))
-        if (eden && prevEden && eden.used !== undefined && prevEden.used !== undefined) {
-          const reclaimed = prevEden.used - eden.used
-          // 只记录有效数据(>=0)
-          gcEfficiencyData.push(reclaimed >= 0 ? reclaimed : 0)
-        } else {
-          gcEfficiencyData.push(0)
-        }
-      } catch (e) {
-        console.warn('Failed to calculate GC efficiency:', e)
-        gcEfficiencyData.push(0)
-      }
-    })
-    
-    gcEfficiencyChartInstance.setOption({
-      title: { text: 'GC回收效率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis', 
-        formatter: (params: any) => {
-          const value = params[0].value
-          if (value === undefined || value === null || isNaN(value)) {
-            return params[0].name + '<br/>数据无效'
-          }
-          return params[0].name + '<br/>回收内存: ' + formatBytes(value)
-        }
-      },
-      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { 
-        type: 'value', 
-        axisLabel: { 
-          formatter: (val: number) => {
-            if (isNaN(val) || val === undefined) return '0 B'
-            return formatBytes(val)
-          }
-        }
-      },
-      series: [{ 
-        name: '回收内存', 
-        type: 'line', 
-        data: gcEfficiencyData.map(v => isNaN(v) ? 0 : v), // 确保没有NaN
-        smooth: true, 
-        itemStyle: { color: '#67c23a' }, 
-        areaStyle: { color: 'rgba(103, 194, 58, 0.1)' }
-      }]
-    })
-    gcEfficiencyChartInstance.resize()
-  }
-  
-  // 5. GC vs 堆内存关联分析
-  if (gcVsHeapChartRef.value) {
-    if (!gcVsHeapChartInstance) gcVsHeapChartInstance = echarts.init(gcVsHeapChartRef.value)
-    
-    const gcIncrements = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      return (m.gcCount || 0) - (memoryHistory.value[i - 1].gcCount || 0)
-    })
-    const heapUsageData = memoryHistory.value.map(m => {
-      return m.heapMax > 0 ? ((m.heapUsed || 0) / m.heapMax * 100).toFixed(1) : 0
-    })
-    
-    gcVsHeapChartInstance.setOption({
-      title: { text: 'GC频率 vs 堆内存使用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => {
-            if (p.seriesName === '堆内存使用率') {
-              result += `${p.marker} ${p.seriesName}: ${p.value}%<br/>`
-            } else {
-              result += `${p.marker} ${p.seriesName}: ${p.value} 次<br/>`
-            }
-          })
-          return result
-        }
-      },
-      legend: { data: ['GC增量', '堆内存使用率'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: [
-        { type: 'value', name: 'GC次数', position: 'left' },
-        { type: 'value', name: '使用率(%)', max: 100, position: 'right' }
-      ],
-      series: [
-        { 
-          name: 'GC增量', 
-          type: 'bar', 
-          data: gcIncrements, 
-          itemStyle: { color: '#9c27b0' },
-          yAxisIndex: 0
-        },
-        { 
-          name: '堆内存使用率', 
-          type: 'line', 
-          data: heapUsageData, 
-          smooth: true, 
-          itemStyle: { color: '#f56c6c' },
-          lineStyle: { width: 2 },
-          yAxisIndex: 1
-        }
-      ]
-    })
-    gcVsHeapChartInstance.resize()
-  }
-  
-  // 6. GC vs CPU关联分析
-  if (gcVsCpuChartRef.value) {
-    if (!gcVsCpuChartInstance) gcVsCpuChartInstance = echarts.init(gcVsCpuChartRef.value)
-    
-    const gcIncrements = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      return (m.gcCount || 0) - (memoryHistory.value[i - 1].gcCount || 0)
-    })
-    const cpuData = memoryHistory.value.map(m => ((m.processCpuLoad || 0) * 100).toFixed(2))
-    
-    gcVsCpuChartInstance.setOption({
-      title: { text: 'GC频率 vs CPU使用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => {
-            if (p.seriesName === 'CPU使用率') {
-              result += `${p.marker} ${p.seriesName}: ${p.value}%<br/>`
-            } else {
-              result += `${p.marker} ${p.seriesName}: ${p.value} 次<br/>`
-            }
-          })
-          return result
-        }
-      },
-      legend: { data: ['GC增量', 'CPU使用率'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: [
-        { type: 'value', name: 'GC次数', position: 'left' },
-        { type: 'value', name: 'CPU%', max: 100, position: 'right' }
-      ],
-      series: [
-        { 
-          name: 'GC增量', 
-          type: 'bar', 
-          data: gcIncrements, 
-          itemStyle: { color: '#9c27b0' },
-          yAxisIndex: 0
-        },
-        { 
-          name: 'CPU使用率', 
-          type: 'line', 
-          data: cpuData, 
-          smooth: true, 
-          itemStyle: { color: '#e6a23c' },
-          lineStyle: { width: 2 },
-          yAxisIndex: 1
-        }
-      ]
-    })
-    gcVsCpuChartInstance.resize()
-  }
-}
-
-// 渲染线程图表 - 只渲染线程相关图表
-const renderThreadCharts = () => {
-  if (memoryHistory.value.length === 0) return
-  
-  const times = memoryHistory.value.map(m => {
-    const date = new Date(m.collectTime)
-    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
-  })
-  
-  // 1. Thread Count Chart
-  if (threadChartRef.value) {
-    if (!threadChartInstance) threadChartInstance = echarts.init(threadChartRef.value)
-    threadChartInstance.setOption({
-      title: { text: '线程数趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { trigger: 'axis' },
-      legend: { data: ['当前线程'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '线程数' },
-      series: [
-        { name: '当前线程', type: 'line', data: memoryHistory.value.map(m => m.threadCount), smooth: true, itemStyle: { color: '#409eff' }, areaStyle: { color: 'rgba(64, 158, 255, 0.1)' } }
-      ]
-    })
-    threadChartInstance.resize()
-  }
-  
-  // 2. Class Loading Chart
-  if (classLoadingChartRef.value) {
-    if (!classLoadingChartInstance) classLoadingChartInstance = echarts.init(classLoadingChartRef.value)
-    classLoadingChartInstance.setOption({
-      title: { text: '类加载统计', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { trigger: 'axis' },
-      legend: { data: ['已加载类'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '类数量' },
-      series: [{ name: '已加载类', type: 'line', data: memoryHistory.value.map(m => m.loadedClassCount), smooth: true, itemStyle: { color: '#e6a23c' }, areaStyle: { color: 'rgba(230, 162, 60, 0.1)' } }]
-    })
-    classLoadingChartInstance.resize()
-  }
-  
-  // 3. Thread States Chart (如果有数据)
-  if (threadStatesChartRef.value && memoryHistory.value[0].threadStates) {
-    if (!threadStatesChartInstance) threadStatesChartInstance = echarts.init(threadStatesChartRef.value)
-    
-    try {
-      const threadStatesData: any[] = []
-      memoryHistory.value.forEach(m => {
-        try {
-          const states = JSON.parse(m.threadStates!)
-          threadStatesData.push(states)
-        } catch (e) {
-          threadStatesData.push(null)
-        }
-      })
-      
-      // 提取各个状态的数组
-      const runnables = threadStatesData.map(s => s?.RUNNABLE || 0)
-      const waitings = threadStatesData.map(s => s?.WAITING || 0)
-      const timedWaitings = threadStatesData.map(s => s?.TIMED_WAITING || 0)
-      const blockeds = threadStatesData.map(s => s?.BLOCKED || 0)
-      
-      threadStatesChartInstance.setOption({
-        title: { text: '线程状态分布', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-        tooltip: { trigger: 'axis' },
-        legend: { data: ['RUNNABLE', 'WAITING', 'TIMED_WAITING', 'BLOCKED'], bottom: 0 },
-        grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-        xAxis: { type: 'category', data: times, boundaryGap: false },
-        yAxis: { type: 'value', name: '线程数' },
-        series: [
-          { name: 'RUNNABLE', type: 'line', stack: 'total', data: runnables, areaStyle: {}, itemStyle: { color: '#67c23a' } },
-          { name: 'WAITING', type: 'line', stack: 'total', data: waitings, areaStyle: {}, itemStyle: { color: '#e6a23c' } },
-          { name: 'TIMED_WAITING', type: 'line', stack: 'total', data: timedWaitings, areaStyle: {}, itemStyle: { color: '#409eff' } },
-          { name: 'BLOCKED', type: 'line', stack: 'total', data: blockeds, areaStyle: {}, itemStyle: { color: '#f56c6c' } }
-        ]
-      })
-      threadStatesChartInstance.resize()
-    } catch (e) {
-      console.warn('Failed to render thread states chart:', e)
-    }
-  }
-  
-  // 4. Class Loading Rate Chart - 显示类加载速率
-  if (classLoadingDetailChartRef.value) {
-    if (!classLoadingDetailChartInstance) classLoadingDetailChartInstance = echarts.init(classLoadingDetailChartRef.value)
-    
-    // 检查是否有 classLoadingRate 数据
-    const hasRateData = memoryHistory.value.length > 0 && memoryHistory.value[0].classLoadingRate !== undefined
-    
-    if (!hasRateData || memoryHistory.value.length === 0) {
-      // 无数据时显示空状态
-      classLoadingDetailChartInstance.setOption({
-        title: { text: '类加载速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
-        graphic: {
-          type: 'text',
-          left: 'center',
-          top: 'middle',
-          style: {
-            text: '暂无类加载数据\n请确保 Agent 正常运行并上报数据',
-            fill: '#c0c4cc',
-            fontSize: 14,
-            textAlign: 'center'
-          }
-        }
-      })
-      classLoadingDetailChartInstance.resize()
-    } else if (hasRateData) {
-      // 使用 classLoadingRate 字段
-      const rates = memoryHistory.value.map(m => m.classLoadingRate || 0)
-      
-      // 始终显示图表，不再显示空状态
-      classLoadingDetailChartInstance.setOption({
-        title: { text: '类加载速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-        tooltip: { 
-          trigger: 'axis', 
-          formatter: (params: any) => {
-            return params[0].name + '<br/>加载速率: ' + params[0].value.toFixed(2) + ' 类/秒'
-          }
-        },
-        grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-        xAxis: { type: 'category', data: times, boundaryGap: false },
-        yAxis: { type: 'value', name: '类/秒' },
-        series: [{ 
-          name: '加载速率', 
-          type: 'line', 
-          data: rates, 
-          smooth: true, 
-          itemStyle: { color: '#9c27b0' },
-          areaStyle: { color: 'rgba(156, 39, 176, 0.1)' }
-        }]
-      })
-      classLoadingDetailChartInstance.resize()
-    } else {
-      // 降级：使用 loadedClassCount 的差值
-      const loadedRates = memoryHistory.value.map((m, i) => {
-        if (i === 0) return 0
-        return Math.max(0, m.loadedClassCount - memoryHistory.value[i - 1].loadedClassCount)
-      })
-      
-      // 始终显示图表
-      classLoadingDetailChartInstance.setOption({
-        title: { text: '类加载速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-        tooltip: { trigger: 'axis', formatter: (params: any) => {
-          return params[0].name + '<br/>新增类: ' + params[0].value
-        }},
-        grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-        xAxis: { type: 'category', data: times, boundaryGap: false },
-        yAxis: { type: 'value', name: '类数量' },
-        series: [{ name: '新增类', type: 'bar', data: loadedRates, itemStyle: { color: '#9c27b0' } }]
-      })
-      classLoadingDetailChartInstance.resize()
-    }
-  }
-  
-  // 5. Thread Pools Chart - 始终渲染，无数据时显示默认图表
-  if (threadPoolsChartRef.value) {
-    if (!threadPoolsChartInstance) threadPoolsChartInstance = echarts.init(threadPoolsChartRef.value)
-    
-    const hasData = memoryHistory.value.length > 0 && memoryHistory.value[0].threadPools
-    
-    if (!hasData) {
-      threadPoolsChartInstance.setOption({
-        title: { text: '线程池使用情况', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
-        graphic: {
-          type: 'text',
-          left: 'center',
-          top: 'middle',
-          style: {
-            text: '暂无线程池数据\n请确保 Agent 正常运行并上报数据',
-            fill: '#c0c4cc',
-            fontSize: 14,
-            textAlign: 'center'
-          }
-        }
-      })
-      threadPoolsChartInstance.resize()
-    } else {
-      try {
-        const latest = memoryHistory.value[memoryHistory.value.length - 1]
-        const pools: any[] = JSON.parse(latest.threadPools!)
-        
-        if (!pools || pools.length === 0) {
-          threadPoolsChartInstance.setOption({
-            title: { text: '线程池使用情况', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
-            graphic: {
-              type: 'text',
-              left: 'center',
-              top: 'middle',
-              style: {
-                text: '该 Agent 未上报线程池数据\n可能原因：JVM 版本不支持或配置未开启',
-                fill: '#c0c4cc',
-                fontSize: 14,
-                textAlign: 'center'
-              }
-            }
-          })
-          threadPoolsChartInstance.resize()
-        } else {
-          const poolNames = pools.map(p => p.poolName)
-          const poolCounts = pools.map(p => p.activeCount)
-          
-          threadPoolsChartInstance.setOption({
-            title: { text: '线程池使用情况', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-            tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-            grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-            xAxis: { type: 'category', data: poolNames, axisLabel: { interval: 0, rotate: 30 } },
-            yAxis: { type: 'value', name: '线程数' },
-            series: [{
-              name: '活跃线程',
-              type: 'bar',
-              data: poolCounts,
-              itemStyle: { color: '#409eff' },
-              label: { show: true, position: 'top' }
-            }]
-          })
-          threadPoolsChartInstance.resize()
-        }
-      } catch (e) {
-        console.error('Failed to parse threadPools:', e)
-        threadPoolsChartInstance.setOption({
-          title: { text: '线程池使用情况', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
-          graphic: {
-            type: 'text',
-            left: 'center',
-            top: 'middle',
-            style: {
-              text: '解析线程池数据失败',
-              fill: '#c0c4cc',
-              fontSize: 14,
-              textAlign: 'center'
-            }
-          }
-        })
-        threadPoolsChartInstance.resize()
-      }
-    }
-  }
-  
-  // 6. CPU Usage Chart - 始终渲染，无数据时显示默认图表
-  if (cpuChartRef.value) {
-    if (!cpuChartInstance) cpuChartInstance = echarts.init(cpuChartRef.value)
-    
-    const hasData = memoryHistory.value.length > 0 && (memoryHistory.value[0].processCpuLoad !== undefined || memoryHistory.value[0].systemCpuLoad !== undefined)
-    
-    if (!hasData) {
-      cpuChartInstance.setOption({
-        title: { text: 'CPU使用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
-        graphic: {
-          type: 'text',
-          left: 'center',
-          top: 'middle',
-          style: {
-            text: '暂无CPU数据\n请确保 Agent 正常运行并上报数据',
-            fill: '#c0c4cc',
-            fontSize: 14,
-            textAlign: 'center'
-          }
-        }
-      })
-      cpuChartInstance.resize()
-    } else {
-      cpuChartInstance.setOption({
-        title: { text: 'CPU使用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-        tooltip: { trigger: 'axis', formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${(p.value * 100).toFixed(2)}%<br/>` })
-          return result
-        }},
-        legend: { data: ['进程CPU', '系统CPU'], bottom: 0 },
-        grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-        xAxis: { type: 'category', data: times, boundaryGap: false },
-        yAxis: { type: 'value', name: 'CPU%', axisLabel: { formatter: (val: number) => (val * 100).toFixed(0) + '%' } },
-        series: [
-          { name: '进程CPU', type: 'line', data: memoryHistory.value.map(m => m.processCpuLoad || 0), smooth: true, itemStyle: { color: '#409eff' }, areaStyle: { color: 'rgba(64, 158, 255, 0.1)' } },
-          { name: '系统CPU', type: 'line', data: memoryHistory.value.map(m => m.systemCpuLoad || 0), smooth: true, itemStyle: { color: '#f56c6c' }, areaStyle: { color: 'rgba(245, 108, 108, 0.1)' } }
-        ]
-      })
-      cpuChartInstance.resize()
-    }
-  }
-  
-  // 7. 守护线程趋势图
-  if (daemonThreadChartRef.value && memoryHistory.value.length > 0) {
-    if (!daemonThreadChartInstance) daemonThreadChartInstance = echarts.init(daemonThreadChartRef.value)
-    
-    const daemonData = memoryHistory.value.map(m => m.daemonThreadCount || 0)
-    const userData = memoryHistory.value.map((m, i) => {
-      const total = m.threadCount || 0
-      const daemon = m.daemonThreadCount || 0
-      return Math.max(0, total - daemon)
-    })
-    
-    daemonThreadChartInstance.setOption({
-      title: { text: '守护线程 vs 用户线程', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${p.value} 线程<br/>` })
-          return result
-        }
-      },
-      legend: { data: ['守护线程', '用户线程'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '线程数' },
-      series: [
-        { name: '守护线程', type: 'line', stack: 'total', data: daemonData, smooth: true, itemStyle: { color: '#67c23a' }, areaStyle: { color: 'rgba(103, 194, 58, 0.1)' } },
-        { name: '用户线程', type: 'line', stack: 'total', data: userData, smooth: true, itemStyle: { color: '#409eff' }, areaStyle: { color: 'rgba(64, 158, 255, 0.1)' } }
-      ]
-    })
-    daemonThreadChartInstance.resize()
-  }
-  
-  // 8. BLOCKED线程趋势图
-  if (blockedThreadChartRef.value && memoryHistory.value.length > 0) {
-    if (!blockedThreadChartInstance) blockedThreadChartInstance = echarts.init(blockedThreadChartRef.value)
-    
-    const blockedData = memoryHistory.value.map(m => m.threadCountBlocked || 0)
-    const runnableData = memoryHistory.value.map(m => m.threadCountRunnable || 0)
-    
-    blockedThreadChartInstance.setOption({
-      title: { text: 'BLOCKED线程趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${p.value} 线程<br/>` })
-          return result
-        }
-      },
-      legend: { data: ['BLOCKED', 'RUNNABLE'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '线程数' },
-      series: [
-        { 
-          name: 'BLOCKED', 
-          type: 'line', 
-          data: blockedData, 
-          smooth: true, 
-          itemStyle: { color: '#f56c6c' },
-          areaStyle: { color: 'rgba(245, 108, 108, 0.2)' },
-          markLine: {
-            data: [
-              { yAxis: 5, name: '警告', lineStyle: { color: '#e6a23c', type: 'dashed' } },
-              { yAxis: 20, name: '危险', lineStyle: { color: '#f56c6c', type: 'dashed' } }
-            ]
-          }
-        },
-        { 
-          name: 'RUNNABLE', 
-          type: 'line', 
-          data: runnableData, 
-          smooth: true, 
-          itemStyle: { color: '#67c23a' },
-          areaStyle: { color: 'rgba(103, 194, 58, 0.1)' }
-        }
-      ]
-    })
-    blockedThreadChartInstance.resize()
-  }
-  
-  // 9. Top CPU线程详情图
-  if (topCpuThreadDetailChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].topCpuThreadName) {
-    if (!topCpuThreadDetailChartInstance) topCpuThreadDetailChartInstance = echarts.init(topCpuThreadDetailChartRef.value)
-    
-    const threadNames = memoryHistory.value.map(m => m.topCpuThreadName || 'Unknown')
-    const cpuPercents = memoryHistory.value.map(m => m.topCpuThreadPercent || 0)
-    
-    topCpuThreadDetailChartInstance.setOption({
-      title: { text: 'Top CPU线程占用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          return params[0].name + '<br/>' + 
-                 params[0].marker + ' 线程: ' + threadNames[params[0].dataIndex] + '<br/>' +
-                 params[0].marker + ' CPU占用: ' + params[0].value.toFixed(2) + '%'
-        }
-      },
-      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: 'CPU占用(%)' },
-      series: [
-        { 
-          name: 'CPU占用', 
-          type: 'line', 
-          data: cpuPercents, 
-          smooth: true, 
-          itemStyle: { color: '#f56c6c' },
-          areaStyle: { color: 'rgba(245, 108, 108, 0.2)' },
-          markPoint: {
-            data: [
-              { type: 'max', label: { formatter: '峰值' } },
-              { type: 'average', label: { formatter: '平均' } }
-            ]
-          }
-        }
-      ]
-    })
-    topCpuThreadDetailChartInstance.resize()
-  }
-  
-  // 10. 线程创建速率图
-  if (threadCreationRateChartRef.value && memoryHistory.value.length > 0) {
-    if (!threadCreationRateChartInstance) threadCreationRateChartInstance = echarts.init(threadCreationRateChartRef.value)
-    
-    const creationRates = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      return Math.max(0, (m.totalStartedThreadCount || 0) - (memoryHistory.value[i - 1].totalStartedThreadCount || 0))
-    })
-    
-    threadCreationRateChartInstance.setOption({
-      title: { text: '线程创建速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          return params[0].name + '<br/>' + params[0].marker + ' 新创建线程: ' + params[0].value + ' 个'
-        }
-      },
-      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '线程数/间隔' },
-      series: [
-        { 
-          name: '创建速率', 
-          type: 'bar', 
-          data: creationRates, 
-          itemStyle: { 
-            color: (params: any) => {
-              return params.value > 10 ? '#f56c6c' : '#409eff'
-            }
-          },
-          label: { show: true, position: 'top' }
-        }
-      ]
-    })
-    threadCreationRateChartInstance.resize()
-  }
-  
-  // 11. 线程与CPU关联分析
-  if (threadCpuCorrelationRef.value && memoryHistory.value.length > 0) {
-    if (!threadCpuCorrelationInstance) threadCpuCorrelationInstance = echarts.init(threadCpuCorrelationRef.value)
-    
-    const threadData = memoryHistory.value.map(m => m.threadCount || 0)
-    const cpuData = memoryHistory.value.map(m => ((m.processCpuLoad || 0) * 100).toFixed(2))
-    
-    threadCpuCorrelationInstance.setOption({
-      title: { text: '线程数 vs CPU使用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => {
-            if (p.seriesName === '线程数') {
-              result += `${p.marker} ${p.seriesName}: ${p.value} 个<br/>`
-            } else {
-              result += `${p.marker} ${p.seriesName}: ${p.value}%<br/>`
-            }
-          })
-          return result
-        }
-      },
-      legend: { data: ['线程数', 'CPU使用率'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: [
-        { type: 'value', name: '线程数', axisLabel: { formatter: '{value} 个' } },
-        { type: 'value', name: 'CPU%', max: 100, axisLabel: { formatter: '{value}%' } }
-      ],
-      series: [
-        { 
-          name: '线程数', 
-          type: 'line', 
-          yAxisIndex: 0,
-          data: threadData, 
-          smooth: true, 
-          itemStyle: { color: '#409eff' },
-          areaStyle: { color: 'rgba(64, 158, 255, 0.1)' }
-        },
-        { 
-          name: 'CPU使用率', 
-          type: 'line', 
-          yAxisIndex: 1,
-          data: cpuData, 
-          smooth: true, 
-          itemStyle: { color: '#f56c6c' },
-          areaStyle: { color: 'rgba(245, 108, 108, 0.1)' }
-        }
-      ]
-    })
-    threadCpuCorrelationInstance.resize()
-  }
-  
-  // 12. 线程泄漏检测图
-  if (threadLeakDetectionRef.value && memoryHistory.value.length > 0) {
-    if (!threadLeakDetectionInstance) threadLeakDetectionInstance = echarts.init(threadLeakDetectionRef.value)
-    
-    const threadCountData = memoryHistory.value.map(m => m.threadCount || 0)
-    const totalStartedData = memoryHistory.value.map(m => m.totalStartedThreadCount || 0)
-    
-    // 计算差值（潜在泄漏的线程数）
-    const leakedThreadsData = memoryHistory.value.map((m, i) => {
-      return Math.max(0, (m.totalStartedThreadCount || 0) - (m.threadCount || 0))
-    })
-    
-    threadLeakDetectionInstance.setOption({
-      title: { text: '线程泄漏检测', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => {
-            result += `${p.marker} ${p.seriesName}: ${p.value} 个<br/>`
-          })
-          return result
-        }
-      },
-      legend: { data: ['当前线程', '累计启动', '潜在泄漏'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '线程数' },
-      series: [
-        { 
-          name: '当前线程', 
-          type: 'line', 
-          data: threadCountData, 
-          smooth: true, 
-          itemStyle: { color: '#67c23a' },
-          areaStyle: { color: 'rgba(103, 194, 58, 0.1)' }
-        },
-        { 
-          name: '累计启动', 
-          type: 'line', 
-          data: totalStartedData, 
-          smooth: true, 
-          itemStyle: { color: '#409eff' },
-          lineStyle: { type: 'dashed' }
-        },
-        { 
-          name: '潜在泄漏', 
-          type: 'bar', 
-          data: leakedThreadsData, 
-          itemStyle: { 
-            color: (params: any) => {
-              return params.value > 100 ? '#f56c6c' : '#e6a23c'
-            }
-          },
-          label: { show: true, position: 'top', fontSize: 10 }
-        }
-      ]
-    })
-    threadLeakDetectionInstance.resize()
-  }
-  
-  // 13. 线程状态趋势图
-  if (threadStatesTrendRef.value && memoryHistory.value.length > 0) {
-    if (!threadStatesTrendInstance) threadStatesTrendInstance = echarts.init(threadStatesTrendRef.value)
-    
-    const runnableData = memoryHistory.value.map(m => m.threadCountRunnable || 0)
-    const blockedData = memoryHistory.value.map(m => m.threadCountBlocked || 0)
-    // 计算WAITING+TIMED_WAITING（通过总数减去RUNNABLE和BLOCKED）
-    const waitingData = memoryHistory.value.map((m, i) => {
-      const total = m.threadCount || 0
-      const runnable = m.threadCountRunnable || 0
-      const blocked = m.threadCountBlocked || 0
-      return Math.max(0, total - runnable - blocked)
-    })
-    
-    threadStatesTrendInstance.setOption({
-      title: { text: '线程状态趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${p.value} 线程<br/>` })
-          return result
-        }
-      },
-      legend: { data: ['RUNNABLE', 'WAITING', 'BLOCKED'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '线程数' },
-      series: [
-        { 
-          name: 'RUNNABLE', 
-          type: 'line', 
-          stack: 'total',
-          data: runnableData, 
-          smooth: true, 
-          itemStyle: { color: '#67c23a' },
-          areaStyle: { color: 'rgba(103, 194, 58, 0.2)' }
-        },
-        { 
-          name: 'WAITING', 
-          type: 'line', 
-          stack: 'total',
-          data: waitingData, 
-          smooth: true, 
-          itemStyle: { color: '#409eff' },
-          areaStyle: { color: 'rgba(64, 158, 255, 0.2)' }
-        },
-        { 
-          name: 'BLOCKED', 
-          type: 'line', 
-          stack: 'total',
-          data: blockedData, 
-          smooth: true, 
-          itemStyle: { color: '#f56c6c' },
-          areaStyle: { color: 'rgba(245, 108, 108, 0.2)' },
-          markLine: {
-            data: [
-              { yAxis: 5, name: '警告', lineStyle: { color: '#e6a23c', type: 'dashed' } },
-              { yAxis: 20, name: '危险', lineStyle: { color: '#f56c6c', type: 'dashed' } }
-            ]
-          }
-        }
-      ]
-    })
-    threadStatesTrendInstance.resize()
-  }
-  
-  // 14. 磁盘I/O监控 - IO/网络监控页面专用
-  console.log('[DIAG-IO] ===== renderThreadCharts 开始渲染磁盘I/O图表 =====')
-  console.log('[DIAG-IO] diskIoRef.value:', diskIoRef.value)
-  console.log('[DIAG-IO] memoryHistory.length:', memoryHistory.value.length)
-  if (memoryHistory.value.length > 0) {
-    console.log('[DIAG-IO] memoryHistory[0]:', memoryHistory.value[0])
-    console.log('[DIAG-IO] diskReadBytes:', memoryHistory.value[0].diskReadBytes)
-    console.log('[DIAG-IO] diskWriteBytes:', memoryHistory.value[0].diskWriteBytes)
-    console.log('[DIAG-IO] hasDiskIoData:', hasDiskIoData.value)
-  }
-  
-  // 修改：只要有memoryHistory数据就渲染图表，即使IO数据为0
-  if (diskIoRef.value && memoryHistory.value.length > 0) {
-    console.log('[DIAG-IO] 开始初始化ECharts实例')
-    if (!diskIoInstance) diskIoInstance = echarts.init(diskIoRef.value)
-    
-    const diskReadData = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      const val = (m.diskReadBytes || 0) - (memoryHistory.value[i - 1].diskReadBytes || 0)
-      return val >= 0 ? val : 0 // 确保增量不为负
-    })
-    const diskWriteData = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      const val = (m.diskWriteBytes || 0) - (memoryHistory.value[i - 1].diskWriteBytes || 0)
-      return val >= 0 ? val : 0 // 确保增量不为负
-    })
-    
-    console.log('[DIAG-IO] 设置图表配置')
-    diskIoInstance.setOption({
-      title: { text: '磁盘I/O速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}/s<br/>` })
-          return result
-        }
-      },
-      legend: { data: ['读取速率', '写入速率'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: 'B/s', axisLabel: { formatter: (val: number) => formatBytes(val) + '/s' } },
-      series: [
-        { name: '读取速率', type: 'line', data: diskReadData, smooth: true, itemStyle: { color: '#67c23a' }, areaStyle: { color: 'rgba(103, 194, 58, 0.1)' } },
-        { name: '写入速率', type: 'line', data: diskWriteData, smooth: true, itemStyle: { color: '#e6a23c' }, areaStyle: { color: 'rgba(230, 162, 60, 0.1)' } }
-      ]
-    })
-    console.log('[DIAG-IO] 图表渲染完成')
-    diskIoInstance.resize()
-  }
-  
-  // 8. 磁盘IO操作次数监控
-  if (diskIoOpsRef.value && memoryHistory.value.length > 0) {
-    if (!diskIoOpsInstance) diskIoOpsInstance = echarts.init(diskIoOpsRef.value)
-    
-    const diskReadOpsData = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      const val = (m.diskReadOps || 0) - (memoryHistory.value[i - 1].diskReadOps || 0)
-      return val >= 0 ? val : 0
-    })
-    const diskWriteOpsData = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      const val = (m.diskWriteOps || 0) - (memoryHistory.value[i - 1].diskWriteOps || 0)
-      return val >= 0 ? val : 0
-    })
-    
-    diskIoOpsInstance.setOption({
-      title: { text: '磁盘I/O操作频率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${p.value.toFixed(0)} ops/s<br/>` })
-          return result
-        }
-      },
-      legend: { data: ['读操作', '写操作'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: 'ops/s' },
-      series: [
-        { name: '读操作', type: 'line', data: diskReadOpsData, smooth: true, itemStyle: { color: '#409eff' }, areaStyle: { color: 'rgba(64, 158, 255, 0.1)' } },
-        { name: '写操作', type: 'line', data: diskWriteOpsData, smooth: true, itemStyle: { color: '#e6a23c' }, areaStyle: { color: 'rgba(230, 162, 60, 0.1)' } }
-      ]
-    })
-    diskIoOpsInstance.resize()
-  }
-  
-  // 9. 网络流量监控
-  if (networkTrafficRef.value && memoryHistory.value.length > 0) {
-    if (!networkTrafficInstance) networkTrafficInstance = echarts.init(networkTrafficRef.value)
-    
-    const networkRecvData = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      const val = (m.networkRecvBytes || 0) - (memoryHistory.value[i - 1].networkRecvBytes || 0)
-      return val >= 0 ? val : 0
-    })
-    const networkSentData = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      const val = (m.networkSentBytes || 0) - (memoryHistory.value[i - 1].networkSentBytes || 0)
-      return val >= 0 ? val : 0
-    })
-    
-    networkTrafficInstance.setOption({
-      title: { text: '网络流量速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}/s<br/>` })
-          return result
-        }
-      },
-      legend: { data: ['接收速率', '发送速率'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: 'B/s', axisLabel: { formatter: (val: number) => formatBytes(val) + '/s' } },
-      series: [
-        { name: '接收速率', type: 'line', data: networkRecvData, smooth: true, itemStyle: { color: '#67c23a' }, areaStyle: { color: 'rgba(103, 194, 58, 0.1)' } },
-        { name: '发送速率', type: 'line', data: networkSentData, smooth: true, itemStyle: { color: '#f56c6c' }, areaStyle: { color: 'rgba(245, 108, 108, 0.1)' } }
-      ]
-    })
-    networkTrafficInstance.resize()
-  }
-  
-  // 10. IO与CPU关联分析
-  if (ioCpuCorrelationRef.value && memoryHistory.value.length > 0) {
-    if (!ioCpuCorrelationInstance) ioCpuCorrelationInstance = echarts.init(ioCpuCorrelationRef.value)
-    
-    const ioData = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      const read = (m.diskReadBytes || 0) - (memoryHistory.value[i - 1].diskReadBytes || 0)
-      const write = (m.diskWriteBytes || 0) - (memoryHistory.value[i - 1].diskWriteBytes || 0)
-      return Math.max(0, read + write)
-    })
-    const cpuData = memoryHistory.value.map(m => ((m.processCpuLoad || 0) * 100).toFixed(2))
-    
-    ioCpuCorrelationInstance.setOption({
-      title: { text: 'IO速率 vs CPU使用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => {
-            if (p.seriesName === 'IO速率') {
-              result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}/s<br/>`
-            } else {
-              result += `${p.marker} ${p.seriesName}: ${p.value}%<br/>`
-            }
-          })
-          return result
-        }
-      },
-      legend: { data: ['IO速率', 'CPU使用率'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: [
-        { type: 'value', name: 'IO速率', axisLabel: { formatter: (val: number) => formatBytes(val) + '/s' } },
-        { type: 'value', name: 'CPU%', max: 100, axisLabel: { formatter: '{value}%' } }
-      ],
-      series: [
-        { 
-          name: 'IO速率', 
-          type: 'line', 
-          yAxisIndex: 0,
-          data: ioData, 
-          smooth: true, 
-          itemStyle: { color: '#67c23a' }, 
-          areaStyle: { color: 'rgba(103, 194, 58, 0.1)' } 
-        },
-        { 
-          name: 'CPU使用率', 
-          type: 'line', 
-          yAxisIndex: 1,
-          data: cpuData, 
-          smooth: true, 
-          itemStyle: { color: '#f56c6c' },
-          areaStyle: { color: 'rgba(245, 108, 108, 0.1)' }
-        }
-      ]
-    })
-    ioCpuCorrelationInstance.resize()
-  }
-  
-  // 11. IO操作热力图
-  if (ioHeatmapRef.value && memoryHistory.value.length > 0) {
-    if (!ioHeatmapInstance) ioHeatmapInstance = echarts.init(ioHeatmapRef.value)
-    
-    // 准备热力图数据
-    const hours = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`)
-    const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-    
-    const heatmapData: [number, number, number][] = []
-    memoryHistory.value.forEach(m => {
-      const date = new Date(m.collectTime)
-      const hour = date.getHours()
-      const day = date.getDay()
-      const ioOps = (m.diskReadOps || 0) + (m.diskWriteOps || 0)
-      // 如果该时段已有数据，取最大值
-      const existingIndex = heatmapData.findIndex(d => d[0] === hour && d[1] === day)
-      if (existingIndex >= 0) {
-        heatmapData[existingIndex][2] = Math.max(heatmapData[existingIndex][2], ioOps)
-      } else {
-        heatmapData.push([hour, day, ioOps])
-      }
-    })
-    
-    // 找出最大值用于颜色映射
-    const maxOps = Math.max(...heatmapData.map(d => d[2]), 1)
-    
-    ioHeatmapInstance.setOption({
-      title: { text: 'IO操作频率热力图', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        position: 'top',
-        formatter: (params: any) => {
-          return `${days[params.data[1]]} ${hours[params.data[0]]}<br/>IO操作: ${params.data[2].toFixed(0)} ops`
-        }
-      },
-      grid: { left: '8%', right: '8%', bottom: '15%', top: '10%' },
-      xAxis: { 
-        type: 'category', 
-        data: hours,
-        splitArea: { show: true }
-      },
-      yAxis: { 
-        type: 'category', 
-        data: days,
-        splitArea: { show: true }
-      },
-      visualMap: {
-        min: 0,
-        max: maxOps,
-        calculable: true,
-        orient: 'horizontal',
-        left: 'center',
-        bottom: '0%',
-        inRange: {
-          color: ['#ffffff', '#ffeda0', '#feb24c', '#f03b20']
-        }
-      },
-      series: [{
-        name: 'IO操作',
-        type: 'heatmap',
-        data: heatmapData,
-        label: {
-          show: false
-        },
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowColor: 'rgba(0, 0, 0, 0.5)'
-          }
-        }
-      }]
-    })
-    ioHeatmapInstance.resize()
-  }
-  
-  // 12. IO延迟趋势图
-  if (ioLatencyRef.value && memoryHistory.value.length > 0) {
-    if (!ioLatencyInstance) ioLatencyInstance = echarts.init(ioLatencyRef.value)
-    
-    const latencyData = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      const readOps = Math.max(0, (m.diskReadOps || 0) - (memoryHistory.value[i - 1].diskReadOps || 0))
-      const writeOps = Math.max(0, (m.diskWriteOps || 0) - (memoryHistory.value[i - 1].diskWriteOps || 0))
-      const totalOps = readOps + writeOps
-      // 假设采集间隔为10秒，估算平均延迟
-      return totalOps > 0 ? 10000 / totalOps : 0 // ms
-    })
-    
-    ioLatencyInstance.setOption({
-      title: { text: '估算IO延迟趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          return params[0].name + '<br/>' + params[0].marker + ' 平均延迟: ' + params[0].value.toFixed(2) + ' ms'
-        }
-      },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '延迟(ms)', axisLabel: { formatter: '{value} ms' } },
-      series: [
-        { 
-          name: 'IO延迟', 
-          type: 'line', 
-          data: latencyData, 
-          smooth: true, 
-          itemStyle: { color: '#409eff' },
-          areaStyle: { color: 'rgba(64, 158, 255, 0.1)' },
-          markLine: {
-            data: [
-              { yAxis: 1, name: '优秀', lineStyle: { color: '#67c23a' } },
-              { yAxis: 5, name: '良好', lineStyle: { color: '#e6a23c' } },
-              { yAxis: 20, name: '偏高', lineStyle: { color: '#f56c6c' } }
-            ]
-          }
-        }
-      ]
-    })
-    ioLatencyInstance.resize()
-  }
-  
-  // 13. IO与GC关联分析
-  if (ioGcCorrelationRef.value && memoryHistory.value.length > 0) {
-    if (!ioGcCorrelationInstance) ioGcCorrelationInstance = echarts.init(ioGcCorrelationRef.value)
-    
-    const ioData = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      const read = (m.diskReadBytes || 0) - (memoryHistory.value[i - 1].diskReadBytes || 0)
-      const write = (m.diskWriteBytes || 0) - (memoryHistory.value[i - 1].diskWriteBytes || 0)
-      return Math.max(0, read + write)
-    })
-    const gcData = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      return Math.max(0, (m.gcCount || 0) - (memoryHistory.value[i - 1].gcCount || 0))
-    })
-    
-    ioGcCorrelationInstance.setOption({
-      title: { text: 'IO速率 vs GC次数', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => {
-            if (p.seriesName === 'IO速率') {
-              result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}/s<br/>`
-            } else {
-              result += `${p.marker} ${p.seriesName}: ${p.value.toFixed(0)} 次<br/>`
-            }
-          })
-          return result
-        }
-      },
-      legend: { data: ['IO速率', 'GC次数'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: [
-        { type: 'value', name: 'IO速率', axisLabel: { formatter: (val: number) => formatBytes(val) + '/s' } },
-        { type: 'value', name: 'GC次数', axisLabel: { formatter: '{value} 次' } }
-      ],
-      series: [
-        { 
-          name: 'IO速率', 
-          type: 'line', 
-          yAxisIndex: 0,
-          data: ioData, 
-          smooth: true, 
-          itemStyle: { color: '#67c23a' }, 
-          areaStyle: { color: 'rgba(103, 194, 58, 0.1)' } 
-        },
-        { 
-          name: 'GC次数', 
-          type: 'bar', 
-          yAxisIndex: 1,
-          data: gcData, 
-          itemStyle: { color: 'rgba(245, 108, 108, 0.6)' }
-        }
-      ]
-    })
-    ioGcCorrelationInstance.resize()
-  }
-  
-  // 14. 内存分配与IO关联
-  if (memoryIoCorrelationRef.value && memoryHistory.value.length > 0) {
-    if (!memoryIoCorrelationInstance) memoryIoCorrelationInstance = echarts.init(memoryIoCorrelationRef.value)
-    
-    const allocRateData = memoryHistory.value.map(m => (m.memoryAllocationRate || 0))
-    const ioData = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      const read = (m.diskReadBytes || 0) - (memoryHistory.value[i - 1].diskReadBytes || 0)
-      const write = (m.diskWriteBytes || 0) - (memoryHistory.value[i - 1].diskWriteBytes || 0)
-      return Math.max(0, read + write)
-    })
-    
-    memoryIoCorrelationInstance.setOption({
-      title: { text: '内存分配速率 vs IO速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => {
-            result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}/s<br/>`
-          })
-          return result
-        }
-      },
-      legend: { data: ['内存分配速率', 'IO速率'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: 'B/s', axisLabel: { formatter: (val: number) => formatBytes(val) + '/s' } },
-      series: [
-        { 
-          name: '内存分配速率', 
-          type: 'line', 
-          data: allocRateData, 
-          smooth: true, 
-          itemStyle: { color: '#409eff' },
-          areaStyle: { color: 'rgba(64, 158, 255, 0.1)' }
-        },
-        { 
-          name: 'IO速率', 
-          type: 'line', 
-          data: ioData, 
-          smooth: true, 
-          itemStyle: { color: '#e6a23c' },
-          areaStyle: { color: 'rgba(230, 162, 60, 0.1)' }
-        }
-      ]
-    })
-    memoryIoCorrelationInstance.resize()
-  }
-  
-  // 15. 综合性能评分趋势
-  if (performanceScoreRef.value && memoryHistory.value.length > 0) {
-    if (!performanceScoreInstance) performanceScoreInstance = echarts.init(performanceScoreRef.value)
-    
-    const scoreData = memoryHistory.value.map(m => {
-      const score = m.performanceScore || 0
-      return score > 0 ? score.toFixed(1) : null
-    })
-    
-    // 过滤掉null值
-    const validData = scoreData.filter(s => s !== null)
-    const avgScore = validData.length > 0 ? (validData.reduce((a, b) => a + parseFloat(b), 0) / validData.length).toFixed(1) : 'N/A'
-    
-    performanceScoreInstance.setOption({
-      title: { text: `综合性能评分 (平均: ${avgScore})`, left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          if (params[0].value === null || params[0].value === undefined) {
-            return params[0].name + '<br/>无数据'
-          }
-          let score = parseFloat(params[0].value)
-          let status = score >= 80 ? '优秀' : score >= 60 ? '良好' : score >= 40 ? '一般' : '较差'
-          return params[0].name + '<br/>' + params[0].marker + ' 评分: ' + params[0].value + ' (' + status + ')'
-        }
-      },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { 
-        type: 'value', 
-        name: '评分', 
-        min: 0, 
-        max: 100,
-        axisLabel: { formatter: '{value} 分' } 
-      },
-      series: [
-        { 
-          name: '性能评分', 
-          type: 'line', 
-          data: scoreData, 
-          smooth: true, 
-          itemStyle: { 
-            color: (params: any) => {
-              const score = parseFloat(params.value)
-              if (score >= 80) return '#67c23a'
-              if (score >= 60) return '#e6a23c'
-              return '#f56c6c'
-            }
-          },
-          areaStyle: { 
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(103, 194, 58, 0.3)' },
-              { offset: 1, color: 'rgba(103, 194, 58, 0.05)' }
-            ])
-          },
-          markLine: {
-            silent: true,
-            data: [
-              { yAxis: 80, name: '优秀', lineStyle: { color: '#67c23a', type: 'dashed' } },
-              { yAxis: 60, name: '良好', lineStyle: { color: '#e6a23c', type: 'dashed' } },
-              { yAxis: 40, name: '警戒', lineStyle: { color: '#f56c6c', type: 'dashed' } }
-            ]
-          }
-        }
-      ]
-    })
-    performanceScoreInstance.resize()
-  }
-}
-
-const formatTimestamp = (ts: number) => {
-  if (!ts) return '-'
-  const date = new Date(ts)
-  return date.toLocaleString('zh-CN', { 
-    year: 'numeric', 
-    month: '2-digit', 
-    day: '2-digit',
-    hour: '2-digit', 
-    minute: '2-digit', 
-    second: '2-digit' 
-  })
-}
-
-// 构建完整的 agentId
-// 解析 JVM 数据
-const parseJvmData = (text: string) => {
-  try {
-    const lines = text.split('\n')
-    const data: any = {}
-    let currentSection = ''
-    
-    lines.forEach(line => {
-      // Detect section headers
-      if (line.startsWith('=== ')) {
-        currentSection = line.match(/=== (.+?) ===/)?.[1] || ''
-        return
-      }
-      
-      const trimmedLine = line.trim()
-      if (!trimmedLine) return
-      
-      // Parse key-value pairs
-      const colonIndex = trimmedLine.indexOf(':')
-      if (colonIndex === -1) return
-      
-      const key = trimmedLine.substring(0, colonIndex).trim()
-      const value = trimmedLine.substring(colonIndex + 1).trim()
-      
-      // Runtime Information
-      if (key === 'PID') data.pid = value
-      else if (key === 'UptimeMs') data.uptimeMs = parseInt(value) || 0
-      else if (key === 'StartTimeMs') data.startTimeMs = parseInt(value) || 0
-      else if (key === 'VmName') data.vmName = value
-      else if (key === 'VmVersion') data.vmVersion = value
-      
-      // Memory Information (indented keys)
-      else if (currentSection === 'Memory Information') {
-        if (key === 'used' && !data.heapUsedParsed) {
-          data.heapUsed = parseBytes(value)
-          data.heapUsedParsed = true
-        } else if (key === 'max' && !data.heapMaxParsed) {
-          data.heapMax = parseBytes(value)
-          data.heapMaxParsed = true
-        } else if (key === 'used' && data.heapUsedParsed) {
-          data.nonHeapUsed = parseBytes(value)
-        } else if (key === 'max' && data.heapMaxParsed) {
-          data.nonHeapMax = parseBytes(value)
-        }
-      }
-      
-      // Thread Information
-      else if (currentSection === 'Thread Information') {
-        if (key === 'ThreadCount') data.threadCount = parseInt(value) || 0
-        else if (key === 'PeakThreadCount') data.peakThreadCount = parseInt(value) || 0
-        else if (key === 'DaemonThreadCount') data.daemonThreadCount = parseInt(value) || 0
-        else if (key === 'TotalStartedThreadCount') data.totalStartedThreadCount = parseInt(value) || 0
-      }
-      
-      // Class Loading Information
-      else if (currentSection === 'Class Loading Information') {
-        if (key === 'LoadedClassCount') data.loadedClassCount = parseInt(value) || 0
-        else if (key === 'TotalLoadedClassCount') data.totalLoadedClassCount = parseInt(value) || 0
-        else if (key === 'UnloadedClassCount') data.unloadedClassCount = parseInt(value) || 0
-      }
-      
-      // Operating System Information
-      else if (currentSection === 'Operating System Information') {
-        if (key === 'OS Name') data.osName = value
-        else if (key === 'OS Version') data.osVersion = value
-        else if (key === 'Available Processors') data.availableProcessors = parseInt(value) || 0
-        else if (key === 'System Load Average') data.systemLoadAverage = parseFloat(value) || 0
-        else if (key === 'Total Physical Memory') data.totalPhysicalMemory = parseBytes(value)
-        else if (key === 'Free Physical Memory') data.freePhysicalMemory = parseBytes(value)
-        else if (key === 'Process CPU Load') data.processCpuLoad = parseFloat(value.replace('%', '')) || 0
-        else if (key === 'System CPU Load') data.systemCpuLoad = parseFloat(value.replace('%', '')) || 0
-      }
-      
-      // Garbage Collection Summary
-      else if (currentSection === 'Garbage Collection Summary') {
-        if (key === 'Total GC Count') data.totalGcCount = parseInt(value) || 0
-        else if (key === 'Total GC Time') data.totalGcTime = parseDuration(value)
-      }
-    })
-    
-    jvmData.value = {
-      pid: data.pid || '',
-      uptimeMs: data.uptimeMs || 0,
-      startTimeMs: data.startTimeMs || 0,
-      vmName: data.vmName || '',
-      vmVersion: data.vmVersion || '',
-      heapUsed: data.heapUsed || 0,
-      heapMax: data.heapMax || 0,
-      heapPercent: data.heapMax ? Math.round((data.heapUsed / data.heapMax) * 100) : 0,
-      nonHeapUsed: data.nonHeapUsed || 0,
-      nonHeapMax: data.nonHeapMax || 0,
-      nonHeapPercent: data.nonHeapMax ? Math.round((data.nonHeapUsed / data.nonHeapMax) * 100) : 0,
-      threadCount: data.threadCount || 0,
-      peakThreadCount: data.peakThreadCount || 0,
-      daemonThreadCount: data.daemonThreadCount || 0,
-      totalStartedThreadCount: data.totalStartedThreadCount || 0,
-      loadedClassCount: data.loadedClassCount || 0,
-      totalLoadedClassCount: data.totalLoadedClassCount || 0,
-      unloadedClassCount: data.unloadedClassCount || 0,
-      osName: data.osName || '',
-      osVersion: data.osVersion || '',
-      availableProcessors: data.availableProcessors || 0,
-      systemLoadAverage: data.systemLoadAverage || 0,
-      totalPhysicalMemory: data.totalPhysicalMemory || 0,
-      freePhysicalMemory: data.freePhysicalMemory || 0,
-      processCpuLoad: data.processCpuLoad || 0,
-      systemCpuLoad: data.systemCpuLoad || 0,
-      totalGcCount: data.totalGcCount || 0,
-      totalGcTime: data.totalGcTime || 0
-    }
-  } catch (e) {
-    console.error('Failed to parse JVM data:', e)
-  }
-}
-
-// 解析字节字符串（如 "256.00 MB"）为数字
-const parseBytes = (text: string): number => {
-  if (!text || text === 'N/A') return 0
-  const match = text.match(/([\d.]+)\s*(B|KB|MB|GB)/i)
-  if (!match) return 0
-  const value = parseFloat(match[1])
-  const unit = match[2].toUpperCase()
-  switch (unit) {
-    case 'B': return value
-    case 'KB': return value * 1024
-    case 'MB': return value * 1024 * 1024
-    case 'GB': return value * 1024 * 1024 * 1024
-    default: return value
-  }
-}
-
-// 解析时间字符串（如 "2 min 30 s"）为毫秒
-const parseDuration = (text: string): number => {
-  if (!text || text === 'N/A') return 0
-  if (text.includes('ms')) {
-    return parseInt(text) || 0
-  }
-  if (text.includes('min')) {
-    const match = text.match(/(\d+)\s*min\s*(\d+)?\s*s?/)
-    if (match) {
-      const minutes = parseInt(match[1]) || 0
-      const seconds = parseInt(match[2]) || 0
-      return (minutes * 60 + seconds) * 1000
-    }
-  }
-  if (text.includes('h')) {
-    const match = text.match(/(\d+)\s*h\s*(\d+)?\s*min?/)
-    if (match) {
-      const hours = parseInt(match[1]) || 0
-      const minutes = parseInt(match[2]) || 0
-      return (hours * 3600 + minutes * 60) * 1000
-    }
-  }
-  if (text.includes('s')) {
-    return parseFloat(text) * 1000 || 0
-  }
-  return parseInt(text) || 0
-}
-
-// 解析内存数据
-const parseMemoryData = (text: string) => {
-  try {
-    const lines = text.split('\n')
-    const pools: any[] = []
-    const bufferPools: any[] = []
-    let heapUsed = 0, heapCommitted = 0, heapMax = 0
-    let nonHeapUsed = 0, nonHeapCommitted = 0, nonHeapMax = 0
-    let currentSection = ''
-    let currentPool: any = null
-    let currentBufferPool: any = null
-    
-    lines.forEach(line => {
-      // Detect section headers
-      if (line.startsWith('=== ')) {
-        currentSection = line.match(/=== (.+?) ===/)?.[1] || ''
-        return
-      }
-      
-      const trimmedLine = line.trim()
-      if (!trimmedLine) {
-        // Save current pool/buffer pool when encountering empty line
-        if (currentPool) {
-          if (currentPool.max > 0) {
-            currentPool.percent = Math.round((currentPool.used / currentPool.max) * 100)
-          } else {
-            currentPool.percent = 0
-          }
-          pools.push(currentPool)
-          currentPool = null
-        }
-        if (currentBufferPool) {
-          bufferPools.push(currentBufferPool)
-          currentBufferPool = null
-        }
-        return
-      }
-      
-      // Parse key-value pairs with indentation
-      const colonIndex = trimmedLine.indexOf(':')
-      if (colonIndex === -1) return
-      
-      const key = trimmedLine.substring(0, colonIndex).trim()
-      const value = trimmedLine.substring(colonIndex + 1).trim()
-      
-      // Memory Overview - Heap
-      if (currentSection === 'Memory Overview') {
-        if (key === 'Heap') {
-          // Next lines will be heap details
-        } else if (key === 'Non-Heap') {
-          // Next lines will be non-heap details
-        } else if (key === 'Used' && !heapUsed) {
-          heapUsed = parseBytes(value)
-        } else if (key === 'Committed' && !heapCommitted) {
-          heapCommitted = parseBytes(value)
-        } else if (key === 'Max' && !heapMax) {
-          heapMax = parseBytes(value)
-        } else if (key === 'Usage' && heapMax) {
-          // Already calculated from bytes
-        }
-        
-        // Non-Heap parsing
-        if (key === 'Used' && heapUsed && !nonHeapUsed) {
-          nonHeapUsed = parseBytes(value)
-        } else if (key === 'Committed' && heapCommitted && !nonHeapCommitted) {
-          nonHeapCommitted = parseBytes(value)
-        } else if (key === 'Max' && heapMax && !nonHeapMax) {
-          nonHeapMax = parseBytes(value)
-        }
-      }
-      
-      // Memory Pools Detail
-      else if (currentSection === 'Memory Pools Detail') {
-        if (key === 'Pool') {
-          // Start new pool
-          if (currentPool) {
-            if (currentPool.max > 0) {
-              currentPool.percent = Math.round((currentPool.used / currentPool.max) * 100)
-            } else {
-              currentPool.percent = 0
-            }
-            pools.push(currentPool)
-          }
-          currentPool = { name: value, type: '', used: 0, committed: 0, max: 0, init: 0, percent: 0 }
-        } else if (currentPool) {
-          if (key === 'Type') currentPool.type = value
-          else if (key === 'Used') currentPool.used = parseBytes(value)
-          else if (key === 'Committed') currentPool.committed = parseBytes(value)
-          else if (key === 'Max') currentPool.max = parseBytes(value)
-          else if (key === 'Init') currentPool.init = parseBytes(value)
-          else if (key === 'Collection Used') currentPool.collectionUsed = parseBytes(value)
-          else if (key === 'Collection Committed') currentPool.collectionCommitted = parseBytes(value)
-          else if (key === 'Collection Max') currentPool.collectionMax = parseBytes(value)
-          else if (key === 'Peak Used') currentPool.peakUsed = parseBytes(value)
-          else if (key === 'Peak Committed') currentPool.peakCommitted = parseBytes(value)
-        }
-      }
-      
-      // Buffer Pools
-      else if (currentSection === 'Buffer Pools') {
-        if (key === 'Buffer Pool') {
-          if (currentBufferPool) {
-            bufferPools.push(currentBufferPool)
-          }
-          currentBufferPool = { name: value, count: 0, memoryUsed: 0, totalCapacity: 0 }
-        } else if (currentBufferPool) {
-          if (key === 'Count') currentBufferPool.count = parseInt(value) || 0
-          else if (key === 'Memory Used') currentBufferPool.memoryUsed = parseBytes(value)
-          else if (key === 'Total Capacity') currentBufferPool.totalCapacity = parseBytes(value)
-        }
-      }
-    })
-    
-    // Don't forget the last pool/buffer pool
-    if (currentPool) {
-      if (currentPool.max > 0) {
-        currentPool.percent = Math.round((currentPool.used / currentPool.max) * 100)
-      } else {
-        currentPool.percent = 0
-      }
-      pools.push(currentPool)
-    }
-    if (currentBufferPool) {
-      bufferPools.push(currentBufferPool)
-    }
-    
-    memoryData.value = {
-      heapUsed,
-      heapCommitted,
-      heapMax,
-      heapPercent: heapMax ? Math.round((heapUsed / heapMax) * 100) : 0,
-      nonHeapUsed,
-      nonHeapCommitted,
-      nonHeapMax,
-      nonHeapPercent: nonHeapMax ? Math.round((nonHeapUsed / nonHeapMax) * 100) : 0,
-      pools,
-      bufferPools
-    }
-  } catch (e) {
-    console.error('Failed to parse memory data:', e)
-  }
-}
-
-// 解析 GC 数据
-const parseGcData = (text: string) => {
-  try {
-    const lines = text.split('\n')
-    const collectors: any[] = []
-    
-    lines.forEach(line => {
-      if (line.startsWith('GC:')) {
-        const match = line.match(/GC: (.+?) count=(\d+) timeMs=(\d+)(?: pools=(.+))?/)
-        if (match) {
-          collectors.push({
-            name: match[1],
-            count: parseInt(match[2]),
-            timeMs: parseInt(match[3]),
-            pools: match[4] || '-'
-          })
-        }
-      }
-    })
-    
-    gcData.value = { collectors }
-  } catch (e) {
-    console.error('Failed to parse GC data:', e)
-  }
-}
-
-// 解析线程数据
-const parseThreadsData = (text: string) => {
-  try {
-    const lines = text.split('\n')
-    const data: any = {}
-    
-    lines.forEach(line => {
-      if (line.startsWith('ThreadCount:')) {
-        data.threadCount = parseInt(line.split(':')[1]?.trim() || '0')
-      } else if (line.startsWith('DaemonThreadCount:')) {
-        data.daemonThreadCount = parseInt(line.split(':')[1]?.trim() || '0')
-      } else if (line.startsWith('PeakThreadCount:')) {
-        data.peakThreadCount = parseInt(line.split(':')[1]?.trim() || '0')
-      } else if (line.startsWith('TotalStartedThreadCount:')) {
-        data.totalStartedThreadCount = parseInt(line.split(':')[1]?.trim() || '0')
-      }
-    })
-    
-    threadsData.value = {
-      threadCount: data.threadCount || 0,
-      daemonThreadCount: data.daemonThreadCount || 0,
-      peakThreadCount: data.peakThreadCount || 0,
-      totalStartedThreadCount: data.totalStartedThreadCount || 0
-    }
-  } catch (e) {
-    console.error('Failed to parse threads data:', e)
-  }
-}
-
-// 解析系统属性数据
-const parseSysPropsData = (text: string) => {
-  try {
-    const lines = text.split('\n')
-    const props: KeyValueEntry[] = []
-    
-    lines.forEach(line => {
-      const trimmed = line.trim()
-      if (!trimmed || trimmed.startsWith('===') || trimmed.startsWith('#')) return
-      
-      // 格式: key: value 或 key=value
-      const colonIndex = trimmed.indexOf(':')
-      const equalsIndex = trimmed.indexOf('=')
-      
-      let key = ''
-      let value = ''
-      
-      if (colonIndex > 0 && (equalsIndex === -1 || colonIndex < equalsIndex)) {
-        key = trimmed.substring(0, colonIndex).trim()
-        value = trimmed.substring(colonIndex + 1).trim()
-      } else if (equalsIndex > 0) {
-        key = trimmed.substring(0, equalsIndex).trim()
-        value = trimmed.substring(equalsIndex + 1).trim()
-      }
-      
-      if (key && value) {
-        props.push({ key, value })
-      }
-    })
-    
-    sysPropsData.value = props
-  } catch (e) {
-    console.error('Failed to parse system properties:', e)
-  }
-}
-
-// 解析环境变量数据
-const parseEnvVarsData = (text: string) => {
-  try {
-    const lines = text.split('\n')
-    const vars: KeyValueEntry[] = []
-    
-    lines.forEach(line => {
-      const trimmed = line.trim()
-      if (!trimmed || trimmed.startsWith('===') || trimmed.startsWith('#')) return
-      
-      // 格式: key: value 或 key=value
-      const colonIndex = trimmed.indexOf(':')
-      const equalsIndex = trimmed.indexOf('=')
-      
-      let key = ''
-      let value = ''
-      
-      if (colonIndex > 0 && (equalsIndex === -1 || colonIndex < equalsIndex)) {
-        key = trimmed.substring(0, colonIndex).trim()
-        value = trimmed.substring(colonIndex + 1).trim()
-      } else if (equalsIndex > 0) {
-        key = trimmed.substring(0, equalsIndex).trim()
-        value = trimmed.substring(equalsIndex + 1).trim()
-      }
-      
-      if (key && value) {
-        vars.push({ key, value })
-      }
-    })
-    
-    envVarsData.value = vars
-  } catch (e) {
-    console.error('Failed to parse environment variables:', e)
-  }
-}
-
-const submitConfig = async () => {
-  submitting.value = true
-  try {
-    // 使用当前 Tab 的配置内容
-    const configToSubmit = configSourceTab.value === 'database' ? dbConfigContent.value : agentRuntimeConfig.value
-    
-    if (configMode.value === 'app') {
-      await updateAgentConfig({
-        app: currentApp.value,
-        config: configToSubmit
-      })
-    } else {
-      await updateAgentInstanceConfig({
-        app: currentApp.value,
-        inst: currentInst.value,
-        config: configToSubmit
-      })
-    }
-    ElMessage.success('配置更新成功')
-    showConfigDialog.value = false
-    loadInstances()
-  } catch (e: any) {
-    ElMessage.error(e.message || '配置更新失败')
-  } finally {
-    submitting.value = false
-  }
-}
-
-// 从运行时配置同步到编辑区
-const syncFromRuntime = () => {
-  if (agentRuntimeConfig.value) {
-    dbConfigContent.value = agentRuntimeConfig.value
-    configSourceTab.value = 'database'
-    ElMessage.success('已从运行时配置同步')
-  }
-}
-
-const copyDiagResult = async () => {
-  try {
-    await navigator.clipboard.writeText(diagResult.value)
-    ElMessage.success('已复制到剪贴板')
-  } catch (e: any) {
-    ElMessage.error('复制失败')
-  }
-}
-
-// 切换模式
-const switchToTextMode = () => {
-  diagMode.value = 'text'
-  
-  // 设置真实的原始数据
-  const historyChartTypes = ['memoryChart', 'gcChart', 'threadChart', 'ioNetworkChart']
-  
-  if (historyChartTypes.includes(currentDiagType.value)) {
-    // 历史监控图表：从 memoryHistory 生成数据
-    if (memoryHistory.value.length > 0) {
-      const dataInfo = {
-        memoryChart: '内存监控',
-        gcChart: 'GC分析',
-        threadChart: '线程监控',
-        ioNetworkChart: 'IO/网络监控'
-      }
-      
-      const title = dataInfo[currentDiagType.value as keyof typeof dataInfo] || '监控数据'
-      diagResult.value = `【${title} - 原始数据】\n\n记录总数: ${memoryHistory.value.length} 条\n时间范围: ${new Date(memoryHistory.value[0].collectTime).toLocaleString()} ~ ${new Date(memoryHistory.value[memoryHistory.value.length - 1].collectTime).toLocaleString()}\n\n${JSON.stringify(memoryHistory.value, null, 2)}`
-    } else {
-      diagResult.value = '暂无数据'
-    }
-  }
-  // 对于其他类型（sysProps、env、jvmInfo、memory、gcStats、threadsSummary），保持原有的 diagResult 不变
-}
-
-const switchToChartMode = () => {
-  if (canShowChart.value) {
-    diagMode.value = 'chart'
-  }
-}
-
-// 格式化字节
-const formatBytes = (bytes: number): string => {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i]
-}
-
-// 格式化时长
+// 格式化持续时间
 const formatDuration = (ms: number): string => {
-  if (ms < 1000) return ms + ' ms'
+  if (!ms) return '-'
   const seconds = Math.floor(ms / 1000)
-  if (seconds < 60) return seconds + ' s'
   const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return minutes + ' min'
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return hours + ' h ' + (minutes % 60) + ' min'
   const days = Math.floor(hours / 24)
-  return days + ' d ' + (hours % 24) + ' h'
-}
-
-// 获取进度条颜色
-const getProgressColor = (percent: number): string => {
-  if (percent < 60) return '#67c23a'
-  if (percent < 80) return '#e6a23c'
-  return '#f56c6c'
+  
+  if (days > 0) return `${days}天 ${hours % 24}小时`
+  if (hours > 0) return `${hours}小时 ${minutes % 60}分钟`
+  if (minutes > 0) return `${minutes}分钟 ${seconds % 60}秒`
+  return `${seconds}秒`
 }
 
 // 获取使用率级别
-const getUsageLevel = (percent: number): string => {
+const getUsageLevel = (percent: number): 'success' | 'warning' | 'danger' | 'info' => {
   if (percent < 60) return 'success'
   if (percent < 80) return 'warning'
   return 'danger'
 }
 
-const rules = {
-  projectCode: [{ required: true, message: '请选择项目', trigger: 'change' }],
-  appCode: [{ required: true, message: '请输入应用编码', trigger: 'blur' }],
-  appName: [{ required: true, message: '请输入应用名称', trigger: 'blur' }],
-}
-
-const loadData = async () => {
-  loading.value = true
-  try {
-    applications.value = await fetchApplications()
-    projects.value = await fetchProjects()
-  } catch (e: any) {
-    ElMessage.error(e.message || '加载失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 加载内存历史数据
-const loadMemoryHistory = async () => {
-  console.log('loadMemoryHistory called', {
-    currentApp: currentApp.value,
-    currentInst: currentInst.value,
-    historyTimeRange: historyTimeRange.value
-  })
-  
-  // 如果没有设置实例，尝试从 instances 列表中获取
-  let app = currentApp.value
-  let inst = currentInst.value
-  
-  if (!app || !inst) {
-    // 尝试从 instances 中找到第一个在线的实例
-    const onlineInst = instances.value.find(i => i.online && i.app === (app || 'order'))
-    if (onlineInst) {
-      app = onlineInst.app
-      inst = onlineInst.inst
-      console.log('Using instance from list:', { app, inst })
-    } else {
-      console.warn('No valid app or inst found')
-      ElMessage.warning('请先从运行实例列表打开诊断，或确保有在线的实例')
-      return
-    }
-  }
-  
-  historyLoading.value = true
-  try {
-    const endTime = Date.now()
-    const startTime = endTime - (historyTimeRange.value * 3600 * 1000)
-    
-    console.log('Fetching memory history with params:', { app, inst, startTime, endTime })
-    
-    memoryHistory.value = await getMemoryHistory(
-      app,
-      inst,
-      startTime,
-      endTime,
-      200
-    )
-    
-    console.log('Received history data:', memoryHistory.value.length, 'records')
-    
-    // Parse memory pools from first record
-    if (memoryHistory.value.length > 0 && memoryHistory.value[0].memoryPools) {
-      try {
-        const pools: any[] = JSON.parse(memoryHistory.value[0].memoryPools)
-        // Select heap-type pools to display
-        selectedPools.value = pools
-          .filter(p => p.type === 'HEAP')
-          .map(p => ({ name: p.name, type: p.type }))
-        console.log('Selected pools:', selectedPools.value)
-      } catch (e) {
-        console.error('Failed to parse memory pools:', e)
-      }
-    }
-    
-    // 按时间排序（升序）
-    memoryHistory.value.sort((a, b) => a.collectTime - b.collectTime)
-    
-    // 渲染图表 - 使用更长的延迟确保DOM完全渲染
-    setTimeout(() => {
-      console.log('=== Rendering charts ===')
-      console.log('heapChartRef:', heapChartRef.value?.offsetWidth, heapChartRef.value?.offsetHeight)
-      console.log('nonHeapChartRef:', nonHeapChartRef.value?.offsetWidth, nonHeapChartRef.value?.offsetHeight)
-      console.log('youngGenChartRef:', youngGenChartRef.value?.offsetWidth, youngGenChartRef.value?.offsetHeight)
-      console.log('oldGenChartRef:', oldGenChartRef.value?.offsetWidth, oldGenChartRef.value?.offsetHeight)
-      console.log('gcCountChartRef:', gcCountChartRef.value?.offsetWidth, gcCountChartRef.value?.offsetHeight)
-      console.log('gcDurationChartRef:', gcDurationChartRef.value?.offsetWidth, gcDurationChartRef.value?.offsetHeight)
-      console.log('threadChartRef:', threadChartRef.value?.offsetWidth, threadChartRef.value?.offsetHeight)
-      console.log('classLoadingChartRef:', classLoadingChartRef.value?.offsetWidth, classLoadingChartRef.value?.offsetHeight)
-      console.log('cpuChartRef:', cpuChartRef.value?.offsetWidth, cpuChartRef.value?.offsetHeight)
-      renderMemoryCharts()
-      console.log('=== Charts rendered ===')
-    }, 500)
-    
-    ElMessage.success(`加载了 ${memoryHistory.value.length} 条历史记录`)
-  } catch (e: any) {
-    console.error('Failed to load memory history:', e)
-    ElMessage.error(e.message || '加载历史数据失败')
-  } finally {
-    historyLoading.value = false
-    console.log('loadMemoryHistory finished')
-  }
-}
-
-// Phase 1: 加载最新数据（用于实时监控）
-const loadLatestMetrics = async () => {
-  let app = currentApp.value
-  let inst = currentInst.value
-  
-  if (!app || !inst) {
-    const onlineInst = instances.value.find(i => i.online && i.app === (app || 'order'))
-    if (onlineInst) {
-      app = onlineInst.app
-      inst = onlineInst.inst
-    } else {
-      return
-    }
-  }
-  
-  try {
-    // 只查询最近1分钟的10条记录
-    const endTime = Date.now()
-    const startTime = endTime - 60000
-    
-    const newData = await getMemoryHistory(app, inst, startTime, endTime, 10)
-    
-    if (newData.length > 0) {
-      // 追加新数据到现有列表（去重）
-      const existingTimes = new Set(memoryHistory.value.map(m => m.collectTime))
-      
-      newData.forEach(metric => {
-        if (!existingTimes.has(metric.collectTime)) {
-          memoryHistory.value.push(metric)
-        }
-      })
-      
-      // 保持最多200条记录
-      if (memoryHistory.value.length > 200) {
-        memoryHistory.value = memoryHistory.value.slice(-200)
-      }
-      
-      // 重新排序
-      memoryHistory.value.sort((a, b) => a.collectTime - b.collectTime)
-      
-      // 增量更新图表
-      renderMemoryCharts()
-    }
-  } catch (e: any) {
-    console.error('Failed to load latest metrics:', e)
-  }
-}
-
-// Phase 1: 切换实时监控
-const toggleRealtime = (enabled: boolean) => {
-  if (enabled) {
-    // 启动实时监控
-    ElMessage.info(`已开启实时监控，轮询间隔：${pollingInterval.value / 1000}秒`)
-    
-    // 立即加载一次最新数据
-    loadLatestMetrics()
-    
-    // 启动定时器
-    realtimeTimer = setInterval(() => {
-      loadLatestMetrics()
-    }, pollingInterval.value)
-  } else {
-    // 停止实时监控
-    if (realtimeTimer) {
-      clearInterval(realtimeTimer)
-      realtimeTimer = null
-    }
-    ElMessage.info('已关闭实时监控')
-  }
-}
-
-// Phase 2: 监听轮询间隔变化，自动重启定时器
-watch(pollingInterval, (newInterval) => {
-  if (enableRealtime.value && realtimeTimer) {
-    // 重启定时器以应用新的间隔
-    clearInterval(realtimeTimer)
-    realtimeTimer = setInterval(() => {
-      loadLatestMetrics()
-    }, newInterval)
-    
-    ElMessage.success(`轮询间隔已更新为 ${newInterval / 1000}秒`)
-  }
-})
-
-// 切换自动刷新
-const toggleAutoRefresh = (enabled: boolean) => {
-  if (enabled) {
-    startAutoRefresh()
-    ElMessage.success(`自动刷新已开启 (${autoRefreshInterval.value}秒)`)
-  } else {
-    stopAutoRefresh()
-    ElMessage.info('自动刷新已关闭')
-  }
-}
-
-// 启动自动刷新
-const startAutoRefresh = () => {
-  stopAutoRefresh() // 先停止之前的定时器
-  autoRefreshTimer = window.setInterval(() => {
-    refreshHistoryChart()
-  }, autoRefreshInterval.value * 1000)
-}
-
-// 停止自动刷新
-const stopAutoRefresh = () => {
-  if (autoRefreshTimer) {
-    clearInterval(autoRefreshTimer)
-    autoRefreshTimer = null
-  }
-}
-
-// 监听自动刷新间隔变化
-watch(autoRefreshInterval, (newInterval) => {
-  if (enableAutoRefresh.value) {
-    startAutoRefresh() // 重启定时器以应用新的间隔
-    ElMessage.success(`自动刷新间隔已更新为 ${newInterval}秒`)
-  }
-})
-
-// 渲染内存趋势图表
-const renderMemoryCharts = () => {
-  console.log('🔴 renderMemoryCharts called')
-  console.log('🔴 memoryHistory length:', memoryHistory.value.length)
-  
-  // 渲染内存池图表（无论有无数据都要渲染，显示默认图表）
-  console.log('🔴 准备调用 renderMemoryPoolsGrid')
-  renderMemoryPoolsGrid()
-  
-  console.log('🔴 Starting to render memory charts...')
-  
-  const times = memoryHistory.value.map(m => {
-    const date = new Date(m.collectTime)
-    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
-  })
-  
-  // Phase 2: 判断是否为增量更新（实时监控模式）
-  const isIncrementalUpdate = enableRealtime.value && heapChartInstance !== null
-  
-  // Phase 2: 配置项 - 启用平滑动画
-  const animationConfig = isIncrementalUpdate ? {
-    animation: true,
-    animationDuration: 1000,
-    animationEasing: 'cubicOut'
-  } : {
-    animation: false // 首次加载时禁用动画，加快速度
-  }
-  
-  // 1. Heap Memory Chart
-  if (heapChartRef.value) {
-    if (!heapChartInstance) {
-      heapChartInstance = echarts.init(heapChartRef.value)
-    }
-    const heapData = memoryHistory.value.map(m => m.heapUsed)
-    const heapCommittedData = memoryHistory.value.map(m => m.heapCommitted)
-    const heapMaxData = memoryHistory.value.map(m => m.heapMax)
-    
-    heapChartInstance.setOption({
-      title: { text: '堆内存总览', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { trigger: 'axis', formatter: (params: any) => {
-        let result = params[0].name + '<br/>'
-        params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}<br/>` })
-        return result
-      }},
-      legend: { data: ['已使用', '已提交', '最大值'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', axisLabel: { formatter: (val: number) => formatBytes(val) } },
-      series: [
-        { name: '已使用', type: 'line', data: heapData, smooth: true, itemStyle: { color: '#409eff' }, areaStyle: { color: 'rgba(64, 158, 255, 0.1)' } },
-        { name: '已提交', type: 'line', data: heapCommittedData, smooth: true, lineStyle: { type: 'dotted' }, itemStyle: { color: '#67c23a' } },
-        { name: '最大值', type: 'line', data: heapMaxData, smooth: true, lineStyle: { type: 'dashed' }, itemStyle: { color: '#909399' } }
-      ],
-      ...animationConfig // Phase 2: 应用动画配置
-    })
-    heapChartInstance.resize()
-  }
-  
-  // 2. Non-Heap Memory Chart
-  if (nonHeapChartRef.value) {
-    if (!nonHeapChartInstance) nonHeapChartInstance = echarts.init(nonHeapChartRef.value)
-    nonHeapChartInstance.setOption({
-      title: { text: '非堆内存', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { trigger: 'axis', formatter: (params: any) => {
-        let result = params[0].name + '<br/>'
-        params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}<br/>` })
-        return result
-      }},
-      legend: { data: ['已使用', '已提交', '最大值'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', axisLabel: { formatter: (val: number) => formatBytes(val) } },
-      series: [
-        { name: '已使用', type: 'line', data: memoryHistory.value.map(m => m.nonHeapUsed), smooth: true, itemStyle: { color: '#e6a23c' }, areaStyle: { color: 'rgba(230, 162, 60, 0.1)' } },
-        { name: '已提交', type: 'line', data: memoryHistory.value.map(m => m.nonHeapCommitted), smooth: true, lineStyle: { type: 'dotted' }, itemStyle: { color: '#67c23a' } },
-        { name: '最大值', type: 'line', data: memoryHistory.value.map(m => m.nonHeapMax > 0 ? m.nonHeapMax : m.nonHeapCommitted), smooth: true, lineStyle: { type: 'dashed' }, itemStyle: { color: '#909399' } }
-      ]
-    })
-    nonHeapChartInstance.resize()
-  }
-  
-  // 3. Young Generation Stacked Chart (Eden + S0 + S1)
-  if (youngGenChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].memoryPools) {
-    if (!youngGenChartInstance) youngGenChartInstance = echarts.init(youngGenChartRef.value)
-    
-    const edenData: number[] = []
-    const s0Data: number[] = []
-    const s1Data: number[] = []
-    
-    memoryHistory.value.forEach(record => {
-      try {
-        const pools: any[] = JSON.parse(record.memoryPools!)
-        const eden = pools.find(p => p.name.includes('Eden'))
-        const s0 = pools.find(p => p.name.includes('Survivor') && p.name.includes('S0'))
-        const s1 = pools.find(p => p.name.includes('Survivor') && p.name.includes('S1'))
-        edenData.push(eden ? eden.used : 0)
-        s0Data.push(s0 ? s0.used : 0)
-        s1Data.push(s1 ? s1.used : 0)
-      } catch (e) {
-        edenData.push(0)
-        s0Data.push(0)
-        s1Data.push(0)
-      }
-    })
-    
-    youngGenChartInstance.setOption({
-      title: { text: '新生代 (Young Gen)', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { trigger: 'axis', formatter: (params: any) => {
-        let result = params[0].name + '<br/>总计: ' + formatBytes(params.reduce((sum: number, p: any) => sum + p.value, 0)) + '<br/>'
-        params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}<br/>` })
-        return result
-      }},
-      legend: { data: ['Eden', 'Survivor 0', 'Survivor 1'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', axisLabel: { formatter: (val: number) => formatBytes(val) } },
-      series: [
-        { name: 'Eden', type: 'bar', stack: 'young', data: edenData, itemStyle: { color: '#409eff' } },
-        { name: 'Survivor 0', type: 'bar', stack: 'young', data: s0Data, itemStyle: { color: '#67c23a' } },
-        { name: 'Survivor 1', type: 'bar', stack: 'young', data: s1Data, itemStyle: { color: '#e6a23c' } }
-      ]
-    })
-    youngGenChartInstance.resize()
-  }
-  
-  // 4. Old Generation Chart
-  if (oldGenChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].memoryPools) {
-    if (!oldGenChartInstance) oldGenChartInstance = echarts.init(oldGenChartRef.value)
-    
-    const oldGenData: number[] = []
-    const oldGenMax: number[] = []
-    
-    memoryHistory.value.forEach(record => {
-      try {
-        const pools: any[] = JSON.parse(record.memoryPools!)
-        const old = pools.find(p => p.name.includes('Old') || p.name.includes('Tenured'))
-        oldGenData.push(old ? old.used : 0)
-        oldGenMax.push(old ? (old.max > 0 ? old.max : old.committed) : 0)
-      } catch (e) {
-        oldGenData.push(0)
-        oldGenMax.push(0)
-      }
-    })
-    
-    oldGenChartInstance.setOption({
-      title: { text: '老年代 (Old Gen)', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { trigger: 'axis', formatter: (params: any) => {
-        let result = params[0].name + '<br/>'
-        params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}<br/>` })
-        const usage = params.find((p: any) => p.seriesName === '已使用')
-        const max = params.find((p: any) => p.seriesName === '最大值')
-        if (usage && max && max.value > 0) {
-          result += `使用率: ${((usage.value / max.value) * 100).toFixed(1)}%`
-        }
-        return result
-      }},
-      legend: { data: ['已使用', '最大值'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', axisLabel: { formatter: (val: number) => formatBytes(val) } },
-      series: [
-        { name: '已使用', type: 'line', data: oldGenData, smooth: true, itemStyle: { color: '#f56c6c' }, areaStyle: { color: 'rgba(245, 108, 108, 0.1)' } },
-        { name: '最大值', type: 'line', data: oldGenMax, smooth: true, lineStyle: { type: 'dashed' }, itemStyle: { color: '#909399' } }
-      ]
-    })
-    oldGenChartInstance.resize()
-  }
-  
-  // 5. GC Count Chart
-  if (gcCountChartRef.value) {
-    if (!gcCountChartInstance) gcCountChartInstance = echarts.init(gcCountChartRef.value)
-
-    const gcIncrements = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      const increment = m.gcCount - memoryHistory.value[i - 1].gcCount
-      return increment >= 0 ? increment : 0 // 确保不会出现负值
-    })
-
-    gcCountChartInstance.setOption({
-      title: { text: 'GC次数增量', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { trigger: 'axis', formatter: (params: any) => {
-        return params[0].name + '<br/>GC增量: ' + params[0].value + ' 次'
-      }},
-      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '次数' },
-      series: [{ name: 'GC增量', type: 'bar', data: gcIncrements, itemStyle: { color: '#9c27b0' } }]
-    })
-    gcCountChartInstance.resize()
-  }
-
-  // 6. GC Duration Chart
-  if (gcDurationChartRef.value) {
-    if (!gcDurationChartInstance) gcDurationChartInstance = echarts.init(gcDurationChartRef.value)
-
-    const gcTimeIncrements = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      const increment = m.gcTimeMs - memoryHistory.value[i - 1].gcTimeMs
-      return increment >= 0 ? increment : 0 // 确保不会出现负值
-    })
-
-    gcDurationChartInstance.setOption({
-      title: { text: 'GC耗时分析', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { trigger: 'axis', formatter: (params: any) => {
-        return params[0].name + '<br/>GC耗时: ' + params[0].value + ' ms'
-      }},
-      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '耗时(ms)' },
-      series: [{ name: 'GC耗时', type: 'line', data: gcTimeIncrements, smooth: true, itemStyle: { color: '#ff6b6b' }, areaStyle: { color: 'rgba(255, 107, 107, 0.1)' } }]
-    })
-    gcDurationChartInstance.resize()
-  }
-
-  // 7. Thread Count Chart
-  if (threadChartRef.value) {
-    if (!threadChartInstance) threadChartInstance = echarts.init(threadChartRef.value)
-    threadChartInstance.setOption({
-      title: { text: '线程数趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { trigger: 'axis' },
-      legend: { data: ['当前线程'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '线程数' },
-      series: [
-        { name: '当前线程', type: 'line', data: memoryHistory.value.map(m => m.threadCount), smooth: true, itemStyle: { color: '#409eff' }, areaStyle: { color: 'rgba(64, 158, 255, 0.1)' } }
-      ],
-      ...animationConfig // Phase 2: 应用动画配置
-    })
-    threadChartInstance.resize()
-  }
-  
-  // 8. Class Loading Chart
-  if (classLoadingChartRef.value) {
-    if (!classLoadingChartInstance) classLoadingChartInstance = echarts.init(classLoadingChartRef.value)
-    classLoadingChartInstance.setOption({
-      title: { text: '类加载统计', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { trigger: 'axis' },
-      legend: { data: ['已加载类'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '类数量' },
-      series: [{ name: '已加载类', type: 'line', data: memoryHistory.value.map(m => m.loadedClassCount), smooth: true, itemStyle: { color: '#e6a23c' }, areaStyle: { color: 'rgba(230, 162, 60, 0.1)' } }],
-      ...animationConfig // Phase 2: 应用动画配置
-    })
-    classLoadingChartInstance.resize()
-  }
-  
-  // 9. CPU Usage Chart - 始终渲染，无数据时显示默认图表
-  if (cpuChartRef.value) {
-    console.log('🟢 CPU Chart ref found')
-    if (!cpuChartInstance) cpuChartInstance = echarts.init(cpuChartRef.value)
-    
-    // 检查是否有有效数据
-    const hasData = memoryHistory.value.length > 0 && (memoryHistory.value[0].processCpuLoad !== undefined || memoryHistory.value[0].systemCpuLoad !== undefined)
-    
-    if (!hasData) {
-      // 无数据时显示空状态
-      cpuChartInstance.setOption({
-        title: { text: 'CPU使用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
-        graphic: {
-          type: 'text',
-          left: 'center',
-          top: 'middle',
-          style: {
-            text: '暂无CPU数据\n请确保 Agent 正常运行并上报数据',
-            fill: '#c0c4cc',
-            fontSize: 14,
-            textAlign: 'center'
-          }
-        }
-      })
-      cpuChartInstance.resize()
-    } else {
-      cpuChartInstance.setOption({
-        title: { text: 'CPU使用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-        tooltip: { trigger: 'axis', formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${(p.value * 100).toFixed(2)}%<br/>` })
-          return result
-        }},
-        legend: { data: ['进程CPU', '系统CPU'], bottom: 0 },
-        grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-        xAxis: { type: 'category', data: times, boundaryGap: false },
-        yAxis: { type: 'value', name: 'CPU%', axisLabel: { formatter: (val: number) => (val * 100).toFixed(0) + '%' } },
-        series: [
-          { name: '进程CPU', type: 'line', data: memoryHistory.value.map(m => m.processCpuLoad || 0), smooth: true, itemStyle: { color: '#409eff' }, areaStyle: { color: 'rgba(64, 158, 255, 0.1)' } },
-          { name: '系统CPU', type: 'line', data: memoryHistory.value.map(m => m.systemCpuLoad || 0), smooth: true, itemStyle: { color: '#f56c6c' }, areaStyle: { color: 'rgba(245, 108, 108, 0.1)' } }
-        ],
-        ...animationConfig // Phase 2: 应用动画配置
-      })
-      cpuChartInstance.resize()
-    }
-  }
-  
-  // 10. Minor vs Full GC Chart
-  if (minorVsFullGcChartRef.value) {
-    if (!minorVsFullGcChartInstance) minorVsFullGcChartInstance = echarts.init(minorVsFullGcChartRef.value)
-    
-    const minorGcData = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      const increment = (m.minorGcCount || 0) - (memoryHistory.value[i - 1].minorGcCount || 0)
-      return Math.max(0, increment) // 确保增量不为负
-    })
-    const fullGcData = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      const increment = (m.fullGcCount || 0) - (memoryHistory.value[i - 1].fullGcCount || 0)
-      return Math.max(0, increment) // 确保增量不为负
-    })
-    
-    minorVsFullGcChartInstance.setOption({
-      title: { text: 'Minor vs Full GC', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { trigger: 'axis', formatter: (params: any) => {
-        let result = params[0].name + '<br/>'
-        params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${p.value} 次<br/>` })
-        return result
-      }},
-      legend: { data: ['Minor GC', 'Full GC'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '次数' },
-      series: [
-        { name: 'Minor GC', type: 'bar', data: minorGcData, itemStyle: { color: '#409eff' } },
-        { name: 'Full GC', type: 'bar', data: fullGcData, itemStyle: { color: '#f56c6c' } }
-      ]
-    })
-    minorVsFullGcChartInstance.resize()
-  }
-  
-  // 11. GC Efficiency Chart
-  if (gcEfficiencyChartRef.value && memoryHistory.value[0].memoryPools) {
-    if (!gcEfficiencyChartInstance) gcEfficiencyChartInstance = echarts.init(gcEfficiencyChartRef.value)
-    
-    const gcEfficiencyData: number[] = []
-    memoryHistory.value.forEach((m, i) => {
-      if (i === 0) {
-        gcEfficiencyData.push(0)
-        return
-      }
-      try {
-        const pools: any[] = JSON.parse(m.memoryPools!)
-        const prevPools: any[] = JSON.parse(memoryHistory.value[i - 1].memoryPools!)
-        const eden = pools.find(p => p.name.includes('Eden'))
-        const prevEden = prevPools.find(p => p.name.includes('Eden'))
-        if (eden && prevEden && eden.used !== undefined && prevEden.used !== undefined) {
-          const reclaimed = prevEden.used - eden.used
-          // 只记录有效数据(>=0)
-          gcEfficiencyData.push(reclaimed >= 0 ? reclaimed : 0)
-        } else {
-          gcEfficiencyData.push(0)
-        }
-      } catch (e) {
-        console.warn('Failed to calculate GC efficiency:', e)
-        gcEfficiencyData.push(0)
-      }
-    })
-    
-    gcEfficiencyChartInstance.setOption({
-      title: { text: 'GC效率 (Eden回收量)', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis', 
-        formatter: (params: any) => {
-          const value = params[0].value
-          if (value === undefined || value === null || isNaN(value)) {
-            return params[0].name + '<br/>数据无效'
-          }
-          return params[0].name + '<br/>回收: ' + formatBytes(value)
-        }
-      },
-      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { 
-        type: 'value', 
-        name: '回收量', 
-        axisLabel: { 
-          formatter: (val: number) => {
-            if (isNaN(val) || val === undefined) return '0 B'
-            return formatBytes(val)
-          }
-        }
-      },
-      series: [{ 
-        name: '回收量', 
-        type: 'line', 
-        data: gcEfficiencyData.map(v => isNaN(v) ? 0 : v), // 确保没有NaN
-        smooth: true, 
-        itemStyle: { color: '#67c23a' }, 
-        areaStyle: { color: 'rgba(103, 194, 58, 0.1)' }
-      }]
-    })
-    gcEfficiencyChartInstance.resize()
-  }
-  
-  // 12. Thread States Pie Chart
-  if (threadStatesChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].threadStates) {
-    if (!threadStatesChartInstance) threadStatesChartInstance = echarts.init(threadStatesChartRef.value)
-    
-    try {
-      const threadStates: any = JSON.parse(memoryHistory.value[memoryHistory.value.length - 1].threadStates!)
-      const pieData = Object.entries(threadStates).map(([name, value]) => ({ name, value }))
-      
-      threadStatesChartInstance.setOption({
-        title: { text: '线程状态分布', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-        legend: { orient: 'vertical', left: 'left', bottom: '10%' },
-        series: [{
-          type: 'pie',
-          radius: ['40%', '70%'],
-          center: ['50%', '45%'],
-          data: pieData,
-          emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' } },
-          label: { formatter: '{b}: {c}' }
-        }]
-      })
-      threadStatesChartInstance.resize()
-    } catch (e) {
-      console.error('Failed to parse thread states:', e)
-    }
-  }
-  
-  // 13. Class Loading Detail Chart - 仅当有数据时初始化
-  if (classLoadingDetailChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].totalLoadedClassCount !== undefined) {
-    if (!classLoadingDetailChartInstance) classLoadingDetailChartInstance = echarts.init(classLoadingDetailChartRef.value)
-    
-    const totalLoadedData = memoryHistory.value.map(m => m.totalLoadedClassCount || 0)
-    const unloadedData = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      return (m.unloadedClassCount || 0) - (memoryHistory.value[i - 1].unloadedClassCount || 0)
-    })
-    
-    classLoadingDetailChartInstance.setOption({
-      title: { text: '类加载/卸载趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { trigger: 'axis' },
-      legend: { data: ['累计加载', '卸载增量'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '类数量' },
-      series: [
-        { name: '累计加载', type: 'line', data: totalLoadedData, smooth: true, itemStyle: { color: '#409eff' }, areaStyle: { color: 'rgba(64, 158, 255, 0.1)' } },
-        { name: '卸载增量', type: 'bar', data: unloadedData, itemStyle: { color: '#f56c6c' } }
-      ]
-    })
-    classLoadingDetailChartInstance.resize()
-  }
-  
-  // 14. Thread Pools Chart - 始终渲染，无数据时显示默认图表
-  if (threadPoolsChartRef.value) {
-    if (!threadPoolsChartInstance) threadPoolsChartInstance = echarts.init(threadPoolsChartRef.value)
-    
-    // 检查是否有有效数据
-    const hasData = memoryHistory.value.length > 0 && memoryHistory.value[0].threadPools
-    
-    if (!hasData) {
-      // 无数据时显示空状态
-      threadPoolsChartInstance.setOption({
-        title: { text: '线程池使用情况', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
-        graphic: {
-          type: 'text',
-          left: 'center',
-          top: 'middle',
-          style: {
-            text: '暂无线程池数据\n请确保 Agent 正常运行并上报数据',
-            fill: '#c0c4cc',
-            fontSize: 14,
-            textAlign: 'center'
-          }
-        }
-      })
-      threadPoolsChartInstance.resize()
-    } else {
-      try {
-        const latest = memoryHistory.value[memoryHistory.value.length - 1]
-        const pools: any[] = JSON.parse(latest.threadPools!)
-        
-        if (!pools || pools.length === 0) {
-          threadPoolsChartInstance.setOption({
-            title: { text: '线程池使用情况', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
-            graphic: {
-              type: 'text',
-              left: 'center',
-              top: 'middle',
-              style: {
-                text: '该 Agent 未上报线程池数据\n可能原因：JVM 版本不支持或配置未开启',
-                fill: '#c0c4cc',
-                fontSize: 14,
-                textAlign: 'center'
-              }
-            }
-          })
-          threadPoolsChartInstance.resize()
-        } else {
-          const poolNames = pools.map(p => p.poolName)
-          const poolCounts = pools.map(p => p.activeCount)
-          
-          threadPoolsChartInstance.setOption({
-            title: { text: '线程池使用情况', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-            tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-            grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-            xAxis: { type: 'category', data: poolNames, axisLabel: { interval: 0, rotate: 30 } },
-            yAxis: { type: 'value', name: '线程数' },
-            series: [{
-              name: '活跃线程',
-              type: 'bar',
-              data: poolCounts,
-              itemStyle: { color: '#409eff' },
-              label: { show: true, position: 'top' }
-            }]
-          })
-          threadPoolsChartInstance.resize()
-        }
-      } catch (e) {
-        console.error('Failed to parse threadPools:', e)
-        threadPoolsChartInstance.setOption({
-          title: { text: '线程池使用情况', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
-          graphic: {
-            type: 'text',
-            left: 'center',
-            top: 'middle',
-            style: {
-              text: '解析线程池数据失败',
-              fill: '#c0c4cc',
-              fontSize: 14,
-              textAlign: 'center'
-            }
-          }
-        })
-        threadPoolsChartInstance.resize()
-      }
-    }
-  }
-  
-  // 15. Class Loading Rate Chart - 仅当有数据时初始化
-  if (classLoadingRateChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].classLoadingRate !== undefined) {
-    if (!classLoadingRateChartInstance) classLoadingRateChartInstance = echarts.init(classLoadingRateChartRef.value)
-    
-    const loadRates: number[] = []
-    const unloadRates: number[] = []
-    
-    memoryHistory.value.forEach((m, i) => {
-      if (i === 0) {
-        loadRates.push(0)
-        unloadRates.push(0)
-        return
-      }
-      
-      const prevM = memoryHistory.value[i - 1]
-      const timeDiffSeconds = (m.collectTime - prevM.collectTime) / 1000
-      
-      if (timeDiffSeconds > 0) {
-        const totalLoadedDiff = Math.max(0, (m.totalLoadedClassCount || 0) - (prevM.totalLoadedClassCount || 0))
-        const unloadedDiff = Math.max(0, (m.unloadedClassCount || 0) - (prevM.unloadedClassCount || 0))
-        
-        loadRates.push(totalLoadedDiff / timeDiffSeconds)
-        unloadRates.push(unloadedDiff / timeDiffSeconds)
-      } else {
-        loadRates.push(0)
-        unloadRates.push(0)
-      }
-    })
-    
-    classLoadingRateChartInstance.setOption({
-      title: { text: '类加载/卸载速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { trigger: 'axis', formatter: (params: any) => {
-        let result = params[0].name + '<br/>'
-        params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${p.value.toFixed(2)} 类/秒<br/>` })
-        return result
-      }},
-      legend: { data: ['加载速率', '卸载速率'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '类/秒' },
-      series: [
-        { name: '加载速率', type: 'line', data: loadRates, smooth: true, itemStyle: { color: '#67c23a' }, areaStyle: { color: 'rgba(103, 194, 58, 0.1)' } },
-        { name: '卸载速率', type: 'line', data: unloadRates, smooth: true, itemStyle: { color: '#f56c6c' }, areaStyle: { color: 'rgba(245, 108, 108, 0.1)' } }
-      ]
-    })
-    classLoadingRateChartInstance.resize()
-  }
-  
-  // ===== Phase 4: Memory Pools Detail Charts =====
-  
-  // 16. Eden & Survivor Chart
-  if (edenSurvivorChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].edenUsed !== undefined) {
-    if (!edenSurvivorChartInstance) edenSurvivorChartInstance = echarts.init(edenSurvivorChartRef.value)
-    
-    const edenUsedData = memoryHistory.value.map(m => m.edenUsed || 0)
-    const edenMaxData = memoryHistory.value.map(m => m.edenMax || 0)
-    const survivorUsedData = memoryHistory.value.map(m => m.survivorUsed || 0)
-    
-    edenSurvivorChartInstance.setOption({
-      title: { text: 'Eden & Survivor区', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}<br/>` })
-          return result
-        }
-      },
-      legend: { data: ['Eden使用', 'Eden最大', 'Survivor使用'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '内存', axisLabel: { formatter: (val: number) => formatBytes(val) } },
-      series: [
-        { name: 'Eden使用', type: 'line', data: edenUsedData, smooth: true, itemStyle: { color: '#67c23a' }, areaStyle: { color: 'rgba(103, 194, 58, 0.1)' } },
-        { name: 'Eden最大', type: 'line', data: edenMaxData, smooth: true, itemStyle: { color: '#909399' }, lineStyle: { type: 'dashed' } },
-        { name: 'Survivor使用', type: 'line', data: survivorUsedData, smooth: true, itemStyle: { color: '#e6a23c' }, areaStyle: { color: 'rgba(230, 162, 60, 0.1)' } }
-      ]
-    })
-    edenSurvivorChartInstance.resize()
-  }
-  
-  // 17. Old Gen Detail Chart
-  if (oldGenChartDetailRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].oldGenUsed !== undefined) {
-    if (!oldGenChartDetailInstance) oldGenChartDetailInstance = echarts.init(oldGenChartDetailRef.value)
-    
-    const oldGenUsedData = memoryHistory.value.map(m => m.oldGenUsed || 0)
-    const oldGenMaxData = memoryHistory.value.map(m => m.oldGenMax || 0)
-    const oldGenUsageRate = memoryHistory.value.map(m => 
-      m.oldGenMax > 0 ? ((m.oldGenUsed || 0) / m.oldGenMax * 100).toFixed(1) : 0
-    )
-    
-    oldGenChartDetailInstance.setOption({
-      title: { text: '老年代使用趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => { 
-            if (p.seriesName.includes('使用率')) {
-              result += `${p.marker} ${p.seriesName}: ${p.value}%<br/>`
-            } else {
-              result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}<br/>`
-            }
-          })
-          return result
-        }
-      },
-      legend: { data: ['老年代使用', '老年代最大', '使用率'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: [
-        { type: 'value', name: '内存', axisLabel: { formatter: (val: number) => formatBytes(val) } },
-        { type: 'value', name: '使用率(%)', max: 100, position: 'right' }
-      ],
-      series: [
-        { name: '老年代使用', type: 'line', data: oldGenUsedData, smooth: true, itemStyle: { color: '#f56c6c' }, areaStyle: { color: 'rgba(245, 108, 108, 0.1)' }, yAxisIndex: 0 },
-        { name: '老年代最大', type: 'line', data: oldGenMaxData, smooth: true, itemStyle: { color: '#909399' }, lineStyle: { type: 'dashed' }, yAxisIndex: 0 },
-        { name: '使用率', type: 'line', data: oldGenUsageRate, smooth: true, itemStyle: { color: '#409eff' }, lineStyle: { width: 2 }, yAxisIndex: 1 }
-      ]
-    })
-    oldGenChartDetailInstance.resize()
-  }
-  
-  // 18. Metaspace Chart
-  if (metaspaceChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].metaspaceUsed !== undefined) {
-    if (!metaspaceChartInstance) metaspaceChartInstance = echarts.init(metaspaceChartRef.value)
-    
-    const metaspaceUsedData = memoryHistory.value.map(m => m.metaspaceUsed || 0)
-    const metaspaceMaxData = memoryHistory.value.map(m => m.metaspaceMax || 0)
-    
-    metaspaceChartInstance.setOption({
-      title: { text: 'Metaspace趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}<br/>` })
-          return result
-        }
-      },
-      legend: { data: ['Metaspace使用', 'Metaspace最大'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '内存', axisLabel: { formatter: (val: number) => formatBytes(val) } },
-      series: [
-        { name: 'Metaspace使用', type: 'line', data: metaspaceUsedData, smooth: true, itemStyle: { color: '#e6a23c' }, areaStyle: { color: 'rgba(230, 162, 60, 0.1)' } },
-        { name: 'Metaspace最大', type: 'line', data: metaspaceMaxData, smooth: true, itemStyle: { color: '#909399' }, lineStyle: { type: 'dashed' } }
-      ]
-    })
-    metaspaceChartInstance.resize()
-  }
-  
-  // 19. Code Cache Chart
-  if (codeCacheChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].codeCacheUsed !== undefined) {
-    if (!codeCacheChartInstance) codeCacheChartInstance = echarts.init(codeCacheChartRef.value)
-    
-    const codeCacheUsedData = memoryHistory.value.map(m => m.codeCacheUsed || 0)
-    const codeCacheMaxData = memoryHistory.value.map(m => m.codeCacheMax || 0)
-    
-    codeCacheChartInstance.setOption({
-      title: { text: 'CodeCache趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}<br/>` })
-          return result
-        }
-      },
-      legend: { data: ['CodeCache使用', 'CodeCache最大'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '内存', axisLabel: { formatter: (val: number) => formatBytes(val) } },
-      series: [
-        { name: 'CodeCache使用', type: 'line', data: codeCacheUsedData, smooth: true, itemStyle: { color: '#9c27b0' }, areaStyle: { color: 'rgba(156, 39, 176, 0.1)' } },
-        { name: 'CodeCache最大', type: 'line', data: codeCacheMaxData, smooth: true, itemStyle: { color: '#909399' }, lineStyle: { type: 'dashed' } }
-      ]
-    })
-    codeCacheChartInstance.resize()
-  }
-  
-  // ===== Phase 5: Advanced Monitoring Charts =====
-  
-  // 20. Memory Allocation Rate Chart
-  if (memoryAllocationRateChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].memoryAllocationRate !== undefined) {
-    if (!memoryAllocationRateChartInstance) memoryAllocationRateChartInstance = echarts.init(memoryAllocationRateChartRef.value)
-    
-    const allocRateData = memoryHistory.value.map(m => m.memoryAllocationRate || 0)
-    
-    memoryAllocationRateChartInstance.setOption({
-      title: { text: '内存分配速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          return params[0].name + '<br/>' + params[0].marker + ' 分配速率: ' + formatBytes(params[0].value) + '/s'
-        }
-      },
-      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '分配速率', axisLabel: { formatter: (val: number) => formatBytes(val) + '/s' } },
-      series: [
-        { 
-          name: '分配速率', 
-          type: 'line', 
-          data: allocRateData, 
-          smooth: true, 
-          itemStyle: { color: '#409eff' },
-          areaStyle: { color: 'rgba(64, 158, 255, 0.2)' },
-          markLine: {
-            data: [
-              { type: 'average', label: { formatter: '平均值' }, lineStyle: { color: '#67c23a' } }
-            ]
-          }
-        }
-      ]
-    })
-    memoryAllocationRateChartInstance.resize()
-  }
-  
-  // 21. GC Pressure Chart
-  if (gcPressureChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].gcPressure !== undefined) {
-    if (!gcPressureChartInstance) gcPressureChartInstance = echarts.init(gcPressureChartRef.value)
-    
-    const gcPressureData = memoryHistory.value.map(m => m.gcPressure || 0)
-    
-    gcPressureChartInstance.setOption({
-      title: { text: 'GC压力指数', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          const value = params[0].value
-          let level = value < 30 ? '低' : value < 60 ? '中' : value < 80 ? '高' : '极高'
-          return params[0].name + '<br/>' + params[0].marker + ' GC压力: ' + value.toFixed(1) + ' (' + level + ')'
-        }
-      },
-      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '压力指数', max: 100 },
-      series: [
-        { 
-          name: 'GC压力', 
-          type: 'line', 
-          data: gcPressureData, 
-          smooth: true, 
-          itemStyle: { color: '#e6a23c' },
-          areaStyle: { 
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(245, 108, 108, 0.5)' },
-              { offset: 0.5, color: 'rgba(230, 162, 60, 0.3)' },
-              { offset: 1, color: 'rgba(103, 194, 58, 0.1)' }
-            ])
-          },
-          markLine: {
-            data: [
-              { yAxis: 30, label: { formatter: '低' }, lineStyle: { color: '#67c23a', type: 'dashed' } },
-              { yAxis: 60, label: { formatter: '中' }, lineStyle: { color: '#e6a23c', type: 'dashed' } },
-              { yAxis: 80, label: { formatter: '高' }, lineStyle: { color: '#f56c6c', type: 'dashed' } }
-            ]
-          }
-        }
-      ]
-    })
-    gcPressureChartInstance.resize()
-  }
-  
-  // ===== Phase 6: Comprehensive Monitoring Charts =====
-  
-  // 22. GC Reclaimed Bytes Chart
-  if (gcReclaimedChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].gcReclaimedBytesCurrent !== undefined) {
-    if (!gcReclaimedChartInstance) gcReclaimedChartInstance = echarts.init(gcReclaimedChartRef.value)
-    
-    const gcReclaimedData = memoryHistory.value.map(m => m.gcReclaimedBytesCurrent || 0)
-    
-    gcReclaimedChartInstance.setOption({
-      title: { text: 'GC回收内存量', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          return params[0].name + '<br/>' + params[0].marker + ' GC回收: ' + formatBytes(params[0].value)
-        }
-      },
-      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '回收量', axisLabel: { formatter: (val: number) => formatBytes(val) } },
-      series: [
-        { 
-          name: 'GC回收量', 
-          type: 'bar', 
-          data: gcReclaimedData, 
-          itemStyle: { 
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: '#67c23a' },
-              { offset: 1, color: '#409eff' }
-            ])
-          },
-          markLine: {
-            data: [
-              { type: 'average', label: { formatter: '平均回收' }, lineStyle: { color: '#e6a23c' } }
-            ]
-          }
-        }
-      ]
-    })
-    gcReclaimedChartInstance.resize()
-  }
-  
-  // 23. CPU-Memory Correlation Chart
-  if (cpuMemoryCorrelationChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].cpuMemoryCorrelation !== undefined) {
-    if (!cpuMemoryCorrelationChartInstance) cpuMemoryCorrelationChartInstance = echarts.init(cpuMemoryCorrelationChartRef.value)
-    
-    const correlationData = memoryHistory.value.map(m => m.cpuMemoryCorrelation || 0)
-    const cpuData = memoryHistory.value.map(m => ((m.processCpuLoad || 0) * 100).toFixed(1))
-    const memData = memoryHistory.value.map(m => m.heapMax > 0 ? ((m.heapUsed / m.heapMax) * 100).toFixed(1) : 0)
-    
-    cpuMemoryCorrelationChartInstance.setOption({
-      title: { text: 'CPU-内存关联分析', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${p.value}%<br/>` })
-          return result
-        }
-      },
-      legend: { data: ['CPU使用率', '内存使用率', '关联指数'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '百分比(%)', max: 100 },
-      series: [
-        { name: 'CPU使用率', type: 'line', data: cpuData, smooth: true, itemStyle: { color: '#409eff' } },
-        { name: '内存使用率', type: 'line', data: memData, smooth: true, itemStyle: { color: '#67c23a' } },
-        { 
-          name: '关联指数', 
-          type: 'line', 
-          data: correlationData, 
-          smooth: true, 
-          itemStyle: { color: '#e6a23c' },
-          lineStyle: { width: 3, type: 'dashed' },
-          areaStyle: { color: 'rgba(230, 162, 60, 0.1)' }
-        }
-      ]
-    })
-    cpuMemoryCorrelationChartInstance.resize()
-  }
-  
-  // ===== Phase 7: Real-time Dashboard Charts =====
-  
-  // 24. Top CPU Thread Chart
-  if (topCpuThreadChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].topCpuThreadName !== undefined) {
-    if (!topCpuThreadChartInstance) topCpuThreadChartInstance = echarts.init(topCpuThreadChartRef.value)
-    
-    const threadNames = memoryHistory.value.map(m => m.topCpuThreadName || 'unknown')
-    const cpuPercents = memoryHistory.value.map(m => m.topCpuThreadPercent || 0)
-    
-    topCpuThreadChartInstance.setOption({
-      title: { text: 'Top CPU线程趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          return params[0].name + '<br/>' + 
-                 params[0].marker + ' 线程: ' + threadNames[params[0].dataIndex] + '<br/>' +
-                 params[0].marker + ' CPU占用: ' + params[0].value.toFixed(2) + '%'
-        }
-      },
-      grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: 'CPU占用(%)' },
-      series: [
-        { 
-          name: 'CPU占用', 
-          type: 'line', 
-          data: cpuPercents, 
-          smooth: true, 
-          itemStyle: { color: '#f56c6c' },
-          areaStyle: { color: 'rgba(245, 108, 108, 0.2)' },
-          markPoint: {
-            data: [
-              { type: 'max', label: { formatter: '峰值' } },
-              { type: 'average', label: { formatter: '平均' } }
-            ]
-          }
-        }
-      ]
-    })
-    topCpuThreadChartInstance.resize()
-  }
-  
-  // 25. Thread State Distribution Chart
-  if (threadStateChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].threadCountRunnable !== undefined) {
-    if (!threadStateChartInstance) threadStateChartInstance = echarts.init(threadStateChartRef.value)
-    
-    const runnableData = memoryHistory.value.map(m => m.threadCountRunnable || 0)
-    const blockedData = memoryHistory.value.map(m => m.threadCountBlocked || 0)
-    const totalThreads = memoryHistory.value.map(m => (m.threadCountRunnable || 0) + (m.threadCountBlocked || 0))
-    
-    threadStateChartInstance.setOption({
-      title: { text: '线程状态分布', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${p.value}<br/>` })
-          return result
-        }
-      },
-      legend: { data: ['RUNNABLE', 'BLOCKED'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '线程数' },
-      series: [
-        { 
-          name: 'RUNNABLE', 
-          type: 'bar', 
-          stack: 'total',
-          data: runnableData,
-          itemStyle: { color: '#67c23a' }
-        },
-        { 
-          name: 'BLOCKED', 
-          type: 'bar', 
-          stack: 'total',
-          data: blockedData,
-          itemStyle: { color: '#e6a23c' }
-        },
-        {
-          name: '总计',
-          type: 'line',
-          data: totalThreads,
-          smooth: true,
-          itemStyle: { color: '#409eff' },
-          lineStyle: { width: 2, type: 'dashed' }
-        }
-      ]
-    })
-    threadStateChartInstance.resize()
-  }
-  
-  // ===== Phase 8: Performance Dashboard Chart =====
-  
-  // 26. Comprehensive Performance Dashboard
-  if (performanceDashboardChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].performanceScore !== undefined) {
-    if (!performanceDashboardChartInstance) performanceDashboardChartInstance = echarts.init(performanceDashboardChartRef.value)
-    
-    const cpuData = memoryHistory.value.map(m => ((m.processCpuLoad || 0) * 100).toFixed(1))
-    const memUsageData = memoryHistory.value.map(m => m.heapMax > 0 ? ((m.heapUsed / m.heapMax) * 100).toFixed(1) : 0)
-    const gcCountData = memoryHistory.value.map(m => m.gcCount || 0)
-    const perfScoreData = memoryHistory.value.map(m => m.performanceScore || 0)
-    
-    // Health status colors
-    const healthColors = memoryHistory.value.map(m => {
-      const status = m.healthStatus
-      if (status === 'HEALTHY') return '#67c23a'
-      if (status === 'WARNING') return '#e6a23c'
-      return '#f56c6c'
-    })
-    
-    performanceDashboardChartInstance.setOption({
-      title: { 
-        text: '综合性能看板', 
-        left: 'center', 
-        textStyle: { fontSize: 16, fontWeight: 600 }
-      },
-      tooltip: { 
-        trigger: 'axis',
-        axisPointer: { type: 'cross' },
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => {
-            if (p.seriesName.includes('CPU') || p.seriesName.includes('内存') || p.seriesName.includes('GC')) {
-              result += `${p.marker} ${p.seriesName}: ${p.value}<br/>`
-            } else if (p.seriesName.includes('评分')) {
-              result += `${p.marker} ${p.seriesName}: ${p.value.toFixed(1)}<br/>`
-            }
-          })
-          return result
-        }
-      },
-      legend: { 
-        data: ['CPU使用率', '内存使用率', 'GC次数', '性能评分'],
-        top: 30,
-        bottom: 0
-      },
-      grid: { 
-        left: '3%', 
-        right: '4%', 
-        bottom: '12%', 
-        top: '15%', 
-        containLabel: true 
-      },
-      xAxis: { 
-        type: 'category', 
-        data: times, 
-        boundaryGap: false 
-      },
-      yAxis: [
-        { 
-          type: 'value', 
-          name: '百分比(%)', 
-          max: 100,
-          position: 'left'
-        },
-        { 
-          type: 'value', 
-          name: 'GC次数',
-          position: 'right'
-        },
-        {
-          type: 'value',
-          name: '性能评分',
-          max: 100,
-          position: 'right',
-          offset: 80
-        }
-      ],
-      series: [
-        { 
-          name: 'CPU使用率', 
-          type: 'line', 
-          data: cpuData, 
-          smooth: true, 
-          itemStyle: { color: '#409eff' },
-          areaStyle: { color: 'rgba(64, 158, 255, 0.1)' },
-          yAxisIndex: 0
-        },
-        { 
-          name: '内存使用率', 
-          type: 'line', 
-          data: memUsageData, 
-          smooth: true, 
-          itemStyle: { color: '#67c23a' },
-          areaStyle: { color: 'rgba(103, 194, 58, 0.1)' },
-          yAxisIndex: 0
-        },
-        { 
-          name: 'GC次数', 
-          type: 'bar', 
-          data: gcCountData,
-          itemStyle: { color: '#e6a23c' },
-          yAxisIndex: 1
-        },
-        { 
-          name: '性能评分', 
-          type: 'line', 
-          data: perfScoreData, 
-          smooth: true, 
-          itemStyle: { 
-            color: (params: any) => {
-              const score = params.value
-              if (score >= 80) return '#67c23a'
-              if (score >= 60) return '#e6a23c'
-              return '#f56c6c'
-            }
-          },
-          lineStyle: { width: 3 },
-          markLine: {
-            data: [
-              { yAxis: 80, label: { formatter: '健康线' }, lineStyle: { color: '#67c23a', type: 'dashed' } },
-              { yAxis: 60, label: { formatter: '警告线' }, lineStyle: { color: '#e6a23c', type: 'dashed' } }
-            ]
-          },
-          yAxisIndex: 2
-        }
-      ]
-    })
-    performanceDashboardChartInstance.resize()
-  }
-  
-  // 关键：所有图表渲染后统一resize，确保在Tab页中正确显示
-  setTimeout(() => {
-    heapChartInstance?.resize()
-    nonHeapChartInstance?.resize()
-    youngGenChartInstance?.resize()
-    oldGenChartInstance?.resize()
-    gcCountChartInstance?.resize()
-    gcDurationChartInstance?.resize()
-    threadChartInstance?.resize()
-    classLoadingChartInstance?.resize()
-    cpuChartInstance?.resize()
-    minorVsFullGcChartInstance?.resize()
-    gcEfficiencyChartInstance?.resize()
-    threadStatesChartInstance?.resize()
-    classLoadingDetailChartInstance?.resize()
-    threadPoolsChartInstance?.resize()
-    classLoadingRateChartInstance?.resize()
-    edenSurvivorChartInstance?.resize()
-    oldGenChartDetailInstance?.resize()
-    metaspaceChartInstance?.resize()
-    codeCacheChartInstance?.resize()
-    memoryAllocationRateChartInstance?.resize()
-    gcPressureChartInstance?.resize()
-    gcReclaimedChartInstance?.resize()
-    cpuMemoryCorrelationChartInstance?.resize()
-    topCpuThreadChartInstance?.resize()
-    threadStateChartInstance?.resize()
-    performanceDashboardChartInstance?.resize()
-    memoryPoolsGridInstance?.resize()
-    memoryUsageRateInstance?.resize()
-    bufferPoolsChartInstance?.resize()
-    memoryAllocationInstance?.resize()
-    physicalMemoryInstance?.resize()
-    heapGrowthRateInstance?.resize()
-    gcPressureInstance?.resize()
-    systemLoadInstance?.resize()
-    diskIoInstance?.resize()
-    
-    console.log('All charts resized')
-  }, 50)
-  
-  // 新增：内存使用率趋势图
-  if (memoryUsageRateRef.value && memoryHistory.value.length > 0) {
-    if (!memoryUsageRateInstance) memoryUsageRateInstance = echarts.init(memoryUsageRateRef.value)
-    
-    const heapUsageRates = memoryHistory.value.map(m => 
-      m.heapMax > 0 ? ((m.heapUsed / m.heapMax) * 100).toFixed(1) : 0
-    )
-    const nonHeapUsageRates = memoryHistory.value.map(m => 
-      m.nonHeapMax > 0 ? ((m.nonHeapUsed / m.nonHeapMax) * 100).toFixed(1) : 0
-    )
-    
-    memoryUsageRateInstance.setOption({
-      title: { text: '内存使用率趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${p.value}%<br/>` })
-          return result
-        }
-      },
-      legend: { data: ['堆内存使用率', '非堆内存使用率'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: '使用率(%)', max: 100 },
-      series: [
-        { 
-          name: '堆内存使用率', 
-          type: 'line', 
-          data: heapUsageRates, 
-          smooth: true, 
-          itemStyle: { color: '#409eff' },
-          markLine: {
-            data: [{ yAxis: 80, label: { formatter: '警戒线 80%' }, lineStyle: { color: '#f56c6c', type: 'dashed' } }]
-          }
-        },
-        { 
-          name: '非堆内存使用率', 
-          type: 'line', 
-          data: nonHeapUsageRates, 
-          smooth: true, 
-          itemStyle: { color: '#e6a23c' }
-        }
-      ]
-    })
-    memoryUsageRateInstance.resize()
-  }
-  
-  // 新增：缓冲区池监控 (只在有数据时渲染)
-  if (bufferPoolsChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].bufferPools) {
-    try {
-      const latest = memoryHistory.value[memoryHistory.value.length - 1]
-      const buffers: any[] = JSON.parse(latest.bufferPools!)
-      
-      // 检查是否有有效数据
-      if (!buffers || buffers.length === 0) {
-        console.log('No buffer pools data available')
-        return
-      }
-      
-      if (!bufferPoolsChartInstance) bufferPoolsChartInstance = echarts.init(bufferPoolsChartRef.value)
-      
-      const bufferNames = buffers.map(b => b.name)
-      const bufferUsed = buffers.map(b => b.memoryUsed || 0)
-      const bufferCapacity = buffers.map(b => b.totalCapacity || 0)
-      
-      bufferPoolsChartInstance.setOption({
-        title: { text: '缓冲区池使用', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-        tooltip: { 
-          trigger: 'axis',
-          axisPointer: { type: 'shadow' },
-          formatter: (params: any) => {
-            let result = params[0].name + '<br/>'
-            params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}<br/>` })
-            return result
-          }
-        },
-        legend: { data: ['已使用', '总容量'], bottom: 0 },
-        grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-        xAxis: { type: 'category', data: bufferNames, axisLabel: { interval: 0, rotate: 30 } },
-        yAxis: { type: 'value', axisLabel: { formatter: (val: number) => formatBytes(val) } },
-        series: [
-          { name: '已使用', type: 'bar', data: bufferUsed, itemStyle: { color: '#409eff' } },
-          { name: '总容量', type: 'bar', data: bufferCapacity, itemStyle: { color: '#909399' } }
-        ]
-      })
-      bufferPoolsChartInstance.resize()
-    } catch (e) {
-      console.warn('Failed to render buffer pools chart:', e)
-    }
-  }
-  
-  // 新增：内存分配趋势
-  if (memoryAllocationRef.value && memoryHistory.value.length > 0) {
-    if (!memoryAllocationInstance) memoryAllocationInstance = echarts.init(memoryAllocationRef.value)
-    
-    const heapCommittedData = memoryHistory.value.map(m => m.heapCommitted)
-    const nonHeapCommittedData = memoryHistory.value.map(m => m.nonHeapCommitted)
-    
-    memoryAllocationInstance.setOption({
-      title: { text: '内存分配趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}<br/>` })
-          return result
-        }
-      },
-      legend: { data: ['堆内存分配', '非堆内存分配'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', axisLabel: { formatter: (val: number) => formatBytes(val) } },
-      series: [
-        { name: '堆内存分配', type: 'line', data: heapCommittedData, smooth: true, itemStyle: { color: '#67c23a' }, areaStyle: { color: 'rgba(103, 194, 58, 0.1)' } },
-        { name: '非堆内存分配', type: 'line', data: nonHeapCommittedData, smooth: true, itemStyle: { color: '#00bcd4' }, areaStyle: { color: 'rgba(0, 188, 212, 0.1)' } }
-      ]
-    })
-    memoryAllocationInstance.resize()
-  }
-  
-  // 新增：物理内存监控
-  if (physicalMemoryRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].totalPhysicalMemory) {
-    if (!physicalMemoryInstance) physicalMemoryInstance = echarts.init(physicalMemoryRef.value)
-    
-    const usedPhysicalMemory = memoryHistory.value.map(m => 
-      (m.totalPhysicalMemory || 0) - (m.freePhysicalMemory || 0)
-    )
-    const totalPhysicalMemory = memoryHistory.value[0].totalPhysicalMemory
-    
-    physicalMemoryInstance.setOption({
-      title: { text: '物理内存使用', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}<br/>` })
-          const used = params.find((p: any) => p.seriesName === '已使用')
-          if (used && totalPhysicalMemory > 0) {
-            result += `使用率: ${((used.value / totalPhysicalMemory) * 100).toFixed(1)}%`
-          }
-          return result
-        }
-      },
-      legend: { data: ['已使用', '总物理内存'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', axisLabel: { formatter: (val: number) => formatBytes(val) } },
-      series: [
-        { name: '已使用', type: 'line', data: usedPhysicalMemory, smooth: true, itemStyle: { color: '#f56c6c' }, areaStyle: { color: 'rgba(245, 108, 108, 0.1)' } },
-        { name: '总物理内存', type: 'line', data: memoryHistory.value.map(() => totalPhysicalMemory), smooth: true, lineStyle: { type: 'dashed' }, itemStyle: { color: '#909399' } }
-      ]
-    })
-    physicalMemoryInstance.resize()
-  }
-  
-  // 新增：系统负载监控 - 仅当有数据时初始化
-  if (systemLoadRef.value && memoryHistory.value.length > 0 && (memoryHistory.value[0].systemCpuLoad !== undefined || memoryHistory.value[0].processCpuLoad !== undefined)) {
-    if (!systemLoadInstance) systemLoadInstance = echarts.init(systemLoadRef.value)
-    
-    const systemCpuLoadData = memoryHistory.value.map(m => 
-      m.systemCpuLoad ? (m.systemCpuLoad * 100).toFixed(1) : 0
-    )
-    const processCpuLoadData = memoryHistory.value.map(m => 
-      m.processCpuLoad ? (m.processCpuLoad * 100).toFixed(1) : 0
-    )
-    
-    systemLoadInstance.setOption({
-      title: { text: 'CPU负载趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${p.value}%<br/>` })
-          return result
-        }
-      },
-      legend: { data: ['系统CPU', '进程CPU'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: 'CPU%', max: 100 },
-      series: [
-        { 
-          name: '系统CPU', 
-          type: 'line', 
-          data: systemCpuLoadData, 
-          smooth: true, 
-          itemStyle: { color: '#f56c6c' },
-          areaStyle: { color: 'rgba(245, 108, 108, 0.1)' },
-          markLine: {
-            data: [{ yAxis: 80, label: { formatter: '警戒线 80%' }, lineStyle: { color: '#ff0000', type: 'dashed' } }]
-          }
-        },
-        { 
-          name: '进程CPU', 
-          type: 'line', 
-          data: processCpuLoadData, 
-          smooth: true, 
-          itemStyle: { color: '#409eff' },
-          areaStyle: { color: 'rgba(64, 158, 255, 0.1)' }
-        }
-      ]
-    })
-    systemLoadInstance.resize()
-  }
-  
-  // 新增：磁盘I/O监控（只要有memoryHistory数据就渲染）
-  console.log('[DIAG-IO] ===== 开始渲染磁盘I/O图表 =====')
-  console.log('[DIAG-IO] diskIoRef.value:', diskIoRef.value)
-  console.log('[DIAG-IO] memoryHistory.length:', memoryHistory.value.length)
-  if (memoryHistory.value.length > 0) {
-    console.log('[DIAG-IO] memoryHistory[0]:', memoryHistory.value[0])
-    console.log('[DIAG-IO] diskReadBytes:', memoryHistory.value[0].diskReadBytes)
-    console.log('[DIAG-IO] diskWriteBytes:', memoryHistory.value[0].diskWriteBytes)
-    console.log('[DIAG-IO] hasDiskIoData:', hasDiskIoData.value)
-  }
-  
-  // 修改：只要有memoryHistory数据就渲染图表，即使IO数据为0
-  if (diskIoRef.value && memoryHistory.value.length > 0) {
-    console.log('[DIAG-IO] 开始初始化ECharts实例')
-    if (!diskIoInstance) diskIoInstance = echarts.init(diskIoRef.value)
-    
-    const diskReadData = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      const val = (m.diskReadBytes || 0) - (memoryHistory.value[i - 1].diskReadBytes || 0)
-      return val >= 0 ? val : 0 // 确保增量不为负
-    })
-    const diskWriteData = memoryHistory.value.map((m, i) => {
-      if (i === 0) return 0
-      const val = (m.diskWriteBytes || 0) - (memoryHistory.value[i - 1].diskWriteBytes || 0)
-      return val >= 0 ? val : 0 // 确保增量不为负
-    })
-    
-    console.log('[DIAG-IO] 设置图表配置')
-    diskIoInstance.setOption({
-      title: { text: '磁盘I/O速率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}/s<br/>` })
-          return result
-        }
-      },
-      legend: { data: ['读取速率', '写入速率'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { type: 'value', name: 'B/s', axisLabel: { formatter: (val: number) => formatBytes(val) + '/s' } },
-      series: [
-        { name: '读取速率', type: 'line', data: diskReadData, smooth: true, itemStyle: { color: '#67c23a' }, areaStyle: { color: 'rgba(103, 194, 58, 0.1)' } },
-        { name: '写入速率', type: 'line', data: diskWriteData, smooth: true, itemStyle: { color: '#e6a23c' }, areaStyle: { color: 'rgba(230, 162, 60, 0.1)' } }
-      ]
-    })
-    console.log('[DIAG-IO] 图表渲染完成')
-    diskIoInstance.resize()
-  }
-  
-  // 新增：堆内存增长率 (内存泄漏检测关键指标)
-  if (heapGrowthRateRef.value && memoryHistory.value.length > 0) {
-    if (!heapGrowthRateInstance) heapGrowthRateInstance = echarts.init(heapGrowthRateRef.value)
-    
-    // 计算堆内存增长率 (%/分钟)
-    const growthRates: number[] = []
-    for (let i = 1; i < memoryHistory.value.length; i++) {
-      const prev = memoryHistory.value[i - 1]
-      const curr = memoryHistory.value[i]
-      const timeDiffMinutes = (curr.collectTime - prev.collectTime) / 60000
-      
-      if (timeDiffMinutes > 0 && prev.heapMax > 0) {
-        const growthPercent = ((curr.heapUsed - prev.heapUsed) / prev.heapMax) * 100
-        growthRates.push(growthPercent / timeDiffMinutes) // %/min
-      } else {
-        growthRates.push(0)
-      }
-    }
-    growthRates.unshift(0) // 第一个点为0
-    
-    heapGrowthRateInstance.setOption({
-      title: { 
-        text: '堆内存增长率 (泄漏检测)', 
-        left: 'center', 
-        textStyle: { fontSize: 14, fontWeight: 600 }
-      },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          const value = params[0].value
-          let status = ''
-          if (value > 5) status = ' ⚠️ 快速增长'
-          else if (value > 1) status = ' ⚡ 中速增长'
-          else if (value > 0) status = ' ✅ 缓慢增长'
-          else status = ' 💚 稳定/下降'
-          
-          return `${params[0].name}<br/>${params[0].marker} 增长率: ${value.toFixed(2)}%/分钟${status}`
-        }
-      },
-      legend: { data: ['增长率'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { 
-        type: 'value', 
-        name: '%/分钟',
-        axisLabel: { formatter: (val: number) => val.toFixed(2) + '%' }
-      },
-      series: [
-        { 
-          name: '增长率', 
-          type: 'line', 
-          data: growthRates, 
-          smooth: true,
-          itemStyle: { 
-            color: (params: any) => {
-              if (params.value > 5) return '#f56c6c' // 红色-快速增长
-              if (params.value > 1) return '#e6a23c' // 橙色-中速增长
-              if (params.value > 0) return '#409eff' // 蓝色-缓慢增长
-              return '#67c23a' // 绿色-稳定
-            }
-          },
-          areaStyle: { 
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(245, 108, 108, 0.3)' },
-              { offset: 1, color: 'rgba(245, 108, 108, 0.05)' }
-            ])
-          },
-          markLine: {
-            data: [
-              { yAxis: 0, label: { formatter: '零增长线' }, lineStyle: { color: '#67c23a', type: 'solid' } },
-              { yAxis: 1, label: { formatter: '警戒线 1%/min' }, lineStyle: { color: '#e6a23c', type: 'dashed' } },
-              { yAxis: 5, label: { formatter: '危险线 5%/min' }, lineStyle: { color: '#f56c6c', type: 'dashed' } }
-            ]
-          }
-        }
-      ]
-    })
-    heapGrowthRateInstance.resize()
-  }
-  
-  // 新增：GC压力指数 (综合评估GC对性能的影响)
-  if (gcPressureRef.value && memoryHistory.value.length > 0) {
-    if (!gcPressureInstance) gcPressureInstance = echarts.init(gcPressureRef.value)
-    
-    // 计算GC压力指数 (0-100)
-    const gcPressureData: number[] = []
-    for (let i = 1; i < memoryHistory.value.length; i++) {
-      const prev = memoryHistory.value[i - 1]
-      const curr = memoryHistory.value[i]
-      const timeDiffSeconds = (curr.collectTime - prev.collectTime) / 1000
-      
-      if (timeDiffSeconds > 0) {
-        // GC时间占比（确保不为负）
-        const gcTimeIncrement = Math.max(0, curr.gcTimeMs - prev.gcTimeMs)
-        const gcTimeRatio = gcTimeIncrement / (timeDiffSeconds * 1000)
-        
-        // GC频率（确保不为负）
-        const gcCountIncrement = Math.max(0, curr.gcCount - prev.gcCount)
-        const gcFrequency = gcCountIncrement / timeDiffSeconds
-        
-        // Full GC频率（确保不为负，权重更高）
-        const fullGcIncrement = Math.max(0, (curr.fullGcCount || 0) - (prev.fullGcCount || 0))
-        const fullGcFreq = fullGcIncrement / timeDiffSeconds
-        
-        // 综合压力指数 (0-100)
-        const pressure = Math.min(100, Math.max(0, (
-          gcTimeRatio * 40 +      // GC时间占比 40%
-          gcFrequency * 30 +      // GC频率 30%
-          fullGcFreq * 300        // Full GC频率 30% (权重高)
-        ) * 100))
-        
-        gcPressureData.push(pressure)
-      } else {
-        gcPressureData.push(0)
-      }
-    }
-    gcPressureData.unshift(0)
-    
-    gcPressureInstance.setOption({
-      title: { 
-        text: 'GC压力指数', 
-        left: 'center', 
-        textStyle: { fontSize: 14, fontWeight: 600 }
-      },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          const value = params[0].value
-          let level = ''
-          let color = ''
-          if (value > 70) { level = '🔴 严重'; color = '#f56c6c' }
-          else if (value > 40) { level = '🟠 高'; color = '#e6a23c' }
-          else if (value > 20) { level = '🟡 中'; color = '#ffd700' }
-          else { level = '🟢 低'; color = '#67c23a' }
-          
-          return `${params[0].name}<br/>${params[0].marker} 压力指数: ${value.toFixed(1)}<br/>等级: <span style="color:${color}">${level}</span>`
-        }
-      },
-      legend: { data: ['GC压力'], bottom: 0 },
-      grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-      xAxis: { type: 'category', data: times, boundaryGap: false },
-      yAxis: { 
-        type: 'value', 
-        name: '压力指数',
-        max: 100,
-        axisLabel: { formatter: (val: number) => val.toFixed(0) }
-      },
-      series: [
-        { 
-          name: 'GC压力', 
-          type: 'line', 
-          data: gcPressureData, 
-          smooth: true,
-          itemStyle: { 
-            color: (params: any) => {
-              if (params.value > 70) return '#f56c6c'
-              if (params.value > 40) return '#e6a23c'
-              if (params.value > 20) return '#ffd700'
-              return '#67c23a'
-            }
-          },
-          areaStyle: { 
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(245, 108, 108, 0.3)' },
-              { offset: 1, color: 'rgba(245, 108, 108, 0.05)' }
-            ])
-          },
-          markLine: {
-            data: [
-              { yAxis: 20, label: { formatter: '低/中分界' }, lineStyle: { color: '#ffd700', type: 'dashed' } },
-              { yAxis: 40, label: { formatter: '中/高分界' }, lineStyle: { color: '#e6a23c', type: 'dashed' } },
-              { yAxis: 70, label: { formatter: '高/严重分界' }, lineStyle: { color: '#f56c6c', type: 'dashed' } }
-            ]
-          }
-        }
-      ]
-    })
-    gcPressureInstance.resize()
-  }
-}
-
-// 渲染内存池详细网格 - 改为折线图展示
-const renderMemoryPoolsGrid = () => {
-  if (!memoryPoolsGridRef.value) return
-  
-  try {
-    // 只有确定有数据时才初始化 ECharts 实例
-    if (!memoryPoolsGridInstance) {
-      memoryPoolsGridInstance = echarts.init(memoryPoolsGridRef.value)
-    }
-    
-    // 如果没有历史数据，显示默认空状态图表
-    if (memoryHistory.value.length === 0) {
-      memoryPoolsGridInstance.setOption({
-        title: { 
-          text: '内存池使用趋势', 
-          left: 'center', 
-          textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } 
-        },
-        graphic: {
-          type: 'text',
-          left: 'center',
-          top: 'middle',
-          style: {
-            text: '暂无内存池数据\n请确保 Agent 正常运行并上报数据',
-            fill: '#c0c4cc',
-            fontSize: 14,
-            textAlign: 'center'
-          }
-        }
-      })
-      memoryPoolsGridInstance.resize()
-      return
-    }
-    
-    // 提取所有内存池名称
-    const allPoolNames = new Set<string>()
-    memoryHistory.value.forEach(record => {
-      if (record.memoryPools) {
-        try {
-          const pools: any[] = JSON.parse(record.memoryPools)
-          pools.forEach(pool => allPoolNames.add(pool.name))
-        } catch (e) {
-          // ignore
-        }
-      }
-    })
-    
-    const poolNames = Array.from(allPoolNames)
-    const times = memoryHistory.value.map(m => {
-      const date = new Date(m.collectTime)
-      return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
-    })
-    
-    // 如果没有内存池数据，显示提示图表
-    if (poolNames.length === 0) {
-      memoryPoolsGridInstance.setOption({
-        title: { 
-          text: '内存池使用趋势', 
-          left: 'center', 
-          textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } 
-        },
-        graphic: {
-          type: 'text',
-          left: 'center',
-          top: 'middle',
-          style: {
-            text: '该 Agent 未上报内存池数据\n可能原因：JVM 版本不支持或配置未开启',
-            fill: '#c0c4cc',
-            fontSize: 14,
-            textAlign: 'center'
-          }
-        }
-      })
-      memoryPoolsGridInstance.resize()
-      return
-    }
-    
-    // 为每个内存池生成数据系列
-    const series = poolNames.map((poolName, index) => {
-      const colors = ['#409eff', '#67c23a', '#e6a23c', '#f56c6c', '#9c27b0', '#00bcd4', '#ff9800', '#795548']
-      const color = colors[index % colors.length]
-      
-      const data = memoryHistory.value.map(record => {
-        if (!record.memoryPools) return 0
-        try {
-          const pools: any[] = JSON.parse(record.memoryPools)
-          const pool = pools.find(p => p.name === poolName)
-          return pool ? pool.used : 0
-        } catch (e) {
-          return 0
-        }
-      })
-      
-      return {
-        name: poolName,
-        type: 'line',
-        data: data,
-        smooth: true,
-        itemStyle: { color: color },
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: color.replace(')', ', 0.3)').replace('rgb', 'rgba') },
-            { offset: 1, color: color.replace(')', ', 0.05)').replace('rgb', 'rgba') }
-          ])
-        }
-      }
-    })
-    
-    memoryPoolsGridInstance.setOption({
-      title: { 
-        text: '内存池使用趋势', 
-        left: 'center', 
-        textStyle: { fontSize: 14, fontWeight: 600 } 
-      },
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => { 
-            result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}<br/>`
-          })
-          return result
-        }
-      },
-      legend: { 
-        data: poolNames, 
-        bottom: 0,
-        type: 'scroll',
-        orient: 'horizontal',
-        itemGap: 12,
-        itemWidth: 15,
-        itemHeight: 10,
-        // 多行显示配置
-        pageIcons: {
-          horizontal: ['M0,0L12,-10L12,10z', 'M0,0L-12,-10L-12,10z']
-        },
-        pageIconColor: '#409eff',
-        pageIconInactiveColor: '#c0c4cc',
-        pageIconSize: 12,
-        pageTextStyle: { 
-          color: '#666',
-          fontSize: 11
-        },
-        formatter: (name: string) => {
-          // 缩短过长的名称
-          if (name.length > 25) {
-            return name.substring(0, 23) + '...'
-          }
-          return name
-        },
-        textStyle: {
-          fontSize: 11
-        }
-      },
-      grid: { 
-        left: '3%', 
-        right: '4%', 
-        bottom: '25%', 
-        top: '10%', 
-        containLabel: true 
-      },
-      xAxis: { 
-        type: 'category', 
-        data: times, 
-        boundaryGap: false 
-      },
-      yAxis: { 
-        type: 'value', 
-        name: '内存使用',
-        axisLabel: { formatter: (val: number) => formatBytes(val) } 
-      },
-      series: series
-    })
-    
-    memoryPoolsGridInstance.resize()
-  } catch (e) {
-    console.error('Failed to render memory pools chart:', e)
-  }
-}
-
-const submitCreate = async () => {
-  if (!formRef.value) return
-  await formRef.value.validate(async (valid: boolean) => {
-    if (valid) {
-      try {
-        await createApplication(form.value)
-        ElMessage.success('创建成功')
-        showCreateDialog.value = false
-        form.value = { projectCode: '', appCode: '', appName: '', appType: 'self-built', description: '' }
-        loadData()
-      } catch (e: any) {
-        ElMessage.error(e.message || '创建失败')
-      }
-    }
-  })
-}
+// ==================== 生命周期 ====================
 
 onMounted(() => {
   loadData()
-  // 如果默认显示运行实例 Tab，则加载实例数据
   if (activeTab.value === 'instances') {
     loadInstances()
   }
 })
 
-// Phase 1: 组件卸载时清理定时器
 onUnmounted(() => {
-  if (realtimeTimer) {
-    clearInterval(realtimeTimer)
-    realtimeTimer = null
-  }
-  stopAutoRefresh() // 停止自动刷新
+  // 清理所有图表实例和定时器
+  cleanupMemory()
+  cleanupGc()
+  cleanupThread()
+  cleanupIo()
 })
 
-// 监听 Tab 切换，加载对应数据
+// 监听 Tab 切换
 watch(activeTab, (newTab) => {
   if (newTab === 'instances' && instances.value.length === 0) {
     loadInstances()
   }
   
-  // Phase 2: 切换到非历史趋势Tab时，暂停实时监控
+  // 切换到非历史趋势Tab时，暂停实时监控
   if (newTab !== 'history' && enableRealtime.value) {
     toggleRealtime(false)
     ElMessage.info('已离开历史趋势页面，实时监控已暂停')
   }
 })
-</script>
 
+// 监听诊断类型变化，渲染对应图表
+watch(currentDiagType, (newType) => {
+  if (newType && memoryHistory.value.length > 0) {
+    setTimeout(() => {
+      if (newType === 'memory' || newType === 'memoryChart') {
+        renderMemoryCharts()
+      } else if (newType === 'gcChart') {
+        gcAnalysis.renderGcCharts(memoryHistory.value)
+      } else if (newType === 'threadChart') {
+        threadMon.renderThreadCharts(memoryHistory.value)
+      } else if (newType === 'ioNetworkChart') {
+        ioNetworkMon.renderIoNetworkCharts(memoryHistory.value)
+      }
+    }, 300)
+  }
+})
+</script>
 <style scoped>
 /* 下拉菜单分类标题样式 */
 .dropdown-category {

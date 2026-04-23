@@ -288,7 +288,6 @@ public class EnhancedJavaCodeParser {
                                 return;
                             }
 
-                            String targetMethodId = calledClassName + "#" + calledMethodName;
                             FlowNode targetNode = graph.getNode(targetMethodId);
 
                             // 如果找不到，创建一个简单节点
@@ -364,7 +363,6 @@ public class EnhancedJavaCodeParser {
                         return;
                     }
 
-                    String targetMethodId = calledClassName + "#" + calledMethodName;
                     FlowNode targetNode = graph.getNode(targetMethodId);
 
                     if (targetNode == null) {

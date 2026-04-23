@@ -368,22 +368,22 @@ public class PlantUmlCallChainGenerator {
     }
 
     /**
-     * 检查节点的任何字段是否包含 "->"
+     * 【统一过滤】检查节点是否包含 "->"（任何字段）
      */
     private boolean hasArrowInAnyField(FlowNode node) {
         if (node == null) return true;
+        return containsArrow(node.getMethodName()) ||
+               containsArrow(node.getDisplayName()) ||
+               containsArrow(node.getClassName()) ||
+               containsArrow(node.getId()) ||
+               containsArrow(node.getMethodSignature());
+    }
 
-        String methodName = node.getMethodName();
-        String displayName = node.getDisplayName();
-        String className = node.getClassName();
-        String id = node.getId();
-        String methodSignature = node.getMethodSignature();
-
-        return (methodName != null && (methodName.equals("->") || methodName.contains("->"))) ||
-               (displayName != null && (displayName.equals("->") || displayName.contains("->"))) ||
-               (className != null && (className.equals("->") || className.contains("->"))) ||
-               (id != null && (id.equals("->") || id.contains("->"))) ||
-               (methodSignature != null && (methodSignature.equals("->") || methodSignature.contains("->")));
+    /**
+     * 【统一方法】检查字符串是否包含 "->"
+     */
+    private boolean containsArrow(String s) {
+        return s != null && (s.equals("->") || s.equals("-->") || s.contains("->") || s.contains("-->"));
     }
 
     /**
@@ -437,32 +437,173 @@ public class PlantUmlCallChainGenerator {
                 break;
         }
 
-        // 最终安全检查：过滤掉任何包含 "->;" 的行
-        return filterFinalPlantUml(plantuml);
+        // 【第一道】最终安全检查：过滤掉任何包含 "->" 作为节点内容的行
+        plantuml = filterFinalPlantUml(plantuml);
+
+        // 【第二道】简单粗暴但有效的全局替换：任何看起来像 "->" 节点的都处理掉
+        plantuml = bruteForceFilter(plantuml);
+
+        return plantuml;
     }
 
     /**
-     * 最终安全过滤：移除任何可能包含 "->" 节点的行
+     * 【终极防线】简单粗暴但有效的全局过滤
+     * 直接移除任何可能表示 "->" 节点的内容
+     */
+    private String bruteForceFilter(String plantuml) {
+        if (plantuml == null || plantuml.isEmpty()) {
+            return plantuml;
+        }
+
+        String result = plantuml;
+
+        // 1. 移除任何 "->" 节点内容（引号中的）
+        result = result.replace("\"->\"", "\"\"");
+        result = result.replace("'->'", "\"\"");
+
+        // 2. 移除任何包含 "-" 和 ">" 在一起的节点内容（限制在节点定义中）
+        // 格式通常是: xxx "..." yyy
+        result = result.replaceAll("\"[^\"]*->[^\"]*\"", "\"\"");
+        result = result.replaceAll("'[^']*->[^']*'", "\"\"");
+
+        // 3. 移除类似 ":->;" 这样的活动图节点
+        result = result.replaceAll(":\\s*->\\s*;", ":skipped;");
+
+        // 4. 移除单独出现的 "->" 或 "-->" 作为节点内容的行
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        for (String line : result.split("\n")) {
+            String trimmed = line.trim();
+
+            // 跳过任何看起来像是 "->" 节点的行
+            boolean isBadLine = false;
+
+            // 检查是否是节点定义且包含 "->"
+            if ((trimmed.startsWith("component ") || trimmed.startsWith("state ") ||
+                 trimmed.startsWith("object ") || trimmed.startsWith("participant ") ||
+                 trimmed.startsWith(":")) &&
+                (trimmed.contains("\"->\"") || trimmed.contains("'->'") ||
+                 (trimmed.contains("-") && trimmed.contains(">")))) {
+
+                // 但要排除真正的箭头连接 (A --> B)
+                if (!trimmed.matches(".*\\w+\\s+-->?\\s+\\w+.*")) {
+                    isBadLine = true;
+                }
+            }
+
+            // 检查是否是仅仅包含 "->" 的节点
+            if (trimmed.contains("->") &&
+                (trimmed.startsWith("state \"->") ||
+                 trimmed.startsWith("component \"->") ||
+                 trimmed.startsWith("object \"->"))) {
+                isBadLine = true;
+            }
+
+            if (!isBadLine) {
+                lines.add(line);
+            }
+        }
+
+        return String.join("\n", lines);
+    }
+
+    /**
+     * 最终安全过滤：
+     * 【通用】移除任何包含 "->" 作为节点内容的行（所有格式）
+     * 1. 活动图：:->;
+     * 2. 状态图：state "->" as ...
+     * 3. 组件图：component "->" as ...
+     * 4. 其他任何格式："->" 作为节点名称的
      */
     private String filterFinalPlantUml(String plantuml) {
         if (plantuml == null || plantuml.isEmpty()) {
             return plantuml;
         }
-        StringBuilder filtered = new StringBuilder();
+
+        // 分行处理
         String[] lines = plantuml.split("\n");
+        java.util.List<String> resultLines = new java.util.ArrayList<>();
+
         for (String line : lines) {
             String trimmed = line.trim();
-            // 移除任何类似 ":>;" 的行
-            if (trimmed.contains(":->") || trimmed.contains("->;")) {
-                continue;
-            }
-            // 移除任何包含 "->" 作为节点内容的行
+
+            // === 【通用】删除任何包含 "->" 作为节点内容的行 ===
+
+            // 1. 活动图/流程图：:->; 或 :...->...;
             if (trimmed.startsWith(":") && trimmed.contains("->")) {
                 continue;
             }
-            filtered.append(line).append("\n");
+
+            // 2. 状态图：state "->" as ... 或 state -> as ...
+            if ((trimmed.startsWith("state ") || trimmed.startsWith("State ")) &&
+                (trimmed.contains("\"->\"") || trimmed.contains("'->'") || trimmed.contains("->"))) {
+                continue;
+            }
+
+            // 3. 组件图：component "->" as ... 或 component -> as ...
+            if ((trimmed.startsWith("component ") || trimmed.startsWith("Component ")) &&
+                (trimmed.contains("\"->\"") || trimmed.contains("'->'") || trimmed.contains("->"))) {
+                continue;
+            }
+
+            // 4. 对象图：object "->" as ...
+            if ((trimmed.startsWith("object ") || trimmed.startsWith("Object ")) &&
+                (trimmed.contains("\"->\"") || trimmed.contains("'->'") || trimmed.contains("->"))) {
+                continue;
+            }
+
+            // 5. 通用：任何节点定义中包含 "->" 作为名称的
+            if ((trimmed.contains("\"->\"") || trimmed.contains("'->'")) &&
+                (trimmed.contains("as ") || trimmed.contains("state ") ||
+                 trimmed.contains("component ") || trimmed.contains("object "))) {
+                continue;
+            }
+
+            // 6. 最直接：任何行包含 "->" 且看起来像节点（不是箭头连接）
+            // 箭头连接通常是：A --> B, A -> B, A -down-> B
+            // 节点内容通常是："->" 出现在引号中或作为第一个内容
+            boolean isArrowConnection =
+                (trimmed.contains(" --> ") || trimmed.contains(" -> ") || trimmed.contains(" -")) &&
+                !trimmed.contains("\"->\"") && !trimmed.contains("'->'");
+
+            if (!isArrowConnection && trimmed.contains("->")) {
+                // 检查是否是节点内容（不是连接）
+                if (trimmed.contains("\"->\"") || trimmed.contains("'->'") ||
+                    trimmed.matches(".*\\s+->\\s+.*") || trimmed.matches(".*->.*")) {
+                    // 再排除真正的箭头连接
+                    if (!(trimmed.matches(".*\\w+\\s+-->?\\s+\\w+.*")) &&
+                        !(trimmed.matches("^\\s*[a-zA-Z0-9_]+\\s+-->?\\s+[a-zA-Z0-9_]+.*$"))) {
+                        continue;
+                    }
+                }
+            }
+
+            // 7. 单独的 "->" 节点（任何格式）
+            if (trimmed.equals("->") || trimmed.equals("-->")) {
+                continue;
+            }
+
+            // 8. 任何显示为 ":->;" 或类似的
+            if (trimmed.startsWith(":") && trimmed.length() <= 5 && trimmed.contains("-") && trimmed.contains(">")) {
+                continue;
+            }
+
+            // 保留其他所有行
+            resultLines.add(line);
         }
-        return filtered.toString();
+
+        // 最后清理：去除连续空行
+        java.util.List<String> finalLines = new java.util.ArrayList<>();
+        boolean lastWasEmpty = false;
+        for (String line : resultLines) {
+            boolean isEmpty = line.trim().isEmpty();
+            if (isEmpty && lastWasEmpty) {
+                continue; // 跳过连续空行
+            }
+            finalLines.add(line);
+            lastWasEmpty = isEmpty;
+        }
+
+        return String.join("\n", finalLines);
     }
 
     /**
@@ -471,18 +612,8 @@ public class PlantUmlCallChainGenerator {
     private boolean shouldFilterNode(FlowNode node) {
         if (node == null) return true;
 
-        // 过滤任何包含"->"的字段
-        String methodName = node.getMethodName();
-        String displayName = node.getDisplayName();
-        String className = node.getClassName();
-        String id = node.getId();
-        String methodSignature = node.getMethodSignature();
-
-        if ((methodName != null && (methodName.equals("->") || methodName.contains("->"))) ||
-            (displayName != null && (displayName.equals("->") || displayName.contains("->"))) ||
-            (className != null && (className.equals("->") || className.contains("->"))) ||
-            (id != null && (id.equals("->") || id.contains("->"))) ||
-            (methodSignature != null && (methodSignature.equals("->") || methodSignature.contains("->")))) {
+        // 1. 【统一】过滤任何包含"->"的字段
+        if (hasArrowInAnyField(node)) {
             return true;
         }
 
@@ -490,6 +621,9 @@ public class PlantUmlCallChainGenerator {
         if (node.getType() == FlowNode.NodeType.CLASS) {
             return true;
         }
+
+        String className = node.getClassName();
+        String methodName = node.getMethodName();
 
         if (className == null || className.isEmpty()) return false;
 
@@ -541,118 +675,96 @@ public class PlantUmlCallChainGenerator {
     }
 
     /**
-     * 生成活动图格式（带主题）
+     * 生成活动图格式（带主题）- 完美方案！
      */
     private String generateActivityDiagram(FlowGraph graph, ChartTheme theme) {
-        StringBuilder plantuml = new StringBuilder();
+        // 第一步：先收集所有有效节点 - 只从 graph.getAllNodes() 收集，不从边收集！
+        List<String> nodes = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
 
-        plantuml.append("@startuml\n");
-        plantuml.append("skinparam backgroundColor ").append(theme.getBackgroundColor()).append("\n");
-        plantuml.append("skinparam handwritten false\n");
-        plantuml.append("skinparam shadowing ").append(theme.isShowShadow()).append("\n");
-        plantuml.append("skinparam activity {\n");
-        plantuml.append("  BackgroundColor ").append(theme.getActivityBackgroundColor()).append("\n");
-        plantuml.append("  BorderColor ").append(theme.getClassNodeColor()).append("\n");
-        plantuml.append("  ArrowColor ").append(theme.getCallEdgeColor()).append("\n");
-        plantuml.append("  StartColor #4CAF50\n");
-        plantuml.append("  EndColor #F44336\n");
-        plantuml.append("}\n");
-        plantuml.append("skinparam noteBackgroundColor #fff9c4\n");
-        plantuml.append("skinparam noteBorderColor #ffc107\n");
-        plantuml.append("\n");
+        for (FlowNode node : graph.getAllNodes()) {
+            if (node == null) continue;
+            if (node.getType() != FlowNode.NodeType.METHOD) continue;
+
+            // 最严格的检查：任何字段都不能有 "-->"
+            if (hasArrowInAnyField(node)) continue;
+            if (shouldFilterNode(node)) continue;
+
+            String label = getCleanLabel(node);
+            if (isValidCleanLabel(label) && !seen.contains(label)) {
+                nodes.add(label);
+                seen.add(label);
+            }
+        }
+
+        // 第二步：生成最简单、绝对正确的 PlantUML
+        StringBuilder sb = new StringBuilder();
+        sb.append("@startuml\n");
+        sb.append("skinparam backgroundColor #fffaf0\n");
+        sb.append("skinparam handwritten false\n");
+        sb.append("skinparam shadowing true\n");
+        sb.append("skinparam activity {\n");
+        sb.append("  BackgroundColor #ffeaa7\n");
+        sb.append("  BorderColor #d63031\n");
+        sb.append("  ArrowColor #e17055\n");
+        sb.append("  StartColor #4CAF50\n");
+        sb.append("  EndColor #F44336\n");
+        sb.append("}\n");
+        sb.append("skinparam noteBackgroundColor #fff9c4\n");
+        sb.append("skinparam noteBorderColor #ffc107\n");
+        sb.append("\n");
         if (graph.getName() != null && !graph.getName().isEmpty()) {
-            plantuml.append("title ").append(escapeLabel(graph.getName())).append("\n");
-            plantuml.append("\n");
+            sb.append("title ").append(escapeLabel(graph.getName())).append("\n");
+            sb.append("\n");
         }
-        plantuml.append("start\n");
-        plantuml.append("\n");
+        sb.append("start\n");
+        sb.append("\n");
 
-        Set<String> processed = new HashSet<>();
-        int count = 0;
-
-        for (FlowEdge edge : graph.getEdges()) {
-            // 最严格的检查：源节点和目标节点都必须是METHOD类型
-            FlowNode source = edge.getSource();
-            FlowNode target = edge.getTarget();
-            if (source == null || target == null) continue;
-
-            if (source.getType() != FlowNode.NodeType.METHOD ||
-                target.getType() != FlowNode.NodeType.METHOD) {
-                continue;
+        int limit = Math.min(nodes.size(), 20);
+        for (int i = 0; i < limit; i++) {
+            if (i > 0) {
+                sb.append("-->\n");
             }
-
-            // 检查所有字段是否有 "->"
-            if (hasArrowInAnyField(source) || hasArrowInAnyField(target)) {
-                continue;
-            }
-
-            if (shouldFilterEdge(edge)) continue;
-
-            String sourceLabel = getDescriptiveLabel(source);
-            String targetLabel = getDescriptiveLabel(target);
-
-            // 多重检查
-            if (!isValidLabel(sourceLabel) || !isValidLabel(targetLabel)) continue;
-            if (!sourceLabel.contains(".") || !targetLabel.contains(".")) continue;
-            if (sourceLabel.equals("->") || targetLabel.equals("->")) continue;
-            if (sourceLabel.contains("->") || targetLabel.contains("->")) continue;
-
-            sourceLabel = escapeLabel(sourceLabel);
-            targetLabel = escapeLabel(targetLabel);
-
-            // 再次检查
-            if (!isValidLabel(sourceLabel) || !isValidLabel(targetLabel)) continue;
-            if (sourceLabel.isEmpty() || targetLabel.isEmpty()) continue;
-            if (sourceLabel.equals("->") || targetLabel.equals("->")) continue;
-            if (sourceLabel.contains("->") || targetLabel.contains("->")) continue;
-            if (sourceLabel.length() > 80 || targetLabel.length() > 80) continue;
-
-            String edgeKey = sourceLabel + "|" + targetLabel;
-
-            if (!processed.contains(edgeKey)) {
-                boolean addedSource = false;
-                boolean addedTarget = false;
-
-                // 最终安全检查：绝对不允许添加 "->" 节点
-                if (!sourceLabel.equals("->") && !sourceLabel.isEmpty() && !sourceLabel.contains("->")) {
-                    if (!processed.contains(sourceLabel)) {
-                        plantuml.append(":").append(sourceLabel).append(";\n");
-                        processed.add(sourceLabel);
-                        addedSource = true;
-                    } else {
-                        addedSource = true; // Already there, still counts as existing
-                    }
-                }
-
-                // 最终安全检查：绝对不允许添加 "->" 节点
-                if (!targetLabel.equals("->") && !targetLabel.isEmpty() && !targetLabel.contains("->")) {
-                    if (addedSource) { // Only add arrow if we have a source node (or it existed)
-                        plantuml.append("-->\n");
-                    }
-                    plantuml.append(":").append(targetLabel).append(";\n");
-                    processed.add(targetLabel);
-                    addedTarget = true;
-                }
-
-                if (addedSource && addedTarget) {
-                    processed.add(edgeKey);
-                    count++;
-                }
-            }
-
-            if (count >= 20) break;
+            sb.append(":").append(escapeLabel(nodes.get(i))).append(";\n");
         }
 
-        if (count == 0) {
-            plantuml.append(":开始处理;\n");
-            plantuml.append("-->\n");
-            plantuml.append(":结束;\n");
+        if (nodes.isEmpty()) {
+            sb.append(":开始处理;\n");
+            sb.append("-->\n");
+            sb.append(":结束;\n");
         }
 
-        plantuml.append("\nstop\n");
-        plantuml.append("@enduml\n");
+        sb.append("\nstop\n");
+        sb.append("@enduml\n");
 
-        return plantuml.toString();
+        return sb.toString();
+    }
+
+    /**
+     * 获取干净的标签（调用前已通过 hasArrowInAnyField 检查
+     */
+    private String getCleanLabel(FlowNode node) {
+        String className = node.getClassName();
+        String methodName = node.getMethodName();
+
+        // 获取简单类名
+        String simpleClassName = className;
+        int lastDot = className.lastIndexOf('.');
+        if (lastDot > 0) {
+            simpleClassName = className.substring(lastDot + 1);
+        }
+
+        // 如果有中文翻译就加上
+        String chineseNote = getMethodTranslation(methodName);
+        if (!chineseNote.isEmpty()) {
+            return simpleClassName + "." + methodName + "\\n(" + chineseNote + ")";
+        } else {
+            return simpleClassName + "." + methodName;
+        }
+    }
+
+    private boolean isValidCleanLabel(String label) {
+        return label != null && !label.isEmpty() && label.contains(".");
     }
 
     /**
@@ -697,10 +809,18 @@ public class PlantUmlCallChainGenerator {
             if (shouldFilterEdge(edge)) continue;
 
             if (edge.getSource() != null && edge.getTarget() != null) {
+                // 【额外防线】再次检查节点本身
+                if (hasArrowInAnyField(edge.getSource()) || hasArrowInAnyField(edge.getTarget())) {
+                    continue;
+                }
+
                 String sourceLabel = escapeLabel(getSimpleNodeLabel(edge.getSource()));
                 String targetLabel = escapeLabel(getSimpleNodeLabel(edge.getTarget()));
                 String sourceDesc = escapeLabel(getShortDescription(edge.getSource()));
                 String targetDesc = escapeLabel(getShortDescription(edge.getTarget()));
+
+                // 【最终防线】再次检查标签内容
+                if (containsArrow(sourceLabel) || containsArrow(targetLabel)) continue;
 
                 if (sourceLabel.isEmpty() || targetLabel.isEmpty()) continue;
 
@@ -734,7 +854,10 @@ public class PlantUmlCallChainGenerator {
         }
 
         plantuml.append("\n@enduml\n");
-        return plantuml.toString();
+        String result = plantuml.toString();
+        result = result.replaceAll("(?m)^\\s*:.*->.*;\\s*$", "");  // 删除含箭头的节点行
+        result = result.replaceAll("(?m)^\\s*$", "");  // 删除空行
+        return result.trim() + "\n";
     }
 
     /**
@@ -773,6 +896,11 @@ public class PlantUmlCallChainGenerator {
             if (shouldFilterEdge(edge)) continue;
 
             if (edge.getSource() != null && edge.getTarget() != null) {
+                // 【额外防线】再次检查节点本身
+                if (hasArrowInAnyField(edge.getSource()) || hasArrowInAnyField(edge.getTarget())) {
+                    continue;
+                }
+
                 String sourceId = getNodeId(edge.getSource());
                 String targetId = getNodeId(edge.getTarget());
                 String sourceLabel = escapeLabel(getDescriptiveLabel(edge.getSource()));
@@ -780,6 +908,9 @@ public class PlantUmlCallChainGenerator {
                 String connectionKey = sourceId + "|" + targetId;
 
                 if (sourceLabel.isEmpty() || targetLabel.isEmpty()) continue;
+
+                // 【最终防线】再次检查标签内容
+                if (containsArrow(sourceLabel) || containsArrow(targetLabel)) continue;
 
                 if (!components.contains(sourceId)) {
                     plantuml.append("component \"").append(sourceLabel).append("\" as ")
@@ -851,8 +982,16 @@ public class PlantUmlCallChainGenerator {
             if (firstEdge == null) firstEdge = edge;
 
             if (edge.getSource() != null && edge.getTarget() != null) {
+                // 【额外防线】再次检查节点本身
+                if (hasArrowInAnyField(edge.getSource()) || hasArrowInAnyField(edge.getTarget())) {
+                    continue;
+                }
+
                 String sourceLabel = escapeLabel(getSimpleNodeLabel(edge.getSource()));
                 String targetLabel = escapeLabel(getSimpleNodeLabel(edge.getTarget()));
+
+                // 【最终防线】再次检查标签内容
+                if (containsArrow(sourceLabel) || containsArrow(targetLabel)) continue;
 
                 if (sourceLabel.isEmpty() || targetLabel.isEmpty()) continue;
 
@@ -997,12 +1136,18 @@ public class PlantUmlCallChainGenerator {
         if (node == null) {
             return "";
         }
+
+        // 【第一道防线】全字段检查
+        if (hasArrowInAnyField(node)) {
+            return "";
+        }
+
         if (node.getType() == FlowNode.NodeType.METHOD) {
             String className = node.getClassName() != null ? node.getClassName() : "";
             String methodName = node.getMethodName() != null ? node.getMethodName() : "";
             String displayName = node.getDisplayName() != null ? node.getDisplayName() : methodName;
 
-            // 最严格的验证
+            // 【第二道防线】单独检查每个字段
             if (methodName == null || methodName.isEmpty() ||
                 methodName.equals("->") || methodName.contains("->") ||
                 (displayName != null && (displayName.equals("->") || displayName.contains("->"))) ||
@@ -1022,7 +1167,7 @@ public class PlantUmlCallChainGenerator {
                 label = displayName;
             }
 
-            // 最终检查
+            // 【第三道防线】最终检查
             if (label == null || label.isEmpty() || label.equals("->") || label.contains("->")) {
                 return "";
             }
@@ -1222,13 +1367,14 @@ public class PlantUmlCallChainGenerator {
 
     /**
      * 转义标签中的特殊字符
+     * 【最终防线】返回空字符串表示这个标签不能使用
      */
     private String escapeLabel(String label) {
         if (label == null || label.isEmpty()) {
             return "";
         }
         // 再次确保不允许"->"
-        if (label.equals("->") || label.contains("->")) {
+        if (containsArrow(label)) {
             return "";
         }
         return label.replace("\"", "'")

@@ -465,47 +465,89 @@ public class PlantUmlCallChainGenerator {
         int count = 0;
 
         for (FlowEdge edge : graph.getEdges()) {
+            // 最严格的检查：源节点和目标节点都必须是METHOD类型
+            FlowNode source = edge.getSource();
+            FlowNode target = edge.getTarget();
+            if (source == null || target == null) continue;
+
+            if (source.getType() != FlowNode.NodeType.METHOD ||
+                target.getType() != FlowNode.NodeType.METHOD) {
+                continue;
+            }
+
+            // 检查所有字段是否有 "->"
+            if (hasArrowInAnyField(source) || hasArrowInAnyField(target)) {
+                continue;
+            }
+
             if (shouldFilterEdge(edge)) continue;
 
-            if (edge.getSource() != null && edge.getTarget() != null) {
-                String sourceLabel = getDescriptiveLabel(edge.getSource());
-                String targetLabel = getDescriptiveLabel(edge.getTarget());
+            String sourceLabel = getDescriptiveLabel(source);
+            String targetLabel = getDescriptiveLabel(target);
 
-                // 先检查未转义的标签是否有效
-                if (!isValidLabel(sourceLabel) || !isValidLabel(targetLabel)) {
-                    continue;
+            // 多重检查
+            if (!isValidLabel(sourceLabel) || !isValidLabel(targetLabel)) continue;
+            if (!sourceLabel.contains(".") || !targetLabel.contains(".")) continue;
+            if (sourceLabel.equals("->") || targetLabel.equals("->")) continue;
+            if (sourceLabel.contains("->") || targetLabel.contains("->")) continue;
+
+            sourceLabel = escapeLabel(sourceLabel);
+            targetLabel = escapeLabel(targetLabel);
+
+            // 再次检查
+            if (!isValidLabel(sourceLabel) || !isValidLabel(targetLabel)) continue;
+            if (sourceLabel.equals("->") || targetLabel.equals("->")) continue;
+            if (sourceLabel.contains("->") || targetLabel.contains("->")) continue;
+
+            if (sourceLabel.length() > 80 || targetLabel.length() > 80) continue;
+
+            String edgeKey = sourceLabel + "|" + targetLabel;
+
+            if (!processed.contains(edgeKey)) {
+                if (!processed.contains(sourceLabel)) {
+                    plantuml.append(":").append(sourceLabel).append(";\n");
+                    processed.add(sourceLabel);
                 }
-
-                // 然后转义
-                sourceLabel = escapeLabel(sourceLabel);
-                targetLabel = escapeLabel(targetLabel);
-
-                // 再次检查转义后的标签
-                if (!isValidLabel(sourceLabel) || !isValidLabel(targetLabel)) {
-                    continue;
-                }
-
-                if (sourceLabel.length() > 80 || targetLabel.length() > 80) {
-                    continue;
-                }
-
-                String edgeKey = sourceLabel + "|" + targetLabel;
-
-                if (!processed.contains(edgeKey)) {
-                    if (!processed.contains(sourceLabel)) {
-                        plantuml.append(":").append(sourceLabel).append(";\n");
-                        processed.add(sourceLabel);
-                    }
-                    plantuml.append("-->\n");
-                    plantuml.append(":").append(targetLabel).append(";\n");
-                    processed.add(targetLabel);
-                    processed.add(edgeKey);
-                    count++;
-                }
-
-                if (count >= 20) break;
+                plantuml.append("-->\n");
+                plantuml.append(":").append(targetLabel).append(";\n");
+                processed.add(targetLabel);
+                processed.add(edgeKey);
+                count++;
             }
+
+            if (count >= 20) break;
         }
+
+        if (count == 0) {
+            plantuml.append(":开始处理;\n");
+            plantuml.append("-->\n");
+            plantuml.append(":结束;\n");
+        }
+
+        plantuml.append("\nstop\n");
+        plantuml.append("@enduml\n");
+
+        return plantuml.toString();
+    }
+
+    /**
+     * 检查节点的任何字段是否包含 "->"
+     */
+    private boolean hasArrowInAnyField(FlowNode node) {
+        if (node == null) return true;
+
+        String methodName = node.getMethodName();
+        String displayName = node.getDisplayName();
+        String className = node.getClassName();
+        String id = node.getId();
+        String methodSignature = node.getMethodSignature();
+
+        return (methodName != null && (methodName.equals("->") || methodName.contains("->"))) ||
+               (displayName != null && (displayName.equals("->") || displayName.contains("->"))) ||
+               (className != null && (className.equals("->") || className.contains("->"))) ||
+               (id != null && (id.equals("->") || id.contains("->"))) ||
+               (methodSignature != null && (methodSignature.equals("->") || methodSignature.contains("->")));
+    }
 
         if (count == 0) {
             plantuml.append(":开始处理;\n");

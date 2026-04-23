@@ -183,13 +183,13 @@ public class EnhancedJavaCodeParser {
                         .build();
                 graph.addNode(methodNode);
 
-                // 创建类到方法的边
-                FlowEdge edge = FlowEdge.builder()
-                        .source(classNode)
-                        .target(methodNode)
-                        .callType(FlowEdge.CallType.DIRECT)
-                        .build();
-                graph.addEdge(edge);
+                // 不再创建类到方法的边 - 这些边会导致 "->" 节点问题
+                // FlowEdge edge = FlowEdge.builder()
+                //         .source(classNode)
+                //         .target(methodNode)
+                //         .callType(FlowEdge.CallType.DIRECT)
+                //         .build();
+                // graph.addEdge(edge);
             });
         });
     }

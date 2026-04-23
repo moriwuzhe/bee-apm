@@ -365,6 +365,11 @@ public class PlantUmlCallChainGenerator {
     private boolean shouldFilterNode(FlowNode node) {
         if (node == null) return true;
 
+        // 过滤类节点（只保留方法节点）
+        if (node.getType() == FlowNode.NodeType.CLASS) {
+            return true;
+        }
+
         // 过滤有"->"的节点
         String methodName = node.getMethodName();
         String displayName = node.getDisplayName();

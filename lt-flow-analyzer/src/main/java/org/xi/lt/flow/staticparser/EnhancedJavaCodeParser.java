@@ -142,6 +142,11 @@ public class EnhancedJavaCodeParser {
             String className = clazz.getFullyQualifiedName().isPresent() ?
                     clazz.getFullyQualifiedName().get() : clazz.getNameAsString();
 
+            // 检查是否包含 "->"，如果是则跳过
+            if (className.contains("->") || className.equals("->")) {
+                return;
+            }
+
             // 检查是否应该包含该类
             if (!filterConfig.shouldIncludeClass(className)) {
                 log.debug("跳过类: {}", className);
@@ -165,6 +170,11 @@ public class EnhancedJavaCodeParser {
             // 提取方法
             clazz.getMethods().forEach(method -> {
                 String methodName = method.getNameAsString();
+
+                // 检查是否包含 "->"，如果是则跳过
+                if (methodName.contains("->") || methodName.equals("->")) {
+                    return;
+                }
 
                 // 检查是否应该包含该方法
                 if (!filterConfig.shouldIncludeMethod(methodName, className)) {
@@ -261,6 +271,12 @@ public class EnhancedJavaCodeParser {
                                     .map(scope -> scope.toString())
                                     .orElse(className);
 
+                            // 检查是否包含 "->"，如果是则跳过
+                            if (calledMethodName.contains("->") || calledClassName.contains("->") ||
+                                calledMethodName.equals("->") || calledClassName.equals("->")) {
+                                return;
+                            }
+
                             // 检查是否应该包含被调用的类/方法
                             if (!filterConfig.shouldIncludeClass(calledClassName) ||
                                     !filterConfig.shouldIncludeMethod(calledMethodName)) {
@@ -328,6 +344,12 @@ public class EnhancedJavaCodeParser {
                     String calledClassName = call.getScope()
                             .map(scope -> scope.toString())
                             .orElse(className);
+
+                    // 检查是否包含 "->"，如果是则跳过
+                    if (calledMethodName.contains("->") || calledClassName.contains("->") ||
+                        calledMethodName.equals("->") || calledClassName.equals("->")) {
+                        return;
+                    }
 
                     // 检查过滤
                     if (!filterConfig.shouldIncludeClass(calledClassName) ||

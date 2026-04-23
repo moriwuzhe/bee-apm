@@ -63,13 +63,27 @@ public class JavaCodeParser {
     }
     
     /**
+     * 检查节点的任何字段是否包含 "->"
+     */
+    private boolean hasArrowInAnyField(String className, String methodName, String displayName) {
+        return (className != null && (className.equals("->") || className.contains("->"))) ||
+               (methodName != null && (methodName.equals("->") || methodName.contains("->"))) ||
+               (displayName != null && (displayName.equals("->") || displayName.contains("->")));
+    }
+
+    /**
      * 提取所有类和方法节点
      */
     private void extractClassesAndMethods(CompilationUnit cu, FlowGraph graph) {
         cu.findAll(ClassOrInterfaceDeclaration.class).forEach(clazz -> {
-            String className = clazz.getFullyQualifiedName().isPresent() ? 
+            String className = clazz.getFullyQualifiedName().isPresent() ?
                     clazz.getFullyQualifiedName().get() : clazz.getNameAsString();
-            
+
+            // 检查是否包含 "->"
+            if (hasArrowInAnyField(className, null, null)) {
+                return;
+            }
+
             // 创建类节点
             FlowNode classNode = FlowNode.builder()
                     .id(className)
@@ -78,32 +92,37 @@ public class JavaCodeParser {
                     .displayName(clazz.getNameAsString())
                     .build();
             graph.addNode(classNode);
-            
+
             // 设置入口节点（第一个类）
             if (graph.getEntryNode() == null) {
                 graph.setEntryNode(classNode);
             }
-            
+
             // 提取方法
             clazz.getMethods().forEach(method -> {
-                String methodId = className + "#" + method.getNameAsString();
+                String methodName = method.getNameAsString();
+                if (hasArrowInAnyField(null, methodName, methodName)) {
+                    return;
+                }
+
+                String methodId = className + "#" + methodName;
                 FlowNode methodNode = FlowNode.builder()
                         .id(methodId)
                         .type(FlowNode.NodeType.METHOD)
                         .className(className)
-                        .methodName(method.getNameAsString())
+                        .methodName(methodName)
                         .methodSignature(method.getDeclarationAsString(false, false, false))
-                        .displayName(method.getNameAsString())
+                        .displayName(methodName)
                         .build();
                 graph.addNode(methodNode);
-                
-                // 创建类到方法的边
-                FlowEdge edge = FlowEdge.builder()
-                        .source(classNode)
-                        .target(methodNode)
-                        .callType(FlowEdge.CallType.DIRECT)
-                        .build();
-                graph.addEdge(edge);
+
+                // 创建类到方法的边（暂时注释，避免问题）
+                // FlowEdge edge = FlowEdge.builder()
+                //         .source(classNode)
+                //         .target(methodNode)
+                //         .callType(FlowEdge.CallType.DIRECT)
+                //         .build();
+                // graph.addEdge(edge);
             });
         });
     }
@@ -114,32 +133,43 @@ public class JavaCodeParser {
     private void extractMethodCalls(CompilationUnit cu, FlowGraph graph) {
         cu.findAll(MethodDeclaration.class).forEach(method -> {
             String className = method.findAncestor(ClassOrInterfaceDeclaration.class)
-                    .map(clazz -> clazz.getFullyQualifiedName().isPresent() ? 
+                    .map(clazz -> clazz.getFullyQualifiedName().isPresent() ?
                             clazz.getFullyQualifiedName().get() : clazz.getNameAsString())
                     .orElse("Unknown");
-            String methodId = className + "#" + method.getNameAsString();
+            String methodName = method.getNameAsString();
+
+            if (hasArrowInAnyField(className, methodName, methodName)) {
+                return;
+            }
+
+            String methodId = className + "#" + methodName;
             FlowNode sourceNode = graph.getNode(methodId);
-            
+
             if (sourceNode == null) {
                 return;
             }
-            
+
             // 访问方法体中的所有方法调用
             method.accept(new VoidVisitorAdapter<Void>() {
                 @Override
                 public void visit(MethodCallExpr call, Void arg) {
                     super.visit(call, arg);
-                    
+
                     // 提取被调用的方法信息
                     String calledMethodName = call.getNameAsString();
                     String calledClassName = call.getScope()
                             .map(scope -> scope.toString())
                             .orElse(className);
-                    
+
+                    // 严格检查 ->
+                    if (hasArrowInAnyField(calledClassName, calledMethodName, calledMethodName)) {
+                        return;
+                    }
+
                     // 尝试找到目标节点
                     String targetMethodId = calledClassName + "#" + calledMethodName;
                     FlowNode targetNode = graph.getNode(targetMethodId);
-                    
+
                     // 如果找不到，先创建一个简单节点
                     if (targetNode == null) {
                         targetNode = FlowNode.builder()
@@ -151,7 +181,7 @@ public class JavaCodeParser {
                                 .build();
                         graph.addNode(targetNode);
                     }
-                    
+
                     // 创建调用边
                     FlowEdge edge = FlowEdge.builder()
                             .source(sourceNode)

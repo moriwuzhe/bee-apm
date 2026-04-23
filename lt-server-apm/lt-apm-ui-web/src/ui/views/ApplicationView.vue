@@ -2561,64 +2561,19 @@ const handleDialogOpened = () => {
 const renderChartsAfterDialogOpen = () => {
   console.log('🎨 开始渲染图表...')
   
-  // 强制切换到 history Tab，并等待多个 tick
+  // 强制切换到 history Tab
   memoryTab.value = 'history'
   
-  // 使用多层 nextTick 确保 Vue 完成所有更新
-  nextTick(() => {
-    nextTick(() => {
-      nextTick(() => {
-        setTimeout(() => {
-          console.log('⏰ 开始检测 DOM...')
-          
-          // 直接检查 DOM
-          const edenEl = document.querySelector('[data-chart="eden-survivor"]')
-          const oldGenEl = document.querySelector('[data-chart="old-gen"]')
-          const minorVsFullGcEl = document.querySelector('[data-chart="minor-vs-full-gc"]')
-          const gcEfficiencyEl = document.querySelector('[data-chart="gc-efficiency"]')
-          
-          console.log('DOM 检查结果:', {
-            eden: !!edenEl,
-            oldGen: !!oldGenEl,
-            minorVsFullGc: !!minorVsFullGcEl,
-            gcEfficiency: !!gcEfficiencyEl
-          })
-          
-          // 如果找到了，立即渲染
-          if (edenEl && oldGenEl && minorVsFullGcEl && gcEfficiencyEl) {
-            console.log('✅ 所有图表容器已就绪')
-            renderMemoryCharts()
-            renderGcCharts(memoryHistory.value)
-            console.log('✅ 所有图表渲染完成')
-          } else {
-            // 如果没找到，尝试再次切换 Tab
-            console.warn('⚠️ 图表容器未找到，尝试重新切换 Tab...')
-            memoryTab.value = 'realtime'
-            setTimeout(() => {
-              memoryTab.value = 'history'
-              setTimeout(() => {
-                const edenEl2 = document.querySelector('[data-chart="eden-survivor"]')
-                const oldGenEl2 = document.querySelector('[data-chart="old-gen"]')
-                const minorVsFullGcEl2 = document.querySelector('[data-chart="minor-vs-full-gc"]')
-                const gcEfficiencyEl2 = document.querySelector('[data-chart="gc-efficiency"]')
-                
-                console.log('第二次 DOM 检查结果:', {
-                  eden: !!edenEl2,
-                  oldGen: !!oldGenEl2,
-                  minorVsFullGc: !!minorVsFullGcEl2,
-                  gcEfficiency: !!gcEfficiencyEl2
-                })
-                
-                renderMemoryCharts()
-                renderGcCharts(memoryHistory.value)
-                console.log('✅ 所有图表渲染完成（强制）')
-              }, 500)
-            }, 100)
-          }
-        }, 800) // 等待 800ms
-      })
-    })
-  })
+  // 等待足够长的时间让 Element Plus 渲染所有内容
+  setTimeout(() => {
+    console.log('⏰ 开始渲染图表（不检查 DOM）...')
+    
+    // 直接渲染，让 Composable 中的 querySelector 备用方案处理
+    renderMemoryCharts()
+    renderGcCharts(memoryHistory.value)
+    
+    console.log('✅ 所有图表渲染完成')
+  }, 2000) // 等待 2 秒
 }
 
 // 显示GC历史监控图表

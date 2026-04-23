@@ -755,8 +755,16 @@ export function useMemoryMonitoring() {
     }
     
     // 手动获取 Eden+Survivor 图表容器（备用方案）
+    console.log('🔍 检查 Eden+Survivor 备用方案条件...')
+    console.log('memoryHistory.length:', memoryHistory.value.length)
+    console.log('memoryHistory[0]:', memoryHistory.value[0])
+    console.log('memoryHistory[0].memoryPools:', memoryHistory.value[0]?.memoryPools)
+    
     if (memoryHistory.value.length > 0 && memoryHistory.value[0].memoryPools) {
+      console.log('✅ 条件满足，开始查询 DOM...')
       const edenSurvivorEl = document.querySelector('[data-chart="eden-survivor"]') as HTMLElement
+      console.log('edenSurvivorEl:', edenSurvivorEl)
+      
       if (edenSurvivorEl && memoryHistory.value[0].memoryPools) {
         let edenSurvivorChartInstance: any = null
         const edenData: number[] = []

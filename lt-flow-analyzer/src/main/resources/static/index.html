@@ -3218,16 +3218,6 @@ public class TestClass {
 
         function toggleJarFlowType() {
             const flowType = getSelectedJarFlowType();
-            const callChainStyles = document.getElementById('jarCallChainStyles');
-
-            // 定义哪些类型是callChain的变体（显示样式选择器）
-            const callChainVariants = ['callChain', 'activity', 'component', 'state', 'mindmap', 'object', 'deployment', 'usecase', 'c4'];
-
-            if (callChainVariants.includes(flowType)) {
-                callChainStyles.style.display = 'block';
-            } else {
-                callChainStyles.style.display = 'none';
-            }
 
             // 更新选中样式 - 使用通用选择器
             document.querySelectorAll('[id^="flowType-jar-"][id$="-label"]').forEach(label => {

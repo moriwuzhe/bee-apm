@@ -153,26 +153,30 @@ public class EnhancedJavaCodeParser {
                 return;
             }
 
-            // 创建类节点
-            FlowNode classNode = FlowNode.builder()
-                    .id(className)
-                    .type(FlowNode.NodeType.CLASS)
-                    .className(className)
-                    .displayName(clazz.getNameAsString())
-                    .build();
-            graph.addNode(classNode);
+            // 不再创建类节点 - 避免问题
+            // FlowNode classNode = FlowNode.builder()
+            //         .id(className)
+            //         .type(FlowNode.NodeType.CLASS)
+            //         .className(className)
+            //         .displayName(clazz.getNameAsString())
+            //         .build();
+            // graph.addNode(classNode);
 
             // 设置入口节点（第一个类）
-            if (graph.getEntryNode() == null) {
-                graph.setEntryNode(classNode);
-            }
+            // if (graph.getEntryNode() == null) {
+            //     graph.setEntryNode(classNode);
+            // }
 
             // 提取方法
             clazz.getMethods().forEach(method -> {
                 String methodName = method.getNameAsString();
+                String methodId = className + "#" + methodName;
+                String methodSignature = method.getDeclarationAsString(false, false, false);
 
-                // 检查是否包含 "->"，如果是则跳过
-                if (methodName.contains("->") || methodName.equals("->")) {
+                // 最严格检查是否包含 "->"，如果是则跳过
+                if (methodName.contains("->") || methodName.equals("->") ||
+                    methodId.contains("->") ||
+                    (methodSignature != null && (methodSignature.contains("->") || methodSignature.equals("->")))) {
                     return;
                 }
 
@@ -182,13 +186,12 @@ public class EnhancedJavaCodeParser {
                     return;
                 }
 
-                String methodId = className + "#" + methodName;
                 FlowNode methodNode = FlowNode.builder()
                         .id(methodId)
                         .type(FlowNode.NodeType.METHOD)
                         .className(className)
                         .methodName(methodName)
-                        .methodSignature(method.getDeclarationAsString(false, false, false))
+                        .methodSignature(methodSignature)
                         .displayName(methodName)
                         .build();
                 graph.addNode(methodNode);
@@ -270,10 +273,12 @@ public class EnhancedJavaCodeParser {
                             String calledClassName = call.getScope()
                                     .map(scope -> scope.toString())
                                     .orElse(className);
+                            String targetMethodId = calledClassName + "#" + calledMethodName;
 
-                            // 检查是否包含 "->"，如果是则跳过
+                            // 最严格检查是否包含 "->"，如果是则跳过
                             if (calledMethodName.contains("->") || calledClassName.contains("->") ||
-                                calledMethodName.equals("->") || calledClassName.equals("->")) {
+                                calledMethodName.equals("->") || calledClassName.equals("->") ||
+                                targetMethodId.contains("->")) {
                                 return;
                             }
 
@@ -344,10 +349,12 @@ public class EnhancedJavaCodeParser {
                     String calledClassName = call.getScope()
                             .map(scope -> scope.toString())
                             .orElse(className);
+                    String targetMethodId = calledClassName + "#" + calledMethodName;
 
-                    // 检查是否包含 "->"，如果是则跳过
+                    // 最严格检查是否包含 "->"，如果是则跳过
                     if (calledMethodName.contains("->") || calledClassName.contains("->") ||
-                        calledMethodName.equals("->") || calledClassName.equals("->")) {
+                        calledMethodName.equals("->") || calledClassName.equals("->") ||
+                        targetMethodId.contains("->")) {
                         return;
                     }
 

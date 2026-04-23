@@ -84,35 +84,41 @@ public class JavaCodeParser {
                 return;
             }
 
-            // 创建类节点
-            FlowNode classNode = FlowNode.builder()
-                    .id(className)
-                    .type(FlowNode.NodeType.CLASS)
-                    .className(className)
-                    .displayName(clazz.getNameAsString())
-                    .build();
-            graph.addNode(classNode);
+            // 创建类节点（暂时不添加到图中，避免问题）
+            // FlowNode classNode = FlowNode.builder()
+            //         .id(className)
+            //         .type(FlowNode.NodeType.CLASS)
+            //         .className(className)
+            //         .displayName(clazz.getNameAsString())
+            //         .build();
+            // graph.addNode(classNode);
 
             // 设置入口节点（第一个类）
-            if (graph.getEntryNode() == null) {
-                graph.setEntryNode(classNode);
-            }
+            // if (graph.getEntryNode() == null) {
+            //     graph.setEntryNode(classNode);
+            // }
 
             // 提取方法
             clazz.getMethods().forEach(method -> {
                 String methodName = method.getNameAsString();
-                if (hasArrowInAnyField(null, methodName, methodName)) {
+                String displayName = methodName;
+                String methodSignature = method.getDeclarationAsString(false, false, false);
+                String methodId = className + "#" + methodName;
+
+                // 严格检查所有字段
+                if (hasArrowInAnyField(className, methodName, displayName) ||
+                    hasArrowInAnyField(className, methodName, methodId) ||
+                    (methodSignature != null && (methodSignature.equals("->") || methodSignature.contains("->")))) {
                     return;
                 }
 
-                String methodId = className + "#" + methodName;
                 FlowNode methodNode = FlowNode.builder()
                         .id(methodId)
                         .type(FlowNode.NodeType.METHOD)
                         .className(className)
                         .methodName(methodName)
-                        .methodSignature(method.getDeclarationAsString(false, false, false))
-                        .displayName(methodName)
+                        .methodSignature(methodSignature)
+                        .displayName(displayName)
                         .build();
                 graph.addNode(methodNode);
 
@@ -160,14 +166,18 @@ public class JavaCodeParser {
                     String calledClassName = call.getScope()
                             .map(scope -> scope.toString())
                             .orElse(className);
+                    String targetMethodId = calledClassName + "#" + calledMethodName;
 
-                    // 严格检查 ->
-                    if (hasArrowInAnyField(calledClassName, calledMethodName, calledMethodName)) {
+                    // 最严格的检查 ->
+                    if (hasArrowInAnyField(calledClassName, calledMethodName, calledMethodName) ||
+                        hasArrowInAnyField(calledClassName, calledMethodName, targetMethodId) ||
+                        calledMethodName.equals("->") ||
+                        calledClassName.equals("->") ||
+                        targetMethodId.contains("->")) {
                         return;
                     }
 
                     // 尝试找到目标节点
-                    String targetMethodId = calledClassName + "#" + calledMethodName;
                     FlowNode targetNode = graph.getNode(targetMethodId);
 
                     // 如果找不到，先创建一个简单节点

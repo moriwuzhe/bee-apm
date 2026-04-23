@@ -323,7 +323,7 @@ public class PlantUmlCallChainGenerator {
     }
 
     /**
-     * 过滤FlowGraph，移除任何包含 "->" 的节点和边
+     * 过滤FlowGraph，移除任何包含 "->" 的节点和边，以及其他应该过滤的节点
      */
     private FlowGraph filterGraph(FlowGraph graph) {
         FlowGraph filtered = FlowGraph.builder()
@@ -335,7 +335,7 @@ public class PlantUmlCallChainGenerator {
 
         // 先添加所有有效节点
         for (FlowNode node : graph.getAllNodes()) {
-            if (!hasArrowInAnyField(node)) {
+            if (!hasArrowInAnyField(node) && !shouldFilterNode(node)) {
                 validNodes.put(node.getId(), node);
                 filtered.addNode(node);
             }
@@ -349,7 +349,9 @@ public class PlantUmlCallChainGenerator {
                 validNodes.containsKey(source.getId()) &&
                 validNodes.containsKey(target.getId()) &&
                 !hasArrowInAnyField(source) &&
-                !hasArrowInAnyField(target)) {
+                !hasArrowInAnyField(target) &&
+                !shouldFilterNode(source) &&
+                !shouldFilterNode(target)) {
                 FlowNode safeSource = validNodes.get(source.getId());
                 FlowNode safeTarget = validNodes.get(target.getId());
                 FlowEdge newEdge = new FlowEdge();
@@ -394,34 +396,73 @@ public class PlantUmlCallChainGenerator {
         if (theme == null) {
             theme = ChartTheme.defaultTheme();
         }
+        String plantuml;
         switch (style) {
             case SEQUENCE:
-                return generateSequenceDiagram(safeGraph, theme);
+                plantuml = generateSequenceDiagram(safeGraph, theme);
+                break;
             case COMPONENT:
             case C4:
-                return generateComponentDiagram(safeGraph, theme);
+                plantuml = generateComponentDiagram(safeGraph, theme);
+                break;
             case STATE:
-                return generateStateDiagram(safeGraph, theme);
+                plantuml = generateStateDiagram(safeGraph, theme);
+                break;
             case MINDMAP:
-                return generateMindmapDiagram(safeGraph, theme);
+                plantuml = generateMindmapDiagram(safeGraph, theme);
+                break;
             case OBJECT:
-                return generateObjectDiagram(safeGraph, theme);
+                plantuml = generateObjectDiagram(safeGraph, theme);
+                break;
             case DEPLOYMENT:
-                return generateDeploymentDiagram(safeGraph, theme);
+                plantuml = generateDeploymentDiagram(safeGraph, theme);
+                break;
             case USECASE:
-                return generateUsecaseDiagram(safeGraph, theme);
+                plantuml = generateUsecaseDiagram(safeGraph, theme);
+                break;
             case TIMING:
-                return generateTimingDiagram(safeGraph, theme);
+                plantuml = generateTimingDiagram(safeGraph, theme);
+                break;
             case GANTT:
-                return generateGanttDiagram(safeGraph, theme);
+                plantuml = generateGanttDiagram(safeGraph, theme);
+                break;
             case WBS:
-                return generateWbsDiagram(safeGraph, theme);
+                plantuml = generateWbsDiagram(safeGraph, theme);
+                break;
             case ACTIVITY:
             case FLOWCHART:
             case WORKFLOW:
             default:
-                return generateActivityDiagram(safeGraph, theme);
+                plantuml = generateActivityDiagram(safeGraph, theme);
+                break;
         }
+
+        // 最终安全检查：过滤掉任何包含 "->;" 的行
+        return filterFinalPlantUml(plantuml);
+    }
+
+    /**
+     * 最终安全过滤：移除任何可能包含 "->" 节点的行
+     */
+    private String filterFinalPlantUml(String plantuml) {
+        if (plantuml == null || plantuml.isEmpty()) {
+            return plantuml;
+        }
+        StringBuilder filtered = new StringBuilder();
+        String[] lines = plantuml.split("\n");
+        for (String line : lines) {
+            String trimmed = line.trim();
+            // 移除任何类似 ":>;" 的行
+            if (trimmed.contains(":->") || trimmed.contains("->;")) {
+                continue;
+            }
+            // 移除任何包含 "->" 作为节点内容的行
+            if (trimmed.startsWith(":") && trimmed.contains("->")) {
+                continue;
+            }
+            filtered.append(line).append("\n");
+        }
+        return filtered.toString();
     }
 
     /**
@@ -573,7 +614,7 @@ public class PlantUmlCallChainGenerator {
                 boolean addedTarget = false;
 
                 // 最终安全检查：绝对不允许添加 "->" 节点
-                if (!sourceLabel.equals("->") && !sourceLabel.isEmpty()) {
+                if (!sourceLabel.equals("->") && !sourceLabel.isEmpty() && !sourceLabel.contains("->")) {
                     if (!processed.contains(sourceLabel)) {
                         plantuml.append(":").append(sourceLabel).append(";\n");
                         processed.add(sourceLabel);
@@ -584,7 +625,7 @@ public class PlantUmlCallChainGenerator {
                 }
 
                 // 最终安全检查：绝对不允许添加 "->" 节点
-                if (!targetLabel.equals("->") && !targetLabel.isEmpty()) {
+                if (!targetLabel.equals("->") && !targetLabel.isEmpty() && !targetLabel.contains("->")) {
                     if (addedSource) { // Only add arrow if we have a source node (or it existed)
                         plantuml.append("-->\n");
                     }

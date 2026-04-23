@@ -365,26 +365,16 @@ public class PlantUmlCallChainGenerator {
     private boolean shouldFilterNode(FlowNode node) {
         if (node == null) return true;
 
-        // 过滤类节点（只保留方法节点）
-        if (node.getType() == FlowNode.NodeType.CLASS) {
-            return true;
-        }
-
-        // 过滤任何包含"->"的字段
+        // 只过滤明确等于 "->" 的标签
         String methodName = node.getMethodName();
         String displayName = node.getDisplayName();
-        String className = node.getClassName();
-        String id = node.getId();
-        String methodSignature = node.getMethodSignature();
 
-        if ((methodName != null && (methodName.equals("->") || methodName.contains("->"))) ||
-            (displayName != null && (displayName.equals("->") || displayName.contains("->"))) ||
-            (className != null && (className.equals("->") || className.contains("->"))) ||
-            (id != null && (id.equals("->") || id.contains("->"))) ||
-            (methodSignature != null && (methodSignature.equals("->") || methodSignature.contains("->")))) {
+        if ((methodName != null && methodName.equals("->")) ||
+            (displayName != null && displayName.equals("->"))) {
             return true;
         }
 
+        String className = node.getClassName();
         if (className == null || className.isEmpty()) return false;
 
         // 过滤JDK包
@@ -465,40 +455,23 @@ public class PlantUmlCallChainGenerator {
         int count = 0;
 
         for (FlowEdge edge : graph.getEdges()) {
-            // 最严格的检查：源节点和目标节点都必须是METHOD类型
             FlowNode source = edge.getSource();
             FlowNode target = edge.getTarget();
             if (source == null || target == null) continue;
-
-            if (source.getType() != FlowNode.NodeType.METHOD ||
-                target.getType() != FlowNode.NodeType.METHOD) {
-                continue;
-            }
-
-            // 检查所有字段是否有 "->"
-            if (hasArrowInAnyField(source) || hasArrowInAnyField(target)) {
-                continue;
-            }
 
             if (shouldFilterEdge(edge)) continue;
 
             String sourceLabel = getDescriptiveLabel(source);
             String targetLabel = getDescriptiveLabel(target);
 
-            // 多重检查
-            if (!isValidLabel(sourceLabel) || !isValidLabel(targetLabel)) continue;
-            if (!sourceLabel.contains(".") || !targetLabel.contains(".")) continue;
+            // 核心：只过滤完全等于 "->" 的
             if (sourceLabel.equals("->") || targetLabel.equals("->")) continue;
-            if (sourceLabel.contains("->") || targetLabel.contains("->")) continue;
 
             sourceLabel = escapeLabel(sourceLabel);
             targetLabel = escapeLabel(targetLabel);
 
-            // 再次检查
-            if (!isValidLabel(sourceLabel) || !isValidLabel(targetLabel)) continue;
+            if (sourceLabel.isEmpty() || targetLabel.isEmpty()) continue;
             if (sourceLabel.equals("->") || targetLabel.equals("->")) continue;
-            if (sourceLabel.contains("->") || targetLabel.contains("->")) continue;
-
             if (sourceLabel.length() > 80 || targetLabel.length() > 80) continue;
 
             String edgeKey = sourceLabel + "|" + targetLabel;
@@ -517,37 +490,6 @@ public class PlantUmlCallChainGenerator {
 
             if (count >= 20) break;
         }
-
-        if (count == 0) {
-            plantuml.append(":开始处理;\n");
-            plantuml.append("-->\n");
-            plantuml.append(":结束;\n");
-        }
-
-        plantuml.append("\nstop\n");
-        plantuml.append("@enduml\n");
-
-        return plantuml.toString();
-    }
-
-    /**
-     * 检查节点的任何字段是否包含 "->"
-     */
-    private boolean hasArrowInAnyField(FlowNode node) {
-        if (node == null) return true;
-
-        String methodName = node.getMethodName();
-        String displayName = node.getDisplayName();
-        String className = node.getClassName();
-        String id = node.getId();
-        String methodSignature = node.getMethodSignature();
-
-        return (methodName != null && (methodName.equals("->") || methodName.contains("->"))) ||
-               (displayName != null && (displayName.equals("->") || displayName.contains("->"))) ||
-               (className != null && (className.equals("->") || className.contains("->"))) ||
-               (id != null && (id.equals("->") || id.contains("->"))) ||
-               (methodSignature != null && (methodSignature.equals("->") || methodSignature.contains("->")));
-    }
 
         if (count == 0) {
             plantuml.append(":开始处理;\n");
@@ -908,47 +850,30 @@ public class PlantUmlCallChainGenerator {
             String methodName = node.getMethodName() != null ? node.getMethodName() : "";
             String displayName = node.getDisplayName() != null ? node.getDisplayName() : methodName;
 
-            // 验证方法名有效
-            if (methodName.isEmpty() || methodName.equals("->") || methodName.contains("->")) {
-                return "";
-            }
-            if (displayName != null && (displayName.equals("->") || displayName.contains("->"))) {
+            // 只过滤完全等于 "->" 的
+            if (methodName.equals("->") || (displayName != null && displayName.equals("->"))) {
                 return "";
             }
 
-            String label;
             if (!className.isEmpty()) {
                 String simpleClassName = className;
                 int lastDot = className.lastIndexOf('.');
                 if (lastDot > 0) {
                     simpleClassName = className.substring(lastDot + 1);
                 }
-                label = simpleClassName + "." + displayName;
-            } else {
-                label = displayName;
+                return simpleClassName + "." + displayName;
             }
-
-            // 最终检查：确保标签不是 "->" 且不包含 "->"
-            if (label == null || label.isEmpty() || label.equals("->") || label.contains("->")) {
-                return "";
-            }
-            return label;
+            return displayName;
         } else {
             String displayName = node.getDisplayName() != null ? node.getDisplayName() : node.getClassName();
+            if (displayName != null && displayName.equals("->")) {
+                return "";
+            }
             if (displayName != null) {
-                // 验证显示名有效
-                if (displayName.equals("->") || displayName.contains("->")) {
-                    return "";
-                }
                 int lastDot = displayName.lastIndexOf('.');
                 if (lastDot > 0) {
                     displayName = displayName.substring(lastDot + 1);
                 }
-            }
-
-            // 最终检查
-            if (displayName == null || displayName.isEmpty() || displayName.equals("->") || displayName.contains("->")) {
-                return "";
             }
             return displayName;
         }
@@ -965,12 +890,11 @@ public class PlantUmlCallChainGenerator {
             String className = node.getClassName() != null ? node.getClassName() : "";
             String methodName = node.getMethodName() != null ? node.getMethodName() : "";
 
-            // 验证方法名有效
-            if (methodName.isEmpty() || methodName.equals("->") || methodName.contains("->")) {
+            // 只过滤完全等于 "->" 的
+            if (methodName.equals("->")) {
                 return "";
             }
 
-            String label;
             if (!className.isEmpty()) {
                 String simpleClassName = className;
                 int lastDot = className.lastIndexOf('.');
@@ -979,35 +903,21 @@ public class PlantUmlCallChainGenerator {
                 }
                 String chineseNote = getMethodTranslation(methodName);
                 if (!chineseNote.isEmpty()) {
-                    label = simpleClassName + "." + methodName + "\\n(" + chineseNote + ")";
-                } else {
-                    label = simpleClassName + "." + methodName;
+                    return simpleClassName + "." + methodName + "\\n(" + chineseNote + ")";
                 }
-            } else {
-                label = methodName;
+                return simpleClassName + "." + methodName;
             }
-
-            // 最终检查：确保标签不是 "->" 且不包含 "->"
-            if (label == null || label.isEmpty() || label.equals("->") || label.contains("->")) {
-                return "";
-            }
-            return label;
+            return methodName;
         } else {
             String displayName = node.getDisplayName() != null ? node.getDisplayName() : node.getClassName();
+            if (displayName != null && displayName.equals("->")) {
+                return "";
+            }
             if (displayName != null) {
-                // 验证显示名有效
-                if (displayName.equals("->") || displayName.contains("->")) {
-                    return "";
-                }
                 int lastDot = displayName.lastIndexOf('.');
                 if (lastDot > 0) {
                     displayName = displayName.substring(lastDot + 1);
                 }
-            }
-
-            // 最终检查
-            if (displayName == null || displayName.isEmpty() || displayName.equals("->") || displayName.contains("->")) {
-                return "";
             }
             return displayName;
         }
@@ -1111,11 +1021,8 @@ public class PlantUmlCallChainGenerator {
         if (label.equals("->") || label.contains("->")) {
             return false;
         }
-        // 只允许安全字符：字母、数字、下划线、点、空格、括号、中文
-        if (!label.matches("^[a-zA-Z0-9_\\.\\s\\(\\)\\u4e00-\\u9fa5]+$")) {
-            return false;
-        }
-        return true;
+        // 允许安全字符：字母、数字、下划线、点、空格、括号、中文、换行符
+        return true; // 暂时先完全放宽，只过滤 "->"
     }
 
     /**

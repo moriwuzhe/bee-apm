@@ -442,6 +442,7 @@
                     <el-option label="最近7天" :value="168" />
                   </el-select>
                   <el-button type="primary" @click="loadMemoryHistory" :loading="historyLoading">查询</el-button>
+                  <el-button type="success" @click="refreshCharts">🔄 刷新图表</el-button>
                   
                   <!-- Phase 1: 实时监控开关 -->
                   <el-divider direction="vertical" />
@@ -2555,6 +2556,23 @@ const handleDialogOpened = () => {
   if (currentDiagType.value === 'memoryChart') {
     renderChartsAfterDialogOpen()
   }
+}
+
+// 手动刷新图表（用户点击按钮时调用）
+const refreshCharts = () => {
+  console.log('🔄 用户手动刷新图表...')
+  
+  // 确保在 history Tab
+  memoryTab.value = 'history'
+  
+  // 等待一小段时间后渲染
+  setTimeout(() => {
+    console.log('⏰ 开始渲染图表...')
+    renderMemoryCharts()
+    renderGcCharts(memoryHistory.value)
+    console.log('✅ 图表渲染完成')
+    ElMessage.success('图表已刷新')
+  }, 300)
 }
 
 // 在 Dialog 打开后渲染图表

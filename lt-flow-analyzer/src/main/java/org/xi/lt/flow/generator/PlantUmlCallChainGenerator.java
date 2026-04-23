@@ -370,15 +370,21 @@ public class PlantUmlCallChainGenerator {
             return true;
         }
 
-        // 过滤有"->"的节点
+        // 过滤任何包含"->"的字段
         String methodName = node.getMethodName();
         String displayName = node.getDisplayName();
+        String className = node.getClassName();
+        String id = node.getId();
+        String methodSignature = node.getMethodSignature();
+
         if ((methodName != null && (methodName.equals("->") || methodName.contains("->"))) ||
-            (displayName != null && (displayName.equals("->") || displayName.contains("->")))) {
+            (displayName != null && (displayName.equals("->") || displayName.contains("->"))) ||
+            (className != null && (className.equals("->") || className.contains("->"))) ||
+            (id != null && (id.equals("->") || id.contains("->"))) ||
+            (methodSignature != null && (methodSignature.equals("->") || methodSignature.contains("->")))) {
             return true;
         }
 
-        String className = node.getClassName();
         if (className == null || className.isEmpty()) return false;
 
         // 过滤JDK包
@@ -462,15 +468,28 @@ public class PlantUmlCallChainGenerator {
             if (shouldFilterEdge(edge)) continue;
 
             if (edge.getSource() != null && edge.getTarget() != null) {
-                String sourceLabel = escapeLabel(getDescriptiveLabel(edge.getSource()));
-                String targetLabel = escapeLabel(getDescriptiveLabel(edge.getTarget()));
-                String edgeKey = sourceLabel + "|" + targetLabel;
+                String sourceLabel = getDescriptiveLabel(edge.getSource());
+                String targetLabel = getDescriptiveLabel(edge.getTarget());
 
-                if (sourceLabel.isEmpty() || targetLabel.isEmpty() ||
-                    sourceLabel.length() > 80 || targetLabel.length() > 80 ||
-                    sourceLabel.equals("->") || targetLabel.equals("->")) {
+                // 先检查未转义的标签是否有效
+                if (!isValidLabel(sourceLabel) || !isValidLabel(targetLabel)) {
                     continue;
                 }
+
+                // 然后转义
+                sourceLabel = escapeLabel(sourceLabel);
+                targetLabel = escapeLabel(targetLabel);
+
+                // 再次检查转义后的标签
+                if (!isValidLabel(sourceLabel) || !isValidLabel(targetLabel)) {
+                    continue;
+                }
+
+                if (sourceLabel.length() > 80 || targetLabel.length() > 80) {
+                    continue;
+                }
+
+                String edgeKey = sourceLabel + "|" + targetLabel;
 
                 if (!processed.contains(edgeKey)) {
                     if (!processed.contains(sourceLabel)) {
@@ -855,15 +874,23 @@ public class PlantUmlCallChainGenerator {
                 return "";
             }
 
+            String label;
             if (!className.isEmpty()) {
                 String simpleClassName = className;
                 int lastDot = className.lastIndexOf('.');
                 if (lastDot > 0) {
                     simpleClassName = className.substring(lastDot + 1);
                 }
-                return simpleClassName + "." + displayName;
+                label = simpleClassName + "." + displayName;
+            } else {
+                label = displayName;
             }
-            return displayName;
+
+            // 最终检查：确保标签不是 "->" 且不包含 "->"
+            if (label == null || label.isEmpty() || label.equals("->") || label.contains("->")) {
+                return "";
+            }
+            return label;
         } else {
             String displayName = node.getDisplayName() != null ? node.getDisplayName() : node.getClassName();
             if (displayName != null) {
@@ -873,8 +900,13 @@ public class PlantUmlCallChainGenerator {
                 }
                 int lastDot = displayName.lastIndexOf('.');
                 if (lastDot > 0) {
-                    return displayName.substring(lastDot + 1);
+                    displayName = displayName.substring(lastDot + 1);
                 }
+            }
+
+            // 最终检查
+            if (displayName == null || displayName.isEmpty() || displayName.equals("->") || displayName.contains("->")) {
+                return "";
             }
             return displayName;
         }
@@ -896,6 +928,7 @@ public class PlantUmlCallChainGenerator {
                 return "";
             }
 
+            String label;
             if (!className.isEmpty()) {
                 String simpleClassName = className;
                 int lastDot = className.lastIndexOf('.');
@@ -904,11 +937,19 @@ public class PlantUmlCallChainGenerator {
                 }
                 String chineseNote = getMethodTranslation(methodName);
                 if (!chineseNote.isEmpty()) {
-                    return simpleClassName + "." + methodName + "\\n(" + chineseNote + ")";
+                    label = simpleClassName + "." + methodName + "\\n(" + chineseNote + ")";
+                } else {
+                    label = simpleClassName + "." + methodName;
                 }
-                return simpleClassName + "." + methodName;
+            } else {
+                label = methodName;
             }
-            return methodName;
+
+            // 最终检查：确保标签不是 "->" 且不包含 "->"
+            if (label == null || label.isEmpty() || label.equals("->") || label.contains("->")) {
+                return "";
+            }
+            return label;
         } else {
             String displayName = node.getDisplayName() != null ? node.getDisplayName() : node.getClassName();
             if (displayName != null) {
@@ -918,8 +959,13 @@ public class PlantUmlCallChainGenerator {
                 }
                 int lastDot = displayName.lastIndexOf('.');
                 if (lastDot > 0) {
-                    return displayName.substring(lastDot + 1);
+                    displayName = displayName.substring(lastDot + 1);
                 }
+            }
+
+            // 最终检查
+            if (displayName == null || displayName.isEmpty() || displayName.equals("->") || displayName.contains("->")) {
+                return "";
             }
             return displayName;
         }
@@ -1014,10 +1060,31 @@ public class PlantUmlCallChainGenerator {
     }
 
     /**
+     * 检查标签是否有效
+     */
+    private boolean isValidLabel(String label) {
+        if (label == null || label.isEmpty()) {
+            return false;
+        }
+        if (label.equals("->") || label.contains("->")) {
+            return false;
+        }
+        // 只允许安全字符：字母、数字、下划线、点、空格、括号、中文
+        if (!label.matches("^[a-zA-Z0-9_\\.\\s\\(\\)\\u4e00-\\u9fa5]+$")) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * 转义标签中的特殊字符
      */
     private String escapeLabel(String label) {
-        if (label == null) {
+        if (label == null || label.isEmpty()) {
+            return "";
+        }
+        // 再次确保不允许"->"
+        if (label.equals("->") || label.contains("->")) {
             return "";
         }
         return label.replace("\"", "'")

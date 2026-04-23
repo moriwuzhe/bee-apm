@@ -365,6 +365,14 @@ public class PlantUmlCallChainGenerator {
     private boolean shouldFilterNode(FlowNode node) {
         if (node == null) return true;
 
+        // 过滤有"->"的节点
+        String methodName = node.getMethodName();
+        String displayName = node.getDisplayName();
+        if ((methodName != null && (methodName.equals("->") || methodName.contains("->"))) ||
+            (displayName != null && (displayName.equals("->") || displayName.contains("->")))) {
+            return true;
+        }
+
         String className = node.getClassName();
         if (className == null || className.isEmpty()) return false;
 
@@ -386,7 +394,6 @@ public class PlantUmlCallChainGenerator {
         }
 
         // 过滤setter/getter方法
-        String methodName = node.getMethodName();
         if (methodName != null && node.getType() == FlowNode.NodeType.METHOD) {
             if ((methodName.startsWith("get") && methodName.length() > 3) ||
                 (methodName.startsWith("set") && methodName.length() > 3) ||

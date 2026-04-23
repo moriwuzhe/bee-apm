@@ -177,7 +177,7 @@ public class FlowGraphDiffService {
      */
     public FlowGraph generateHighlightedDiffGraph(DiffResult diffResult) {
         FlowGraph diffGraph = FlowGraph.builder()
-                .name("差异对比: " + diffResult.getOldGraph().getName() + " vs " + diffResult.getNewGraph().getName())
+                .name("差异对比: " + cleanFileName(diffResult.getOldGraph().getName()) + " vs " + cleanFileName(diffResult.getNewGraph().getName()))
                 .build();
 
         Map<String, FlowNode> nodeMap = new HashMap<>();
@@ -251,5 +251,24 @@ public class FlowGraphDiffService {
         newEdge.setCallCount(edge.getCallCount());
         newEdge.setCondition(edge.getCondition());
         return newEdge;
+    }
+
+    /**
+     * 清理文件名，移除UUID前缀
+     */
+    private String cleanFileName(String fileName) {
+        if (fileName == null) {
+            return null;
+        }
+        // 移除UUID前缀（格式：UUID_OriginalFileName）
+        int underscoreIndex = fileName.indexOf('_');
+        if (underscoreIndex > 0 && underscoreIndex < 40) { // UUID是36字符
+            String prefix = fileName.substring(0, underscoreIndex);
+            // 检查是否是UUID格式（8-4-4-4-12）
+            if (prefix.matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")) {
+                return fileName.substring(underscoreIndex + 1);
+            }
+        }
+        return fileName;
     }
 }

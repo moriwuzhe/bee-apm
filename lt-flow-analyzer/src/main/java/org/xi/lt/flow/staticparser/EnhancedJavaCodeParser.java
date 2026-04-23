@@ -109,7 +109,7 @@ public class EnhancedJavaCodeParser {
 
         CompilationUnit cu = result.getResult().get();
         FlowGraph graph = FlowGraph.builder()
-                .name(javaFile.getName())
+                .name(cleanFileName(javaFile.getName()))
                 .description("从文件 " + javaFile.getAbsolutePath() + " 生成的流程图，入口: " + entryMethodId)
                 .build();
 
@@ -386,6 +386,25 @@ public class EnhancedJavaCodeParser {
      */
     private String buildDisplayText(String simpleClassName, String methodName, String signature) {
         return simpleClassName + "." + methodName + "()";
+    }
+
+    /**
+     * 清理文件名，移除UUID前缀
+     */
+    private String cleanFileName(String fileName) {
+        if (fileName == null) {
+            return null;
+        }
+        // 移除UUID前缀（格式：UUID_OriginalFileName）
+        int underscoreIndex = fileName.indexOf('_');
+        if (underscoreIndex > 0 && underscoreIndex < 40) { // UUID是36字符
+            String prefix = fileName.substring(0, underscoreIndex);
+            // 检查是否是UUID格式（8-4-4-4-12）
+            if (prefix.matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")) {
+                return fileName.substring(underscoreIndex + 1);
+            }
+        }
+        return fileName;
     }
 
     /**

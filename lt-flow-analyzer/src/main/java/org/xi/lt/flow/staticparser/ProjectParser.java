@@ -237,7 +237,7 @@ public class ProjectParser {
      */
     private FlowGraph parseAndMergeFiles(List<File> javaFiles, String projectName) {
         FlowGraph mergedGraph = FlowGraph.builder()
-                .name(projectName)
+                .name(cleanFileName(projectName))
                 .description("从项目 " + projectName + " 生成的流程图，包含 " + javaFiles.size() + " 个文件")
                 .build();
 
@@ -308,6 +308,25 @@ public class ProjectParser {
         }
 
         return destFile;
+    }
+
+    /**
+     * 清理文件名，移除UUID前缀
+     */
+    private String cleanFileName(String fileName) {
+        if (fileName == null) {
+            return null;
+        }
+        // 移除UUID前缀（格式：UUID_OriginalFileName）
+        int underscoreIndex = fileName.indexOf('_');
+        if (underscoreIndex > 0 && underscoreIndex < 40) { // UUID是36字符
+            String prefix = fileName.substring(0, underscoreIndex);
+            // 检查是否是UUID格式（8-4-4-4-12）
+            if (prefix.matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")) {
+                return fileName.substring(underscoreIndex + 1);
+            }
+        }
+        return fileName;
     }
 
     /**

@@ -342,8 +342,9 @@ const realtimeTimer = ref<any>(null)
 const getAgentId = async (): Promise<string> => {
   if (!props.agentInfo) return ''
   try {
+    console.log('[诊断] 获取Agent连接列表...')
     const connections = await fetchAgentConnections()
-    console.log('Available connections:', connections.map(c => c.agentId))
+    console.log('[诊断] 可用连接:', connections.map(c => c.agentId))
     
     // 精确匹配: app@inst@ip格式
     const exactMatch = connections.find(conn => {
@@ -352,16 +353,16 @@ const getAgentId = async (): Promise<string> => {
     })
     
     if (exactMatch) {
-      console.log('Found exact match:', exactMatch.agentId)
+      console.log('[诊断] 找到精确匹配:', exactMatch.agentId)
       return exactMatch.agentId
     }
     
     // 降级: 使用app@inst格式
     const fallbackId = `${props.agentInfo.app}@${props.agentInfo.inst}`
-    console.warn('Using fallback agentId:', fallbackId)
+    console.warn('[诊断] 未找到精确匹配，使用降级agentId:', fallbackId)
     return fallbackId
   } catch (e) {
-    console.error('Failed to fetch agent connections, using fallback', e)
+    console.error('[诊断] 获取Agent连接失败，使用降级agentId', e)
     return `${props.agentInfo.app}@${props.agentInfo.inst}`
   }
 }
@@ -369,6 +370,7 @@ const getAgentId = async (): Promise<string> => {
 // 加载历史数据
 const loadHistoryData = async () => {
   if (!props.agentInfo) return
+  console.log('[诊断] 加载历史数据...', props.agentInfo)
   try {
     const endTime = Date.now()
     const startTime = endTime - 3600000 // 最近1小时
@@ -379,9 +381,10 @@ const loadHistoryData = async () => {
       endTime,
       100
     )
+    console.log('[诊断] 历史数据加载成功:', memoryHistoryData.value.length, '条记录')
     renderCharts()
   } catch (error) {
-    console.error('加载历史数据失败', error)
+    console.error('[诊断] 加载历史数据失败', error)
   } finally {
     loading.value = false
   }
@@ -443,12 +446,12 @@ watch(activeTab, (newTab) => {
 // 渲染内存图表
 const renderMemoryChart = () => {
   if (!memoryChartRef.value || memoryHistoryData.value.length === 0) {
-    console.warn('Memory chart: No data or ref not ready')
+    console.warn('[诊断] 内存图表: 无数据或DOM未就绪')
     return
   }
   // 检查DOM是否有有效尺寸
   if (memoryChartRef.value.clientWidth === 0 || memoryChartRef.value.clientHeight === 0) {
-    console.warn('Memory chart: DOM has no dimensions, skipping initialization')
+    console.warn('[诊断] 内存图表: DOM尺寸为0，跳过初始化')
     return
   }
   if (!memoryChart) memoryChart = echarts.init(memoryChartRef.value)
@@ -456,7 +459,7 @@ const renderMemoryChart = () => {
   const data = memoryHistoryData.value.sort((a, b) => a.collectTime - b.collectTime)
   const times = data.map(d => new Date(d.collectTime).toLocaleTimeString())
 
-  console.log('Rendering memory chart with', data.length, 'data points')
+  console.log('[诊断] 渲染内存图表，数据点:', data.length)
 
   memoryChart.setOption({
     tooltip: { trigger: 'axis' },
@@ -489,18 +492,19 @@ const renderMemoryChart = () => {
 // 渲染GC图表
 const renderGcChart = () => {
   if (!gcChartRef.value || memoryHistoryData.value.length === 0) {
-    console.warn('GC chart: No data or ref not ready')
+    console.warn('[诊断] GC图表: 无数据或DOM未就绪')
     return
   }
   // 检查DOM是否有有效尺寸
   if (gcChartRef.value.clientWidth === 0 || gcChartRef.value.clientHeight === 0) {
-    console.warn('GC chart: DOM has no dimensions, skipping initialization')
+    console.warn('[诊断] GC图表: DOM尺寸为0，跳过初始化')
     return
   }
   if (!gcChart) gcChart = echarts.init(gcChartRef.value)
 
   const data = memoryHistoryData.value.sort((a, b) => a.collectTime - b.collectTime)
   const times = data.map(d => new Date(d.collectTime).toLocaleTimeString())
+  console.log('[诊断] 渲染GC图表，数据点:', data.length)
 
   gcChart.setOption({
     tooltip: { trigger: 'axis' },
@@ -532,18 +536,19 @@ const renderGcChart = () => {
 // 渲染线程图表
 const renderThreadChart = () => {
   if (!threadChartRef.value || memoryHistoryData.value.length === 0) {
-    console.warn('Thread chart: No data or ref not ready')
+    console.warn('[诊断] 线程图表: 无数据或DOM未就绪')
     return
   }
   // 检查DOM是否有有效尺寸
   if (threadChartRef.value.clientWidth === 0 || threadChartRef.value.clientHeight === 0) {
-    console.warn('Thread chart: DOM has no dimensions, skipping initialization')
+    console.warn('[诊断] 线程图表: DOM尺寸为0，跳过初始化')
     return
   }
   if (!threadChart) threadChart = echarts.init(threadChartRef.value)
 
   const data = memoryHistoryData.value.sort((a, b) => a.collectTime - b.collectTime)
   const times = data.map(d => new Date(d.collectTime).toLocaleTimeString())
+  console.log('[诊断] 渲染线程图表，数据点:', data.length)
 
   threadChart.setOption({
     tooltip: { trigger: 'axis' },
@@ -574,18 +579,19 @@ const renderThreadChart = () => {
 // 渲染IO/网络图表
 const renderIoChart = () => {
   if (!ioChartRef.value || memoryHistoryData.value.length === 0) {
-    console.warn('IO chart: No data or ref not ready')
+    console.warn('[诊断] IO图表: 无数据或DOM未就绪')
     return
   }
   // 检查DOM是否有有效尺寸
   if (ioChartRef.value.clientWidth === 0 || ioChartRef.value.clientHeight === 0) {
-    console.warn('IO chart: DOM has no dimensions, skipping initialization')
+    console.warn('[诊断] IO图表: DOM尺寸为0，跳过初始化')
     return
   }
   if (!ioChart) ioChart = echarts.init(ioChartRef.value)
 
   const data = memoryHistoryData.value.sort((a, b) => a.collectTime - b.collectTime)
   const times = data.map(d => new Date(d.collectTime).toLocaleTimeString())
+  console.log('[诊断] 渲染IO图表，数据点:', data.length)
 
   ioChart.setOption({
     tooltip: { trigger: 'axis' },
@@ -621,12 +627,6 @@ const renderIoChart = () => {
     ]
   })
   setTimeout(() => ioChart?.resize(), 100)
-}
-
-// 刷新数据
-const refreshData = () => {
-  emit('refresh', props.agentInfo)
-  ElMessage.success('数据已刷新')
 }
 
 // 获取JVM信息

@@ -21,6 +21,12 @@ public class KnowledgeGraph {
     private String repoPath;     // 代码库路径
     private Map<String, GraphNode> nodes = new HashMap<>(); // 节点集合（ID -> Node）
     private List<GraphEdge> edges = new ArrayList<>(); // 边集合
+    
+    // 确保使用构建器时也能初始化默认值
+    public static class KnowledgeGraphBuilder {
+        private Map<String, GraphNode> nodes = new HashMap<>();
+        private List<GraphEdge> edges = new ArrayList<>();
+    }
 
     // 添加节点
     public void addNode(GraphNode node) {

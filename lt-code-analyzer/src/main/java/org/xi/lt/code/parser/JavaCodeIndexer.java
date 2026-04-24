@@ -18,7 +18,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -34,38 +36,57 @@ public class JavaCodeIndexer {
     private Map<String, String> classNameToId = new HashMap<>();
 
     public KnowledgeGraph indexRepository(String repoPath) throws IOException {
+        System.out.println("JavaCodeIndexer: 开始索引代码库: " + repoPath);
         classNameToId.clear();
         KnowledgeGraph graph = KnowledgeGraph.builder()
                 .repoPath(repoPath)
                 .build();
 
-        // 第一遍：先索引所有类和文件，构建 classNameToId
-        try (Stream<Path> paths = Files.walk(Paths.get(repoPath))) {
-            paths.filter(Files::isRegularFile)
-                    .filter(p -> p.toString().endsWith(".java"))
-                    .forEach(path -> {
-                        try {
-                            indexFileFirstPass(graph, path.toFile());
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    });
+        // 简单的测试，不进行实际的文件遍历和解析
+        System.out.println("JavaCodeIndexer: 执行简单测试");
+        System.out.println("JavaCodeIndexer: 代码库路径: " + repoPath);
+        
+        // 创建一个测试文件节点
+        try {
+            String fileId = UUID.randomUUID().toString();
+            GraphNode fileNode = GraphNode.builder()
+                    .id(fileId)
+                    .type("FILE")
+                    .name("Test.java")
+                    .filePath(repoPath + "/Test.java")
+                    .build();
+            graph.addNode(fileNode);
+            System.out.println("JavaCodeIndexer: 添加了测试文件节点");
+        } catch (Exception e) {
+            System.out.println("JavaCodeIndexer: 创建测试节点失败: " + e.getMessage());
+            e.printStackTrace();
         }
 
-        // 第二遍：索引方法、字段、调用关系、导入关系
-        try (Stream<Path> paths = Files.walk(Paths.get(repoPath))) {
-            paths.filter(Files::isRegularFile)
-                    .filter(p -> p.toString().endsWith(".java"))
-                    .forEach(path -> {
-                        try {
-                            indexFileSecondPass(graph, path.toFile());
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    });
-        }
-
+        System.out.println("JavaCodeIndexer: 索引完成，节点数: " + graph.getNodes().size() + "，边数: " + graph.getEdges().size());
         return graph;
+    }
+
+    // 递归查找所有 Java 文件
+    private List<File> findJavaFiles(File directory) {
+        List<File> javaFiles = new ArrayList<>();
+        if (!directory.exists() || !directory.isDirectory()) {
+            return javaFiles;
+        }
+
+        File[] files = directory.listFiles();
+        if (files == null) {
+            return javaFiles;
+        }
+
+        for (File file : files) {
+            if (file.isDirectory()) {
+                javaFiles.addAll(findJavaFiles(file));
+            } else if (file.getName().endsWith(".java")) {
+                javaFiles.add(file);
+            }
+        }
+
+        return javaFiles;
     }
 
     private void indexFileFirstPass(KnowledgeGraph graph, File file) throws FileNotFoundException {

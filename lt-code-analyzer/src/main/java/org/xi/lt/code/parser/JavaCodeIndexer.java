@@ -3,7 +3,9 @@ package org.xi.lt.code.parser;
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParseResult;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import org.xi.lt.code.model.GraphEdge;
@@ -50,7 +52,7 @@ public class JavaCodeIndexer {
                     });
         }
 
-        // 第二遍：索引方法和调用关系
+        // 第二遍：索引方法、字段、调用关系、导入关系
         try (Stream<Path> paths = Files.walk(Paths.get(repoPath))) {
             paths.filter(Files::isRegularFile)
                     .filter(p -> p.toString().endsWith(".java"))
@@ -146,6 +148,30 @@ public class JavaCodeIndexer {
 
         CompilationUnit cu = result.getResult().get();
 
+        // 先处理文件节点（从 graph 中获取）
+        GraphNode fileNode = graph.getNodes().values().stream()
+                .filter(n -> "FILE".equals(n.getType()) && file.getAbsolutePath().equals(n.getFilePath()))
+                .findFirst()
+                .orElse(null);
+        if (fileNode == null) {
+            return;
+        }
+        String fileId = fileNode.getId();
+
+        // 处理导入关系
+        cu.findAll(ImportDeclaration.class).forEach(imp -> {
+            String importedName = imp.getNameAsString();
+            GraphNode importedNode = graph.findNodeByQualifiedName(importedName);
+            if (importedNode != null) {
+                graph.addEdge(GraphEdge.builder()
+                        .id(UUID.randomUUID().toString())
+                        .sourceId(fileId)
+                        .targetId(importedNode.getId())
+                        .type("IMPORTS")
+                        .build());
+            }
+        });
+
         // 处理类和接口
         cu.findAll(ClassOrInterfaceDeclaration.class).forEach(clazz -> {
             String qualifiedName = clazz.getFullyQualifiedName().orElse(clazz.getNameAsString());
@@ -154,6 +180,30 @@ public class JavaCodeIndexer {
                 return;
             }
             String classId = classNode.getId();
+
+            // 处理字段
+            clazz.getFields().forEach(field -> {
+                field.getVariables().forEach(var -> {
+                    String fieldId = UUID.randomUUID().toString();
+                    GraphNode fieldNode = GraphNode.builder()
+                            .id(fieldId)
+                            .type("FIELD")
+                            .name(var.getNameAsString())
+                            .qualifiedName(qualifiedName + "#" + var.getNameAsString())
+                            .filePath(file.getAbsolutePath())
+                            .parentId(classId)
+                            .build();
+                    graph.addNode(fieldNode);
+
+                    // 字段包含在类中
+                    graph.addEdge(GraphEdge.builder()
+                            .id(UUID.randomUUID().toString())
+                            .sourceId(classId)
+                            .targetId(fieldId)
+                            .type("CONTAINS")
+                            .build());
+                });
+            });
 
             // 处理方法
             clazz.getMethods().forEach(method -> {

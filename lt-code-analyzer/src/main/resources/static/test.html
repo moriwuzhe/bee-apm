@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test</title>
+    <script src="https://unpkg.com/vis-network@latest/dist/vis-network.min.js"></script>
+</head>
+<body>
+    <h1>Test Page</h1>
+    <div id="debug"></div>
+    <div id="network" style="height:400px;"></div>
+    <script>
+        console.log('Test JavaScript execution');
+        document.getElementById('debug').innerHTML = 'JavaScript executed successfully!';
+        
+        // 测试 vis.js 库
+        if (typeof vis !== 'undefined') {
+            document.getElementById('debug').innerHTML += '<br>vis.js 库加载成功';
+            
+            // 创建简单的网络
+            const container = document.getElementById('network');
+            const nodes = [
+                { id: 1, label: 'Node 1' },
+                { id: 2, label: 'Node 2' },
+                { id: 3, label: 'Node 3' }
+            ];
+            const edges = [
+                { from: 1, to: 2 },
+                { from: 2, to: 3 }
+            ];
+            const data = { nodes: nodes, edges: edges };
+            const options = {};
+            const network = new vis.Network(container, data, options);
+            document.getElementById('debug').innerHTML += '<br>网络创建成功';
+        } else {
+            document.getElementById('debug').innerHTML += '<br>vis.js 库加载失败';
+        }
+    </script>
+</body>
+</html>

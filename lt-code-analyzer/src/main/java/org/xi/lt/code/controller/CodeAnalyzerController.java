@@ -45,16 +45,52 @@ public class CodeAnalyzerController {
      */
     @PostMapping("/index")
     public IndexResponse indexRepository(@RequestBody IndexRequest request) {
-        // 直接返回成功响应，不做任何其他操作
         System.out.println("CodeAnalyzerController: 接收到索引请求");
         System.out.println("CodeAnalyzerController: 代码库路径: " + request.getRepoPath());
         
-        // 直接返回成功响应
-        return IndexResponse.builder()
-                .success(true)
-                .nodeCount(3)
-                .edgeCount(2)
-                .build();
+        // 简单的错误处理
+        if (request.getRepoPath() == null || request.getRepoPath().isEmpty()) {
+            System.out.println("CodeAnalyzerController: 代码库路径为空");
+            return IndexResponse.builder()
+                    .success(false)
+                    .error("代码库路径不能为空")
+                    .build();
+        }
+        
+        File repoDir = new File(request.getRepoPath());
+        if (!repoDir.exists()) {
+            System.out.println("CodeAnalyzerController: 代码库路径不存在: " + request.getRepoPath());
+            return IndexResponse.builder()
+                    .success(false)
+                    .error("代码库路径不存在")
+                    .build();
+        }
+        
+        if (!repoDir.isDirectory()) {
+            System.out.println("CodeAnalyzerController: 代码库路径不是目录: " + request.getRepoPath());
+            return IndexResponse.builder()
+                    .success(false)
+                    .error("代码库路径不是目录")
+                    .build();
+        }
+        
+        try {
+            System.out.println("CodeAnalyzerController: 开始索引代码库");
+            cachedGraph = indexer.indexRepository(request.getRepoPath());
+            System.out.println("CodeAnalyzerController: 索引完成，节点数: " + cachedGraph.getNodes().size() + "，边数: " + cachedGraph.getEdges().size());
+            return IndexResponse.builder()
+                    .success(true)
+                    .nodeCount(cachedGraph.getNodes().size())
+                    .edgeCount(cachedGraph.getEdges().size())
+                    .build();
+        } catch (Exception e) {
+            System.out.println("CodeAnalyzerController: 索引失败: " + e.getMessage());
+            e.printStackTrace();
+            return IndexResponse.builder()
+                    .success(false)
+                    .error(e.getMessage())
+                    .build();
+        }
     }
 
     /**
@@ -298,6 +334,116 @@ public class CodeAnalyzerController {
         return QueryResponse.builder().nodes(results).nodeCount(results.size()).build();
     }
 
+    /**
+     * P3 功能 1: API Route Map - API 路由 → 处理函数 → 消费者的映射
+     */
+    @GetMapping("/apiRouteMap")
+    public ApiRouteMapResponse getApiRouteMap() {
+        if (cachedGraph == null) {
+            return ApiRouteMapResponse.builder().error("No index found, please index first").build();
+        }
+
+        // 查找所有控制器类
+        List<GraphNode> controllerClasses = cachedGraph.getNodes().values().stream()
+                .filter(n -> "CLASS".equals(n.getType()) && n.getName().contains("Controller"))
+                .collect(Collectors.toList());
+
+        // 构建 API 路由映射
+        List<ApiRoute> apiRoutes = new ArrayList<>();
+        for (GraphNode controllerClass : controllerClasses) {
+            // 查找控制器类中的方法
+            List<GraphNode> methods = cachedGraph.getNodes().values().stream()
+                    .filter(n -> "METHOD".equals(n.getType()) && controllerClass.getId().equals(n.getParentId()))
+                    .collect(Collectors.toList());
+
+            // 为每个方法创建 API 路由
+            for (GraphNode method : methods) {
+                // 简化版本：根据方法名推断 API 路由
+                String route = "/api/" + controllerClass.getName().replace("Controller", "").toLowerCase() + "/" + method.getName().toLowerCase();
+                ApiRoute apiRoute = ApiRoute.builder()
+                        .route(route)
+                        .controllerClass(controllerClass.getName())
+                        .methodName(method.getName())
+                        .build();
+                apiRoutes.add(apiRoute);
+            }
+        }
+
+        return ApiRouteMapResponse.builder()
+                .apiRoutes(apiRoutes)
+                .routeCount(apiRoutes.size())
+                .build();
+    }
+
+    /**
+     * P0 功能 8: MCP 工具 - 给 AI 助手提供代码查询能力
+     */
+    @PostMapping("/mcp/query")
+    public MCPQueryResponse mcpQuery(@RequestBody MCPQueryRequest request) {
+        if (cachedGraph == null) {
+            return MCPQueryResponse.builder().error("No index found, please index first").build();
+        }
+
+        // 处理不同类型的查询
+        switch (request.getQueryType()) {
+            case "findClass":
+                return findClass(request.getQuery());
+            case "findMethod":
+                return findMethod(request.getQuery());
+            case "findField":
+                return findField(request.getQuery());
+            case "findUsage":
+                return findUsage(request.getQuery());
+            default:
+                return MCPQueryResponse.builder().error("Unknown query type").build();
+        }
+    }
+
+    // 查找类
+    private MCPQueryResponse findClass(String query) {
+        List<GraphNode> classes = cachedGraph.getNodes().values().stream()
+                .filter(n -> "CLASS".equals(n.getType()) && n.getName().contains(query))
+                .collect(Collectors.toList());
+        return MCPQueryResponse.builder()
+                .results(classes)
+                .resultCount(classes.size())
+                .build();
+    }
+
+    // 查找方法
+    private MCPQueryResponse findMethod(String query) {
+        List<GraphNode> methods = cachedGraph.getNodes().values().stream()
+                .filter(n -> "METHOD".equals(n.getType()) && n.getName().contains(query))
+                .collect(Collectors.toList());
+        return MCPQueryResponse.builder()
+                .results(methods)
+                .resultCount(methods.size())
+                .build();
+    }
+
+    // 查找字段
+    private MCPQueryResponse findField(String query) {
+        List<GraphNode> fields = cachedGraph.getNodes().values().stream()
+                .filter(n -> "FIELD".equals(n.getType()) && n.getName().contains(query))
+                .collect(Collectors.toList());
+        return MCPQueryResponse.builder()
+                .results(fields)
+                .resultCount(fields.size())
+                .build();
+    }
+
+    // 查找使用
+    private MCPQueryResponse findUsage(String query) {
+        // 查找包含查询字符串的所有节点
+        List<GraphNode> results = cachedGraph.getNodes().values().stream()
+                .filter(n -> n.getName() != null && n.getName().contains(query))
+                .collect(Collectors.toList());
+        return MCPQueryResponse.builder()
+                .results(results)
+                .resultCount(results.size())
+                .build();
+    }
+
     @Data
     @Builder
     @NoArgsConstructor
@@ -377,6 +523,45 @@ public class CodeAnalyzerController {
     public static class QueryResponse {
         private List<GraphNode> nodes;
         private Integer nodeCount;
+        private String error;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ApiRoute {
+        private String route;
+        private String controllerClass;
+        private String methodName;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ApiRouteMapResponse {
+        private List<ApiRoute> apiRoutes;
+        private Integer routeCount;
+        private String error;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MCPQueryRequest {
+        private String queryType;
+        private String query;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MCPQueryResponse {
+        private List<GraphNode> results;
+        private Integer resultCount;
         private String error;
     }
 }

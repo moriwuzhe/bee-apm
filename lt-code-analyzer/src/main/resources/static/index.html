@@ -59,6 +59,10 @@
                 <button class="tab" data-tab="impact">Impact Analysis</button>
                 <button class="tab" data-tab="detect">Detect Changes</button>
                 <button class="tab" data-tab="query">基础查询</button>
+                <button class="tab" data-tab="apiRoute">API Route Map</button>
+                <button class="tab" data-tab="mcp">MCP 工具</button>
+                <button class="tab" data-tab="visualize">知识图谱可视化</button>
+                <button class="tab" data-tab="chat">AI 聊天</button>
             </div>
 
             <!-- 索引代码库 -->
@@ -123,6 +127,55 @@
                 <button id="queryBtn" onclick="doQuery()">查询</button>
                 <div id="queryStatus" class="status" style="margin-top:15px;"></div>
                 <div id="queryResult" class="context-result" style="margin-top:20px;"></div>
+            </div>
+
+            <!-- API Route Map -->
+            <div id="apiRoute-tab" class="tab-content">
+                <div class="result-title">API 路由映射</div>
+                <button id="apiRouteBtn" onclick="getApiRouteMap()">获取 API 路由映射</button>
+                <div id="apiRouteStatus" class="status" style="margin-top:15px;"></div>
+                <div id="apiRouteResult" class="context-result" style="margin-top:20px;"></div>
+            </div>
+
+            <!-- MCP 工具 -->
+            <div id="mcp-tab" class="tab-content">
+                <div class="result-title">MCP 工具 - 代码查询</div>
+                <div class="form-group">
+                    <label for="mcpQueryType">查询类型</label>
+                    <select id="mcpQueryType" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;">
+                        <option value="findClass">查找类</option>
+                        <option value="findMethod">查找方法</option>
+                        <option value="findField">查找字段</option>
+                        <option value="findUsage">查找使用</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="mcpQuery">查询关键词</label>
+                    <input type="text" id="mcpQuery" placeholder="输入关键词" />
+                </div>
+                <button id="mcpBtn" onclick="doMCPQuery()">查询</button>
+                <div id="mcpStatus" class="status" style="margin-top:15px;"></div>
+                <div id="mcpResult" class="context-result" style="margin-top:20px;"></div>
+            </div>
+
+            <!-- 知识图谱可视化 -->
+            <div id="visualize-tab" class="tab-content">
+                <div class="result-title">知识图谱可视化</div>
+                <div id="graphVisual" class="graph-visual">
+                    <div>正在加载知识图谱...</div>
+                </div>
+            </div>
+
+            <!-- AI 聊天 -->
+            <div id="chat-tab" class="tab-content">
+                <div class="result-title">AI 聊天</div>
+                <div style="height:400px;border:2px solid #e0e0e0;border-radius:10px;padding:15px;background:#f8f9ff;overflow-y:auto;margin-bottom:15px;">
+                    <div id="chatMessages"></div>
+                </div>
+                <div style="display:flex;gap:10px;">
+                    <input type="text" id="chatInput" placeholder="输入您的问题..." style="flex:1;" />
+                    <button id="chatBtn" onclick="sendChatMessage()">发送</button>
+                </div>
             </div>
         </div>
     </div>
@@ -374,6 +427,150 @@
                 btn.disabled = false;
             }
         }
+
+        async function getApiRouteMap() {
+            const btn = document.getElementById('apiRouteBtn');
+            const status = document.getElementById('apiRouteStatus');
+            const result = document.getElementById('apiRouteResult');
+
+            btn.disabled = true;
+            status.style.display = 'none';
+            result.classList.remove('show');
+
+            try {
+                const res = await fetch('/api/code/apiRouteMap');
+                const data = await res.json();
+
+                if (data.error) {
+                    status.className = 'status error';
+                    status.textContent = `获取失败：${data.error}`;
+                    status.style.display = 'block';
+                } else {
+                    result.innerHTML = `
+                        <div style="margin-bottom:15px;">
+                            <div style="font-weight:600;">API 路由映射：${data.routeCount} 个</div>
+                        </div>
+                        <div style="display:grid;gap:10px;">
+                            ${data.apiRoutes.map(route => `
+                                <div class="edge-item">
+                                    <strong>路由：</strong>${route.route}<br>
+                                    <strong>控制器：</strong>${route.controllerClass}<br>
+                                    <strong>方法：</strong>${route.methodName}
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    result.classList.add('show');
+                }
+            } catch (e) {
+                status.className = 'status error';
+                status.textContent = `请求失败：${e.message}`;
+                status.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function doMCPQuery() {
+            const queryType = document.getElementById('mcpQueryType').value;
+            const query = document.getElementById('mcpQuery').value;
+            const btn = document.getElementById('mcpBtn');
+            const status = document.getElementById('mcpStatus');
+            const result = document.getElementById('mcpResult');
+
+            btn.disabled = true;
+            status.style.display = 'none';
+            result.classList.remove('show');
+
+            try {
+                const res = await fetch('/api/code/mcp/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ queryType, query })
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    status.className = 'status error';
+                    status.textContent = `查询失败：${data.error}`;
+                    status.style.display = 'block';
+                } else {
+                    result.innerHTML = `
+                        <div style="margin-bottom:15px;">
+                            <div style="font-weight:600;">查询结果：${data.resultCount} 个</div>
+                        </div>
+                        <div class="node-list">
+                            ${data.results.map(n => `<div class="node-item ${n.type}">${n.qualifiedName || n.name}</div>`).join('')}
+                        </div>
+                    `;
+                    result.classList.add('show');
+                }
+            } catch (e) {
+                status.className = 'status error';
+                status.textContent = `请求失败：${e.message}`;
+                status.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function loadGraphVisual() {
+            const container = document.getElementById('graphVisual');
+            if (!graph || !graph.nodes) {
+                container.innerHTML = '<div style="color:#999;">请先索引代码库</div>';
+                return;
+            }
+
+            // 简单的可视化实现
+            container.innerHTML = `
+                <div style="font-weight:600;margin-bottom:15px;">知识图谱可视化</div>
+                <div style="font-size:14px;">
+                    <div>节点数：${Object.keys(graph.nodes).length}</div>
+                    <div>边数：${graph.edges ? graph.edges.length : 0}</div>
+                    <div style="margin-top:10px;">节点类型分布：</div>
+                    ${Object.values(graph.nodes).reduce((acc, node) => {
+                        acc[node.type] = (acc[node.type] || 0) + 1;
+                        return acc;
+                    }, {}).map((count, type) => `<div>${type}: ${count}</div>`).join('')}
+                </div>
+            `;
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML += `
+                <div style="margin-bottom:10px;">
+                    <div style="font-weight:600;">您：</div>
+                    <div style="background:white;padding:10px;border-radius:8px;">${message}</div>
+                </div>
+            `;
+            input.value = '';
+
+            // 模拟 AI 回复
+            setTimeout(() => {
+                chatMessages.innerHTML += `
+                    <div style="margin-bottom:10px;">
+                        <div style="font-weight:600;">AI：</div>
+                        <div style="background:#e3f2fd;padding:10px;border-radius:8px;">这是一个模拟的 AI 回复。在实际应用中，这里会调用真实的 AI 服务来生成回复。</div>
+                    </div>
+                `;
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 1000);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 监听 tab 切换，加载对应内容
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                if (this.dataset.tab === 'visualize') {
+                    loadGraphVisual();
+                }
+            });
+        });
     </script>
 </body>
 </html>

@@ -42,23 +42,36 @@ public class JavaCodeIndexer {
                 .repoPath(repoPath)
                 .build();
 
-        // 简单的测试，不进行实际的文件遍历和解析
-        System.out.println("JavaCodeIndexer: 执行简单测试");
-        System.out.println("JavaCodeIndexer: 代码库路径: " + repoPath);
-        
-        // 创建一个测试文件节点
+        // 遍历目录，找到所有 Java 文件
+        System.out.println("JavaCodeIndexer: 开始遍历目录");
         try {
-            String fileId = UUID.randomUUID().toString();
-            GraphNode fileNode = GraphNode.builder()
-                    .id(fileId)
-                    .type("FILE")
-                    .name("Test.java")
-                    .filePath(repoPath + "/Test.java")
-                    .build();
-            graph.addNode(fileNode);
-            System.out.println("JavaCodeIndexer: 添加了测试文件节点");
+            File repoDir = new File(repoPath);
+            List<File> javaFiles = findJavaFiles(repoDir);
+            System.out.println("JavaCodeIndexer: 找到 " + javaFiles.size() + " 个 Java 文件");
+
+            // 第一遍：先索引所有类和文件，构建 classNameToId
+            System.out.println("JavaCodeIndexer: 开始第一遍索引");
+            for (File file : javaFiles) {
+                try {
+                    indexFileFirstPass(graph, file);
+                } catch (Exception e) {
+                    System.out.println("JavaCodeIndexer: 索引文件失败 (第一遍): " + file.getAbsolutePath());
+                    e.printStackTrace();
+                }
+            }
+
+            // 第二遍：索引方法、字段、调用关系、导入关系
+            System.out.println("JavaCodeIndexer: 开始第二遍索引");
+            for (File file : javaFiles) {
+                try {
+                    indexFileSecondPass(graph, file);
+                } catch (Exception e) {
+                    System.out.println("JavaCodeIndexer: 索引文件失败 (第二遍): " + file.getAbsolutePath());
+                    e.printStackTrace();
+                }
+            }
         } catch (Exception e) {
-            System.out.println("JavaCodeIndexer: 创建测试节点失败: " + e.getMessage());
+            System.out.println("JavaCodeIndexer: 遍历目录失败: " + e.getMessage());
             e.printStackTrace();
         }
 

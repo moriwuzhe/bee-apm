@@ -893,6 +893,19 @@
                 <div ref="gcPressureRef" class="chart-box-large"></div>
               </el-col>
             </el-row>
+            
+            <!-- 6. 内存池详细趋势 -->
+            <div class="section-header">
+              <h3>️ 内存池详细趋势</h3>
+            </div>
+            <el-row :gutter="16" class="charts-row">
+              <el-col :span="12">
+                <div ref="edenSurvivorChartRef" class="chart-box-large" data-chart="eden-survivor"></div>
+              </el-col>
+              <el-col :span="12">
+                <div ref="oldGenChartDetailRef" class="chart-box-large" data-chart="old-gen"></div>
+              </el-col>
+            </el-row>
             </template>
           </div>
         </div>

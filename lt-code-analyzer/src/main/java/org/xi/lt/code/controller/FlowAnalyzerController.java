@@ -29,7 +29,7 @@ import org.xi.lt.code.staticparser.ProjectParser;
 import org.xi.lt.code.theme.ChartTheme;
 import org.xi.lt.code.theme.ThemeInfo;
 import org.xi.lt.code.theme.ThemesResponse;
-import org.xi.lt.server.domain.model.span.SpanView;
+import org.xi.lt.code.model.SpanView;
 
 import java.io.File;
 import java.io.IOException;

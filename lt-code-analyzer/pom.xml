@@ -41,12 +41,7 @@
             <version>5.13.2.202306221912-r</version>
         </dependency>
 
-        <!-- LT Domain - APM 领域模型 -->
-        <dependency>
-            <groupId>org.xi.lt</groupId>
-            <artifactId>lt-domain</artifactId>
-            <version>1.0.0</version>
-        </dependency>
+
 
         <!-- PlantUML - 支持所有 PlantUML 图表类型 -->
         <dependency>

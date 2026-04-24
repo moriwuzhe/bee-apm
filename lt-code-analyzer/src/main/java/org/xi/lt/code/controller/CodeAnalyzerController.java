@@ -8,7 +8,8 @@ import org.springframework.web.bind.annotation.*;
 import org.xi.lt.code.model.GraphEdge;
 import org.xi.lt.code.model.GraphNode;
 import org.xi.lt.code.model.KnowledgeGraph;
-import org.xi.lt.code.parser.JavaCodeIndexer;
+import org.xi.lt.code.parser.CodeIndexer;
+import org.xi.lt.code.parser.CodeIndexerFactory;
 
 import java.io.File;
 import java.util.*;
@@ -23,7 +24,7 @@ import java.util.stream.Collectors;
 @CrossOrigin(origins = "*")
 public class CodeAnalyzerController {
 
-    private final JavaCodeIndexer indexer = new JavaCodeIndexer();
+    // 不再使用单独的 JavaCodeIndexer，而是使用 CodeIndexerFactory
 
     // 缓存索引后的图
     private KnowledgeGraph cachedGraph = null;
@@ -76,7 +77,15 @@ public class CodeAnalyzerController {
         
         try {
             System.out.println("CodeAnalyzerController: 开始索引代码库");
-            cachedGraph = indexer.indexRepository(request.getRepoPath());
+            // 创建一个新的知识图谱
+            KnowledgeGraph graph = KnowledgeGraph.builder()
+                    .repoPath(request.getRepoPath())
+                    .build();
+
+            // 遍历目录，根据文件类型选择合适的索引器
+            indexDirectory(graph, repoDir);
+
+            cachedGraph = graph;
             System.out.println("CodeAnalyzerController: 索引完成，节点数: " + cachedGraph.getNodes().size() + "，边数: " + cachedGraph.getEdges().size());
             return IndexResponse.builder()
                     .success(true)
@@ -91,6 +100,54 @@ public class CodeAnalyzerController {
                     .error(e.getMessage())
                     .build();
         }
+    }
+
+    // 递归索引目录
+    private void indexDirectory(KnowledgeGraph graph, File directory) throws Exception {
+        File[] files = directory.listFiles();
+        if (files == null) {
+            return;
+        }
+
+        for (File file : files) {
+            if (file.isDirectory()) {
+                // 递归索引子目录
+                indexDirectory(graph, file);
+            } else {
+                // 根据文件扩展名选择合适的索引器
+                String fileName = file.getName();
+                int dotIndex = fileName.lastIndexOf('.');
+                if (dotIndex > 0) {
+                    String extension = fileName.substring(dotIndex + 1);
+                    CodeIndexer indexer = CodeIndexerFactory.getIndexerByExtension(extension);
+                    if (indexer != null) {
+                        // 为每种语言创建一个临时图谱，然后合并到主图谱
+                        KnowledgeGraph languageGraph = indexer.indexRepository(file.getParent());
+                        mergeGraphs(graph, languageGraph);
+                    }
+                }
+            }
+        }
+    }
+
+    // 合并两个知识图谱
+    private void mergeGraphs(KnowledgeGraph target, KnowledgeGraph source) {
+        // 合并节点
+        source.getNodes().forEach((id, node) -> {
+            if (!target.getNodes().containsKey(id)) {
+                target.addNode(node);
+            }
+        });
+
+        // 合并边
+        source.getEdges().forEach(edge -> {
+            // 检查边是否已存在
+            boolean edgeExists = target.getEdges().stream()
+                    .anyMatch(e -> e.getId().equals(edge.getId()));
+            if (!edgeExists) {
+                target.addEdge(edge);
+            }
+        });
     }
 
     /**

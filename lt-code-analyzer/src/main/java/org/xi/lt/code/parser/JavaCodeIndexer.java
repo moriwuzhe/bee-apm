@@ -28,7 +28,7 @@ import java.util.stream.Stream;
 /**
  * Java 代码索引器 - 把代码库解析成知识图谱
  */
-public class JavaCodeIndexer {
+public class JavaCodeIndexer implements CodeIndexer {
 
     private final JavaParser javaParser = new JavaParser();
 
@@ -277,5 +277,10 @@ public class JavaCodeIndexer {
                 });
             });
         });
+    }
+
+    @Override
+    public String[] getSupportedLanguages() {
+        return new String[]{"java"};
     }
 }

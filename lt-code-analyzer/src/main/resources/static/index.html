@@ -521,6 +521,21 @@
                 return;
             }
 
+            // 计算节点类型分布
+            const typeCount = {};
+            for (const nodeId in graph.nodes) {
+                const node = graph.nodes[nodeId];
+                if (node.type) {
+                    typeCount[node.type] = (typeCount[node.type] || 0) + 1;
+                }
+            }
+
+            // 构建节点类型分布的 HTML
+            let typeDistributionHtml = '';
+            for (const type in typeCount) {
+                typeDistributionHtml += `<div>${type}: ${typeCount[type]}</div>`;
+            }
+
             // 简单的可视化实现
             container.innerHTML = `
                 <div style="font-weight:600;margin-bottom:15px;">知识图谱可视化</div>
@@ -528,10 +543,7 @@
                     <div>节点数：${Object.keys(graph.nodes).length}</div>
                     <div>边数：${graph.edges ? graph.edges.length : 0}</div>
                     <div style="margin-top:10px;">节点类型分布：</div>
-                    ${Object.values(graph.nodes).reduce((acc, node) => {
-                        acc[node.type] = (acc[node.type] || 0) + 1;
-                        return acc;
-                    }, {}).map((count, type) => `<div>${type}: ${count}</div>`).join('')}
+                    ${typeDistributionHtml}
                 </div>
             `;
         }

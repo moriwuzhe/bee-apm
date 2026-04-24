@@ -177,6 +177,44 @@ public class CodeAnalyzerController {
                 .build();
     }
 
+    /**
+     * P2 功能 1: Detect Changes - 分析文件变更的影响范围
+     */
+    @PostMapping("/detectChanges")
+    public DetectChangesResponse detectChanges(@RequestBody DetectChangesRequest request) {
+        if (cachedGraph == null) {
+            return DetectChangesResponse.builder().error("No index found, please index first").build();
+        }
+        // 简化版本：根据文件路径找出相关节点，然后执行Impact Analysis
+        List<GraphNode> changedNodes = cachedGraph.getNodes().values().stream()
+                .filter(n -> request.getChangedFiles().stream().anyMatch(f -> n.getFilePath() != null && n.getFilePath().contains(f)))
+                .collect(Collectors.toList());
+        List<GraphNode> allImpacted = new ArrayList<>();
+        for (GraphNode node : changedNodes) {
+            ImpactResponse impact = getImpact(node.getId());
+            if (impact.getUpstreamImpact() != null) allImpacted.addAll(impact.getUpstreamImpact());
+            if (impact.getDownstreamImpact() != null) allImpacted.addAll(impact.getDownstreamImpact());
+        }
+        // 去重
+        Set<String> seenIds = new HashSet<>();
+        List<GraphNode> uniqueImpacted = new ArrayList<>();
+        for (GraphNode n : allImpacted) {
+            if (!seenIds.contains(n.getId())) {
+                seenIds.add(n.getId());
+                uniqueImpacted.add(n);
+            }
+        }
+        String riskLevel = "LOW";
+        if (uniqueImpacted.size() > 10) riskLevel = "HIGH";
+        else if (uniqueImpacted.size() > 3) riskLevel = "MEDIUM";
+        return DetectChangesResponse.builder()
+                .changedNodes(changedNodes)
+                .impactedNodes(uniqueImpacted)
+                .totalImpactCount(uniqueImpacted.size())
+                .riskLevel(riskLevel)
+                .build();
+    }
+
     @Data
     @Builder
     @NoArgsConstructor
@@ -215,6 +253,26 @@ public class CodeAnalyzerController {
         private GraphNode node;
         private List<GraphNode> upstreamImpact;
         private List<GraphNode> downstreamImpact;
+        private Integer totalImpactCount;
+        private String riskLevel;
+        private String error;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DetectChangesRequest {
+        private List<String> changedFiles;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DetectChangesResponse {
+        private List<GraphNode> changedNodes;
+        private List<GraphNode> impactedNodes;
         private Integer totalImpactCount;
         private String riskLevel;
         private String error;

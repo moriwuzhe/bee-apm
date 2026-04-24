@@ -57,6 +57,7 @@
                 <button class="tab active" data-tab="index">索引代码库</button>
                 <button class="tab" data-tab="context">Context 查询</button>
                 <button class="tab" data-tab="impact">Impact Analysis</button>
+                <button class="tab" data-tab="detect">Detect Changes</button>
             </div>
 
             <!-- 索引代码库 -->
@@ -86,6 +87,18 @@
                 <div class="result-title">选择节点分析影响</div>
                 <div id="nodeListImpact" class="node-list"></div>
                 <div id="impactResult" class="impact-result"></div>
+            </div>
+
+            <!-- Detect Changes -->
+            <div id="detect-tab" class="tab-content">
+                <div class="result-title">分析文件变更影响</div>
+                <div class="form-group">
+                    <label for="changedFiles">变更文件列表（每行一个文件路径片段）</label>
+                    <textarea id="changedFiles" rows="5" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;" placeholder="MyClass.java&#10;service/"></textarea>
+                </div>
+                <button id="detectBtn" onclick="doDetect()">分析影响</button>
+                <div id="detectStatus" class="status" style="margin-top:15px;"></div>
+                <div id="detectResult" class="impact-result" style="margin-top:20px;"></div>
             </div>
         </div>
     </div>
@@ -239,6 +252,59 @@
             } catch (e) {
                 container.innerHTML = `<div class="status error">请求失败：${e.message}</div>`;
                 container.classList.add('show');
+            }
+        }
+
+        async function doDetect() {
+            const changedFiles = document.getElementById('changedFiles').value.split('\n').map(f => f.trim()).filter(f => f.length > 0);
+            const btn = document.getElementById('detectBtn');
+            const status = document.getElementById('detectStatus');
+            const result = document.getElementById('detectResult');
+
+            btn.disabled = true;
+            status.style.display = 'none';
+            result.classList.remove('show');
+
+            try {
+                const res = await fetch('/api/code/detectChanges', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ changedFiles })
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    status.className = 'status error';
+                    status.textContent = `分析失败：${data.error}`;
+                    status.style.display = 'block';
+                } else {
+                    const riskClass = `risk-${data.riskLevel.toLowerCase()}`;
+                    result.innerHTML = `
+                        <div style="margin-bottom:15px;">
+                            <div style="font-weight:600;">风险级别：<span class="${riskClass}" style="padding:6px 12px;border-radius:6px;">${data.riskLevel}</span></div>
+                            <div>总影响节点数：${data.totalImpactCount}</div>
+                        </div>
+                        <div style="margin-bottom:15px;">
+                            <div style="font-weight:600;margin-bottom:8px;">变更节点：${data.changedNodes.length} 个</div>
+                            <div class="node-list">
+                                ${data.changedNodes.map(n => `<div class="node-item ${n.type}">${n.qualifiedName || n.name}</div>`).join('')}
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-weight:600;margin-bottom:8px;">影响节点：${data.impactedNodes.length} 个</div>
+                            <div class="node-list">
+                                ${data.impactedNodes.map(n => `<div class="node-item ${n.type}">${n.qualifiedName || n.name}</div>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                    result.classList.add('show');
+                }
+            } catch (e) {
+                status.className = 'status error';
+                status.textContent = `请求失败：${e.message}`;
+                status.style.display = 'block';
+            } finally {
+                btn.disabled = false;
             }
         }
     </script>

@@ -172,6 +172,10 @@
             background: #f3e5f5;
             border-left: 4px solid #9c27b0;
         }
+        .node-item.INTERFACE {
+            background: #e0f7fa;
+            border-left: 4px solid #00bcd4;
+        }
         .edge-item {
             padding: 10px;
             margin-bottom: 10px;
@@ -227,8 +231,12 @@
         <div id="context-tab" class="tab-content">
             <div class="result-title">Context 查询</div>
             <div class="form-group">
-                <label for="nodeId">节点 ID</label>
-                <input type="text" id="nodeId" placeholder="输入节点 ID" />
+                <label for="contextNodeSelect">选择节点（先选择再查询）</label>
+                <select id="contextNodeSelect" onchange="document.getElementById('nodeId').value = this.value" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;margin-bottom:10px;">
+                    <option value="">-- 请先点击"加载节点列表"按钮 --</option>
+                </select>
+                <button id="loadNodesBtn1" onclick="loadNodesForContext()" style="margin-bottom:15px;padding:8px 16px;font-size:12px;background:#f5f5f5;color:#333;">加载节点列表</button>
+                <input type="text" id="nodeId" placeholder="或直接输入节点 ID" />
             </div>
             <button id="contextBtn" onclick="getContext()">查询</button>
             <div id="contextStatus" class="status" style="margin-top:15px;"></div>
@@ -238,8 +246,12 @@
         <div id="impact-tab" class="tab-content">
             <div class="result-title">Impact Analysis</div>
             <div class="form-group">
-                <label for="impactNodeId">节点 ID</label>
-                <input type="text" id="impactNodeId" placeholder="输入节点 ID" />
+                <label for="impactNodeSelect">选择节点（先选择再分析）</label>
+                <select id="impactNodeSelect" onchange="document.getElementById('impactNodeId').value = this.value" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:8px;margin-bottom:10px;">
+                    <option value="">-- 请先点击"加载节点列表"按钮 --</option>
+                </select>
+                <button id="loadNodesBtn2" onclick="loadNodesForImpact()" style="margin-bottom:15px;padding:8px 16px;font-size:12px;background:#f5f5f5;color:#333;">加载节点列表</button>
+                <input type="text" id="impactNodeId" placeholder="或直接输入节点 ID" />
             </div>
             <button id="impactBtn" onclick="getImpact()">分析</button>
             <div id="impactStatus" class="status" style="margin-top:15px;"></div>
@@ -325,27 +337,21 @@
         </div>
     </div>
     <script>
-        // 全局变量，用于存储知识图谱
         let graph = null;
 
-        // 标签页切换
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', function() {
-                // 移除所有标签页的 active 类
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                // 添加当前标签页的 active 类
                 this.classList.add('active');
                 const tabId = this.dataset.tab;
                 document.getElementById(`${tabId}-tab`).classList.add('active');
-                // 如果切换到可视化标签页，加载知识图谱
                 if (tabId === 'visualize') {
                     loadGraphVisual();
                 }
             });
         });
 
-        // 索引代码库
         async function indexRepository() {
             const repoPath = document.getElementById('repoPath').value;
             const btn = document.getElementById('indexBtn');
@@ -366,7 +372,6 @@
                     status.className = 'status success';
                     status.textContent = '索引成功：' + data.nodeCount + ' 个节点，' + data.edgeCount + ' 条边';
                     status.style.display = 'block';
-                    // 加载知识图谱
                     await loadGraph();
                 } else {
                     status.className = 'status error';
@@ -382,7 +387,6 @@
             }
         }
 
-        // 加载知识图谱
         async function loadGraph() {
             try {
                 const res = await fetch('/api/code/graph');
@@ -392,14 +396,10 @@
             }
         }
 
-        // 加载知识图谱可视化
         function loadGraphVisual() {
             const container = document.getElementById('graphVisual');
-            
-            // 立即显示加载状态
             container.innerHTML = '<div style="color:#666;">正在加载知识图谱数据...</div>';
-            
-            // 确保知识图谱数据已加载
+
             if (!graph) {
                 loadGraph().then(() => {
                     createVisualization(container);
@@ -410,21 +410,18 @@
                 createVisualization(container);
             }
         }
-        
-        // 创建可视化
+
         function createVisualization(container) {
             if (!graph || !graph.nodes) {
                 container.innerHTML = '<div style="color:#999;">请先索引代码库</div>';
                 return;
             }
 
-            // 检查 vis 库是否加载
             if (typeof vis === 'undefined') {
                 container.innerHTML = '<div style="color:red;">vis.js 库加载失败，请刷新页面重试</div>';
                 return;
             }
 
-            // 计算节点类型分布
             const typeCount = {};
             for (const nodeId in graph.nodes) {
                 const node = graph.nodes[nodeId];
@@ -433,14 +430,12 @@
                 }
             }
 
-            // 构建节点类型分布的 HTML
             let typeDistributionHtml = '';
             for (const type in typeCount) {
                 typeDistributionHtml += '<div>' + type + ': ' + typeCount[type] + '</div>';
             }
 
             try {
-                // 创建图形化的知识图谱
                 container.innerHTML = '<div style="font-weight:600;margin-bottom:15px;">知识图谱可视化</div>' +
                     '<div style="font-size:14px;margin-bottom:20px;">' +
                     '<div>节点数：' + Object.keys(graph.nodes).length + '</div>' +
@@ -450,32 +445,19 @@
                     '</div>' +
                     '<div id="network" style="height:600px;"></div>';
 
-                // 准备节点和边数据
                 const nodes = [];
                 const edges = [];
 
-                // 添加节点
                 for (const nodeId in graph.nodes) {
                     const node = graph.nodes[nodeId];
-                    let color = '#97C2FC'; // 默认颜色
-                    
-                    // 根据节点类型设置不同的颜色
+                    let color = '#97C2FC';
+
                     switch (node.type) {
-                        case 'FILE':
-                            color = '#97C2FC';
-                            break;
-                        case 'CLASS':
-                            color = '#FFBB28';
-                            break;
-                        case 'INTERFACE':
-                            color = '#00E396';
-                            break;
-                        case 'METHOD':
-                            color = '#AB83A1';
-                            break;
-                        case 'FIELD':
-                            color = '#FF8042';
-                            break;
+                        case 'FILE': color = '#97C2FC'; break;
+                        case 'CLASS': color = '#FFBB28'; break;
+                        case 'INTERFACE': color = '#00E396'; break;
+                        case 'METHOD': color = '#AB83A1'; break;
+                        case 'FIELD': color = '#FF8042'; break;
                     }
 
                     nodes.push({
@@ -487,7 +469,6 @@
                     });
                 }
 
-                // 添加边
                 if (graph.edges) {
                     for (let i = 0; i < graph.edges.length; i++) {
                         const edge = graph.edges[i];
@@ -500,35 +481,19 @@
                     }
                 }
 
-                // 创建网络实例
                 const containerNetwork = document.getElementById('network');
                 if (!containerNetwork) {
                     throw new Error('无法找到 network 元素');
                 }
 
-                const data = {
-                    nodes: nodes,
-                    edges: edges
-                };
+                const data = { nodes: nodes, edges: edges };
                 const options = {
-                    nodes: {
-                        font: {
-                            size: 12
-                        }
-                    },
+                    nodes: { font: { size: 12 } },
                     edges: {
-                        font: {
-                            size: 10,
-                            align: 'middle'
-                        },
-                        smooth: {
-                            type: 'continuous'
-                        }
+                        font: { size: 10, align: 'middle' },
+                        smooth: { type: 'continuous' }
                     },
-                    interaction: {
-                        hover: true,
-                        zoomView: true
-                    },
+                    interaction: { hover: true, zoomView: true },
                     physics: {
                         enabled: true,
                         barnesHut: {
@@ -541,19 +506,60 @@
                     }
                 };
 
-                // 创建网络实例
                 window.network = new vis.Network(containerNetwork, data, options);
             } catch (error) {
                 container.innerHTML = '<div style="color:red;">创建知识图谱可视化失败: ' + error.message + '</div>';
             }
         }
 
-        // Context 查询
+        async function loadNodesForContext() {
+            await loadGraph();
+            const select = document.getElementById('contextNodeSelect');
+            select.innerHTML = '<option value="">-- 选择节点 --</option>';
+
+            if (graph && graph.nodes) {
+                let count = 0;
+                for (const nodeId in graph.nodes) {
+                    const node = graph.nodes[nodeId];
+                    const label = (node.qualifiedName || node.name) + ' (' + node.type + ')';
+                    select.innerHTML += '<option value="' + nodeId + '">' + label + '</option>';
+                    count++;
+                    if (count >= 100) break;
+                }
+                select.innerHTML += '<option value="">... 还有 ' + (Object.keys(graph.nodes).length - 100) + ' 个节点</option>';
+            }
+        }
+
+        async function loadNodesForImpact() {
+            await loadGraph();
+            const select = document.getElementById('impactNodeSelect');
+            select.innerHTML = '<option value="">-- 选择节点 --</option>';
+
+            if (graph && graph.nodes) {
+                let count = 0;
+                for (const nodeId in graph.nodes) {
+                    const node = graph.nodes[nodeId];
+                    const label = (node.qualifiedName || node.name) + ' (' + node.type + ')';
+                    select.innerHTML += '<option value="' + nodeId + '">' + label + '</option>';
+                    count++;
+                    if (count >= 100) break;
+                }
+                select.innerHTML += '<option value="">... 还有 ' + (Object.keys(graph.nodes).length - 100) + ' 个节点</option>';
+            }
+        }
+
         async function getContext() {
             const nodeId = document.getElementById('nodeId').value;
             const btn = document.getElementById('contextBtn');
             const status = document.getElementById('contextStatus');
             const result = document.getElementById('contextResult');
+
+            if (!nodeId) {
+                status.className = 'status error';
+                status.textContent = '请输入或选择节点 ID';
+                status.style.display = 'block';
+                return;
+            }
 
             btn.disabled = true;
             status.style.display = 'none';
@@ -576,21 +582,32 @@
                     if (data.node.qualifiedName) {
                         html += '<div>完整名称: ' + data.node.qualifiedName + '</div>';
                     }
+                    if (data.node.filePath) {
+                        html += '<div>文件: ' + data.node.filePath + '</div>';
+                    }
                     html += '</div>';
 
                     html += '<div style="margin-bottom:15px;">' +
                         '<div style="font-weight:600;">入边（谁调用/包含它）：</div>';
-                    for (let i = 0; i < data.incomingEdges.length; i++) {
-                        const e = data.incomingEdges[i];
-                        html += '<div class="edge-item">' + e.type + ' from ' + e.sourceId + '</div>';
+                    if (data.incomingEdges && data.incomingEdges.length > 0) {
+                        for (let i = 0; i < data.incomingEdges.length; i++) {
+                            const e = data.incomingEdges[i];
+                            html += '<div class="edge-item">' + e.type + ' from ' + e.sourceId + '</div>';
+                        }
+                    } else {
+                        html += '<div style="color:#999;">无</div>';
                     }
                     html += '</div>';
 
                     html += '<div style="margin-bottom:15px;">' +
                         '<div style="font-weight:600;">出边（它调用/包含谁）：</div>';
-                    for (let i = 0; i < data.outgoingEdges.length; i++) {
-                        const e = data.outgoingEdges[i];
-                        html += '<div class="edge-item">' + e.type + ' to ' + e.targetId + '</div>';
+                    if (data.outgoingEdges && data.outgoingEdges.length > 0) {
+                        for (let i = 0; i < data.outgoingEdges.length; i++) {
+                            const e = data.outgoingEdges[i];
+                            html += '<div class="edge-item">' + e.type + ' to ' + e.targetId + '</div>';
+                        }
+                    } else {
+                        html += '<div style="color:#999;">无</div>';
                     }
                     html += '</div>';
 
@@ -606,12 +623,18 @@
             }
         }
 
-        // Impact Analysis
         async function getImpact() {
             const nodeId = document.getElementById('impactNodeId').value;
             const btn = document.getElementById('impactBtn');
             const status = document.getElementById('impactStatus');
             const result = document.getElementById('impactResult');
+
+            if (!nodeId) {
+                status.className = 'status error';
+                status.textContent = '请输入或选择节点 ID';
+                status.style.display = 'block';
+                return;
+            }
 
             btn.disabled = true;
             status.style.display = 'none';
@@ -635,24 +658,32 @@
 
                     html += '<div style="margin-bottom:15px;">' +
                         '<div style="font-weight:600;">上游影响（谁调用它）：</div>';
-                    for (let i = 0; i < data.upstreamImpact.length; i++) {
-                        const n = data.upstreamImpact[i];
-                        html += '<div class="node-item ' + n.type + '">' + (n.qualifiedName || n.name) + '</div>';
+                    if (data.upstreamImpact && data.upstreamImpact.length > 0) {
+                        for (let i = 0; i < data.upstreamImpact.length; i++) {
+                            const n = data.upstreamImpact[i];
+                            html += '<div class="node-item ' + n.type + '">' + (n.qualifiedName || n.name) + '</div>';
+                        }
+                    } else {
+                        html += '<div style="color:#999;">无</div>';
                     }
                     html += '</div>';
 
                     html += '<div style="margin-bottom:15px;">' +
                         '<div style="font-weight:600;">下游影响（它调用谁）：</div>';
-                    for (let i = 0; i < data.downstreamImpact.length; i++) {
-                        const n = data.downstreamImpact[i];
-                        html += '<div class="node-item ' + n.type + '">' + (n.qualifiedName || n.name) + '</div>';
+                    if (data.downstreamImpact && data.downstreamImpact.length > 0) {
+                        for (let i = 0; i < data.downstreamImpact.length; i++) {
+                            const n = data.downstreamImpact[i];
+                            html += '<div class="node-item ' + n.type + '">' + (n.qualifiedName || n.name) + '</div>';
+                        }
+                    } else {
+                        html += '<div style="color:#999;">无</div>';
                     }
                     html += '</div>';
 
                     html += '<div style="margin-bottom:15px;">' +
                         '<div style="font-weight:600;">风险评估：</div>' +
                         '<div>总影响数：' + data.totalImpactCount + '</div>' +
-                        '<div>风险等级：' + data.riskLevel + '</div>' +
+                        '<div>风险等级：' + (data.riskLevel || 'LOW') + '</div>' +
                         '</div>';
 
                     result.innerHTML = html;
@@ -667,7 +698,6 @@
             }
         }
 
-        // Detect Changes
         async function detectChanges() {
             const changedFiles = document.getElementById('changedFiles').value.split('\n').filter(f => f.trim());
             const btn = document.getElementById('detectBtn');
@@ -693,24 +723,32 @@
                 } else {
                     let html = '<div style="margin-bottom:15px;">' +
                         '<div style="font-weight:600;">变更的节点：</div>';
-                    for (let i = 0; i < data.changedNodes.length; i++) {
-                        const n = data.changedNodes[i];
-                        html += '<div class="node-item ' + n.type + '">' + (n.qualifiedName || n.name) + '</div>';
+                    if (data.changedNodes && data.changedNodes.length > 0) {
+                        for (let i = 0; i < data.changedNodes.length; i++) {
+                            const n = data.changedNodes[i];
+                            html += '<div class="node-item ' + n.type + '">' + (n.qualifiedName || n.name) + '</div>';
+                        }
+                    } else {
+                        html += '<div style="color:#999;">无</div>';
                     }
                     html += '</div>';
 
                     html += '<div style="margin-bottom:15px;">' +
                         '<div style="font-weight:600;">受影响的节点：</div>';
-                    for (let i = 0; i < data.impactedNodes.length; i++) {
-                        const n = data.impactedNodes[i];
-                        html += '<div class="node-item ' + n.type + '">' + (n.qualifiedName || n.name) + '</div>';
+                    if (data.impactedNodes && data.impactedNodes.length > 0) {
+                        for (let i = 0; i < data.impactedNodes.length; i++) {
+                            const n = data.impactedNodes[i];
+                            html += '<div class="node-item ' + n.type + '">' + (n.qualifiedName || n.name) + '</div>';
+                        }
+                    } else {
+                        html += '<div style="color:#999;">无</div>';
                     }
                     html += '</div>';
 
                     html += '<div style="margin-bottom:15px;">' +
                         '<div style="font-weight:600;">风险评估：</div>' +
                         '<div>总影响数：' + data.totalImpactCount + '</div>' +
-                        '<div>风险等级：' + data.riskLevel + '</div>' +
+                        '<div>风险等级：' + (data.riskLevel || 'LOW') + '</div>' +
                         '</div>';
 
                     result.innerHTML = html;
@@ -725,7 +763,6 @@
             }
         }
 
-        // 基础查询
         async function doQuery() {
             const nodeType = document.getElementById('nodeType').value;
             const nameContains = document.getElementById('nameContains').value;
@@ -755,9 +792,13 @@
                         '</div>';
 
                     html += '<div class="node-list">';
-                    for (let i = 0; i < data.nodes.length; i++) {
-                        const n = data.nodes[i];
-                        html += '<div class="node-item ' + n.type + '">' + (n.qualifiedName || n.name) + '</div>';
+                    if (data.nodes && data.nodes.length > 0) {
+                        for (let i = 0; i < data.nodes.length; i++) {
+                            const n = data.nodes[i];
+                            html += '<div class="node-item ' + n.type + '">' + (n.qualifiedName || n.name) + '</div>';
+                        }
+                    } else {
+                        html += '<div style="color:#999;">无结果</div>';
                     }
                     html += '</div>';
 
@@ -773,7 +814,6 @@
             }
         }
 
-        // API Route Map
         async function getApiRouteMap() {
             const btn = document.getElementById('apiRouteBtn');
             const status = document.getElementById('apiRouteStatus');
@@ -797,13 +837,17 @@
                         '</div>';
 
                     html += '<div style="display:grid;gap:10px;">';
-                    for (let i = 0; i < data.apiRoutes.length; i++) {
-                        const route = data.apiRoutes[i];
-                        html += '<div class="edge-item">' +
-                            '<strong>路由：</strong>' + route.route + '<br>' +
-                            '<strong>控制器：</strong>' + route.controllerClass + '<br>' +
-                            '<strong>方法：</strong>' + route.methodName +
-                            '</div>';
+                    if (data.apiRoutes && data.apiRoutes.length > 0) {
+                        for (let i = 0; i < data.apiRoutes.length; i++) {
+                            const route = data.apiRoutes[i];
+                            html += '<div class="edge-item">' +
+                                '<strong>路由：</strong>' + route.route + '<br>' +
+                                '<strong>控制器：</strong>' + route.controllerClass + '<br>' +
+                                '<strong>方法：</strong>' + route.methodName +
+                                '</div>';
+                        }
+                    } else {
+                        html += '<div style="color:#999;">无结果</div>';
                     }
                     html += '</div>';
 
@@ -819,7 +863,6 @@
             }
         }
 
-        // MCP 工具
         async function doMCPQuery() {
             const queryType = document.getElementById('mcpQueryType').value;
             const query = document.getElementById('mcpQuery').value;
@@ -849,9 +892,13 @@
                         '</div>';
 
                     html += '<div class="node-list">';
-                    for (let i = 0; i < data.results.length; i++) {
-                        const n = data.results[i];
-                        html += '<div class="node-item ' + n.type + '">' + (n.qualifiedName || n.name) + '</div>';
+                    if (data.results && data.results.length > 0) {
+                        for (let i = 0; i < data.results.length; i++) {
+                            const n = data.results[i];
+                            html += '<div class="node-item ' + n.type + '">' + (n.qualifiedName || n.name) + '</div>';
+                        }
+                    } else {
+                        html += '<div style="color:#999;">无结果</div>';
                     }
                     html += '</div>';
 
@@ -867,7 +914,6 @@
             }
         }
 
-        // 发送聊天消息
         function sendChatMessage() {
             const input = document.getElementById('chatInput');
             const message = input.value.trim();
@@ -880,7 +926,6 @@
                 '</div>';
             input.value = '';
 
-            // 模拟 AI 回复
             setTimeout(() => {
                 chatMessages.innerHTML += '<div style="margin-bottom:10px;">' +
                     '<div style="font-weight:600;">AI：</div>' +
@@ -891,29 +936,8 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        // 测试函数
-        function testJavaScript() {
-            console.log('JavaScript 执行测试');
-            const testDiv = document.createElement('div');
-            testDiv.style.position = 'fixed';
-            testDiv.style.top = '10px';
-            testDiv.style.left = '10px';
-            testDiv.style.background = 'white';
-            testDiv.style.padding = '10px';
-            testDiv.style.border = '1px solid black';
-            testDiv.style.zIndex = '1000';
-            testDiv.id = 'test-info';
-            document.body.appendChild(testDiv);
-            testDiv.innerHTML = 'JavaScript 执行成功！';
-        }
-
-        // 页面加载时加载知识图谱
         window.onload = async function() {
-            // 测试 JavaScript 执行
-            testJavaScript();
-            
             await loadGraph();
-            // 检查是否当前标签页是可视化标签页
             const activeTab = document.querySelector('.tab.active');
             if (activeTab && activeTab.dataset.tab === 'visualize') {
                 loadGraphVisual();

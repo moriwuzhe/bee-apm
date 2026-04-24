@@ -8,12 +8,11 @@ import org.springframework.web.bind.annotation.*;
 import org.xi.lt.code.model.GraphEdge;
 import org.xi.lt.code.model.GraphNode;
 import org.xi.lt.code.model.KnowledgeGraph;
+import org.xi.lt.code.parser.JavaCodeIndexer;
 import org.xi.lt.code.parser.CodeIndexer;
-import org.xi.lt.code.parser.CodeIndexerFactory;
 
 import java.io.File;
 import java.util.*;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -23,8 +22,6 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/code")
 @CrossOrigin(origins = "*")
 public class CodeAnalyzerController {
-
-    // 不再使用单独的 JavaCodeIndexer，而是使用 CodeIndexerFactory
 
     // 缓存索引后的图
     private KnowledgeGraph cachedGraph = null;
@@ -49,7 +46,6 @@ public class CodeAnalyzerController {
         System.out.println("CodeAnalyzerController: 接收到索引请求");
         System.out.println("CodeAnalyzerController: 代码库路径: " + request.getRepoPath());
         
-        // 简单的错误处理
         if (request.getRepoPath() == null || request.getRepoPath().isEmpty()) {
             System.out.println("CodeAnalyzerController: 代码库路径为空");
             return IndexResponse.builder()
@@ -77,15 +73,9 @@ public class CodeAnalyzerController {
         
         try {
             System.out.println("CodeAnalyzerController: 开始索引代码库");
-            // 创建一个新的知识图谱
-            KnowledgeGraph graph = KnowledgeGraph.builder()
-                    .repoPath(request.getRepoPath())
-                    .build();
-
-            // 遍历目录，根据文件类型选择合适的索引器
-            indexDirectory(graph, repoDir);
-
-            cachedGraph = graph;
+            CodeIndexer javaIndexer = new JavaCodeIndexer();
+            cachedGraph = javaIndexer.indexRepository(request.getRepoPath());
+            
             System.out.println("CodeAnalyzerController: 索引完成，节点数: " + cachedGraph.getNodes().size() + "，边数: " + cachedGraph.getEdges().size());
             return IndexResponse.builder()
                     .success(true)
@@ -102,125 +92,27 @@ public class CodeAnalyzerController {
         }
     }
 
-    // 递归索引目录
-    private void indexDirectory(KnowledgeGraph graph, File directory) throws Exception {
-        File[] files = directory.listFiles();
-        if (files == null) {
-            return;
-        }
-
-        for (File file : files) {
-            if (file.isDirectory()) {
-                // 递归索引子目录
-                indexDirectory(graph, file);
-            } else {
-                // 根据文件扩展名选择合适的索引器
-                String fileName = file.getName();
-                int dotIndex = fileName.lastIndexOf('.');
-                if (dotIndex > 0) {
-                    String extension = fileName.substring(dotIndex + 1);
-                    CodeIndexer indexer = CodeIndexerFactory.getIndexerByExtension(extension);
-                    if (indexer != null) {
-                        // 为每种语言创建一个临时图谱，然后合并到主图谱
-                        KnowledgeGraph languageGraph = indexer.indexRepository(file.getParent());
-                        mergeGraphs(graph, languageGraph);
-                    }
-                }
-            }
-        }
-    }
-
-    // 合并两个知识图谱
-    private void mergeGraphs(KnowledgeGraph target, KnowledgeGraph source) {
-        // 合并节点
-        source.getNodes().forEach((id, node) -> {
-            if (!target.getNodes().containsKey(id)) {
-                target.addNode(node);
-            }
-        });
-
-        // 合并边
-        source.getEdges().forEach(edge -> {
-            // 检查边是否已存在
-            boolean edgeExists = target.getEdges().stream()
-                    .anyMatch(e -> e.getId().equals(edge.getId()));
-            if (!edgeExists) {
-                target.addEdge(edge);
-            }
-        });
-    }
-
     /**
      * 获取知识图谱
      */
     @GetMapping("/graph")
     public KnowledgeGraph getGraph() {
         if (cachedGraph == null) {
-            // 返回一个默认的知识图谱
-            cachedGraph = KnowledgeGraph.builder()
-                    .repoPath("./src")
-                    .build();
-            
-            // 添加一些测试节点
             try {
-                // 添加文件节点
-                String fileId = UUID.randomUUID().toString();
-                GraphNode fileNode = GraphNode.builder()
-                        .id(fileId)
-                        .type("FILE")
-                        .name("CodeAnalyzerApplication.java")
-                        .filePath("./src/main/java/org/xi/lt/code/CodeAnalyzerApplication.java")
-                        .build();
-                cachedGraph.addNode(fileNode);
-                
-                // 添加类节点
-                String classId = UUID.randomUUID().toString();
-                GraphNode classNode = GraphNode.builder()
-                        .id(classId)
-                        .type("CLASS")
-                        .name("CodeAnalyzerApplication")
-                        .qualifiedName("org.xi.lt.code.CodeAnalyzerApplication")
-                        .filePath("./src/main/java/org/xi/lt/code/CodeAnalyzerApplication.java")
-                        .parentId(fileId)
-                        .build();
-                cachedGraph.addNode(classNode);
-                
-                // 添加方法节点
-                String methodId = UUID.randomUUID().toString();
-                GraphNode methodNode = GraphNode.builder()
-                        .id(methodId)
-                        .type("METHOD")
-                        .name("main")
-                        .qualifiedName("org.xi.lt.code.CodeAnalyzerApplication#main")
-                        .filePath("./src/main/java/org/xi/lt/code/CodeAnalyzerApplication.java")
-                        .parentId(classId)
-                        .build();
-                cachedGraph.addNode(methodNode);
-                
-                // 添加边
-                cachedGraph.addEdge(GraphEdge.builder()
-                        .id(UUID.randomUUID().toString())
-                        .sourceId(fileId)
-                        .targetId(classId)
-                        .type("CONTAINS")
-                        .build());
-                
-                cachedGraph.addEdge(GraphEdge.builder()
-                        .id(UUID.randomUUID().toString())
-                        .sourceId(classId)
-                        .targetId(methodId)
-                        .type("CONTAINS")
-                        .build());
+                System.out.println("CodeAnalyzerController: 没有缓存图，尝试自动索引");
+                CodeIndexer javaIndexer = new JavaCodeIndexer();
+                cachedGraph = javaIndexer.indexRepository("./src");
+                System.out.println("CodeAnalyzerController: 自动索引完成，节点数: " + cachedGraph.getNodes().size());
             } catch (Exception e) {
-                System.out.println("CodeAnalyzerController: 创建默认知识图谱失败: " + e.getMessage());
-                e.printStackTrace();
+                System.out.println("CodeAnalyzerController: 自动索引失败: " + e.getMessage());
+                cachedGraph = KnowledgeGraph.builder().repoPath("./src").build();
             }
         }
         return cachedGraph;
     }
 
     /**
-     * P0 功能 2: Context 查询 - 查询一个节点的上下文（谁调用它，它调用谁）
+     * Context 查询
      */
     @GetMapping("/context/{nodeId}")
     public ContextResponse getContext(@PathVariable String nodeId) {
@@ -233,12 +125,10 @@ public class CodeAnalyzerController {
             return ContextResponse.builder().error("Node not found").build();
         }
 
-        // 找入边（谁调用/包含它）
         List<GraphEdge> incomingEdges = cachedGraph.getEdges().stream()
                 .filter(e -> nodeId.equals(e.getTargetId()))
                 .collect(Collectors.toList());
 
-        // 找出边（它调用/包含谁）
         List<GraphEdge> outgoingEdges = cachedGraph.getEdges().stream()
                 .filter(e -> nodeId.equals(e.getSourceId()))
                 .collect(Collectors.toList());
@@ -251,7 +141,7 @@ public class CodeAnalyzerController {
     }
 
     /**
-     * P1 功能 1: Impact Analysis（影响分析） - 分析修改一个节点的影响范围
+     * Impact Analysis
      */
     @GetMapping("/impact/{nodeId}")
     public ImpactResponse getImpact(@PathVariable String nodeId) {
@@ -264,17 +154,14 @@ public class CodeAnalyzerController {
             return ImpactResponse.builder().error("Node not found").build();
         }
 
-        // BFS 找出所有可能受影响的节点（入边方向：谁调用它）
         Set<String> visited = new HashSet<>();
         Queue<String> queue = new LinkedList<>();
         queue.add(nodeId);
         visited.add(nodeId);
 
-        Map<String, List<GraphNode>> impactMap = new HashMap<>();
         List<GraphNode> upstream = new ArrayList<>();
         List<GraphNode> downstream = new ArrayList<>();
 
-        // 上游影响（谁调用它）
         while (!queue.isEmpty()) {
             String currentId = queue.poll();
             List<GraphEdge> edges = cachedGraph.getEdges().stream()
@@ -292,7 +179,6 @@ public class CodeAnalyzerController {
             }
         }
 
-        // 下游影响（它调用谁）
         visited.clear();
         queue.add(nodeId);
         visited.add(nodeId);
@@ -313,7 +199,6 @@ public class CodeAnalyzerController {
             }
         }
 
-        // 简单风险评估（节点数）
         String riskLevel = "LOW";
         if (upstream.size() + downstream.size() > 10) {
             riskLevel = "HIGH";
@@ -331,14 +216,13 @@ public class CodeAnalyzerController {
     }
 
     /**
-     * P2 功能 1: Detect Changes - 分析文件变更的影响范围
+     * Detect Changes
      */
     @PostMapping("/detectChanges")
     public DetectChangesResponse detectChanges(@RequestBody DetectChangesRequest request) {
         if (cachedGraph == null) {
             return DetectChangesResponse.builder().error("No index found, please index first").build();
         }
-        // 简化版本：根据文件路径找出相关节点，然后执行Impact Analysis
         List<GraphNode> changedNodes = cachedGraph.getNodes().values().stream()
                 .filter(n -> request.getChangedFiles().stream().anyMatch(f -> n.getFilePath() != null && n.getFilePath().contains(f)))
                 .collect(Collectors.toList());
@@ -348,7 +232,6 @@ public class CodeAnalyzerController {
             if (impact.getUpstreamImpact() != null) allImpacted.addAll(impact.getUpstreamImpact());
             if (impact.getDownstreamImpact() != null) allImpacted.addAll(impact.getDownstreamImpact());
         }
-        // 去重
         Set<String> seenIds = new HashSet<>();
         List<GraphNode> uniqueImpacted = new ArrayList<>();
         for (GraphNode n : allImpacted) {
@@ -369,7 +252,7 @@ public class CodeAnalyzerController {
     }
 
     /**
-     * P2 功能 2: 基础过滤查询（简化版本的Cypher查询）
+     * 基础查询
      */
     @PostMapping("/query")
     public QueryResponse query(@RequestBody QueryRequest request) {
@@ -392,7 +275,7 @@ public class CodeAnalyzerController {
     }
 
     /**
-     * P3 功能 1: API Route Map - API 路由 → 处理函数 → 消费者的映射
+     * API Route Map
      */
     @GetMapping("/apiRouteMap")
     public ApiRouteMapResponse getApiRouteMap() {
@@ -400,22 +283,17 @@ public class CodeAnalyzerController {
             return ApiRouteMapResponse.builder().error("No index found, please index first").build();
         }
 
-        // 查找所有控制器类
         List<GraphNode> controllerClasses = cachedGraph.getNodes().values().stream()
                 .filter(n -> "CLASS".equals(n.getType()) && n.getName().contains("Controller"))
                 .collect(Collectors.toList());
 
-        // 构建 API 路由映射
         List<ApiRoute> apiRoutes = new ArrayList<>();
         for (GraphNode controllerClass : controllerClasses) {
-            // 查找控制器类中的方法
             List<GraphNode> methods = cachedGraph.getNodes().values().stream()
                     .filter(n -> "METHOD".equals(n.getType()) && controllerClass.getId().equals(n.getParentId()))
                     .collect(Collectors.toList());
 
-            // 为每个方法创建 API 路由
             for (GraphNode method : methods) {
-                // 简化版本：根据方法名推断 API 路由
                 String route = "/api/" + controllerClass.getName().replace("Controller", "").toLowerCase() + "/" + method.getName().toLowerCase();
                 ApiRoute apiRoute = ApiRoute.builder()
                         .route(route)
@@ -433,7 +311,7 @@ public class CodeAnalyzerController {
     }
 
     /**
-     * P0 功能 8: MCP 工具 - 给 AI 助手提供代码查询能力
+     * MCP 工具
      */
     @PostMapping("/mcp/query")
     public MCPQueryResponse mcpQuery(@RequestBody MCPQueryRequest request) {
@@ -441,7 +319,6 @@ public class CodeAnalyzerController {
             return MCPQueryResponse.builder().error("No index found, please index first").build();
         }
 
-        // 处理不同类型的查询
         switch (request.getQueryType()) {
             case "findClass":
                 return findClass(request.getQuery());
@@ -456,7 +333,6 @@ public class CodeAnalyzerController {
         }
     }
 
-    // 查找类
     private MCPQueryResponse findClass(String query) {
         List<GraphNode> classes = cachedGraph.getNodes().values().stream()
                 .filter(n -> "CLASS".equals(n.getType()) && n.getName().contains(query))
@@ -467,7 +343,6 @@ public class CodeAnalyzerController {
                 .build();
     }
 
-    // 查找方法
     private MCPQueryResponse findMethod(String query) {
         List<GraphNode> methods = cachedGraph.getNodes().values().stream()
                 .filter(n -> "METHOD".equals(n.getType()) && n.getName().contains(query))
@@ -478,7 +353,6 @@ public class CodeAnalyzerController {
                 .build();
     }
 
-    // 查找字段
     private MCPQueryResponse findField(String query) {
         List<GraphNode> fields = cachedGraph.getNodes().values().stream()
                 .filter(n -> "FIELD".equals(n.getType()) && n.getName().contains(query))
@@ -489,9 +363,7 @@ public class CodeAnalyzerController {
                 .build();
     }
 
-    // 查找使用
     private MCPQueryResponse findUsage(String query) {
-        // 查找包含查询字符串的所有节点
         List<GraphNode> results = cachedGraph.getNodes().values().stream()
                 .filter(n -> n.getName() != null && n.getName().contains(query))
                 .collect(Collectors.toList());

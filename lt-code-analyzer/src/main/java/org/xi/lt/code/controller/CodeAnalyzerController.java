@@ -10,9 +10,7 @@ import org.xi.lt.code.model.GraphNode;
 import org.xi.lt.code.model.KnowledgeGraph;
 import org.xi.lt.code.parser.JavaCodeIndexer;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -99,6 +97,86 @@ public class CodeAnalyzerController {
                 .build();
     }
 
+    /**
+     * P1 功能 1: Impact Analysis（影响分析） - 分析修改一个节点的影响范围
+     */
+    @GetMapping("/impact/{nodeId}")
+    public ImpactResponse getImpact(@PathVariable String nodeId) {
+        if (cachedGraph == null) {
+            return ImpactResponse.builder().error("No index found, please index first").build();
+        }
+
+        GraphNode node = cachedGraph.getNode(nodeId);
+        if (node == null) {
+            return ImpactResponse.builder().error("Node not found").build();
+        }
+
+        // BFS 找出所有可能受影响的节点（入边方向：谁调用它）
+        Set<String> visited = new HashSet<>();
+        Queue<String> queue = new LinkedList<>();
+        queue.add(nodeId);
+        visited.add(nodeId);
+
+        Map<String, List<GraphNode>> impactMap = new HashMap<>();
+        List<GraphNode> upstream = new ArrayList<>();
+        List<GraphNode> downstream = new ArrayList<>();
+
+        // 上游影响（谁调用它）
+        while (!queue.isEmpty()) {
+            String currentId = queue.poll();
+            List<GraphEdge> edges = cachedGraph.getEdges().stream()
+                    .filter(e -> "CALLS".equals(e.getType()) && currentId.equals(e.getTargetId()))
+                    .collect(Collectors.toList());
+            for (GraphEdge edge : edges) {
+                if (!visited.contains(edge.getSourceId())) {
+                    visited.add(edge.getSourceId());
+                    GraphNode upstreamNode = cachedGraph.getNode(edge.getSourceId());
+                    if (upstreamNode != null) {
+                        upstream.add(upstreamNode);
+                        queue.add(edge.getSourceId());
+                    }
+                }
+            }
+        }
+
+        // 下游影响（它调用谁）
+        visited.clear();
+        queue.add(nodeId);
+        visited.add(nodeId);
+        while (!queue.isEmpty()) {
+            String currentId = queue.poll();
+            List<GraphEdge> edges = cachedGraph.getEdges().stream()
+                    .filter(e -> "CALLS".equals(e.getType()) && currentId.equals(e.getSourceId()))
+                    .collect(Collectors.toList());
+            for (GraphEdge edge : edges) {
+                if (!visited.contains(edge.getTargetId())) {
+                    visited.add(edge.getTargetId());
+                    GraphNode downstreamNode = cachedGraph.getNode(edge.getTargetId());
+                    if (downstreamNode != null) {
+                        downstream.add(downstreamNode);
+                        queue.add(edge.getTargetId());
+                    }
+                }
+            }
+        }
+
+        // 简单风险评估（节点数）
+        String riskLevel = "LOW";
+        if (upstream.size() + downstream.size() > 10) {
+            riskLevel = "HIGH";
+        } else if (upstream.size() + downstream.size() > 3) {
+            riskLevel = "MEDIUM";
+        }
+
+        return ImpactResponse.builder()
+                .node(node)
+                .upstreamImpact(upstream)
+                .downstreamImpact(downstream)
+                .totalImpactCount(upstream.size() + downstream.size())
+                .riskLevel(riskLevel)
+                .build();
+    }
+
     @Data
     @Builder
     @NoArgsConstructor
@@ -126,6 +204,19 @@ public class CodeAnalyzerController {
         private GraphNode node;
         private List<GraphEdge> incomingEdges;
         private List<GraphEdge> outgoingEdges;
+        private String error;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ImpactResponse {
+        private GraphNode node;
+        private List<GraphNode> upstreamImpact;
+        private List<GraphNode> downstreamImpact;
+        private Integer totalImpactCount;
+        private String riskLevel;
         private String error;
     }
 }

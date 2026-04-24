@@ -1,0 +1,95 @@
+[33m95620306[m[33m ([m[1;36mHEAD -> [m[1;32maa2[m[33m, [m[1;31morigin/aa2[m[33m)[m Feat
+[33m75c22522[m Feat
+[33m6bb196c4[m Feat
+[33m02be76e6[m Feat
+[33mb7a7a7d1[m Feat
+[33m492c122b[m Feat
+[33m13698ed2[m P2 - 添加基础查询功能
+[33mf484324c[m P2 - 添加 Detect Changes 功能
+[33m16082bb7[m P1 - 添加 Web UI 可视化
+[33m7b8e5b76[m P1 - 添加 Impact Analysis（影响分析）功能
+[33mb0c37173[m 完善 P0 - 添加字段解析和导入关系解析
+[33mbcce57e1[m 完善 P0 - 添加方法调用关系解析
+[33m18c8f864[m P0 - 实现知识图谱索引和 Context 查询基础
+[33m41886152[m 删除 lt-code-analyzer 项目，准备重新开发
+[33mbf200d1b[m lt-code-analyzer: 移除 lt-domain 依赖，添加简单的 SpanView 类
+[33maa873e10[m 创建 lt-code-analyzer 项目 - 集成 GitNexus 能力的代码分析器
+[33m8232e7ce[m S2
+[33m85fa45c4[m S2
+[33m05e328a3[m S2
+[33m851dbdc8[m S
+[33m8a8e3019[m Complete fix to remove -> nodes from PlantUML diagrams
+[33m4eedb076[m Fix: Remove '->' nodes from PlantUML diagrams
+[33m74dae80d[m fix: 修复shouldFilterNode中缺少className变量的bug
+[33mc75ade14[m Final fix: Remove class-method edges and strictest possible checks
+[33mb7fa9b90[m Add strict label validation and filtering to completely remove '->' nodes
+[33m99649b3b[m Filter out CLASS nodes from PlantUML diagrams to fix '->' nodes
+[33md3705dd5[m Fix PlantUML UUID filenames and '->' nodes, plus ECharts fixes
+[33m0c170a96[m Fix diagram styles, theme name, and ECharts warnings
+[33m0a41a6f4[m[33m ([m[1;31morigin/aa[m[33m, [m[1;32maa[m[33m)[m feat:
+[33me2e32285[m S
+[33ma0d97bc2[m S
+[33m57d1db2e[m S
+[33me4b8acd5[m S
+[33m9af53f99[m 添加 JGit 依赖用于 Git 集成
+[33m0d107033[m 添加 UML 时序图选项到 Web UI
+[33m959493e5[m 添加 UML 时序图数据模型和 DOT 生成器
+[33m1c43e4dd[m s2
+[33m6c15c2ee[m Feat:s
+[33m8192f84a[m 修复插件管理 API 路径 - 添加 /api 前缀
+[33m350e45df[m 修复所有前端 API 路径 - 统一添加 /api 前缀
+[33m70f16702[m S
+[33m747da03f[m feat: s
+[33m21e0b71f[m S
+[33ma63646f1[m 完善 Agent 端插件拉取逻辑 - 添加完整的 JSON 解析和插件下载验证功能
+[33m7a2ef65a[m s
+[33m98a1bbe4[m 修复 H2 数据库 SQL 语法错误 - 将 UNIQUE KEY 改为 UNIQUE
+[33ma1d55fdc[m 实现 Agent 端插件拉取逻辑基础框架
+[33m7390ad21[m 完善 Agent 管理页面 - 添加强大的诊断功能
+[33m15a272ce[m 优化插件更新检查逻辑
+[33m5429ee30[m 优化插件管理页面的用户体验
+[33m693d481c[m 完善插件管理页面的上传下载功能
+[33ma2e6ccc0[m 实现插件上传下载功能
+[33m111f267e[m 实现插件管理前端页面
+[33mbd8f0779[m 实现实例级配置覆盖功能
+[33mc0d05082[m 完成第二阶段和第三阶段基础功能：
+[33md8160ed3[m feat: s
+[33mc467e9fc[m feat: add Agent management UI and API
+[33m1cb39766[m feat: update ProjectView and ApplicationView to support new fields
+[33mf430b377[m feat: update ProjectService and ApplicationService to support new fields
+[33m39e2dd64[m feat: update schema.sql and DaoImpl to support new fields
+[33m883fe392[m feat: add team info to Project and app type/secret key to Application
+[33m45a4a705[m Feat:
+[33m8be6a5aa[m fix: add lt-domain dependency to lt-monitor-server-core
+[33mcf6ea2ef[m fix: update IStore imports to lt-domain
+[33ma27c02c7[m feat: add H2Store implementation
+[33m9ce17463[m refactor: fix DDD layer for store implementations
+[33m4d534707[m fix: replace fastjson2 with Jackson in lt-agent-bootstrap and lt-infrastructure
+[33m44dd3acf[m refactor: remove redundant Jackson dependencies from lt-domain
+[33m82cfbc8c[m refactor: unify JSON library to Jackson, remove fastjson2
+[33m430cbdad[m fix: add Jackson dependencies to lt-domain
+[33m0bd625fd[m fix: update maven-compiler-plugin source/target to 1.8 for lt-monitor-test-web
+[33mf8f501ae[m feat: add Excel export to AlertView
+[33m81830ac1[m feat: add Excel export to TxView and LoggerView
+[33m92e30398[m refactor: create lt-domain module and fix circular dependency
+[33me2d2a364[m rename folder2
+[33m808d9084[m rename folder
+[33m377a3336[m chore: add xlsx dependency for Excel export functionality
+[33m963688dc[m feat: add ECharts trend charts to DashboardView (mock data for now)
+[33m0ce474bb[m feat: add useLocalCache composable for local caching
+[33ma829bb31[m feat: add virtual scrolling to RequestView for better performance
+[33m6b2e7ee6[m feat: improve SkeletonLoader and use it in RequestView
+[33m73a4381b[m feat: add Excel export functionality to SqlView
+[33ma93cbd57[m feat: add Excel export functionality to MethodView
+[33mb701a0f1[m feat: add Excel export functionality to RequestView
+[33mb32f37f4[m feat: add SkeletonLoader component for loading states
+[33m66b99c7b[m feat: add data highlighting to LoggerView (error/fatal/warn logs)
+[33m6dfc3575[m feat: add data highlighting to TxView (slow transactions and error transactions)
+[33m52154b3b[m feat: add data highlighting to SqlView (slow SQL and error SQL)
+[33m3e803901[m feat: add data highlighting to MethodView (slow methods and error methods)
+[33m8426af2e[m refactor: remove separate root query routes, keep only app-scoped query pages
+[33m6eabd991[m feat: add theme toggle initialization and request view data highlighting
+[33m59f934dd[m refactor: move domain models and repositories to domain layer, move infrastructure implementations to lt-infrastructure
+[33ma9798568[m refactor: delete old server-store and server-stream modules, move IStore to domain layer
+[33m1502a7f3[m feat: add auto-refresh to all views and start DDD refactoring with lt-infrastructure module
+[33m65904db2[m feat: mer

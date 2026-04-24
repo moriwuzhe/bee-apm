@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Analyzer - 代码分析器</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; color: white; margin-bottom: 30px; }
+        .header h1 { font-size: 2.5em; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+        .main-card { background: white; border-radius: 20px; padding: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .tabs { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; }
+        .tab { padding: 12px 24px; border: none; background: none; font-size: 16px; cursor: pointer; border-radius: 8px; transition: all 0.3s ease; color: #666; }
+        .tab:hover { background: #f0f0f0; }
+        .tab.active { background: #667eea; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
+        input, button { width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px; transition: all 0.3s ease; }
+        input:focus { outline: none; border-color: #667eea; }
+        button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; cursor: pointer; font-weight: 600; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(102,126,234,0.4); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .status { padding: 15px; border-radius: 10px; margin-bottom: 20px; display: none; }
+        .status.success { background: #d4edda; color: #155724; display: block; }
+        .status.error { background: #f8d7da; color: #721c24; display: block; }
+        .result-section { margin-top: 25px; padding-top: 25px; border-top: 1px solid #e0e0e0; }
+        .result-title { font-size: 1.2em; font-weight: 600; color: #333; margin-bottom: 15px; }
+        .node-list { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+        .node-item { padding: 10px 18px; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; border: 1px solid #e0e0e0; }
+        .node-item:hover { background: #f0f0f0; border-color: #667eea; }
+        .node-item.CLASS { background: #e3f2fd; color: #1565c0; }
+        .node-item.METHOD { background: #fff3e0; color: #ef6c00; }
+        .node-item.FILE { background: #f3e5f5; color: #7b1fa2; }
+        .node-item.FIELD { background: #e8f5e9; color: #388e3c; }
+        .context-result, .impact-result { background: #f8f9ff; border-radius: 10px; padding: 20px; display: none; }
+        .context-result.show, .impact-result.show { display: block; }
+        .edge-list { display: grid; gap: 10px; }
+        .edge-item { padding: 12px; border-radius: 8px; background: white; border-left: 4px solid #667eea; }
+        .risk-high { background: #ffebee; border-color: #f44336; color: #b71c1c; }
+        .risk-medium { background: #fff3e0; border-color: #ff9800; color: #e65100; }
+        .risk-low { background: #e8f5e9; border-color: #4caf50; color: #1b5e20; }
+        .graph-visual { margin-top: 25px; height: 400px; border: 2px solid #e0e0e0; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #999; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Code Analyzer - 代码分析器</h1>
+        </div>
+
+        <div class="main-card">
+            <div class="tabs">
+                <button class="tab active" data-tab="index">索引代码库</button>
+                <button class="tab" data-tab="context">Context 查询</button>
+                <button class="tab" data-tab="impact">Impact Analysis</button>
+            </div>
+
+            <!-- 索引代码库 -->
+            <div id="index-tab" class="tab-content active">
+                <div class="form-group">
+                    <label for="repoPath">代码库路径</label>
+                    <input type="text" id="repoPath" placeholder="/path/to/your/project">
+                </div>
+                <button id="indexBtn" onclick="doIndex()">开始索引</button>
+                <div id="status" class="status"></div>
+                <div id="indexResult" class="result-section" style="display:none;">
+                    <div class="result-title">索引完成</div>
+                    <div id="nodeCount"></div>
+                    <div id="edgeCount"></div>
+                </div>
+            </div>
+
+            <!-- Context 查询 -->
+            <div id="context-tab" class="tab-content">
+                <div class="result-title">选择节点</div>
+                <div id="nodeListContext" class="node-list"></div>
+                <div id="contextResult" class="context-result"></div>
+            </div>
+
+            <!-- Impact Analysis -->
+            <div id="impact-tab" class="tab-content">
+                <div class="result-title">选择节点分析影响</div>
+                <div id="nodeListImpact" class="node-list"></div>
+                <div id="impactResult" class="impact-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let graph = null;
+
+        // Tab 切换
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+                document.getElementById(this.dataset.tab + '-tab').classList.add('active');
+                if (this.dataset.tab === 'context') {
+                    renderNodeList('nodeListContext');
+                } else if (this.dataset.tab === 'impact') {
+                    renderNodeList('nodeListImpact');
+                }
+            });
+        });
+
+        async function doIndex() {
+            const repoPath = document.getElementById('repoPath').value;
+            const btn = document.getElementById('indexBtn');
+            const status = document.getElementById('status');
+
+            btn.disabled = true;
+            status.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/code/index', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ repoPath })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    status.className = 'status success';
+                    status.textContent = `索引成功！节点数：${data.nodeCount}，边数：${data.edgeCount}`;
+                    status.style.display = 'block';
+                    document.getElementById('indexResult').style.display = 'block';
+                    document.getElementById('nodeCount').textContent = `节点数：${data.nodeCount}`;
+                    document.getElementById('edgeCount').textContent = `边数：${data.edgeCount}`;
+                    // 拉取完整图
+                    const graphRes = await fetch('/api/code/graph');
+                    graph = await graphRes.json();
+                } else {
+                    status.className = 'status error';
+                    status.textContent = `索引失败：${data.error}`;
+                    status.style.display = 'block';
+                }
+            } catch (e) {
+                status.className = 'status error';
+                status.textContent = `请求失败：${e.message}`;
+                status.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function renderNodeList(containerId) {
+            const container = document.getElementById(containerId);
+            if (!graph || !graph.nodes) {
+                container.innerHTML = '<div style="color:#999;padding:20px;">请先索引代码库</div>';
+                return;
+            }
+            container.innerHTML = Object.values(graph.nodes).slice(0,50).map(node => {
+                return `<div class="node-item ${node.type}" onclick="onNodeClick('${node.id}', '${containerId}')">
+                    ${node.qualifiedName || node.name}
+                </div>`;
+            }).join('');
+        }
+
+        async function onNodeClick(nodeId, containerId) {
+            if (containerId === 'nodeListContext') {
+                await showContext(nodeId);
+            } else if (containerId === 'nodeListImpact') {
+                await showImpact(nodeId);
+            }
+        }
+
+        async function showContext(nodeId) {
+            const container = document.getElementById('contextResult');
+            container.classList.remove('show');
+            try {
+                const res = await fetch(`/api/code/context/${nodeId}`);
+                const data = await res.json();
+                if (data.error) {
+                    container.innerHTML = `<div class="status error">${data.error}</div>`;
+                } else {
+                    container.innerHTML = `
+                        <div style="margin-bottom:15px;">
+                            <strong>节点：</strong> ${data.node.qualifiedName || data.node.name} (${data.node.type})
+                        </div>
+                        <div style="margin-bottom:15px;">
+                            <div style="font-weight:600;margin-bottom:8px;">入边（谁调用它）：</div>
+                            <div class="edge-list">
+                                ${data.incomingEdges.map(e => `<div class="edge-item">${e.type}: ${(graph.nodes[e.sourceId] || {}).name || e.sourceId} → ${(graph.nodes[e.targetId] || {}).name || e.targetId}</div>`).join('')}
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-weight:600;margin-bottom:8px;">出边（它调用谁）：</div>
+                            <div class="edge-list">
+                                ${data.outgoingEdges.map(e => `<div class="edge-item">${e.type}: ${(graph.nodes[e.sourceId] || {}).name || e.sourceId} → ${(graph.nodes[e.targetId] || {}).name || e.targetId}</div>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                container.classList.add('show');
+            } catch (e) {
+                container.innerHTML = `<div class="status error">请求失败：${e.message}</div>`;
+                container.classList.add('show');
+            }
+        }
+
+        async function showImpact(nodeId) {
+            const container = document.getElementById('impactResult');
+            container.classList.remove('show');
+            try {
+                const res = await fetch(`/api/code/impact/${nodeId}`);
+                const data = await res.json();
+                if (data.error) {
+                    container.innerHTML = `<div class="status error">${data.error}</div>`;
+                } else {
+                    const riskClass = `risk-${data.riskLevel.toLowerCase()}`;
+                    container.innerHTML = `
+                        <div style="margin-bottom:15px;">
+                            <strong>节点：</strong> ${data.node.qualifiedName || data.node.name} (${data.node.type})
+                        </div>
+                        <div style="margin-bottom:15px;">
+                            <div style="font-weight:600;">风险级别：<span class="${riskClass}" style="padding:6px 12px;border-radius:6px;">${data.riskLevel}</span></div>
+                            <div>总影响节点数：${data.totalImpactCount}</div>
+                        </div>
+                        <div style="margin-bottom:15px;">
+                            <div style="font-weight:600;margin-bottom:8px;">上游影响（谁调用它）：${data.upstreamImpact.length} 个</div>
+                            <div class="node-list">
+                                ${data.upstreamImpact.map(n => `<div class="node-item ${n.type}">${n.qualifiedName || n.name}</div>`).join('')}
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-weight:600;margin-bottom:8px;">下游影响（它调用谁）：${data.downstreamImpact.length} 个</div>
+                            <div class="node-list">
+                                ${data.downstreamImpact.map(n => `<div class="node-item ${n.type}">${n.qualifiedName || n.name}</div>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                container.classList.add('show');
+            } catch (e) {
+                container.innerHTML = `<div class="status error">请求失败：${e.message}</div>`;
+                container.classList.add('show');
+            }
+        }
+    </script>
+</body>
+</html>

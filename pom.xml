@@ -16,6 +16,8 @@
         <module>lt-agent</module>
         <module>lt-server-apm</module>
         <module>lt-monitor-agent-test</module>
+        <module>lt-flow-analyzer</module>
+        <module>lt-code-analyzer</module>
     </modules>
 
     <properties>

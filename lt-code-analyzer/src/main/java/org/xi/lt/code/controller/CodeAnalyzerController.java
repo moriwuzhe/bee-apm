@@ -215,6 +215,29 @@ public class CodeAnalyzerController {
                 .build();
     }
 
+    /**
+     * P2 功能 2: 基础过滤查询（简化版本的Cypher查询）
+     */
+    @PostMapping("/query")
+    public QueryResponse query(@RequestBody QueryRequest request) {
+        if (cachedGraph == null) {
+            return QueryResponse.builder().error("No index found, please index first").build();
+        }
+        List<GraphNode> results = cachedGraph.getNodes().values().stream()
+                .filter(n -> {
+                    boolean match = true;
+                    if (request.getNodeType() != null && request.getNodeType().length() > 0) {
+                        match = match && request.getNodeType().equals(n.getType());
+                    }
+                    if (request.getNameContains() != null && request.getNameContains().length() > 0) {
+                        match = match && (n.getName() != null && n.getName().contains(request.getNameContains()));
+                    }
+                    return match;
+                })
+                .collect(Collectors.toList());
+        return QueryResponse.builder().nodes(results).nodeCount(results.size()).build();
+    }
+
     @Data
     @Builder
     @NoArgsConstructor
@@ -275,6 +298,25 @@ public class CodeAnalyzerController {
         private List<GraphNode> impactedNodes;
         private Integer totalImpactCount;
         private String riskLevel;
+        private String error;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class QueryRequest {
+        private String nodeType;
+        private String nameContains;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class QueryResponse {
+        private List<GraphNode> nodes;
+        private Integer nodeCount;
         private String error;
     }
 }

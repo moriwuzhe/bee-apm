@@ -2,6 +2,7 @@ import { ref, computed, watch, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import { getMemoryHistory, type AgentMemoryMetrics } from '../../api/agent'
+import { safeFormatBytes } from '../../utils/formatBytes'
 
 export function useMemoryMonitoring() {
   // 状态
@@ -410,11 +411,17 @@ export function useMemoryMonitoring() {
 
   // 格式化字节
   const formatBytes = (bytes: number): string => {
+    // 防御性检查：处理 NaN、undefined、null 和负数
+    if (bytes === undefined || bytes === null || isNaN(bytes) || bytes < 0) {
+      return '0 B'
+    }
     if (bytes === 0) return '0 B'
     const k = 1024
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i]
+    // 防止数组越界
+    const unitIndex = Math.min(i, sizes.length - 1)
+    return (bytes / Math.pow(k, unitIndex)).toFixed(2) + ' ' + sizes[unitIndex]
   }
 
   // 获取进度条颜色
@@ -428,6 +435,31 @@ export function useMemoryMonitoring() {
   const renderMemoryCharts = () => {
     if (memoryHistory.value.length === 0) return
     
+    // 清除所有旧实例（防止DOM切换导致的实例失效）
+    ;[heapChartInstance, nonHeapChartInstance, youngGenChartInstance, oldGenChartInstance,
+      gcCountChartInstance, gcDurationChartInstance, threadChartInstance, classLoadingChartInstance,
+      cpuChartInstance, memoryPoolsGridInstance].forEach(instance => {
+      if (instance) {
+        try {
+          instance.dispose()
+        } catch (e) {
+          // 忽略dispose错误
+        }
+      }
+    })
+    
+    // 重置实例引用
+    heapChartInstance = null
+    nonHeapChartInstance = null
+    youngGenChartInstance = null
+    oldGenChartInstance = null
+    gcCountChartInstance = null
+    gcDurationChartInstance = null
+    threadChartInstance = null
+    classLoadingChartInstance = null
+    cpuChartInstance = null
+    memoryPoolsGridInstance = null
+    
     const times = memoryHistory.value.map(m => {
       const date = new Date(m.collectTime)
       return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
@@ -435,7 +467,10 @@ export function useMemoryMonitoring() {
     
     // 1. Heap Memory Chart
     if (heapChartRef.value) {
-      if (!heapChartInstance) heapChartInstance = echarts.init(heapChartRef.value)
+      const existingInstance = echarts.getInstanceByDom(heapChartRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      heapChartInstance = echarts.init(heapChartRef.value)
       const heapData = memoryHistory.value.map(m => m.heapUsed)
       const heapCommittedData = memoryHistory.value.map(m => m.heapCommitted)
       const heapMaxData = memoryHistory.value.map(m => m.heapMax)
@@ -450,7 +485,7 @@ export function useMemoryMonitoring() {
         legend: { data: ['已使用', '已提交', '最大值'], bottom: 0 },
         grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
         xAxis: { type: 'category', data: times, boundaryGap: false },
-        yAxis: { type: 'value', axisLabel: { formatter: (val: number) => formatBytes(val) } },
+        yAxis: { type: 'value', axisLabel: { formatter: (val: any) => safeFormatBytes(val) } },
         series: [
           { name: '已使用', type: 'line', data: heapData, smooth: true, itemStyle: { color: '#409eff' }, areaStyle: { color: 'rgba(64, 158, 255, 0.1)' } },
           { name: '已提交', type: 'line', data: heapCommittedData, smooth: true, lineStyle: { type: 'dotted' }, itemStyle: { color: '#67c23a' } },
@@ -462,7 +497,10 @@ export function useMemoryMonitoring() {
     
     // 2. Non-Heap Memory Chart
     if (nonHeapChartRef.value) {
-      if (!nonHeapChartInstance) nonHeapChartInstance = echarts.init(nonHeapChartRef.value)
+      const existingInstance = echarts.getInstanceByDom(nonHeapChartRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      nonHeapChartInstance = echarts.init(nonHeapChartRef.value)
       nonHeapChartInstance.setOption({
         title: { text: '非堆内存', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
         tooltip: { trigger: 'axis', formatter: (params: any) => {
@@ -473,7 +511,7 @@ export function useMemoryMonitoring() {
         legend: { data: ['已使用', '已提交', '最大值'], bottom: 0 },
         grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
         xAxis: { type: 'category', data: times, boundaryGap: false },
-        yAxis: { type: 'value', axisLabel: { formatter: (val: number) => formatBytes(val) } },
+        yAxis: { type: 'value', axisLabel: { formatter: (val: any) => safeFormatBytes(val) } },
         series: [
           { name: '已使用', type: 'line', data: memoryHistory.value.map(m => m.nonHeapUsed), smooth: true, itemStyle: { color: '#e6a23c' }, areaStyle: { color: 'rgba(230, 162, 60, 0.1)' } },
           { name: '已提交', type: 'line', data: memoryHistory.value.map(m => m.nonHeapCommitted), smooth: true, lineStyle: { type: 'dotted' }, itemStyle: { color: '#67c23a' } },
@@ -485,7 +523,10 @@ export function useMemoryMonitoring() {
     
     // 3. Young Generation Stacked Chart (Eden + S0 + S1)
     if (youngGenChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].memoryPools) {
-      if (!youngGenChartInstance) youngGenChartInstance = echarts.init(youngGenChartRef.value)
+      const existingInstance = echarts.getInstanceByDom(youngGenChartRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      youngGenChartInstance = echarts.init(youngGenChartRef.value)
       
       const edenData: number[] = []
       const s0Data: number[] = []
@@ -517,7 +558,7 @@ export function useMemoryMonitoring() {
         legend: { data: ['Eden', 'Survivor 0', 'Survivor 1'], bottom: 0 },
         grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
         xAxis: { type: 'category', data: times, boundaryGap: false },
-        yAxis: { type: 'value', axisLabel: { formatter: (val: number) => formatBytes(val) } },
+        yAxis: { type: 'value', axisLabel: { formatter: (val: any) => safeFormatBytes(val) } },
         series: [
           { name: 'Eden', type: 'bar', stack: 'young', data: edenData, itemStyle: { color: '#409eff' } },
           { name: 'Survivor 0', type: 'bar', stack: 'young', data: s0Data, itemStyle: { color: '#67c23a' } },
@@ -529,7 +570,10 @@ export function useMemoryMonitoring() {
     
     // 4. Old Generation Chart
     if (oldGenChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].memoryPools) {
-      if (!oldGenChartInstance) oldGenChartInstance = echarts.init(oldGenChartRef.value)
+      const existingInstance = echarts.getInstanceByDom(oldGenChartRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      oldGenChartInstance = echarts.init(oldGenChartRef.value)
       
       const oldGenData: number[] = []
       const oldGenMax: number[] = []
@@ -561,7 +605,7 @@ export function useMemoryMonitoring() {
         legend: { data: ['已使用', '最大值'], bottom: 0 },
         grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
         xAxis: { type: 'category', data: times, boundaryGap: false },
-        yAxis: { type: 'value', axisLabel: { formatter: (val: number) => formatBytes(val) } },
+        yAxis: { type: 'value', axisLabel: { formatter: (val: any) => safeFormatBytes(val) } },
         series: [
           { name: '已使用', type: 'line', data: oldGenData, smooth: true, itemStyle: { color: '#f56c6c' }, areaStyle: { color: 'rgba(245, 108, 108, 0.1)' } },
           { name: '最大值', type: 'line', data: oldGenMax, smooth: true, lineStyle: { type: 'dashed' }, itemStyle: { color: '#909399' } }
@@ -572,7 +616,10 @@ export function useMemoryMonitoring() {
     
     // 5. GC Count Chart
     if (gcCountChartRef.value) {
-      if (!gcCountChartInstance) gcCountChartInstance = echarts.init(gcCountChartRef.value)
+      const existingInstance = echarts.getInstanceByDom(gcCountChartRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      gcCountChartInstance = echarts.init(gcCountChartRef.value)
       const gcIncrements = memoryHistory.value.map((m, i) => {
         if (i === 0) return 0
         const increment = m.gcCount - memoryHistory.value[i - 1].gcCount
@@ -593,7 +640,10 @@ export function useMemoryMonitoring() {
     
     // 6. GC Duration Chart
     if (gcDurationChartRef.value) {
-      if (!gcDurationChartInstance) gcDurationChartInstance = echarts.init(gcDurationChartRef.value)
+      const existingInstance = echarts.getInstanceByDom(gcDurationChartRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      gcDurationChartInstance = echarts.init(gcDurationChartRef.value)
       const gcTimeIncrements = memoryHistory.value.map((m, i) => {
         if (i === 0) return 0
         const increment = m.gcTimeMs - memoryHistory.value[i - 1].gcTimeMs
@@ -614,7 +664,10 @@ export function useMemoryMonitoring() {
     
     // 7. Thread Count Chart
     if (threadChartRef.value) {
-      if (!threadChartInstance) threadChartInstance = echarts.init(threadChartRef.value)
+      const existingInstance = echarts.getInstanceByDom(threadChartRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      threadChartInstance = echarts.init(threadChartRef.value)
       threadChartInstance.setOption({
         title: { text: '线程数趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
         tooltip: { trigger: 'axis' },
@@ -631,7 +684,10 @@ export function useMemoryMonitoring() {
     
     // 8. Class Loading Chart
     if (classLoadingChartRef.value) {
-      if (!classLoadingChartInstance) classLoadingChartInstance = echarts.init(classLoadingChartRef.value)
+      const existingInstance = echarts.getInstanceByDom(classLoadingChartRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      classLoadingChartInstance = echarts.init(classLoadingChartRef.value)
       classLoadingChartInstance.setOption({
         title: { text: '类加载统计', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
         tooltip: { trigger: 'axis' },
@@ -646,7 +702,10 @@ export function useMemoryMonitoring() {
     
     // 9. CPU Chart
     if (cpuChartRef.value) {
-      if (!cpuChartInstance) cpuChartInstance = echarts.init(cpuChartRef.value)
+      const existingInstance = echarts.getInstanceByDom(cpuChartRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      cpuChartInstance = echarts.init(cpuChartRef.value)
       const cpuData = memoryHistory.value.map(m => ((m.processCpuLoad || 0) * 100).toFixed(2))
       cpuChartInstance.setOption({
         title: { text: 'CPU使用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
@@ -663,7 +722,10 @@ export function useMemoryMonitoring() {
     
     // 10. Memory Pools Grid (Eden, Survivor, Old Gen, Metaspace, Code Cache)
     if (memoryPoolsGridRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].memoryPools) {
-      if (!memoryPoolsGridInstance) memoryPoolsGridInstance = echarts.init(memoryPoolsGridRef.value)
+      const existingInstance = echarts.getInstanceByDom(memoryPoolsGridRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      memoryPoolsGridInstance = echarts.init(memoryPoolsGridRef.value)
       
       // 解析内存池数据
       const poolData: Record<string, number[]> = {}
@@ -704,82 +766,43 @@ export function useMemoryMonitoring() {
         legend: { data: Object.keys(poolData).map(n => n.replace('PS ', '').replace(' Generation', '')), bottom: 0, type: 'scroll' },
         grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
         xAxis: { type: 'category', data: times, boundaryGap: false },
-        yAxis: { type: 'value', axisLabel: { formatter: (val: number) => formatBytes(val) } },
+        yAxis: { type: 'value', axisLabel: { formatter: (val: any) => safeFormatBytes(val) } },
         series
       })
       memoryPoolsGridInstance.resize()
     }
     
-    // 11. Eden + Survivor 详细趋势
-    if (edenSurvivorChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].memoryPools) {
-      let edenSurvivorChartInstance: any = null
-      const edenData: number[] = []
-      const s0Data: number[] = []
-      const s1Data: number[] = []
-      
-      memoryHistory.value.forEach(record => {
-        try {
-          const pools: any[] = JSON.parse(record.memoryPools!)
-          const eden = pools.find(p => p.name.includes('Eden'))
-          const s0 = pools.find(p => p.name.includes('Survivor') && p.name.includes('S0'))
-          const s1 = pools.find(p => p.name.includes('Survivor') && p.name.includes('S1'))
-          edenData.push(eden ? eden.used : 0)
-          s0Data.push(s0 ? s0.used : 0)
-          s1Data.push(s1 ? s1.used : 0)
-        } catch (e) {
-          edenData.push(0)
-          s0Data.push(0)
-          s1Data.push(0)
-        }
-      })
-      
-      edenSurvivorChartInstance = echarts.init(edenSurvivorChartRef.value)
-      edenSurvivorChartInstance.setOption({
-        title: { text: 'Eden + Survivor 详细', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-        tooltip: { trigger: 'axis', formatter: (params: any) => {
-          let result = params[0].name + '<br/>'
-          params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}<br/>` })
-          return result
-        }},
-        legend: { data: ['Eden', 'S0', 'S1'], bottom: 0 },
-        grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-        xAxis: { type: 'category', data: times, boundaryGap: false },
-        yAxis: { type: 'value', axisLabel: { formatter: (val: number) => formatBytes(val) } },
-        series: [
-          { name: 'Eden', type: 'line', data: edenData, smooth: true, itemStyle: { color: '#409eff' } },
-          { name: 'S0', type: 'line', data: s0Data, smooth: true, itemStyle: { color: '#67c23a' } },
-          { name: 'S1', type: 'line', data: s1Data, smooth: true, itemStyle: { color: '#e6a23c' } }
-        ]
-      })
-      edenSurvivorChartInstance.resize()
-    }
-    
-    // 手动获取 Eden+Survivor 图表容器（备用方案）
-    console.log('🔍 检查 Eden+Survivor 备用方案条件...')
-    console.log('memoryHistory.length:', memoryHistory.value.length)
-    console.log('memoryHistory[0]:', memoryHistory.value[0])
-    console.log('memoryHistory[0].memoryPools:', memoryHistory.value[0]?.memoryPools)
+    // 11. Eden + Survivor 详细趋势（直接使用 querySelector，避免 ref 时机问题）
+    console.log('[Eden+Survivor] Starting render via querySelector')
     
     if (memoryHistory.value.length > 0 && memoryHistory.value[0].memoryPools) {
-      console.log('✅ 条件满足，开始查询 DOM...')
       const edenSurvivorEl = document.querySelector('[data-chart="eden-survivor"]') as HTMLElement
-      console.log('edenSurvivorEl:', edenSurvivorEl)
       
-      if (edenSurvivorEl && memoryHistory.value[0].memoryPools) {
+      if (edenSurvivorEl) {
+        console.log('[Eden+Survivor] Element found, size:', `${edenSurvivorEl.offsetWidth}x${edenSurvivorEl.offsetHeight}`)
+        
         let edenSurvivorChartInstance: any = null
         const edenData: number[] = []
         const s0Data: number[] = []
         const s1Data: number[] = []
         
-        memoryHistory.value.forEach(record => {
+        memoryHistory.value.forEach((record, index) => {
           try {
             const pools: any[] = JSON.parse(record.memoryPools!)
             const eden = pools.find(p => p.name.includes('Eden'))
+            
+            // 兼容不同的 Survivor 命名方式
             const s0 = pools.find(p => p.name.includes('Survivor') && p.name.includes('S0'))
             const s1 = pools.find(p => p.name.includes('Survivor') && p.name.includes('S1'))
-            edenData.push(eden ? eden.used : 0)
-            s0Data.push(s0 ? s0.used : 0)
-            s1Data.push(s1 ? s1.used : 0)
+            const survivor = pools.find(p => p.name.includes('Survivor') && !p.name.includes('S0') && !p.name.includes('S1'))
+            
+            const edenVal = eden ? eden.used : 0
+            const s0Val = s0 ? s0.used : (survivor ? survivor.used : 0)
+            const s1Val = s1 ? s1.used : 0
+            
+            edenData.push(edenVal)
+            s0Data.push(s0Val)
+            s1Data.push(s1Val)
           } catch (e) {
             edenData.push(0)
             s0Data.push(0)
@@ -787,7 +810,21 @@ export function useMemoryMonitoring() {
           }
         })
         
+        console.log('[Eden+Survivor] Data length:', edenData.length, 'Max values:', {
+          eden: Math.max(...edenData),
+          s0: Math.max(...s0Data),
+          s1: Math.max(...s1Data)
+        })
+        
+        // 检查是否已存在实例，如果有则销毁
+        const existingInstance = echarts.getInstanceByDom(edenSurvivorEl)
+        if (existingInstance) {
+          console.log('[Eden+Survivor] Disposing existing instance')
+          existingInstance.dispose()
+        }
+        
         edenSurvivorChartInstance = echarts.init(edenSurvivorEl)
+        
         edenSurvivorChartInstance.setOption({
           title: { text: 'Eden + Survivor 详细', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
           tooltip: { trigger: 'axis', formatter: (params: any) => {
@@ -798,71 +835,65 @@ export function useMemoryMonitoring() {
           legend: { data: ['Eden', 'S0', 'S1'], bottom: 0 },
           grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
           xAxis: { type: 'category', data: times, boundaryGap: false },
-          yAxis: { type: 'value', axisLabel: { formatter: (val: number) => formatBytes(val) } },
+          yAxis: { type: 'value', axisLabel: { formatter: (val: any) => safeFormatBytes(val) } },
           series: [
             { name: 'Eden', type: 'line', data: edenData, smooth: true, itemStyle: { color: '#409eff' } },
             { name: 'S0', type: 'line', data: s0Data, smooth: true, itemStyle: { color: '#67c23a' } },
             { name: 'S1', type: 'line', data: s1Data, smooth: true, itemStyle: { color: '#e6a23c' } }
           ]
-        })
+        }, true) // notMerge: true 强制完全重绘
+        
+        // 多次 resize 确保渲染正确
         edenSurvivorChartInstance.resize()
-        console.log('✅ Eden+Survivor 图表通过 querySelector 渲染')
+        setTimeout(() => {
+          if (edenSurvivorChartInstance) edenSurvivorChartInstance.resize()
+        }, 300)
+        setTimeout(() => {
+          if (edenSurvivorChartInstance) edenSurvivorChartInstance.resize()
+        }, 800)
+        
+        console.log('✅ Eden+Survivor 图表渲染完成')
+      } else {
+        console.warn('[Eden+Survivor] Element NOT found!')
       }
     }
     
-    // 12. Old Gen 详细趋势
-    if (oldGenChartDetailRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].memoryPools) {
-      let oldGenChartDetailInstance: any = null
-      const oldGenData: number[] = []
-      const oldGenMaxData: number[] = []
-      
-      memoryHistory.value.forEach(record => {
-        try {
-          const pools: any[] = JSON.parse(record.memoryPools!)
-          const old = pools.find(p => p.name.includes('Old') || p.name.includes('Tenured'))
-          oldGenData.push(old ? old.used : 0)
-          oldGenMaxData.push(old ? (old.max > 0 ? old.max : old.committed) : 0)
-        } catch (e) {
-          oldGenData.push(0)
-          oldGenMaxData.push(0)
-        }
-      })
-      
-      oldGenChartDetailInstance = echarts.init(oldGenChartDetailRef.value)
-      oldGenChartDetailInstance.setOption({
-        title: { text: '老年代详细', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-        tooltip: { trigger: 'axis' },
-        legend: { data: ['已使用', '最大值'], bottom: 0 },
-        grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
-        xAxis: { type: 'category', data: times, boundaryGap: false },
-        yAxis: { type: 'value', axisLabel: { formatter: (val: number) => formatBytes(val) } },
-        series: [
-          { name: '已使用', type: 'line', data: oldGenData, smooth: true, itemStyle: { color: '#f56c6c' } },
-          { name: '最大值', type: 'line', data: oldGenMaxData, smooth: true, lineStyle: { type: 'dashed' }, itemStyle: { color: '#909399' } }
-        ]
-      })
-      oldGenChartDetailInstance.resize()
-    }
+    // 12. Old Gen 详细趋势（直接使用 querySelector）
+    console.log('[Old Gen] Starting render via querySelector')
     
-    // 手动获取 Old Gen 图表容器（备用方案）
     if (memoryHistory.value.length > 0 && memoryHistory.value[0].memoryPools) {
       const oldGenEl = document.querySelector('[data-chart="old-gen"]') as HTMLElement
-      if (oldGenEl && memoryHistory.value[0].memoryPools) {
+      
+      if (oldGenEl) {
+        console.log('[Old Gen] Element found, size:', `${oldGenEl.offsetWidth}x${oldGenEl.offsetHeight}`)
+        
         let oldGenChartDetailInstance: any = null
         const oldGenData: number[] = []
         const oldGenMaxData: number[] = []
         
-        memoryHistory.value.forEach(record => {
+        memoryHistory.value.forEach((record, index) => {
           try {
             const pools: any[] = JSON.parse(record.memoryPools!)
             const old = pools.find(p => p.name.includes('Old') || p.name.includes('Tenured'))
             oldGenData.push(old ? old.used : 0)
             oldGenMaxData.push(old ? (old.max > 0 ? old.max : old.committed) : 0)
+            
+            if (index < 3) {
+              console.log(`[Old Gen Debug] Record ${index}:`, { used: old?.used, max: old?.max, committed: old?.committed })
+            }
           } catch (e) {
             oldGenData.push(0)
             oldGenMaxData.push(0)
           }
         })
+        
+        console.log('[Old Gen Debug] Data arrays:', { oldGenData: oldGenData.slice(0, 5), oldGenMaxData: oldGenMaxData.slice(0, 5) })
+        
+        // 检查是否已存在实例，如果有则销毁
+        const existingOldGenInstance = echarts.getInstanceByDom(oldGenEl)
+        if (existingOldGenInstance) {
+          existingOldGenInstance.dispose()
+        }
         
         oldGenChartDetailInstance = echarts.init(oldGenEl)
         oldGenChartDetailInstance.setOption({
@@ -871,15 +902,506 @@ export function useMemoryMonitoring() {
           legend: { data: ['已使用', '最大值'], bottom: 0 },
           grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
           xAxis: { type: 'category', data: times, boundaryGap: false },
-          yAxis: { type: 'value', axisLabel: { formatter: (val: number) => formatBytes(val) } },
+          yAxis: { type: 'value', axisLabel: { formatter: (val: any) => safeFormatBytes(val) } },
           series: [
             { name: '已使用', type: 'line', data: oldGenData, smooth: true, itemStyle: { color: '#f56c6c' } },
             { name: '最大值', type: 'line', data: oldGenMaxData, smooth: true, lineStyle: { type: 'dashed' }, itemStyle: { color: '#909399' } }
           ]
-        })
+        }, true) // notMerge: true 强制完全重绘
+        
+        // 多次 resize 确保渲染正确
         oldGenChartDetailInstance.resize()
-        console.log('✅ Old Gen 图表通过 querySelector 渲染')
+        setTimeout(() => {
+          if (oldGenChartDetailInstance) oldGenChartDetailInstance.resize()
+        }, 300)
+        setTimeout(() => {
+          if (oldGenChartDetailInstance) oldGenChartDetailInstance.resize()
+        }, 800)
+        
+        console.log('✅ Old Gen 图表渲染完成')
+      } else {
+        console.warn('[Old Gen] Element NOT found!')
       }
+    }
+    
+    // 13. Heap Growth Rate (内存泄漏检测关键指标)
+    console.log('[Heap Growth Rate] Starting render via querySelector')
+    const heapGrowthRateEl = document.querySelector('[data-chart="heap-growth-rate"]') as HTMLElement
+    if (heapGrowthRateEl && memoryHistory.value.length > 0) {
+      const times = memoryHistory.value.map(m => {
+        const date = new Date(m.collectTime)
+        return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+      })
+      
+      // 计算堆内存增长率 (%/分钟)
+      const growthRates: number[] = []
+      for (let i = 1; i < memoryHistory.value.length; i++) {
+        const prev = memoryHistory.value[i - 1]
+        const curr = memoryHistory.value[i]
+        const timeDiffMinutes = (curr.collectTime - prev.collectTime) / 60000
+        
+        if (timeDiffMinutes > 0 && prev.heapMax > 0) {
+          const growthPercent = ((curr.heapUsed - prev.heapUsed) / prev.heapMax) * 100
+          growthRates.push(growthPercent / timeDiffMinutes) // %/min
+        } else {
+          growthRates.push(0)
+        }
+      }
+      growthRates.unshift(0) // 第一个点为0
+      
+      let heapGrowthRateInstance: any = null
+      const existingInstance = echarts.getInstanceByDom(heapGrowthRateEl)
+      if (existingInstance) {
+        existingInstance.dispose()
+      }
+      
+      heapGrowthRateInstance = echarts.init(heapGrowthRateEl)
+      heapGrowthRateInstance.setOption({
+        title: { 
+          text: '堆内存增长率 (泄漏检测)', 
+          left: 'center', 
+          textStyle: { fontSize: 14, fontWeight: 600 }
+        },
+        tooltip: { 
+          trigger: 'axis',
+          formatter: (params: any) => {
+            const value = params[0].value
+            let status = ''
+            if (value > 5) status = ' ⚠️ 快速增长'
+            else if (value > 1) status = ' ⚡ 中速增长'
+            else if (value > 0) status = ' ✅ 缓慢增长'
+            else status = ' 💚 稳定/下降'
+            
+            return `${params[0].name}<br/>${params[0].marker} 增长率: ${value.toFixed(2)}%/分钟${status}`
+          }
+        },
+        legend: { data: ['增长率'], bottom: 0 },
+        grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+        xAxis: { type: 'category', data: times, boundaryGap: false },
+        yAxis: { 
+          type: 'value', 
+          name: '%/分钟',
+          axisLabel: { formatter: (val: number) => val.toFixed(2) + '%' }
+        },
+        series: [
+          { 
+            name: '增长率', 
+            type: 'line', 
+            data: growthRates, 
+            smooth: true,
+            itemStyle: { 
+              color: (params: any) => {
+                if (params.value > 5) return '#f56c6c' // 红色-快速增长
+                if (params.value > 1) return '#e6a23c' // 橙色-中速增长
+                if (params.value > 0) return '#409eff' // 蓝色-缓慢增长
+                return '#67c23a' // 绿色-稳定
+              }
+            },
+            areaStyle: { 
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(245, 108, 108, 0.3)' },
+                { offset: 1, color: 'rgba(245, 108, 108, 0.05)' }
+              ])
+            },
+            markLine: {
+              data: [
+                { yAxis: 0, label: { formatter: '零增长线' }, lineStyle: { color: '#67c23a', type: 'solid' } },
+                { yAxis: 1, label: { formatter: '警戒线 1%/min' }, lineStyle: { color: '#e6a23c', type: 'dashed' } },
+                { yAxis: 5, label: { formatter: '危险线 5%/min' }, lineStyle: { color: '#f56c6c', type: 'dashed' } }
+              ]
+            }
+          }
+        ]
+      })
+      heapGrowthRateInstance.resize()
+      setTimeout(() => {
+        if (heapGrowthRateInstance) heapGrowthRateInstance.resize()
+      }, 300)
+      console.log('✅ Heap Growth Rate 图表渲染完成')
+    }
+    
+    // 14. GC Pressure Index (综合评估GC对性能的影响)
+    console.log('[GC Pressure] Starting render via querySelector')
+    const gcPressureEl = document.querySelector('[data-chart="gc-pressure"]') as HTMLElement
+    if (gcPressureEl && memoryHistory.value.length > 0) {
+      const times = memoryHistory.value.map(m => {
+        const date = new Date(m.collectTime)
+        return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+      })
+      
+      // 计算GC压力指数 (0-100)
+      const gcPressureData: number[] = []
+      for (let i = 1; i < memoryHistory.value.length; i++) {
+        const prev = memoryHistory.value[i - 1]
+        const curr = memoryHistory.value[i]
+        const timeDiffSeconds = (curr.collectTime - prev.collectTime) / 1000
+        
+        if (timeDiffSeconds > 0) {
+          // GC时间占比（确保不为负）
+          const gcTimeIncrement = Math.max(0, curr.gcTimeMs - prev.gcTimeMs)
+          const gcTimeRatio = gcTimeIncrement / (timeDiffSeconds * 1000)
+          
+          // GC频率（确保不为负）
+          const gcCountIncrement = Math.max(0, curr.gcCount - prev.gcCount)
+          const gcFrequency = gcCountIncrement / timeDiffSeconds
+          
+          // Full GC频率（确保不为负，权重更高）
+          const fullGcIncrement = Math.max(0, (curr.fullGcCount || 0) - (prev.fullGcCount || 0))
+          const fullGcFreq = fullGcIncrement / timeDiffSeconds
+          
+          // 综合压力指数 (0-100)
+          const pressure = Math.min(100, Math.max(0, (
+            gcTimeRatio * 40 +      // GC时间占比 40%
+            gcFrequency * 30 +      // GC频率 30%
+            fullGcFreq * 300        // Full GC频率 30% (权重高)
+          ) * 100))
+          
+          gcPressureData.push(pressure)
+        } else {
+          gcPressureData.push(0)
+        }
+      }
+      gcPressureData.unshift(0)
+      
+      let gcPressureInstance: any = null
+      const existingGcPressureInstance = echarts.getInstanceByDom(gcPressureEl)
+      if (existingGcPressureInstance) {
+        existingGcPressureInstance.dispose()
+      }
+      
+      gcPressureInstance = echarts.init(gcPressureEl)
+      gcPressureInstance.setOption({
+        title: { 
+          text: 'GC压力指数', 
+          left: 'center', 
+          textStyle: { fontSize: 14, fontWeight: 600 }
+        },
+        tooltip: { 
+          trigger: 'axis',
+          formatter: (params: any) => {
+            const value = params[0].value
+            let level = ''
+            let color = ''
+            if (value > 70) { level = '🔴 严重'; color = '#f56c6c' }
+            else if (value > 40) { level = '🟠 高'; color = '#e6a23c' }
+            else if (value > 20) { level = '🟡 中'; color = '#ffd700' }
+            else { level = '🟢 低'; color = '#67c23a' }
+            
+            return `${params[0].name}<br/>${params[0].marker} 压力指数: ${value.toFixed(1)}<br/>等级: <span style="color:${color}">${level}</span>`
+          }
+        },
+        legend: { data: ['GC压力'], bottom: 0 },
+        grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+        xAxis: { type: 'category', data: times, boundaryGap: false },
+        yAxis: { 
+          type: 'value', 
+          name: '压力指数',
+          max: 100,
+          axisLabel: { formatter: (val: number) => val.toFixed(0) }
+        },
+        series: [
+          { 
+            name: 'GC压力', 
+            type: 'line', 
+            data: gcPressureData, 
+            smooth: true,
+            itemStyle: { 
+              color: (params: any) => {
+                if (params.value > 70) return '#f56c6c'
+                if (params.value > 40) return '#e6a23c'
+                if (params.value > 20) return '#ffd700'
+                return '#67c23a'
+              }
+            },
+            areaStyle: { 
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(245, 108, 108, 0.3)' },
+                { offset: 1, color: 'rgba(245, 108, 108, 0.05)' }
+              ])
+            },
+            markLine: {
+              data: [
+                { yAxis: 20, label: { formatter: '低/中分界' }, lineStyle: { color: '#ffd700', type: 'dashed' } },
+                { yAxis: 40, label: { formatter: '中/高分界' }, lineStyle: { color: '#e6a23c', type: 'dashed' } },
+                { yAxis: 70, label: { formatter: '高/严重分界' }, lineStyle: { color: '#f56c6c', type: 'dashed' } }
+              ]
+            }
+          }
+        ]
+      })
+      gcPressureInstance.resize()
+      setTimeout(() => {
+        if (gcPressureInstance) gcPressureInstance.resize()
+      }, 300)
+      console.log('✅ GC Pressure 图表渲染完成')
+    }
+    
+    // 15. Buffer Pools Chart (缓冲区池监控)
+    console.log('[Buffer Pools] Starting render via querySelector')
+    const bufferPoolsEl = document.querySelector('[data-chart="buffer-pools"]') as HTMLElement
+    if (bufferPoolsEl) {
+      let bufferPoolsInstance: any = null
+      const existingBufferPoolsInstance = echarts.getInstanceByDom(bufferPoolsEl)
+      if (existingBufferPoolsInstance) {
+        existingBufferPoolsInstance.dispose()
+      }
+      
+      // 检查是否有缓冲区池数据
+      if (memoryHistory.value.length > 0 && memoryHistory.value[0].bufferPools) {
+        try {
+          const latest = memoryHistory.value[memoryHistory.value.length - 1]
+          const buffers: any[] = JSON.parse(latest.bufferPools!)
+          
+          if (buffers && buffers.length > 0) {
+            const bufferNames = buffers.map(b => b.name)
+            const bufferUsed = buffers.map(b => b.memoryUsed || 0)
+            const bufferCapacity = buffers.map(b => b.totalCapacity || 0)
+            
+            bufferPoolsInstance = echarts.init(bufferPoolsEl)
+            bufferPoolsInstance.setOption({
+              title: { text: '缓冲区池使用', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+              tooltip: { 
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                formatter: (params: any) => {
+                  let result = params[0].name + '<br/>'
+                  params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}<br/>` })
+                  return result
+                }
+              },
+              legend: { data: ['已使用', '总容量'], bottom: 0 },
+              grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+              xAxis: { type: 'category', data: bufferNames, axisLabel: { interval: 0, rotate: 30 } },
+              yAxis: { type: 'value', axisLabel: { formatter: (val: any) => safeFormatBytes(val) } },
+              series: [
+                { name: '已使用', type: 'bar', data: bufferUsed, itemStyle: { color: '#409eff' } },
+                { name: '总容量', type: 'bar', data: bufferCapacity, itemStyle: { color: '#909399' } }
+              ]
+            })
+            bufferPoolsInstance.resize()
+            setTimeout(() => {
+              if (bufferPoolsInstance) bufferPoolsInstance.resize()
+            }, 300)
+            console.log('✅ Buffer Pools 图表渲染完成')
+          } else {
+            // 数据为空，显示空状态
+            bufferPoolsInstance = echarts.init(bufferPoolsEl)
+            bufferPoolsInstance.setOption({
+              graphic: {
+                type: 'text',
+                left: 'center',
+                top: 'middle',
+                style: {
+                  text: '暂无缓冲区池数据',
+                  fontSize: 14,
+                  fill: '#909399'
+                }
+              }
+            })
+            bufferPoolsInstance.resize()
+            console.log('[Buffer Pools] No buffer pools data available, showing empty state')
+          }
+        } catch (e) {
+          console.warn('[Buffer Pools] Failed to render:', e)
+        }
+      } else {
+        // 没有数据，显示空状态
+        bufferPoolsInstance = echarts.init(bufferPoolsEl)
+        bufferPoolsInstance.setOption({
+          graphic: {
+            type: 'text',
+            left: 'center',
+            top: 'middle',
+            style: {
+              text: '暂无缓冲区池数据',
+              fontSize: 14,
+              fill: '#909399'
+            }
+          }
+        })
+        bufferPoolsInstance.resize()
+        console.log('[Buffer Pools] No buffer pools data, showing empty state')
+      }
+    }
+    
+    // 16. Physical Memory Chart (物理内存监控)
+    console.log('[Physical Memory] Starting render via querySelector')
+    const physicalMemoryEl = document.querySelector('[data-chart="physical-memory"]') as HTMLElement
+    if (physicalMemoryEl) {
+      let physicalMemoryInstance: any = null
+      const existingPhysicalMemoryInstance = echarts.getInstanceByDom(physicalMemoryEl)
+      if (existingPhysicalMemoryInstance) {
+        existingPhysicalMemoryInstance.dispose()
+      }
+      
+      // 检查是否有物理内存数据
+      if (memoryHistory.value.length > 0 && memoryHistory.value[0].totalPhysicalMemory) {
+        const times = memoryHistory.value.map(m => {
+          const date = new Date(m.collectTime)
+          return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+        })
+        
+        const usedPhysicalMemory = memoryHistory.value.map(m => 
+          (m.totalPhysicalMemory || 0) - (m.freePhysicalMemory || 0)
+        )
+        const totalPhysicalMemory = memoryHistory.value[0].totalPhysicalMemory
+        
+        physicalMemoryInstance = echarts.init(physicalMemoryEl)
+        physicalMemoryInstance.setOption({
+          title: { text: '物理内存使用', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+          tooltip: { 
+            trigger: 'axis',
+            formatter: (params: any) => {
+              let result = params[0].name + '<br/>'
+              params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}<br/>` })
+              const used = params.find((p: any) => p.seriesName === '已使用')
+              if (used && totalPhysicalMemory > 0) {
+                result += `使用率: ${((used.value / totalPhysicalMemory) * 100).toFixed(1)}%`
+              }
+              return result
+            }
+          },
+          legend: { data: ['已使用', '总物理内存'], bottom: 0 },
+          grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+          xAxis: { type: 'category', data: times, boundaryGap: false },
+          yAxis: { type: 'value', axisLabel: { formatter: (val: any) => safeFormatBytes(val) } },
+          series: [
+            { name: '已使用', type: 'line', data: usedPhysicalMemory, smooth: true, itemStyle: { color: '#f56c6c' }, areaStyle: { color: 'rgba(245, 108, 108, 0.1)' } },
+            { name: '总物理内存', type: 'line', data: memoryHistory.value.map(() => totalPhysicalMemory), smooth: true, lineStyle: { type: 'dashed' }, itemStyle: { color: '#909399' } }
+          ]
+        })
+        physicalMemoryInstance.resize()
+        setTimeout(() => {
+          if (physicalMemoryInstance) physicalMemoryInstance.resize()
+        }, 300)
+        console.log('✅ Physical Memory 图表渲染完成')
+      } else {
+        // 没有数据，显示空状态
+        physicalMemoryInstance = echarts.init(physicalMemoryEl)
+        physicalMemoryInstance.setOption({
+          graphic: {
+            type: 'text',
+            left: 'center',
+            top: 'middle',
+            style: {
+              text: '暂无物理内存数据',
+              fontSize: 14,
+              fill: '#909399'
+            }
+          }
+        })
+        physicalMemoryInstance.resize()
+        console.log('[Physical Memory] No physical memory data, showing empty state')
+      }
+    }
+    
+    // 17. Memory Usage Rate Chart (内存使用率趋势)
+    console.log('[Memory Usage Rate] Starting render via querySelector')
+    const memoryUsageRateEl = document.querySelector('[data-chart="memory-usage-rate"]') as HTMLElement
+    if (memoryUsageRateEl && memoryHistory.value.length > 0) {
+      const times = memoryHistory.value.map(m => {
+        const date = new Date(m.collectTime)
+        return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+      })
+      
+      const heapUsageRates = memoryHistory.value.map(m => 
+        m.heapMax > 0 ? ((m.heapUsed / m.heapMax) * 100).toFixed(1) : 0
+      )
+      const nonHeapUsageRates = memoryHistory.value.map(m => 
+        m.nonHeapMax > 0 ? ((m.nonHeapUsed / m.nonHeapMax) * 100).toFixed(1) : 0
+      )
+      
+      let memoryUsageRateInstance: any = null
+      const existingMemoryUsageRateInstance = echarts.getInstanceByDom(memoryUsageRateEl)
+      if (existingMemoryUsageRateInstance) {
+        existingMemoryUsageRateInstance.dispose()
+      }
+      
+      memoryUsageRateInstance = echarts.init(memoryUsageRateEl)
+      memoryUsageRateInstance.setOption({
+        title: { text: '内存使用率趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+        tooltip: { 
+          trigger: 'axis',
+          formatter: (params: any) => {
+            let result = params[0].name + '<br/>'
+            params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${p.value}%<br/>` })
+            return result
+          }
+        },
+        legend: { data: ['堆内存使用率', '非堆内存使用率'], bottom: 0 },
+        grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+        xAxis: { type: 'category', data: times, boundaryGap: false },
+        yAxis: { type: 'value', name: '使用率(%)', max: 100 },
+        series: [
+          { 
+            name: '堆内存使用率', 
+            type: 'line', 
+            data: heapUsageRates, 
+            smooth: true, 
+            itemStyle: { color: '#409eff' },
+            markLine: {
+              data: [{ yAxis: 80, label: { formatter: '警戒线 80%' }, lineStyle: { color: '#f56c6c', type: 'dashed' } }]
+            }
+          },
+          { 
+            name: '非堆内存使用率', 
+            type: 'line', 
+            data: nonHeapUsageRates, 
+            smooth: true, 
+            itemStyle: { color: '#e6a23c' }
+          }
+        ]
+      })
+      memoryUsageRateInstance.resize()
+      setTimeout(() => {
+        if (memoryUsageRateInstance) memoryUsageRateInstance.resize()
+      }, 300)
+      console.log('✅ Memory Usage Rate 图表渲染完成')
+    }
+    
+    // 18. Memory Allocation Chart (内存分配趋势)
+    console.log('[Memory Allocation] Starting render via querySelector')
+    const memoryAllocationEl = document.querySelector('[data-chart="memory-allocation"]') as HTMLElement
+    if (memoryAllocationEl && memoryHistory.value.length > 0) {
+      const times = memoryHistory.value.map(m => {
+        const date = new Date(m.collectTime)
+        return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+      })
+      
+      const heapCommittedData = memoryHistory.value.map(m => m.heapCommitted)
+      const nonHeapCommittedData = memoryHistory.value.map(m => m.nonHeapCommitted)
+      
+      let memoryAllocationInstance: any = null
+      const existingMemoryAllocationInstance = echarts.getInstanceByDom(memoryAllocationEl)
+      if (existingMemoryAllocationInstance) {
+        existingMemoryAllocationInstance.dispose()
+      }
+      
+      memoryAllocationInstance = echarts.init(memoryAllocationEl)
+      memoryAllocationInstance.setOption({
+        title: { text: '内存分配趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+        tooltip: { 
+          trigger: 'axis',
+          formatter: (params: any) => {
+            let result = params[0].name + '<br/>'
+            params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}<br/>` })
+            return result
+          }
+        },
+        legend: { data: ['堆内存分配', '非堆内存分配'], bottom: 0 },
+        grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+        xAxis: { type: 'category', data: times, boundaryGap: false },
+        yAxis: { type: 'value', axisLabel: { formatter: (val: any) => safeFormatBytes(val) } },
+        series: [
+          { name: '堆内存分配', type: 'line', data: heapCommittedData, smooth: true, itemStyle: { color: '#67c23a' }, areaStyle: { color: 'rgba(103, 194, 58, 0.1)' } },
+          { name: '非堆内存分配', type: 'line', data: nonHeapCommittedData, smooth: true, itemStyle: { color: '#00bcd4' }, areaStyle: { color: 'rgba(0, 188, 212, 0.1)' } }
+        ]
+      })
+      memoryAllocationInstance.resize()
+      setTimeout(() => {
+        if (memoryAllocationInstance) memoryAllocationInstance.resize()
+      }, 300)
+      console.log('✅ Memory Allocation 图表渲染完成')
     }
     
     console.log('✅ Memory charts rendered:', {

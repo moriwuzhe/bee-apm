@@ -478,6 +478,9 @@ export function useDiagnosis() {
   const switchToChartMode = () => {
     if (canShowChart.value) {
       diagMode.value = 'chart'
+      
+      // 切换到图表模式后，触发图表渲染
+      // 注意：这里只是设置模式，实际渲染由 ApplicationView 中的 watch 处理
     }
   }
 

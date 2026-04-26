@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import * as echarts from 'echarts'
 import type { AgentMemoryMetrics } from '../../api/agent'
+import { safeFormatBytes } from '../../utils/formatBytes'
 
 export function useIoNetworkMonitoring() {
   // 图表DOM引用
@@ -194,18 +195,31 @@ export function useIoNetworkMonitoring() {
     }
   })
 
-  // 格式化字节
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 B'
-    const k = 1024
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i]
+  // 格式化字节（已迁移到 safeFormatBytes，保留此函数用于向后兼容）
+  const formatBytes = (bytes: number | string): string => {
+    return safeFormatBytes(bytes)
   }
 
   // 渲染IO/网络图表
   const renderIoNetworkCharts = (memoryHistory: AgentMemoryMetrics[]) => {
     if (memoryHistory.length === 0) return
+    
+    // 清除所有旧实例（防止DOM切换导致的实例失效）
+    ;[diskIoInstance, diskIoOpsInstance, networkTrafficInstance, ioCpuCorrelationInstance].forEach(instance => {
+      if (instance) {
+        try {
+          instance.dispose()
+        } catch (e) {
+          // 忽略dispose错误
+        }
+      }
+    })
+    
+    // 重置实例引用
+    diskIoInstance = null
+    diskIoOpsInstance = null
+    networkTrafficInstance = null
+    ioCpuCorrelationInstance = null
     
     const times = memoryHistory.map(m => {
       const date = new Date(m.collectTime)
@@ -214,7 +228,11 @@ export function useIoNetworkMonitoring() {
     
     // 1. Disk I/O Chart
     if (diskIoRef.value) {
-      if (!diskIoInstance) diskIoInstance = echarts.init(diskIoRef.value)
+      // 检查DOM上是否已有实例，如果有先dispose
+      const existingInstance = echarts.getInstanceByDom(diskIoRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      diskIoInstance = echarts.init(diskIoRef.value)
       
       const readRates = memoryHistory.map((m, i) => {
         if (i === 0) return 0
@@ -238,7 +256,7 @@ export function useIoNetworkMonitoring() {
         legend: { data: ['读取速率', '写入速率'], bottom: 0 },
         grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
         xAxis: { type: 'category', data: times, boundaryGap: false },
-        yAxis: { type: 'value', name: '速率', axisLabel: { formatter: (val: number) => formatBytes(val) + '/s' } },
+        yAxis: { type: 'value', name: '速率', axisLabel: { formatter: (val: any) => safeFormatBytes(val) + '/s' } },
         series: [
           { name: '读取速率', type: 'line', data: readRates, smooth: true, itemStyle: { color: '#409eff' }, areaStyle: { color: 'rgba(64, 158, 255, 0.1)' } },
           { name: '写入速率', type: 'line', data: writeRates, smooth: true, itemStyle: { color: '#f56c6c' }, areaStyle: { color: 'rgba(245, 108, 108, 0.1)' } }
@@ -249,7 +267,10 @@ export function useIoNetworkMonitoring() {
     
     // 2. Network Traffic Chart
     if (networkTrafficRef.value) {
-      if (!networkTrafficInstance) networkTrafficInstance = echarts.init(networkTrafficRef.value)
+      const existingInstance = echarts.getInstanceByDom(networkTrafficRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      networkTrafficInstance = echarts.init(networkTrafficRef.value)
       
       const recvRates = memoryHistory.map((m, i) => {
         if (i === 0) return 0
@@ -273,13 +294,135 @@ export function useIoNetworkMonitoring() {
         legend: { data: ['接收速率', '发送速率'], bottom: 0 },
         grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
         xAxis: { type: 'category', data: times, boundaryGap: false },
-        yAxis: { type: 'value', name: '速率', axisLabel: { formatter: (val: number) => formatBytes(val) + '/s' } },
+        yAxis: { type: 'value', name: '速率', axisLabel: { formatter: (val: any) => safeFormatBytes(val) + '/s' } },
         series: [
           { name: '接收速率', type: 'line', data: recvRates, smooth: true, itemStyle: { color: '#67c23a' }, areaStyle: { color: 'rgba(103, 194, 58, 0.1)' } },
           { name: '发送速率', type: 'line', data: sentRates, smooth: true, itemStyle: { color: '#e6a23c' }, areaStyle: { color: 'rgba(230, 162, 60, 0.1)' } }
         ]
       })
       networkTrafficInstance.resize()
+    }
+    
+    // 3. Disk I/O Operations Chart (磁盘IO操作次数)
+    if (diskIoOpsRef.value) {
+      const existingInstance = echarts.getInstanceByDom(diskIoOpsRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      diskIoOpsInstance = echarts.init(diskIoOpsRef.value)
+      
+      const hasOpsData = memoryHistory.some(m => m.diskReadOps !== undefined || m.diskWriteOps !== undefined)
+      
+      if (!hasOpsData) {
+        diskIoOpsInstance.setOption({
+          title: { text: '磁盘IO操作次数', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
+          graphic: {
+            type: 'text',
+            left: 'center',
+            top: 'middle',
+            style: {
+              text: '暂无IO操作数据\n请确保 Agent 正常运行并上报数据',
+              fill: '#c0c4cc',
+              fontSize: 14,
+              textAlign: 'center'
+            }
+          }
+        })
+      } else {
+        const readOpsRates = memoryHistory.map((m, i) => {
+          if (i === 0) return 0
+          return Math.max(0, (m.diskReadOps || 0) - (memoryHistory[i-1].diskReadOps || 0))
+        })
+        const writeOpsRates = memoryHistory.map((m, i) => {
+          if (i === 0) return 0
+          return Math.max(0, (m.diskWriteOps || 0) - (memoryHistory[i-1].diskWriteOps || 0))
+        })
+        
+        diskIoOpsInstance.setOption({
+          title: { text: '磁盘IO操作次数', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+          tooltip: { 
+            trigger: 'axis',
+            formatter: (params: any) => {
+              let result = params[0].name + '<br/>'
+              params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${p.value} ops/s<br/>` })
+              return result
+            }
+          },
+          legend: { data: ['读取操作', '写入操作'], bottom: 0 },
+          grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+          xAxis: { type: 'category', data: times, boundaryGap: false },
+          yAxis: { type: 'value', name: '操作次数/s' },
+          series: [
+            { name: '读取操作', type: 'bar', data: readOpsRates, itemStyle: { color: '#409eff' } },
+            { name: '写入操作', type: 'bar', data: writeOpsRates, itemStyle: { color: '#f56c6c' } }
+          ]
+        })
+      }
+      diskIoOpsInstance.resize()
+    }
+    
+    // 4. IO-CPU Correlation Chart (IO与CPU相关性)
+    if (ioCpuCorrelationRef.value) {
+      const existingInstance = echarts.getInstanceByDom(ioCpuCorrelationRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      ioCpuCorrelationInstance = echarts.init(ioCpuCorrelationRef.value)
+      
+      const hasCpuData = memoryHistory.some(m => m.processCpuLoad !== undefined)
+      const hasIoData = memoryHistory.some(m => m.diskReadBytes !== undefined || m.diskWriteBytes !== undefined)
+      
+      if (!hasCpuData || !hasIoData) {
+        ioCpuCorrelationInstance.setOption({
+          title: { text: 'IO与CPU相关性分析', left: 'center', textStyle: { fontSize: 14, fontWeight: 600, color: '#909399' } },
+          graphic: {
+            type: 'text',
+            left: 'center',
+            top: 'middle',
+            style: {
+              text: '暂无IO或CPU数据\n请确保 Agent 正常运行并上报数据',
+              fill: '#c0c4cc',
+              fontSize: 14,
+              textAlign: 'center'
+            }
+          }
+        })
+      } else {
+        const ioTotalRates = memoryHistory.map((m, i) => {
+          if (i === 0) return 0
+          const readRate = Math.max(0, (m.diskReadBytes || 0) - (memoryHistory[i-1].diskReadBytes || 0))
+          const writeRate = Math.max(0, (m.diskWriteBytes || 0) - (memoryHistory[i-1].diskWriteBytes || 0))
+          return readRate + writeRate
+        })
+        
+        ioCpuCorrelationInstance.setOption({
+          title: { text: 'IO与CPU相关性分析', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+          tooltip: { 
+            trigger: 'axis',
+            formatter: (params: any) => {
+              let result = params[0].name + '<br/>'
+              params.forEach((p: any) => {
+                if (p.seriesName === 'CPU使用率') {
+                  result += `${p.marker} ${p.seriesName}: ${(p.value * 100).toFixed(2)}%<br/>`
+                } else {
+                  result += `${p.marker} ${p.seriesName}: ${safeFormatBytes(p.value)}/s<br/>`
+                }
+              })
+              return result
+            }
+          },
+          legend: { data: ['CPU使用率', 'IO总速率'], bottom: 0 },
+          grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
+          xAxis: { type: 'category', data: times, boundaryGap: false },
+          yAxis: [
+            { type: 'value', name: 'CPU%', axisLabel: { formatter: (val: number) => (val * 100).toFixed(0) + '%' } },
+            { type: 'value', name: 'IO速率', axisLabel: { formatter: (val: any) => safeFormatBytes(val) + '/s' } }
+          ],
+          series: [
+            { name: 'CPU使用率', type: 'line', data: memoryHistory.map(m => m.processCpuLoad || 0), smooth: true, itemStyle: { color: '#f56c6c' }, areaStyle: { color: 'rgba(245, 108, 108, 0.1)' } },
+            { name: 'IO总速率', type: 'line', yAxisIndex: 1, data: ioTotalRates, smooth: true, itemStyle: { color: '#409eff' }, areaStyle: { color: 'rgba(64, 158, 255, 0.1)' } }
+          ]
+        })
+      }
+      ioCpuCorrelationInstance.resize()
     }
   }
 

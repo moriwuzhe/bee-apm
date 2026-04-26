@@ -353,6 +353,55 @@ public class DiagAgentClient {
             }
             metrics.put("pools", pools);
             
+            // Buffer Pools - 采集DirectByteBuffer和MappedByteBuffer的使用情况
+            try {
+                Class<?> bufferPoolMXBeanClass = Class.forName("java.lang.management.BufferPoolMXBean");
+                java.util.List<Object> bufferPoolMXBeans = (java.util.List<Object>) ManagementFactory.getPlatformMXBeans((Class) bufferPoolMXBeanClass);
+                
+                java.util.List<java.util.Map<String, Object>> bufferPools = new java.util.ArrayList<>();
+                for (Object bp : bufferPoolMXBeans) {
+                    String name = (String) bufferPoolMXBeanClass.getMethod("getName").invoke(bp);
+                    long count = (Long) bufferPoolMXBeanClass.getMethod("getCount").invoke(bp);
+                    long memoryUsed = (Long) bufferPoolMXBeanClass.getMethod("getMemoryUsed").invoke(bp);
+                    long totalCapacity = (Long) bufferPoolMXBeanClass.getMethod("getTotalCapacity").invoke(bp);
+                    
+                    java.util.Map<String, Object> bufferPoolData = new java.util.HashMap<>();
+                    bufferPoolData.put("name", name);
+                    bufferPoolData.put("count", count);
+                    bufferPoolData.put("memoryUsed", memoryUsed);
+                    bufferPoolData.put("totalCapacity", totalCapacity);
+                    bufferPools.add(bufferPoolData);
+                }
+                
+                // 将bufferPools序列化为JSON字符串
+                StringBuilder sb = new StringBuilder();
+                sb.append("[");
+                for (int i = 0; i < bufferPools.size(); i++) {
+                    if (i > 0) sb.append(",");
+                    java.util.Map<String, Object> pool = bufferPools.get(i);
+                    sb.append("{");
+                    sb.append("\"name\":\"").append(pool.get("name")).append("\",");
+                    sb.append("\"count\":").append(pool.get("count")).append(",");
+                    sb.append("\"memoryUsed\":").append(pool.get("memoryUsed")).append(",");
+                    sb.append("\"totalCapacity\":").append(pool.get("totalCapacity"));
+                    sb.append("}");
+                }
+                sb.append("]");
+                metrics.put("bufferPools", sb.toString());
+            } catch (Exception e) {
+                LogUtil.log("[WARN] Failed to collect buffer pools: " + e.getMessage());
+            }
+            
+            // Physical Memory - 采集物理内存使用情况
+            try {
+                com.sun.management.OperatingSystemMXBean osMXBean = 
+                    (com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+                metrics.put("totalPhysicalMemory", osMXBean.getTotalPhysicalMemorySize());
+                metrics.put("freePhysicalMemory", osMXBean.getFreePhysicalMemorySize());
+            } catch (Exception e) {
+                LogUtil.log("[WARN] Failed to collect physical memory: " + e.getMessage());
+            }
+            
             // Top CPU Threads - 获取CPU占用最高的10个线程
             try {
                 long[] threadIds = threadMXBean.getAllThreadIds();

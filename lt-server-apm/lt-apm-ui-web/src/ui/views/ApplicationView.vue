@@ -165,158 +165,7 @@
       <div v-if="diagMode === 'chart' && currentDiagType" class="diag-chart-content">
         <!-- JVM信息图表 -->
         <div v-if="currentDiagType === 'jvmInfo'" class="chart-container">
-          <!-- Runtime & Memory Section -->
-          <el-row :gutter="16" style="margin-bottom: 16px;">
-            <el-col :span="8">
-              <el-card shadow="hover" class="stat-card">
-                <div class="stat-title">堆内存</div>
-                <div class="stat-value">{{ formatBytes(jvmData.heapUsed) }}</div>
-                <div class="stat-subtitle">/ {{ formatBytes(jvmData.heapMax) }}</div>
-                <el-progress :percentage="jvmData.heapPercent" :color="getProgressColor(jvmData.heapPercent)" />
-              </el-card>
-            </el-col>
-            <el-col :span="8">
-              <el-card shadow="hover" class="stat-card">
-                <div class="stat-title">非堆内存</div>
-                <div class="stat-value">{{ formatBytes(jvmData.nonHeapUsed) }}</div>
-                <div class="stat-subtitle">/ {{ formatBytes(jvmData.nonHeapMax) }}</div>
-                <el-progress :percentage="jvmData.nonHeapPercent" :color="getProgressColor(jvmData.nonHeapPercent)" />
-              </el-card>
-            </el-col>
-            <el-col :span="8">
-              <el-card shadow="hover" class="stat-card">
-                <div class="stat-title">线程数</div>
-                <div class="stat-value">{{ jvmData.threadCount }}</div>
-                <div class="stat-subtitle">峰值: {{ jvmData.peakThreadCount }}</div>
-              </el-card>
-            </el-col>
-          </el-row>
-          
-          <!-- Basic Info Card -->
-          <el-card shadow="never" style="margin-bottom: 16px;">
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">PID:</span>
-                <span class="info-value">{{ jvmData.pid }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">JVM名称:</span>
-                <span class="info-value">{{ jvmData.vmName }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">JVM版本:</span>
-                <span class="info-value">{{ jvmData.vmVersion }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">运行时长:</span>
-                <span class="info-value">{{ formatDuration(jvmData.uptimeMs) }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">启动时间:</span>
-                <span class="info-value">{{ formatTimestamp(jvmData.startTimeMs) }}</span>
-              </div>
-            </div>
-          </el-card>
-
-          <!-- Thread & Class Loading Section -->
-          <el-row :gutter="16" style="margin-bottom: 16px;">
-            <el-col :span="12">
-              <el-card shadow="hover">
-                <div class="section-title">线程详情</div>
-                <div class="detail-list">
-                  <div class="detail-item">
-                    <span class="detail-label">当前线程:</span>
-                    <span class="detail-value">{{ jvmData.threadCount }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">守护线程:</span>
-                    <span class="detail-value">{{ jvmData.daemonThreadCount }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">峰值线程:</span>
-                    <span class="detail-value">{{ jvmData.peakThreadCount }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">累计启动:</span>
-                    <span class="detail-value">{{ jvmData.totalStartedThreadCount }}</span>
-                  </div>
-                </div>
-              </el-card>
-            </el-col>
-            <el-col :span="12">
-              <el-card shadow="hover">
-                <div class="section-title">类加载</div>
-                <div class="detail-list">
-                  <div class="detail-item">
-                    <span class="detail-label">已加载类:</span>
-                    <span class="detail-value">{{ jvmData.loadedClassCount }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">总加载类:</span>
-                    <span class="detail-value">{{ jvmData.totalLoadedClassCount }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">卸载类:</span>
-                    <span class="detail-value">{{ jvmData.unloadedClassCount }}</span>
-                  </div>
-                </div>
-              </el-card>
-            </el-col>
-          </el-row>
-
-          <!-- OS Information Section -->
-          <el-card shadow="never" style="margin-bottom: 16px;">
-            <div class="section-title">操作系统信息</div>
-            <el-row :gutter="16">
-              <el-col :span="12">
-                <div class="detail-list">
-                  <div class="detail-item">
-                    <span class="detail-label">操作系统:</span>
-                    <span class="detail-value">{{ jvmData.osName }} {{ jvmData.osVersion }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">处理器:</span>
-                    <span class="detail-value">{{ jvmData.availableProcessors }} 核心</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">系统负载:</span>
-                    <span class="detail-value">{{ jvmData.systemLoadAverage.toFixed(2) }}</span>
-                  </div>
-                </div>
-              </el-col>
-              <el-col :span="12">
-                <div class="detail-list">
-                  <div class="detail-item">
-                    <span class="detail-label">物理内存:</span>
-                    <span class="detail-value">{{ formatBytes(jvmData.totalPhysicalMemory - jvmData.freePhysicalMemory) }} / {{ formatBytes(jvmData.totalPhysicalMemory) }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">进程CPU:</span>
-                    <span class="detail-value">{{ (jvmData.processCpuLoad * 100).toFixed(2) }}%</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">系统CPU:</span>
-                    <span class="detail-value">{{ (jvmData.systemCpuLoad * 100).toFixed(2) }}%</span>
-                  </div>
-                </div>
-              </el-col>
-            </el-row>
-          </el-card>
-
-          <!-- GC Summary Section -->
-          <el-card shadow="never">
-            <div class="section-title">GC摘要</div>
-            <div class="detail-list">
-              <div class="detail-item">
-                <span class="detail-label">总GC次数:</span>
-                <span class="detail-value">{{ jvmData.totalGcCount }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">总GC耗时:</span>
-                <span class="detail-value">{{ formatDuration(jvmData.totalGcTime) }}</span>
-              </div>
-            </div>
-          </el-card>
+          <JvmInfoView :jvm-data="jvmData" />
         </div>
 
         <!-- 内存信息图表 -->
@@ -559,39 +408,7 @@
                     </el-col>
                   </el-row>
                   
-                  <!-- GC Advanced Analysis Section -->
-                  <div class="section-header">
-                    <h3>📊 GC深度分析</h3>
-                  </div>
-                  <el-row :gutter="16" class="charts-row">
-                    <el-col :span="12">
-                      <div ref="minorVsFullGcChartRef" class="chart-box-large" data-chart="minor-vs-full-gc"></div>
-                    </el-col>
-                    <el-col :span="12">
-                      <div ref="gcEfficiencyChartRef" class="chart-box-large" data-chart="gc-efficiency"></div>
-                    </el-col>
-                  </el-row>
-                  
-                  <!-- Phase 4: Memory Pools Detail Section -->
-                  <div class="section-header">
-                    <h3>️ 内存池详细趋势</h3>
-                  </div>
-                  <el-row :gutter="16" class="charts-row">
-                    <el-col :span="12">
-                      <div ref="edenSurvivorChartRef" class="chart-box-large" data-chart="eden-survivor"></div>
-                    </el-col>
-                    <el-col :span="12">
-                      <div ref="oldGenChartDetailRef" class="chart-box-large" data-chart="old-gen"></div>
-                    </el-col>
-                  </el-row>
-                  <el-row :gutter="16" class="charts-row">
-                    <el-col :span="12">
-                      <div ref="metaspaceChartRef" class="chart-box-large"></div>
-                    </el-col>
-                    <el-col :span="12">
-                      <div ref="codeCacheChartRef" class="chart-box-large"></div>
-                    </el-col>
-                  </el-row>
+                  <!-- GC Advanced Analysis Section (已移至 memoryChart 和 gcChart 页面) -->
                   
                   <!-- Phase 5: Advanced Monitoring Section -->
                   <div class="section-header">
@@ -723,1007 +540,96 @@
 
         <!-- 内存监控历史趋势 -->
         <div v-else-if="currentDiagType === 'memoryChart'" class="chart-container">
-          <div class="memory-history-container">
-            <!-- 时间范围控制 -->
-            <div class="history-controls" style="margin-bottom: 16px;">
-              <el-select v-model="historyTimeRange" placeholder="选择时间范围" style="width: 200px; margin-right: 10px;">
-                <el-option label="最近1小时" :value="1" />
-                <el-option label="最近6小时" :value="6" />
-                <el-option label="最近24小时" :value="24" />
-                <el-option label="最近7天" :value="168" />
-              </el-select>
-              <el-button type="primary" @click="refreshHistoryChart" :loading="historyLoading">🔄 刷新数据</el-button>
-              
-              <!-- 自动刷新控制 -->
-              <el-divider direction="vertical" />
-              <el-switch 
-                v-model="enableAutoRefresh" 
-                active-text="自动刷新" 
-                @change="toggleAutoRefresh"
-                style="margin-left: 10px;"
-              />
-              <el-select 
-                v-if="enableAutoRefresh" 
-                v-model="autoRefreshInterval" 
-                placeholder="刷新间隔" 
-                style="width: 120px; margin-left: 10px;"
-              >
-                <el-option label="5秒" :value="5" />
-                <el-option label="10秒" :value="10" />
-                <el-option label="30秒" :value="30" />
-                <el-option label="1分钟" :value="60" />
-                <el-option label="5分钟" :value="300" />
-              </el-select>
-              <el-tag v-if="enableAutoRefresh" type="success" effect="dark" style="margin-left: 10px;">
-                <el-icon class="is-loading"><Connection /></el-icon>
-                自动刷新中
-              </el-tag>
-            </div>
-            
-            <!-- 💾 内存监控区域 -->
-            <div class="section-header">
-              <h3>💾 内存监控</h3>
-            </div>
-            
-            <!-- 空数据提示 -->
-            <div v-if="memoryHistory.length === 0" style="text-align: center; padding: 60px 0; color: #909399;">
-              <div style="font-size: 64px; margin-bottom: 16px;">📊</div>
-              <div style="font-size: 16px; margin-bottom: 8px;">暂无内存监控数据</div>
-              <div style="font-size: 13px; color: #c0c4cc;">请确保Agent正常运行并上报数据</div>
-            </div>
-            
-            <template v-else>
-            <!-- 内存关键指标卡片 -->
-            <el-row :gutter="16" style="margin-bottom: 20px;">
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">💾 堆内存使用率</div>
-                  <div class="stat-value" :class="heapUsageStatus">{{ heapUsagePercent }}</div>
-                  <div class="stat-subtitle">当前时刻</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">📊 非堆内存使用率</div>
-                  <div class="stat-value" :class="nonHeapUsageStatus">{{ nonHeapUsagePercent }}</div>
-                  <div class="stat-subtitle">Metaspace等</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">🌱 新生代使用率</div>
-                  <div class="stat-value" :class="youngGenUsageStatus">{{ youngGenUsagePercent }}</div>
-                  <div class="stat-subtitle">Eden + Survivor</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">👴 老年代使用率</div>
-                  <div class="stat-value" :class="oldGenUsageStatus">{{ oldGenUsagePercent }}</div>
-                  <div class="stat-subtitle">Old Gen</div>
-                </el-card>
-              </el-col>
-            </el-row>
-            <el-row :gutter="16" style="margin-bottom: 20px;">
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">📈 内存增长速率</div>
-                  <div class="stat-value" :class="memoryGrowthStatus">{{ memoryGrowthRate }}</div>
-                  <div class="stat-subtitle">MB/分钟</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">⚡ GC压力指数</div>
-                  <div class="stat-value" :class="gcPressureStatus">{{ gcPressureIndex }}</div>
-                  <div class="stat-subtitle">0-100分</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">🔍 内存泄漏风险</div>
-                  <div class="stat-value" :class="leakRiskStatus">{{ leakRiskLevel }}</div>
-                  <div class="stat-subtitle">风险评估</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">🎯 内存健康度</div>
-                  <div class="stat-value" :class="memoryHealthStatus">{{ memoryHealthScore }}</div>
-                  <div class="stat-subtitle">综合评分</div>
-                </el-card>
-              </el-col>
-            </el-row>
-            
-            <!-- 1. 堆/非堆总览 -->
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="12">
-                <div ref="heapChartRef" class="chart-box-large"></div>
-              </el-col>
-              <el-col :span="12">
-                <div ref="nonHeapChartRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            
-            <!-- 2. 新生代/老年代详细 -->
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="12">
-                <div ref="youngGenChartRef" class="chart-box-large"></div>
-              </el-col>
-              <el-col :span="12">
-                <div ref="oldGenChartRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            
-            <!-- 3. 内存池使用趋势(所有内存池) -->
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="24">
-                <div ref="memoryPoolsGridRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            
-            <!-- 4. 内存深度分析 - 合并到一行 -->
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="12">
-                <div ref="memoryUsageRateRef" class="chart-box-large"></div>
-              </el-col>
-              <el-col :span="12">
-                <div ref="memoryAllocationRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            
-            <!-- 缓冲区池和物理内存 - 有数据时才显示，避免空白行 -->
-            <template v-if="hasBufferPoolsData || hasPhysicalMemoryData">
-              <el-row :gutter="16" class="charts-row">
-                <el-col :span="hasBufferPoolsData && hasPhysicalMemoryData ? 12 : 24" v-if="hasBufferPoolsData">
-                  <div ref="bufferPoolsChartRef" class="chart-box-large"></div>
-                </el-col>
-                <el-col :span="hasBufferPoolsData && hasPhysicalMemoryData ? 12 : 24" v-if="hasPhysicalMemoryData">
-                  <div ref="physicalMemoryRef" class="chart-box-large"></div>
-                </el-col>
-              </el-row>
-            </template>
-            
-            <!-- 5. 内存泄漏检测指标 -->
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="12">
-                <div ref="heapGrowthRateRef" class="chart-box-large"></div>
-              </el-col>
-              <el-col :span="12">
-                <div ref="gcPressureRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            
-            <!-- 6. 内存池详细趋势 -->
-            <div class="section-header">
-              <h3>️ 内存池详细趋势</h3>
-            </div>
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="12">
-                <div ref="edenSurvivorChartRef" class="chart-box-large" data-chart="eden-survivor"></div>
-              </el-col>
-              <el-col :span="12">
-                <div ref="oldGenChartDetailRef" class="chart-box-large" data-chart="old-gen"></div>
-              </el-col>
-            </el-row>
-            </template>
-          </div>
+          <MemoryMonitoringView
+            :memory-history="memoryHistory"
+            :history-time-range="historyTimeRange"
+            :history-loading="historyLoading"
+            :enable-auto-refresh="enableAutoRefresh"
+            :auto-refresh-interval="autoRefreshInterval"
+            @refresh="refreshHistoryChart"
+            @auto-refresh-toggle="toggleAutoRefresh"
+            @update:history-time-range="(val) => historyTimeRange = val"
+            @update:enable-auto-refresh="(val) => enableAutoRefresh = val"
+            @update:auto-refresh-interval="(val) => autoRefreshInterval = val"
+          />
         </div>
 
         <!-- GC分析历史趋势 -->
         <div v-else-if="currentDiagType === 'gcChart'" class="chart-container">
-          <div class="memory-history-container">
-            <!-- 时间范围控制 -->
-            <div class="history-controls" style="margin-bottom: 16px;">
-              <el-select v-model="historyTimeRange" placeholder="选择时间范围" style="width: 200px; margin-right: 10px;">
-                <el-option label="最近1小时" :value="1" />
-                <el-option label="最近6小时" :value="6" />
-                <el-option label="最近24小时" :value="24" />
-                <el-option label="最近7天" :value="168" />
-              </el-select>
-              <el-button type="primary" @click="refreshHistoryChart" :loading="historyLoading">🔄 刷新数据</el-button>
-              
-              <!-- 自动刷新控制 -->
-              <el-divider direction="vertical" />
-              <el-switch 
-                v-model="enableAutoRefresh" 
-                active-text="自动刷新" 
-                @change="toggleAutoRefresh"
-                style="margin-left: 10px;"
-              />
-              <el-select 
-                v-if="enableAutoRefresh" 
-                v-model="autoRefreshInterval" 
-                placeholder="刷新间隔" 
-                style="width: 120px; margin-left: 10px;"
-              >
-                <el-option label="5秒" :value="5" />
-                <el-option label="10秒" :value="10" />
-                <el-option label="30秒" :value="30" />
-                <el-option label="1分钟" :value="60" />
-                <el-option label="5分钟" :value="300" />
-              </el-select>
-              <el-tag v-if="enableAutoRefresh" type="success" effect="dark" style="margin-left: 10px;">
-                <el-icon class="is-loading"><Connection /></el-icon>
-                自动刷新中
-              </el-tag>
-            </div>
-            
-            <div class="section-header">
-              <h3>♻️ GC分析趋势</h3>
-            </div>
-            
-            <!-- 空数据提示 -->
-            <div v-if="memoryHistory.length === 0" style="text-align: center; padding: 60px 0; color: #909399;">
-              <div style="font-size: 64px; margin-bottom: 16px;">♻️</div>
-              <div style="font-size: 16px; margin-bottom: 8px;">暂无GC监控数据</div>
-              <div style="font-size: 13px; color: #c0c4cc;">请确保Agent正常运行并上报数据</div>
-            </div>
-            
-            <template v-else>
-            <!-- GC关键指标卡片 -->
-            <el-row :gutter="16" style="margin-bottom: 20px;">
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">♻️ 累计GC次数</div>
-                  <div class="stat-value">{{ totalGcCount }}</div>
-                  <div class="stat-subtitle">Minor + Full</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">⏱️ 累计GC耗时</div>
-                  <div class="stat-value">{{ totalGcTime }}</div>
-                  <div class="stat-subtitle">毫秒</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">📈 GC频率</div>
-                  <div class="stat-value">{{ gcFrequency }}</div>
-                  <div class="stat-subtitle">次/小时</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">⚡ 平均GC耗时</div>
-                  <div class="stat-value" :class="avgGcTimeStatus">{{ avgGcTime }}</div>
-                  <div class="stat-subtitle">毫秒/次</div>
-                </el-card>
-              </el-col>
-            </el-row>
-            <el-row :gutter="16" style="margin-bottom: 20px;">
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">🔴 Full GC占比</div>
-                  <div class="stat-value" :class="fullGcRatioStatus">{{ fullGcRatio }}</div>
-                  <div class="stat-subtitle">Full/Total</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title"> GC效率</div>
-                  <div class="stat-value" :class="gcEfficiencyStatus">{{ gcEfficiency }}</div>
-                  <div class="stat-subtitle">回收/分配</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">🛑 最大GC耗时</div>
-                  <div class="stat-value">{{ maxGcDuration }}</div>
-                  <div class="stat-subtitle">峰值</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">🎯 GC健康度</div>
-                  <div class="stat-value" :class="gcHealthStatus">{{ gcHealthScore }}</div>
-                  <div class="stat-subtitle">综合评分</div>
-                </el-card>
-              </el-col>
-            </el-row>
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="12">
-                <div ref="gcCountChartRef" class="chart-box-large"></div>
-              </el-col>
-              <el-col :span="12">
-                <div ref="gcDurationChartRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            
-            <div class="section-header">
-              <h3>📊 GC深度分析</h3>
-            </div>
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="12">
-                <div ref="minorVsFullGcChartRef" class="chart-box-large"></div>
-              </el-col>
-              <el-col :span="12">
-                <div ref="gcEfficiencyChartRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            
-            <!-- GC关联分析 -->
-            <div class="section-header">
-              <h3> GC关联分析</h3>
-            </div>
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="12">
-                <div ref="gcVsHeapChartRef" class="chart-box-large"></div>
-              </el-col>
-              <el-col :span="12">
-                <div ref="gcVsCpuChartRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            
-            <!-- 智能GC分析面板 -->
-            <div class="section-header">
-              <h3>🧠 智能GC分析</h3>
-            </div>
-            <el-card shadow="hover" style="margin-bottom: 20px;">
-              <div class="gc-analysis-panel">
-                <el-row :gutter="16">
-                  <el-col :span="12">
-                    <div class="analysis-item">
-                      <span class="analysis-icon">♻️</span>
-                      <div class="analysis-content">
-                        <div class="analysis-label">GC模式</div>
-                        <div class="analysis-value" :class="gcModeAnalysis.status">{{ gcModeAnalysis.text }}</div>
-                        <div class="analysis-detail">{{ gcModeAnalysis.detail }}</div>
-                      </div>
-                    </div>
-                  </el-col>
-                  <el-col :span="12">
-                    <div class="analysis-item">
-                      <span class="analysis-icon">🛑</span>
-                      <div class="analysis-content">
-                        <div class="analysis-label">Full GC趋势</div>
-                        <div class="analysis-value" :class="fullGcTrendAnalysis.status">{{ fullGcTrendAnalysis.text }}</div>
-                        <div class="analysis-detail">{{ fullGcTrendAnalysis.detail }}</div>
-                      </div>
-                    </div>
-                  </el-col>
-                </el-row>
-                <el-row :gutter="16" style="margin-top: 16px;">
-                  <el-col :span="12">
-                    <div class="analysis-item">
-                      <span class="analysis-icon">🎯</span>
-                      <div class="analysis-content">
-                        <div class="analysis-label">GC健康度</div>
-                        <div class="analysis-value" :class="gcHealthDetailAnalysis.status">{{ gcHealthDetailAnalysis.text }}</div>
-                        <div class="analysis-detail">{{ gcHealthDetailAnalysis.detail }}</div>
-                      </div>
-                    </div>
-                  </el-col>
-                  <el-col :span="12">
-                    <div class="analysis-item">
-                      <span class="analysis-icon">💡</span>
-                      <div class="analysis-content">
-                        <div class="analysis-label">优化建议</div>
-                        <div class="analysis-value suggestion">{{ gcSuggestions[0] }}</div>
-                        <div class="analysis-detail">{{ gcSuggestions[1] }}</div>
-                      </div>
-                    </div>
-                  </el-col>
-                </el-row>
-              </div>
-            </el-card>
-            
-            <div class="section-header">
-              <h3>☕ JVM信息</h3>
-            </div>
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="24">
-                <el-card shadow="hover" class="jvm-info-card">
-                  <el-descriptions :column="4" border size="small">
-                    <el-descriptions-item label="JVM启动时间">{{ jvmStartTimeStr }}</el-descriptions-item>
-                    <el-descriptions-item label="运行时长">{{ jvmUptimeStr }}</el-descriptions-item>
-                    <el-descriptions-item label="峰值线程数">{{ latestPeakThreadCount }}</el-descriptions-item>
-                    <el-descriptions-item label="守护线程数">{{ latestDaemonThreadCount }}</el-descriptions-item>
-                    <el-descriptions-item label="累计加载类">{{ latestTotalLoadedClass }}</el-descriptions-item>
-                    <el-descriptions-item label="卸载类数量">{{ latestUnloadedClass }}</el-descriptions-item>
-                    <el-descriptions-item label="Minor GC次数">{{ latestMinorGcCount }}</el-descriptions-item>
-                    <el-descriptions-item label="Full GC次数">{{ latestFullGcCount }}</el-descriptions-item>
-                  </el-descriptions>
-                  
-                  <!-- 只在有JVM参数数据时显示 -->
-                  <template v-if="latestJvmArgs && latestJvmArgs.length > 0">
-                    <el-divider content-position="left">
-                      <el-icon><Setting /></el-icon>
-                      JVM参数
-                    </el-divider>
-                    <div class="jvm-args-container">
-                      <el-tag 
-                        v-for="(arg, index) in latestJvmArgs" 
-                        :key="index"
-                        size="small"
-                        type="info"
-                        style="margin: 2px;"
-                      >
-                        {{ arg }}
-                      </el-tag>
-                    </div>
-                  </template>
-                </el-card>
-              </el-col>
-            </el-row>
-            </template>
-          </div>
+          <GcAnalysisView
+            :memory-history="memoryHistory"
+            :history-time-range="historyTimeRange"
+            :history-loading="historyLoading"
+            :enable-auto-refresh="enableAutoRefresh"
+            :auto-refresh-interval="autoRefreshInterval"
+            :total-gc-count-value="totalGcCountValue"
+            :total-gc-time-value="totalGcTimeValue"
+            :gc-frequency-value="gcFrequencyValue"
+            :avg-gc-time-value="avgGcTimeValue"
+            :avg-gc-time-status="avgGcTimeStatus"
+            :full-gc-ratio-value="fullGcRatioValue"
+            :full-gc-ratio-status="fullGcRatioStatus"
+            :gc-efficiency-value="gcEfficiencyValue"
+            :max-gc-duration-value="maxGcDurationValue"
+            :gc-health-score-value="gcHealthScoreValue"
+            :gc-health-status="gcHealthStatus"
+            :jvm-start-time-str="jvmStartTimeStr"
+            :jvm-uptime-str="jvmUptimeStr"
+            :latest-peak-thread-count="latestPeakThreadCount"
+            :latest-daemon-thread-count="latestDaemonThreadCount"
+            :latest-total-loaded-class="latestTotalLoadedClass"
+            :latest-unloaded-class="latestUnloadedClass"
+            :latest-minor-gc-count="latestMinorGcCount"
+            :latest-full-gc-count="latestFullGcCount"
+            @refresh="refreshHistoryChart"
+            @auto-refresh-toggle="toggleAutoRefresh"
+            @update:history-time-range="(val) => historyTimeRange = val"
+            @update:enable-auto-refresh="(val) => enableAutoRefresh = val"
+            @update:auto-refresh-interval="(val) => autoRefreshInterval = val"
+          />
         </div>
 
         <!-- 线程监控历史趋势 -->
         <div v-else-if="currentDiagType === 'threadChart'" class="chart-container">
-          <div class="memory-history-container">
-            <!-- 时间范围控制 -->
-            <div class="history-controls" style="margin-bottom: 16px;">
-              <el-select v-model="historyTimeRange" placeholder="选择时间范围" style="width: 200px; margin-right: 10px;">
-                <el-option label="最近1小时" :value="1" />
-                <el-option label="最近6小时" :value="6" />
-                <el-option label="最近24小时" :value="24" />
-                <el-option label="最近7天" :value="168" />
-              </el-select>
-              <el-button type="primary" @click="refreshHistoryChart" :loading="historyLoading">🔄 刷新数据</el-button>
-              
-              <!-- 自动刷新控制 -->
-              <el-divider direction="vertical" />
-              <el-switch 
-                v-model="enableAutoRefresh" 
-                active-text="自动刷新" 
-                @change="toggleAutoRefresh"
-                style="margin-left: 10px;"
-              />
-              <el-select 
-                v-if="enableAutoRefresh" 
-                v-model="autoRefreshInterval" 
-                placeholder="刷新间隔" 
-                style="width: 120px; margin-left: 10px;"
-              >
-                <el-option label="5秒" :value="5" />
-                <el-option label="10秒" :value="10" />
-                <el-option label="30秒" :value="30" />
-                <el-option label="1分钟" :value="60" />
-                <el-option label="5分钟" :value="300" />
-              </el-select>
-              <el-tag v-if="enableAutoRefresh" type="success" effect="dark" style="margin-left: 10px;">
-                <el-icon class="is-loading"><Connection /></el-icon>
-                自动刷新中
-              </el-tag>
-            </div>
-            
-            <div class="section-header">
-              <h3>🧵 线程监控趋势</h3>
-            </div>
-            
-            <!-- 空数据提示 -->
-            <div v-if="memoryHistory.length === 0" style="text-align: center; padding: 60px 0; color: #909399;">
-              <div style="font-size: 64px; margin-bottom: 16px;">🧵</div>
-              <div style="font-size: 16px; margin-bottom: 8px;">暂无线程监控数据</div>
-              <div style="font-size: 13px; color: #c0c4cc;">请确保Agent正常运行并上报数据</div>
-            </div>
-            
-            <template v-else>
-            <!-- 线程关键指标卡片 -->
-            <el-row :gutter="16" style="margin-bottom: 20px;">
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">📊 最大线程数</div>
-                  <div class="stat-value">{{ maxThreadCountValue }}</div>
-                  <div class="stat-subtitle">峰值时刻</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">👥 平均线程数</div>
-                  <div class="stat-value">{{ avgThreadCount }}</div>
-                  <div class="stat-subtitle">总体平均</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">🔝 峰值线程数</div>
-                  <div class="stat-value">{{ peakThreadCountValue }}</div>
-                  <div class="stat-subtitle">历史最高</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">🚫 BLOCKED占比</div>
-                  <div class="stat-value" :class="blockedRatioStatus">{{ blockedRatioText }}</div>
-                  <div class="stat-subtitle">线程阻塞</div>
-                </el-card>
-              </el-col>
-            </el-row>
-            <el-row :gutter="16" style="margin-bottom: 20px;">
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">🛡️ 守护线程占比</div>
-                  <div class="stat-value">{{ daemonRatioText }}</div>
-                  <div class="stat-subtitle">Daemon比例</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">⚡ 活跃线程占比</div>
-                  <div class="stat-value" :class="runnableRatioStatus">{{ runnableRatioText }}</div>
-                  <div class="stat-subtitle">RUNNABLE比例</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">📈 线程创建速率</div>
-                  <div class="stat-value">{{ threadCreationRateValue }}</div>
-                  <div class="stat-subtitle">个/秒</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">🔄 累计启动线程</div>
-                  <div class="stat-value">{{ totalStartedThreadValue }}</div>
-                  <div class="stat-subtitle">生命周期</div>
-                </el-card>
-              </el-col>
-            </el-row>
-            
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="12">
-                <div ref="threadChartRef" class="chart-box-large"></div>
-              </el-col>
-              <el-col :span="12">
-                <div ref="classLoadingChartRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            
-            <div class="section-header">
-              <h3>🧵 线程深度分析</h3>
-            </div>
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="12">
-                <div ref="threadStatesChartRef" class="chart-box-large"></div>
-              </el-col>
-              <el-col :span="12">
-                <div ref="classLoadingDetailChartRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            
-            <!-- 新增：线程高级分析图表 -->
-            <div class="section-header">
-              <h3>📈 线程高级分析</h3>
-            </div>
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="12">
-                <div ref="daemonThreadChartRef" class="chart-box-large"></div>
-              </el-col>
-              <el-col :span="12">
-                <div ref="blockedThreadChartRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="12">
-                <div ref="topCpuThreadDetailChartRef" class="chart-box-large"></div>
-              </el-col>
-              <el-col :span="12">
-                <div ref="threadCreationRateChartRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            
-            <!-- 线程与性能关联分析 -->
-            <div class="section-header">
-              <h3> 线程与性能关联</h3>
-            </div>
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="12">
-                <div ref="threadCpuCorrelationRef" class="chart-box-large"></div>
-              </el-col>
-              <el-col :span="12">
-                <div ref="threadLeakDetectionRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="24">
-                <div ref="threadStatesTrendRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            
-            <!-- 智能线程分析面板 -->
-            <div class="section-header">
-              <h3>🧠 智能线程分析</h3>
-            </div>
-            <el-card shadow="hover" style="margin-bottom: 20px;">
-              <div class="thread-analysis-panel">
-                <el-row :gutter="16">
-                  <el-col :span="12">
-                    <div class="analysis-item">
-                      <span class="analysis-icon">📊</span>
-                      <div class="analysis-content">
-                        <div class="analysis-label">线程增长模式</div>
-                        <div class="analysis-value" :class="threadGrowthAnalysis.status">{{ threadGrowthAnalysis.text }}</div>
-                        <div class="analysis-detail">{{ threadGrowthAnalysis.detail }}</div>
-                      </div>
-                    </div>
-                  </el-col>
-                  <el-col :span="12">
-                    <div class="analysis-item">
-                      <span class="analysis-icon">🚫</span>
-                      <div class="analysis-content">
-                        <div class="analysis-label">线程阻塞情况</div>
-                        <div class="analysis-value" :class="blockedThreadAnalysis.status">{{ blockedThreadAnalysis.text }}</div>
-                        <div class="analysis-detail">{{ blockedThreadAnalysis.detail }}</div>
-                      </div>
-                    </div>
-                  </el-col>
-                </el-row>
-                <el-row :gutter="16" style="margin-top: 16px;">
-                  <el-col :span="12">
-                    <div class="analysis-item">
-                      <span class="analysis-icon">⚡</span>
-                      <div class="analysis-content">
-                        <div class="analysis-label">线程健康度</div>
-                        <div class="analysis-value" :class="threadHealthAnalysis.status">{{ threadHealthAnalysis.text }}</div>
-                        <div class="analysis-detail">{{ threadHealthAnalysis.detail }}</div>
-                      </div>
-                    </div>
-                  </el-col>
-                  <el-col :span="12">
-                    <div class="analysis-item">
-                      <span class="analysis-icon">💡</span>
-                      <div class="analysis-content">
-                        <div class="analysis-label">优化建议</div>
-                        <div class="analysis-value suggestion">{{ threadSuggestions[0] }}</div>
-                        <div class="analysis-detail">{{ threadSuggestions[1] }}</div>
-                      </div>
-                    </div>
-                  </el-col>
-                </el-row>
-              </div>
-            </el-card>
-            </template>
-            
-            <!-- 🏊 线程池监控 - 始终显示 -->
-            <div class="section-header">
-              <h3>🏊 线程池与类加载</h3>
-            </div>
-            
-            <!-- 线程池关键指标 -->
-            <el-row :gutter="16" style="margin-bottom: 20px;" v-if="hasThreadPoolData">
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">🏊 线程池总数</div>
-                  <div class="stat-value">{{ threadPoolCount }}</div>
-                  <div class="stat-subtitle">活跃池</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">⚡ 平均活跃度</div>
-                  <div class="stat-value" :class="threadPoolActivityStatus">{{ threadPoolActivityRate }}</div>
-                  <div class="stat-subtitle">活跃/总线程</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">📦 队列积压</div>
-                  <div class="stat-value" :class="queueBacklogStatus">{{ queueBacklogValue }}</div>
-                  <div class="stat-subtitle">待处理任务</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">❌ 拒绝次数</div>
-                  <div class="stat-value" :class="rejectedCountStatus">{{ rejectedTaskCount }}</div>
-                  <div class="stat-subtitle">任务被拒</div>
-                </el-card>
-              </el-col>
-            </el-row>
-            
-            <!-- 类加载关键指标 -->
-            <el-row :gutter="16" style="margin-bottom: 20px;">
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">📦 已加载类</div>
-                  <div class="stat-value">{{ loadedClassCount }}</div>
-                  <div class="stat-subtitle">当前数量</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">📈 类加载速率</div>
-                  <div class="stat-value">{{ classLoadingRateValue }}</div>
-                  <div class="stat-subtitle">个/秒</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">🗑️ 已卸载类</div>
-                  <div class="stat-value">{{ unloadedClassCount }}</div>
-                  <div class="stat-subtitle">累计数量</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">⚠️ 加载异常</div>
-                  <div class="stat-value" :class="classLoadErrorStatus">{{ classLoadErrorCount }}</div>
-                  <div class="stat-subtitle">异常次数</div>
-                </el-card>
-              </el-col>
-            </el-row>
-            
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="24">
-                <div ref="threadPoolsChartRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            
-            <!-- ⚡ CPU与系统监控 - 始终显示 -->
-            <div class="section-header">
-              <h3>⚡ CPU与系统监控</h3>
-            </div>
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="24">
-                <div ref="cpuChartRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-          </div>
+          <ThreadMonitoringView
+            :memory-history="memoryHistory"
+            :history-time-range="historyTimeRange"
+            :history-loading="historyLoading"
+            :enable-auto-refresh="enableAutoRefresh"
+            :auto-refresh-interval="autoRefreshInterval"
+            :jvm-start-time-str="jvmStartTimeStr"
+            :jvm-uptime-str="jvmUptimeStr"
+            :latest-peak-thread-count="latestPeakThreadCount"
+            :latest-daemon-thread-count="latestDaemonThreadCount"
+            :latest-total-loaded-class="latestTotalLoadedClass"
+            :latest-unloaded-class="latestUnloadedClass"
+            :latest-minor-gc-count="latestMinorGcCount"
+            :latest-full-gc-count="latestFullGcCount"
+            @refresh="refreshHistoryChart"
+            @auto-refresh-toggle="toggleAutoRefresh"
+            @update:history-time-range="(val) => historyTimeRange = val"
+            @update:enable-auto-refresh="(val) => enableAutoRefresh = val"
+            @update:auto-refresh-interval="(val) => autoRefreshInterval = val"
+          />
         </div>
 
         <!-- IO/网络监控历史趋势 -->
         <div v-else-if="currentDiagType === 'ioNetworkChart'" class="chart-container">
-          <div class="memory-history-container">
-            <!-- 时间范围控制 -->
-            <div class="history-controls" style="margin-bottom: 16px;">
-              <el-select v-model="historyTimeRange" placeholder="选择时间范围" style="width: 200px; margin-right: 10px;">
-                <el-option label="最近1小时" :value="1" />
-                <el-option label="最近6小时" :value="6" />
-                <el-option label="最近24小时" :value="24" />
-                <el-option label="最近7天" :value="168" />
-              </el-select>
-              <el-button type="primary" @click="refreshHistoryChart" :loading="historyLoading">🔄 刷新数据</el-button>
-              
-              <!-- 自动刷新控制 -->
-              <el-divider direction="vertical" />
-              <el-switch 
-                v-model="enableAutoRefresh" 
-                active-text="自动刷新" 
-                @change="toggleAutoRefresh"
-                style="margin-left: 10px;"
-              />
-              <el-select 
-                v-if="enableAutoRefresh" 
-                v-model="autoRefreshInterval" 
-                placeholder="刷新间隔" 
-                style="width: 120px; margin-left: 10px;"
-              >
-                <el-option label="5秒" :value="5" />
-                <el-option label="10秒" :value="10" />
-                <el-option label="30秒" :value="30" />
-                <el-option label="1分钟" :value="60" />
-                <el-option label="5分钟" :value="300" />
-              </el-select>
-              <el-tag v-if="enableAutoRefresh" type="success" effect="dark" style="margin-left: 10px;">
-                <el-icon class="is-loading"><Connection /></el-icon>
-                自动刷新中
-              </el-tag>
-            </div>
-            
-            <div class="section-header">
-              <h3>🌐 IO/网络监控趋势</h3>
-            </div>
-            
-            <!-- 空数据提示 -->
-            <div v-if="memoryHistory.length === 0" style="text-align: center; padding: 60px 0; color: #909399;">
-              <div style="font-size: 64px; margin-bottom: 16px;">🌐</div>
-              <div style="font-size: 16px; margin-bottom: 8px;">暂无IO/网络监控数据</div>
-              <div style="font-size: 13px; color: #c0c4cc;">请确保Agent正常运行并上报数据</div>
-            </div>
-            
-            <template v-else>
-            <!-- IO/网络关键指标卡片 -->
-            <el-row :gutter="16" style="margin-bottom: 20px;">
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">📈 最大读取速率</div>
-                  <div class="stat-value">{{ maxDiskReadRate }}</div>
-                  <div class="stat-subtitle">峰值时刻</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">📉 最大写入速率</div>
-                  <div class="stat-value">{{ maxDiskWriteRate }}</div>
-                  <div class="stat-subtitle">峰值时刻</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">🌐 平均接收速率</div>
-                  <div class="stat-value">{{ avgNetworkRecvRate }}</div>
-                  <div class="stat-subtitle">总体平均</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">📡 平均发送速率</div>
-                  <div class="stat-value">{{ avgNetworkSentRate }}</div>
-                  <div class="stat-subtitle">总体平均</div>
-                </el-card>
-              </el-col>
-            </el-row>
-            <el-row :gutter="16" style="margin-bottom: 20px;">
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">💾 磁盘IO压力</div>
-                  <div class="stat-value" :class="diskIoPressureStatus">{{ diskIoPressureIndex }}</div>
-                  <div class="stat-subtitle">0-100分</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">🌐 网络流量负载</div>
-                  <div class="stat-value" :class="networkLoadStatus">{{ networkLoadIndex }}</div>
-                  <div class="stat-subtitle">0-100分</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">⚡ IO延迟指数</div>
-                  <div class="stat-value" :class="ioLatencyIndexStatus">{{ ioLatencyIndexValue }}</div>
-                  <div class="stat-subtitle">综合评估</div>
-                </el-card>
-              </el-col>
-              <el-col :span="6">
-                <el-card shadow="hover" class="stat-card">
-                  <div class="stat-title">🎯 IO健康度</div>
-                  <div class="stat-value" :class="ioHealthStatus">{{ ioHealthScore }}</div>
-                  <div class="stat-subtitle">综合评分</div>
-                </el-card>
-              </el-col>
-            </el-row>
-            
-            <!-- 磁盘I/O监控 - 始终渲染图表容器，由JS决定是否显示数据 -->
-            <div class="section-header">
-              <h3>💾 磁盘I/O速率</h3>
-            </div>
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="24">
-                <div ref="diskIoRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            
-            <!-- 磁盘I/O操作次数 -->
-            <div class="section-header">
-              <h3>📊 磁盘I/O操作次数</h3>
-            </div>
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="24">
-                <div ref="diskIoOpsRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            
-            <!-- 网络流量监控 -->
-            <div class="section-header">
-              <h3>🌐 网络流量监控</h3>
-            </div>
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="24">
-                <div ref="networkTrafficRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            
-            <!-- 综合分析：IO与CPU/内存关联 -->
-            <div class="section-header">
-              <h3> 综合性能分析</h3>
-            </div>
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="24">
-                <div ref="ioCpuCorrelationRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            
-            <!-- IO操作热力图 -->
-            <div class="section-header">
-              <h3>🔥 IO操作热力图</h3>
-            </div>
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="24">
-                <div ref="ioHeatmapRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            
-            <!-- 智能IO性能分析 -->
-            <div class="section-header">
-              <h3>🧠 智能IO性能分析</h3>
-            </div>
-            <el-card shadow="hover" style="margin-bottom: 20px;">
-              <div class="io-analysis-panel">
-                <el-row :gutter="16">
-                  <el-col :span="12">
-                    <div class="analysis-item">
-                      <span class="analysis-icon">📊</span>
-                      <div class="analysis-content">
-                        <div class="analysis-label">磁盘IO模式</div>
-                        <div class="analysis-value" :class="ioPatternAnalysis.status">{{ ioPatternAnalysis.text }}</div>
-                        <div class="analysis-detail">{{ ioPatternAnalysis.detail }}</div>
-                      </div>
-                    </div>
-                  </el-col>
-                  <el-col :span="12">
-                    <div class="analysis-item">
-                      <span class="analysis-icon">⏱️</span>
-                      <div class="analysis-content">
-                        <div class="analysis-label">平均IO延迟</div>
-                        <div class="analysis-value" :class="ioLatencyAnalysis.status">{{ ioLatencyAnalysis.text }}</div>
-                        <div class="analysis-detail">{{ ioLatencyAnalysis.detail }}</div>
-                      </div>
-                    </div>
-                  </el-col>
-                </el-row>
-                <el-row :gutter="16" style="margin-top: 16px;">
-                  <el-col :span="12">
-                    <div class="analysis-item">
-                      <span class="analysis-icon">🌐</span>
-                      <div class="analysis-content">
-                        <div class="analysis-label">网络模式</div>
-                        <div class="analysis-value" :class="networkPatternAnalysis.status">{{ networkPatternAnalysis.text }}</div>
-                        <div class="analysis-detail">{{ networkPatternAnalysis.detail }}</div>
-                      </div>
-                    </div>
-                  </el-col>
-                  <el-col :span="12">
-                    <div class="analysis-item">
-                      <span class="analysis-icon">💡</span>
-                      <div class="analysis-content">
-                        <div class="analysis-label">优化建议</div>
-                        <div class="analysis-value suggestion">{{ ioSuggestions[0] }}</div>
-                        <div class="analysis-detail">{{ ioSuggestions[1] }}</div>
-                      </div>
-                    </div>
-                  </el-col>
-                </el-row>
-              </div>
-            </el-card>
-            
-            <!-- IO延迟趋势图 -->
-            <div class="section-header">
-              <h3>⏱️ IO延迟趋势</h3>
-            </div>
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="24">
-                <div ref="ioLatencyRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            
-            <!-- IO与GC关联分析 -->
-            <div class="section-header">
-              <h3>🔗 IO与GC关联分析</h3>
-            </div>
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="24">
-                <div ref="ioGcCorrelationRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            
-            <!-- 内存分配与IO关联 -->
-            <div class="section-header">
-              <h3>💾 内存分配与IO关联</h3>
-            </div>
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="24">
-                <div ref="memoryIoCorrelationRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            
-            <!-- 综合性能评分趋势 -->
-            <div class="section-header">
-              <h3>⭐ 综合性能评分</h3>
-            </div>
-            <el-row :gutter="16" class="charts-row">
-              <el-col :span="24">
-                <div ref="performanceScoreRef" class="chart-box-large"></div>
-              </el-col>
-            </el-row>
-            </template>
-          </div>
+          <IoNetworkView
+            :memory-history="memoryHistory"
+            :history-time-range="historyTimeRange"
+            :history-loading="historyLoading"
+            :enable-auto-refresh="enableAutoRefresh"
+            :auto-refresh-interval="autoRefreshInterval"
+            @refresh="refreshHistoryChart"
+            @auto-refresh-toggle="toggleAutoRefresh"
+            @update:history-time-range="(val) => historyTimeRange = val"
+            @update:enable-auto-refresh="(val) => enableAutoRefresh = val"
+            @update:auto-refresh-interval="(val) => autoRefreshInterval = val"
+          />
         </div>
 
+        <!-- GC统计图表 -->
         <!-- GC统计图表 -->
         <div v-else-if="currentDiagType === 'gcStats'" class="chart-container">
           <el-card shadow="never">
@@ -1975,10 +881,6 @@
                   </el-tag>
                   <el-tag type="info" size="small">{{ fullConfigInfo.appConfigVersion }}</el-tag>
                 </div>
-                <el-input 
-                  type="textarea" 
-                  :model-value="fullConfigInfo.appConfig || '# 暂无应用配置'" 
-                  :rows="6" 
                   readonly
                   class="config-block-content"
                 />
@@ -2093,6 +995,7 @@
 import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Connection, CircleClose, Bell, ArrowDown, Setting, Document, Monitor, List, Box, Tools, Check, MagicStick, Delete, Upload, RefreshRight, Search, DataAnalysis } from '@element-plus/icons-vue'
+import * as echarts from 'echarts'
 import type { Application, Project } from '../../api/project'
 import {
   agentThreadDump,
@@ -2116,6 +1019,15 @@ import { useConfigManagement } from '../composables/useConfigManagement'
 import { useGcAnalysis } from '../composables/useGcAnalysis'
 import { useThreadMonitoring } from '../composables/useThreadMonitoring'
 import { useIoNetworkMonitoring } from '../composables/useIoNetworkMonitoring'
+
+// 导入监控视图组件
+import {
+  MemoryMonitoringView,
+  ThreadMonitoringView,
+  GcAnalysisView,
+  IoNetworkView,
+  JvmInfoView
+} from './monitoring'
 
 // ==================== Tab 状态 ====================
 const activeTab = ref('definition')
@@ -2192,9 +1104,6 @@ const {
   oldGenChartRef,
   gcCountChartRef,
   gcDurationChartRef,
-  threadChartRef,
-  classLoadingChartRef,
-  cpuChartRef,
   memoryPoolsGridRef,
   heapUsagePercent,
   heapUsageStatus,
@@ -2221,47 +1130,147 @@ const {
   cleanup: cleanupMemory
 } = memoryMon
 
-// 额外的图表 ref（必须在组件中直接定义，Vue 才能自动绑定 DOM）
-const edenSurvivorChartRef = ref<HTMLElement>()
-const oldGenChartDetailRef = ref<HTMLElement>()
-const metaspaceChartRef = ref<HTMLElement>()
-const codeCacheChartRef = ref<HTMLElement>()
-const memoryAllocationRateChartRef = ref<HTMLElement>()
-const gcPressureChartRef = ref<HTMLElement>()
-const gcReclaimedChartRef = ref<HTMLElement>()
-const cpuMemoryCorrelationChartRef = ref<HTMLElement>()
-const topCpuThreadChartRef = ref<HTMLElement>()
-const threadStateChartRef = ref<HTMLElement>()
-const performanceDashboardChartRef = ref<HTMLElement>()
-
 // ==================== GC 分析 ====================
 const gcAnalysis = useGcAnalysis()
 const {
-  minorVsFullGcChartRef,
-  gcEfficiencyChartRef,
-  totalGcCount,
-  totalGcTime,
-  avgGcTime,
-  fullGcRatio,
-  gcEfficiency,
-  maxGcDuration,
-  gcHealthScore,
   renderGcCharts,
   cleanup: cleanupGc
 } = gcAnalysis
 
+// 将GC分析函数转换为直接使用 memoryHistory 的计算属性
+const totalGcCountValue = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const total = (latest.minorGcCount || 0) + (latest.fullGcCount || 0)
+  return total > 0 ? `${total} 次` : '0 次'
+})
+
+const totalGcTimeValue = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const total = (latest.minorGcTimeMs || 0) + (latest.fullGcTimeMs || 0)
+  return total > 0 ? `${total} ms` : '0 ms'
+})
+
+const gcFrequencyValue = computed(() => {
+  if (memoryHistory.value.length < 2) return '-'
+  const first = memoryHistory.value[0]
+  const last = memoryHistory.value[memoryHistory.value.length - 1]
+  const durationHours = (last.collectTime - first.collectTime) / 3600000
+  if (durationHours === 0) return '-'
+  const totalGc = (last.minorGcCount || 0) + (last.fullGcCount || 0)
+  return (totalGc / durationHours).toFixed(1) + ' 次/小时'
+})
+
+const avgGcTimeValue = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const totalGcTime = (latest.minorGcTimeMs || 0) + (latest.fullGcTimeMs || 0)
+  const totalGcCount = (latest.minorGcCount || 0) + (latest.fullGcCount || 0)
+  if (totalGcCount === 0) return '0 ms'
+  const avg = totalGcTime / totalGcCount
+  return avg.toFixed(1) + ' ms'
+})
+
+const avgGcTimeStatus = computed(() => {
+  const avg = parseFloat(avgGcTimeValue.value) || 0
+  if (avg < 50) return 'success'
+  if (avg < 100) return 'warning'
+  return 'danger'
+})
+
+const fullGcRatioValue = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const minor = latest.minorGcCount || 0
+  const full = latest.fullGcCount || 0
+  const total = minor + full
+  if (total === 0) return '0%'
+  return ((full / total) * 100).toFixed(1) + '%'
+})
+
+const fullGcRatioStatus = computed(() => {
+  const ratio = parseFloat(fullGcRatioValue.value) || 0
+  if (ratio < 5) return 'success'
+  if (ratio < 15) return 'warning'
+  return 'danger'
+})
+
+const gcEfficiencyValue = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const minor = latest.minorGcCount || 0
+  const full = latest.fullGcCount || 0
+  const total = minor + full
+  if (total === 0) return '0%'
+  return ((minor / total) * 100).toFixed(1) + '%'
+})
+
+const gcEfficiencyStatus = computed(() => {
+  const efficiency = parseFloat(gcEfficiencyValue.value) || 0
+  if (efficiency > 85) return 'success'
+  if (efficiency > 70) return 'warning'
+  return 'danger'
+})
+
+const maxGcDurationValue = computed(() => {
+  if (memoryHistory.value.length < 2) return '-'
+  let maxDuration = 0
+  for (let i = 1; i < memoryHistory.value.length; i++) {
+    const gcTimeDiff = (memoryHistory.value[i].gcTimeMs || 0) - (memoryHistory.value[i-1].gcTimeMs || 0)
+    if (gcTimeDiff > maxDuration) {
+      maxDuration = gcTimeDiff
+    }
+  }
+  return maxDuration > 0 ? `${maxDuration} ms` : '0 ms'
+})
+
+const gcHealthScoreValue = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  let score = 100
+  
+  // Full GC占比扣分
+  const minor = latest.minorGcCount || 0
+  const full = latest.fullGcCount || 0
+  const total = minor + full
+  if (total > 0) {
+    const fullRatio = full / total
+    if (fullRatio > 0.3) score -= 30
+    else if (fullRatio > 0.15) score -= 15
+    else if (fullRatio > 0.05) score -= 5
+  }
+  
+  // GC频率扣分
+  const gcFreq = parseFloat(gcFrequencyValue.value) || 0
+  if (gcFreq > 60) score -= 20
+  else if (gcFreq > 30) score -= 10
+  
+  // 平均GC耗时扣分
+  const avgTime = parseFloat(avgGcTimeValue.value) || 0
+  if (avgTime > 100) score -= 20
+  else if (avgTime > 50) score -= 10
+  
+  score = Math.max(0, Math.min(100, score))
+  return `${score}分`
+})
+
+const gcHealthStatus = computed(() => {
+  const score = parseInt(gcHealthScoreValue.value) || 0
+  if (score >= 80) return 'success'
+  if (score >= 60) return 'warning'
+  return 'danger'
+})
+
 // ==================== 线程监控 ====================
 const threadMon = useThreadMonitoring()
 const {
+  threadChartRef,
+  classLoadingChartRef,
+  cpuChartRef,
   threadStatesChartRef,
   classLoadingDetailChartRef,
   threadPoolsChartRef,
-  maxThreadCountValue,
-  avgThreadCount,
-  blockedRatioText,
-  daemonRatioText,
-  threadCreationRateValue,
-  hasThreadPoolData,
   renderThreadCharts,
   formatNanoTime,
   cleanup: cleanupThread
@@ -2330,41 +1339,321 @@ const maxThreadCount = computed(() => {
   return Math.max(...memoryHistory.value.map(m => m.threadCount || 0))
 })
 
-const gcFrequency = computed(() => {
-  if (memoryHistory.value.length < 2) return '0'
-  const first = memoryHistory.value[0]
-  const last = memoryHistory.value[memoryHistory.value.length - 1]
-  const timeDiffMinutes = (last.collectTime - first.collectTime) / 60000
-  const gcDiff = last.gcCount - first.gcCount
-  return timeDiffMinutes > 0 ? (gcDiff / timeDiffMinutes).toFixed(1) : '0'
+// 线程池相关计算属性
+const threadPoolCount = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  if (!latest.threadPools) return '-'
+  try {
+    const pools = JSON.parse(latest.threadPools)
+    return pools.length || 0
+  } catch (e) {
+    return '-'
+  }
 })
 
-const avgGcTimeStatus = computed(() => {
-  const time = parseFloat(avgGcTime.value) || 0
-  if (time < 50) return 'success'
-  if (time < 100) return 'warning'
+const threadPoolActivityRate = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  if (!latest.threadPools) return '-'
+  try {
+    const pools = JSON.parse(latest.threadPools)
+    if (!pools || pools.length === 0) return '-'
+    let totalActive = 0
+    let totalThreads = 0
+    pools.forEach((pool: any) => {
+      totalActive += pool.activeCount || 0
+      totalThreads += pool.poolSize || 0
+    })
+    if (totalThreads === 0) return '-'
+    return ((totalActive / totalThreads) * 100).toFixed(1) + '%'
+  } catch (e) {
+    return '-'
+  }
+})
+
+const threadPoolActivityStatus = computed(() => {
+  const rate = parseFloat(threadPoolActivityRate.value) || 0
+  if (rate < 50) return 'success'
+  if (rate < 80) return 'warning'
   return 'danger'
 })
 
-const fullGcRatioStatus = computed(() => {
-  const ratio = parseFloat(fullGcRatio.value) || 0
+const queueBacklogValue = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  if (!latest.threadPools) return '-'
+  try {
+    const pools = JSON.parse(latest.threadPools)
+    if (!pools || pools.length === 0) return '-'
+    let totalQueue = 0
+    pools.forEach((pool: any) => {
+      totalQueue += pool.queueSize || 0
+    })
+    return totalQueue > 0 ? totalQueue : '0'
+  } catch (e) {
+    return '-'
+  }
+})
+
+const queueBacklogStatus = computed(() => {
+  const backlog = parseInt(queueBacklogValue.value) || 0
+  if (backlog === 0) return 'success'
+  if (backlog < 100) return 'warning'
+  return 'danger'
+})
+
+const rejectedTaskCount = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  if (!latest.threadPools) return '-'
+  try {
+    const pools = JSON.parse(latest.threadPools)
+    if (!pools || pools.length === 0) return '-'
+    let totalRejected = 0
+    pools.forEach((pool: any) => {
+      totalRejected += pool.rejectedCount || 0
+    })
+    return totalRejected > 0 ? totalRejected : '0'
+  } catch (e) {
+    return '-'
+  }
+})
+
+const rejectedCountStatus = computed(() => {
+  const rejected = parseInt(rejectedTaskCount.value) || 0
+  if (rejected === 0) return 'success'
+  if (rejected < 10) return 'warning'
+  return 'danger'
+})
+
+// 类加载相关计算属性
+const loadedClassCount = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  return memoryHistory.value[memoryHistory.value.length - 1].loadedClassCount || '-'
+})
+
+const classLoadingRateValue = computed(() => {
+  if (memoryHistory.value.length < 2) return '-'
+  const first = memoryHistory.value[0]
+  const last = memoryHistory.value[memoryHistory.value.length - 1]
+  const durationSeconds = (last.collectTime - first.collectTime) / 1000
+  if (durationSeconds === 0) return '-'
+  const classDiff = (last.loadedClassCount || 0) - (first.loadedClassCount || 0)
+  return (classDiff / durationSeconds).toFixed(1)
+})
+
+const unloadedClassCount = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  return memoryHistory.value[memoryHistory.value.length - 1].unloadedClassCount || '-'
+})
+
+const classLoadErrorCount = computed(() => {
+  // 当前数据模型中没有类加载错误字段，返回0
+  return '0'
+})
+
+const classLoadErrorStatus = computed(() => 'success')
+
+// 线程监控相关计算属性
+const maxThreadCountValue = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  let maxCount = 0
+  for (let i = 0; i < memoryHistory.value.length; i++) {
+    const count = memoryHistory.value[i].threadCount || 0
+    if (count > maxCount) maxCount = count
+  }
+  return maxCount > 0 ? `${maxCount} 线程` : '0 线程'
+})
+
+const avgThreadCount = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const total = memoryHistory.value.reduce((sum, m) => sum + (m.threadCount || 0), 0)
+  const avg = total / memoryHistory.value.length
+  return `${Math.round(avg)} 线程`
+})
+
+const daemonRatioText = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const daemon = latest.daemonThreadCount || 0
+  const total = latest.threadCount || 1
+  const ratio = (daemon / total) * 100
+  return ratio.toFixed(1) + '%'
+})
+
+const threadCreationRateValue = computed(() => {
+  if (memoryHistory.value.length < 2) return '-'
+  const first = memoryHistory.value[0]
+  const last = memoryHistory.value[memoryHistory.value.length - 1]
+  const timeDiff = (last.collectTime - first.collectTime) / 1000
+  const threadDiff = (last.totalStartedThreadCount || 0) - (first.totalStartedThreadCount || 0)
+  if (timeDiff > 0) {
+    const rate = threadDiff / timeDiff
+    return rate.toFixed(2)
+  }
+  return '0'
+})
+
+const hasThreadPoolData = computed(() => {
+  if (memoryHistory.value.length === 0) return false
+  return !!memoryHistory.value[memoryHistory.value.length - 1].threadPools
+})
+const peakThreadCountValue = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  let maxCount = 0
+  for (let i = 0; i < memoryHistory.value.length; i++) {
+    const count = memoryHistory.value[i].threadCount || 0
+    if (count > maxCount) maxCount = count
+  }
+  return maxCount > 0 ? `${maxCount} 线程` : '0 线程'
+})
+
+const blockedRatioText = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const blocked = latest.threadCountBlocked || 0
+  const total = latest.threadCount || 1
+  const ratio = (blocked / total) * 100
+  return ratio.toFixed(1) + '%'
+})
+
+const blockedRatioStatus = computed(() => {
+  const ratio = parseFloat(blockedRatioText.value) || 0
   if (ratio < 5) return 'success'
   if (ratio < 15) return 'warning'
   return 'danger'
 })
 
-const gcEfficiencyStatus = computed(() => {
-  const eff = parseFloat(gcEfficiency.value) || 0
-  if (eff > 80) return 'success'
-  if (eff > 60) return 'warning'
-  return 'danger'
+const runnableRatioText = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const runnable = latest.threadCountRunnable || 0
+  const total = latest.threadCount || 1
+  const ratio = (runnable / total) * 100
+  return ratio.toFixed(1) + '%'
 })
 
-const gcHealthStatus = computed(() => {
-  const score = parseInt(gcHealthScore.value) || 0
-  if (score >= 80) return 'success'
-  if (score >= 60) return 'warning'
-  return 'danger'
+const runnableRatioStatus = computed(() => {
+  const ratio = parseFloat(runnableRatioText.value) || 0
+  if (ratio > 50) return 'success'
+  if (ratio > 20) return 'warning'
+  return 'info'
+})
+
+const totalStartedThreadValue = computed(() => {
+  if (memoryHistory.value.length === 0) return '-'
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  return latest.totalStartedThreadCount || '-'
+})
+
+// 智能线程分析
+const threadGrowthAnalysis = computed(() => {
+  if (memoryHistory.value.length < 2) {
+    return { status: 'info', text: '数据不足', detail: '需要更多数据点才能分析趋势' }
+  }
+  
+  const first = memoryHistory.value[0]
+  const last = memoryHistory.value[memoryHistory.value.length - 1]
+  const firstCount = first.threadCount || 0
+  const lastCount = last.threadCount || 0
+  
+  if (lastCount > firstCount * 1.5) {
+    return { status: 'danger', text: '快速增长', detail: `从${firstCount}增长到${lastCount}，可能存在线程泄漏` }
+  } else if (lastCount > firstCount * 1.2) {
+    return { status: 'warning', text: '缓慢增长', detail: `从${firstCount}增长到${lastCount}，建议关注` }
+  } else if (lastCount < firstCount * 0.8) {
+    return { status: 'success', text: '逐渐减少', detail: `从${firstCount}减少到${lastCount}，线程回收正常` }
+  } else {
+    return { status: 'success', text: '稳定', detail: `维持在${lastCount}左右，线程数量正常` }
+  }
+})
+
+const blockedThreadAnalysis = computed(() => {
+  if (memoryHistory.value.length === 0) {
+    return { status: 'info', text: '数据不足', detail: '无法分析线程阻塞情况' }
+  }
+  
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const blocked = latest.threadCountBlocked || 0
+  const total = latest.threadCount || 1
+  const ratio = (blocked / total) * 100
+  
+  if (ratio > 20) {
+    return { status: 'danger', text: '严重阻塞', detail: `${blocked}/${total} 线程被阻塞 (${ratio.toFixed(1)}%)` }
+  } else if (ratio > 10) {
+    return { status: 'warning', text: '存在阻塞', detail: `${blocked}/${total} 线程被阻塞 (${ratio.toFixed(1)}%)` }
+  } else if (ratio > 0) {
+    return { status: 'info', text: '轻微阻塞', detail: `${blocked}/${total} 线程被阻塞 (${ratio.toFixed(1)}%)` }
+  } else {
+    return { status: 'success', text: '无阻塞', detail: '所有线程正常运行' }
+  }
+})
+
+const threadHealthAnalysis = computed(() => {
+  if (memoryHistory.value.length === 0) {
+    return { status: 'info', text: '数据不足', detail: '无法评估线程健康度' }
+  }
+  
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  let score = 100
+  
+  // BLOCKED线程占比扣分
+  const blockedRatio = ((latest.threadCountBlocked || 0) / (latest.threadCount || 1)) * 100
+  if (blockedRatio > 20) score -= 40
+  else if (blockedRatio > 10) score -= 20
+  else if (blockedRatio > 5) score -= 10
+  
+  // 线程总数过多扣分
+  if (latest.threadCount > 500) score -= 20
+  else if (latest.threadCount > 300) score -= 10
+  
+  // 守护线程比例异常扣分
+  const daemonRatio = ((latest.daemonThreadCount || 0) / (latest.threadCount || 1)) * 100
+  if (daemonRatio < 30) score -= 10
+  
+  score = Math.max(0, Math.min(100, score))
+  
+  if (score >= 80) {
+    return { status: 'success', text: `${score}分 - 优秀`, detail: '线程状态良好，无需优化' }
+  } else if (score >= 60) {
+    return { status: 'warning', text: `${score}分 - 良好`, detail: '线程状态正常，建议关注' }
+  } else if (score >= 40) {
+    return { status: 'warning', text: `${score}分 - 一般`, detail: '线程问题较多，建议优化' }
+  } else {
+    return { status: 'danger', text: `${score}分 - 较差`, detail: '线程问题严重，需要立即处理' }
+  }
+})
+
+const threadSuggestions = computed(() => {
+  if (memoryHistory.value.length === 0) {
+    return ['暂无数据', '']
+  }
+  
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const blockedRatio = ((latest.threadCountBlocked || 0) / (latest.threadCount || 1)) * 100
+  
+  if (blockedRatio > 15) {
+    return [
+      '检查锁竞争',
+      '分析BLOCKED线程堆栈，优化同步机制'
+    ]
+  } else if (latest.threadCount > 400) {
+    return [
+      '控制线程数量',
+      '使用线程池管理，避免创建过多线程'
+    ]
+  } else if ((latest.daemonThreadCount || 0) / (latest.threadCount || 1) < 0.3) {
+    return [
+      '增加守护线程',
+      '确保后台任务使用守护线程，避免阻止JVM退出'
+    ]
+  } else {
+    return [
+      '线程状态正常',
+      '继续保持现有配置'
+    ]
+  }
 })
 
 const gcModeAnalysis = computed(() => {
@@ -2391,6 +1680,124 @@ const gcModeAnalysis = computed(() => {
   }
 })
 
+const fullGcTrendAnalysis = computed(() => {
+  if (memoryHistory.value.length < 2) {
+    return { status: 'info', text: '数据不足', detail: '需要更多数据点才能分析趋势' }
+  }
+  
+  // 分析最近几次Full GC的时间间隔
+  let fullGcIntervals: number[] = []
+  let prevFullGcCount = memoryHistory.value[0].fullGcCount || 0
+  
+  for (let i = 1; i < memoryHistory.value.length; i++) {
+    const currentFullGcCount = memoryHistory.value[i].fullGcCount || 0
+    if (currentFullGcCount > prevFullGcCount) {
+      const interval = memoryHistory.value[i].collectTime - memoryHistory.value[i-1].collectTime
+      fullGcIntervals.push(interval)
+    }
+    prevFullGcCount = currentFullGcCount
+  }
+  
+  if (fullGcIntervals.length === 0) {
+    return { status: 'success', text: '无Full GC', detail: '当前时间段内没有发生Full GC' }
+  }
+  
+  // 分析间隔是否缩短（趋势恶化）
+  if (fullGcIntervals.length >= 2) {
+    const recentAvg = fullGcIntervals.slice(-2).reduce((a, b) => a + b, 0) / 2
+    const olderAvg = fullGcIntervals.slice(0, -2).reduce((a, b) => a + b, 0) / (fullGcIntervals.length - 2)
+    
+    if (recentAvg < olderAvg * 0.7) {
+      return { status: 'danger', text: '频率加快', detail: `Full GC间隔从${Math.round(olderAvg/1000)}s缩短至${Math.round(recentAvg/1000)}s` }
+    } else if (recentAvg > olderAvg * 1.3) {
+      return { status: 'success', text: '频率减缓', detail: `Full GC间隔从${Math.round(olderAvg/1000)}s延长至${Math.round(recentAvg/1000)}s` }
+    }
+  }
+  
+  const avgInterval = fullGcIntervals.reduce((a, b) => a + b, 0) / fullGcIntervals.length
+  return { status: 'warning', text: '频率稳定', detail: `平均间隔${Math.round(avgInterval/1000)}s，共${fullGcIntervals.length}次` }
+})
+
+const gcHealthDetailAnalysis = computed(() => {
+  if (memoryHistory.value.length === 0) {
+    return { status: 'info', text: '数据不足', detail: '无法评估GC健康度' }
+  }
+  
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const minor = latest.minorGcCount || 0
+  const full = latest.fullGcCount || 0
+  const total = minor + full
+  
+  if (total === 0) {
+    return { status: 'success', text: '健康', detail: '无GC活动，内存充足' }
+  }
+  
+  const fullRatio = full / total
+  let score = 100
+  
+  // Full GC占比扣分
+  if (fullRatio > 0.3) score -= 40
+  else if (fullRatio > 0.15) score -= 20
+  else if (fullRatio > 0.05) score -= 10
+  
+  // GC总耗时扣分
+  const totalGcTime = (latest.minorGcTimeMs || 0) + (latest.fullGcTimeMs || 0)
+  if (totalGcTime > 10000) score -= 30
+  else if (totalGcTime > 5000) score -= 15
+  else if (totalGcTime > 1000) score -= 5
+  
+  score = Math.max(0, Math.min(100, score))
+  
+  if (score >= 80) {
+    return { status: 'success', text: `${score}分 - 优秀`, detail: 'GC表现良好，无需优化' }
+  } else if (score >= 60) {
+    return { status: 'warning', text: `${score}分 - 良好`, detail: 'GC表现正常，建议关注' }
+  } else if (score >= 40) {
+    return { status: 'warning', text: `${score}分 - 一般`, detail: 'GC频率偏高，建议优化' }
+  } else {
+    return { status: 'danger', text: `${score}分 - 较差`, detail: 'GC问题严重，需要立即优化' }
+  }
+})
+
+const gcSuggestions = computed(() => {
+  if (memoryHistory.value.length === 0) {
+    return ['暂无数据', '']
+  }
+  
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  const minor = latest.minorGcCount || 0
+  const full = latest.fullGcCount || 0
+  const total = minor + full
+  
+  if (total === 0) {
+    return ['当前GC状态良好', '继续保持现有配置']
+  }
+  
+  const fullRatio = full / total
+  
+  if (fullRatio > 0.2) {
+    return [
+      '增加堆内存大小',
+      '建议调整 -Xmx 参数，减少Full GC频率'
+    ]
+  } else if (fullRatio > 0.1) {
+    return [
+      '优化内存分配',
+      '检查是否有大对象或内存泄漏'
+    ]
+  } else if ((latest.minorGcTimeMs || 0) + (latest.fullGcTimeMs || 0) > 5000) {
+    return [
+      '调整GC算法',
+      '考虑使用G1或ZGC垃圾收集器'
+    ]
+  } else {
+    return [
+      'GC状态正常',
+      '继续监控，暂无优化建议'
+    ]
+  }
+})
+
 const hasBufferPoolsData = computed(() => {
   if (memoryHistory.value.length === 0) return false
   return !!memoryHistory.value[memoryHistory.value.length - 1].bufferPools
@@ -2402,23 +1809,99 @@ const hasPhysicalMemoryData = computed(() => {
 })
 
 const jvmStartTimeStr = computed(() => {
+  // 优先使用 memoryHistory 中的数据
+  if (memoryHistory.value.length > 0) {
+    const latest = memoryHistory.value[memoryHistory.value.length - 1]
+    if (latest.jvmStartTime) {
+      return new Date(latest.jvmStartTime).toLocaleString('zh-CN')
+    }
+  }
+  // 降级使用 jvmData
   if (!jvmData.value.startTimeMs) return '-'
   return new Date(jvmData.value.startTimeMs).toLocaleString('zh-CN')
 })
 
 const jvmUptimeStr = computed(() => {
+  // 优先使用 memoryHistory 中的数据
+  if (memoryHistory.value.length > 0) {
+    const latest = memoryHistory.value[memoryHistory.value.length - 1]
+    if (latest.jvmUptimeMs) {
+      const hours = Math.floor(latest.jvmUptimeMs / 3600000)
+      const minutes = Math.floor((latest.jvmUptimeMs % 3600000) / 60000)
+      return `${hours}小时 ${minutes}分钟`
+    }
+  }
+  // 降级使用 jvmData
   if (!jvmData.value.uptimeMs) return '-'
   const hours = Math.floor(jvmData.value.uptimeMs / 3600000)
   const minutes = Math.floor((jvmData.value.uptimeMs % 3600000) / 60000)
   return `${hours}小时 ${minutes}分钟`
 })
 
-const latestPeakThreadCount = computed(() => jvmData.value.peakThreadCount || '-')
-const latestDaemonThreadCount = computed(() => jvmData.value.daemonThreadCount || '-')
-const latestTotalLoadedClass = computed(() => jvmData.value.totalLoadedClassCount || '-')
-const latestUnloadedClass = computed(() => jvmData.value.unloadedClassCount || '-')
-const latestMinorGcCount = computed(() => gcData.value.collectors?.find(c => c.name.includes('Young'))?.count || '-')
-const latestFullGcCount = computed(() => gcData.value.collectors?.find(c => c.name.includes('Old'))?.count || '-')
+const latestPeakThreadCount = computed(() => {
+  if (memoryHistory.value.length > 0) {
+    return memoryHistory.value[memoryHistory.value.length - 1].peakThreadCount || '-'
+  }
+  return jvmData.value.peakThreadCount || '-'
+})
+
+const latestDaemonThreadCount = computed(() => {
+  if (memoryHistory.value.length > 0) {
+    return memoryHistory.value[memoryHistory.value.length - 1].daemonThreadCount || '-'
+  }
+  return jvmData.value.daemonThreadCount || '-'
+})
+
+const latestTotalLoadedClass = computed(() => {
+  if (memoryHistory.value.length > 0) {
+    return memoryHistory.value[memoryHistory.value.length - 1].totalLoadedClassCount || '-'
+  }
+  return jvmData.value.totalLoadedClassCount || '-'
+})
+
+const latestUnloadedClass = computed(() => {
+  if (memoryHistory.value.length > 0) {
+    return memoryHistory.value[memoryHistory.value.length - 1].unloadedClassCount || '-'
+  }
+  return jvmData.value.unloadedClassCount || '-'
+})
+
+const latestMinorGcCount = computed(() => {
+  if (memoryHistory.value.length > 0) {
+    const count = memoryHistory.value[memoryHistory.value.length - 1].minorGcCount || 0
+    return count > 0 ? `${count} 次` : '-'
+  }
+  return gcData.value.collectors?.find(c => c.name.includes('Young'))?.count || '-'
+})
+
+const latestFullGcCount = computed(() => {
+  if (memoryHistory.value.length > 0) {
+    const count = memoryHistory.value[memoryHistory.value.length - 1].fullGcCount || 0
+    return count > 0 ? `${count} 次` : '-'
+  }
+  return gcData.value.collectors?.find(c => c.name.includes('Old'))?.count || '-'
+})
+
+// 解析JVM参数
+const latestJvmArgs = computed(() => {
+  if (!memoryHistory.value.length) return []
+  const latest = memoryHistory.value[memoryHistory.value.length - 1]
+  if (!latest.jvmArgs) return []
+  
+  try {
+    // 如果已经是数组，直接返回
+    if (Array.isArray(latest.jvmArgs)) return latest.jvmArgs
+    // 如果是JSON字符串，解析后返回
+    if (typeof latest.jvmArgs === 'string') {
+      const parsed = JSON.parse(latest.jvmArgs)
+      return Array.isArray(parsed) ? parsed : []
+    }
+  } catch (e) {
+    console.warn('Failed to parse jvmArgs:', e)
+  }
+  
+  return []
+})
 
 const topCpuThreadsTable = computed(() => {
   // TODO: 从 threadsData 中提取 Top CPU 线程
@@ -2429,6 +1912,7 @@ const topCpuThreadsTable = computed(() => {
 
 // 处理诊断命令（覆盖 Composable 中的版本，添加渲染逻辑）
 const handleDiagCommand = async (command: string, row: any) => {
+  console.log('[ApplicationView] 点击诊断命令:', command, '实例:', row)
   const agentId = `${row.app}@${row.inst}`
   currentDiagRow.value = row
 
@@ -2440,15 +1924,19 @@ const handleDiagCommand = async (command: string, row: any) => {
       // 实例配置 - 由父组件处理
       break
     case 'memoryChart':
+      console.log('[ApplicationView] 调用 showMemoryHistoryChart')
       await showMemoryHistoryChart(row)
       break
     case 'gcChart':
+      console.log('[ApplicationView] 调用 showGcHistoryChart')
       await showGcHistoryChart(row)
       break
     case 'threadChart':
+      console.log('[ApplicationView] 调用 showThreadHistoryChart')
       await showThreadHistoryChart(row)
       break
     case 'ioNetworkChart':
+      console.log('[ApplicationView] 调用 showIoNetworkHistoryChart')
       await showIoNetworkHistoryChart(row)
       break
     case 'jvmInfo':
@@ -2491,6 +1979,7 @@ const handleDiagCommand = async (command: string, row: any) => {
 }
 
 // 刷新历史图表（覆盖 Composable 中的版本）
+// 刷新历史图表（用户点击“🔄 刷新数据”按钮时调用）
 const refreshHistoryChart = () => {
   if (!currentDiagRow.value) {
     ElMessage.warning('无法获取实例信息')
@@ -2499,7 +1988,14 @@ const refreshHistoryChart = () => {
   
   switch (currentDiagType.value) {
     case 'memoryChart':
+      // 先刷新数据
       showMemoryHistoryChart(currentDiagRow.value, true)
+      // 然后渲染底部 4 个图表
+      setTimeout(() => {
+        console.log('⏰ 开始渲染底部 GC 图表...')
+        renderGcCharts(memoryHistory.value)
+        ElMessage.success('所有图表已刷新')
+      }, 2500) // 等待数据加载和主要图表渲染完成后
       break
     case 'gcChart':
       showGcHistoryChart(currentDiagRow.value, true)
@@ -2532,12 +2028,15 @@ const showMemoryHistoryChart = async (row: any, refresh = false) => {
     
     const data = await getMemoryHistory(row.app, row.inst, startTime, endTime, 100)
     
-    if (data.length === 0) {
+    // 检查数据是否有效
+    if (!data || data.length === 0) {
       diagResult.value = '暂无历史数据，请确保Agent正常运行并上报数据'
       return
     }
     
-    memoryHistory.value = data.sort((a, b) => a.collectTime - b.collectTime)
+    // 更新数据
+    const sortedData = [...data].sort((a, b) => a.collectTime - b.collectTime)
+    memoryHistory.value = sortedData
     diagResult.value = 'loaded'
     
     // 如果不是刷新，等待 Dialog 打开后再渲染
@@ -2555,6 +2054,11 @@ const showMemoryHistoryChart = async (row: any, refresh = false) => {
       ElMessage.success('数据已刷新')
     }
   } catch (e: any) {
+    // 忽略组件已销毁的错误
+    if (e.message && e.message.includes('__vnode')) {
+      console.warn('组件已销毁，忽略更新')
+      return
+    }
     diagResult.value = `加载失败: ${e.message || '未知错误'}`
   } finally {
     historyLoading.value = false
@@ -2563,11 +2067,47 @@ const showMemoryHistoryChart = async (row: any, refresh = false) => {
 
 // Dialog 打开后的回调
 const handleDialogOpened = () => {
-  console.log('✅ Dialog 已打开')
-  
   // 根据当前诊断类型渲染对应的图表
   if (currentDiagType.value === 'memoryChart') {
-    renderChartsAfterDialogOpen()
+    // 使用 nextTick 确保 DOM 更新
+    nextTick(() => {
+      // 等待 Dialog 动画完全完成
+      setTimeout(() => {
+        renderChartsAfterDialogOpen()
+      }, 500) // 等待 500ms 确保 Dialog 动画完成
+    })
+  } else if (currentDiagType.value === 'gcChart') {
+    // GC 分析图表
+    console.log('🎨 handleDialogOpened: 准备渲染GC图表')
+    nextTick(() => {
+      setTimeout(() => {
+        console.log('🎨 handleDialogOpened: 开始渲染GC图表, memoryHistory.length:', memoryHistory.value.length)
+        if (memoryHistory.value.length > 0) {
+          renderGcCharts(memoryHistory.value)
+          console.log('✅ handleDialogOpened: GC图表渲染完成')
+        } else {
+          console.warn('⚠️ handleDialogOpened: memoryHistory为空，跳过渲染')
+        }
+      }, 500)
+    })
+  } else if (currentDiagType.value === 'threadChart') {
+    // 线程监控图表
+    nextTick(() => {
+      setTimeout(() => {
+        if (memoryHistory.value.length > 0) {
+          threadMon.renderThreadCharts(memoryHistory.value)
+        }
+      }, 500)
+    })
+  } else if (currentDiagType.value === 'ioNetworkChart') {
+    // IO/网络监控图表
+    nextTick(() => {
+      setTimeout(() => {
+        if (memoryHistory.value.length > 0) {
+          ioNetworkMon.renderIoNetworkCharts(memoryHistory.value)
+        }
+      }, 500)
+    })
   }
 }
 
@@ -2580,41 +2120,93 @@ const refreshCharts = () => {
   
   // 等待一小段时间后渲染
   setTimeout(() => {
-    console.log('⏰ 开始渲染图表...')
+    console.log('⏰ 开始渲染内存图表...')
     renderMemoryCharts()
-    renderGcCharts(memoryHistory.value)
-    console.log('✅ 图表渲染完成')
-    ElMessage.success('图表已刷新')
+    
+    // 等待 500ms 后再渲染 GC 图表，确保 DOM 完全就绪
+    setTimeout(() => {
+      console.log('⏰ 开始渲染 GC 图表...')
+      
+      // 直接检查 DOM 是否存在
+      const minorEl = document.querySelector('[data-chart="minor-vs-full-gc"]')
+      const gcEffEl = document.querySelector('[data-chart="gc-efficiency"]')
+      
+      console.log('GC 图表 DOM 检查:', {
+        minorVsFullGc: !!minorEl,
+        gcEfficiency: !!gcEffEl
+      })
+      
+      if (minorEl && gcEffEl) {
+        console.log('✅ GC 图表 DOM 已就绪，开始渲染...')
+        renderGcCharts(memoryHistory.value)
+      } else {
+        console.warn('⚠️ GC 图表 DOM 未就绪，强制渲染...')
+        renderGcCharts(memoryHistory.value)
+      }
+      
+      console.log('✅ 所有图表渲染完成')
+      ElMessage.success('图表已刷新')
+    }, 500)
   }, 300)
 }
 
 // 在 Dialog 打开后渲染图表
 const renderChartsAfterDialogOpen = () => {
-  console.log('🎨 开始渲染图表...')
-  
   // 强制切换到 history Tab
   memoryTab.value = 'history'
   
-  // 等待足够长的时间让 Element Plus 渲染所有内容
-  setTimeout(() => {
-    console.log('⏰ 开始渲染图表（不检查 DOM）...')
-    
-    // 直接渲染，让 Composable 中的 querySelector 备用方案处理
-    renderMemoryCharts()
-    renderGcCharts(memoryHistory.value)
-    
-    console.log('✅ 所有图表渲染完成')
-  }, 2000) // 等待 2 秒
+  // 使用 nextTick 确保 DOM 更新
+  nextTick(() => {
+    // 等待 Dialog 动画完全完成
+    setTimeout(() => {
+      // 渲染所有内存图表（包括底部图表）
+      renderMemoryCharts()
+      
+      // 使用 nextTick 确保图表 DOM 更新
+      nextTick(() => {
+        // 延迟渲染 GC 图表（确保 Dialog 完全展开）
+        setTimeout(() => {
+          renderGcCharts(memoryHistory.value)
+          
+          // 最终 resize 所有底部图表
+          setTimeout(() => {
+            const edenEl = document.querySelector('[data-chart="eden-survivor"]') as HTMLElement
+            const oldGenEl = document.querySelector('[data-chart="old-gen"]') as HTMLElement
+            const minorGcEl = document.querySelector('[data-chart="minor-vs-full-gc"]') as HTMLElement
+            const gcEffEl = document.querySelector('[data-chart="gc-efficiency"]') as HTMLElement
+            
+            const charts = [
+              { name: 'Eden+Survivor', el: edenEl },
+              { name: 'Old Gen', el: oldGenEl },
+              { name: 'Minor vs Full GC', el: minorGcEl },
+              { name: 'GC Efficiency', el: gcEffEl }
+            ]
+            
+            charts.forEach(({ el }) => {
+              if (el) {
+                const instance = echarts.getInstanceByDom(el)
+                if (instance) {
+                  instance.resize()
+                }
+              }
+            })
+          }, 500)
+        }, 1000)
+      })
+    }, 1000) // 等待 1 秒确保 Dialog 动画完成
+  })
 }
 
 // 显示GC历史监控图表
 const showGcHistoryChart = async (row: any, refresh = false) => {
+  console.log('[ApplicationView] showGcHistoryChart 被调用, row:', row, 'refresh:', refresh)
   if (!refresh) {
     diagDialogTitle.value = `♻️ GC分析 - ${row.app}@${row.inst}`
     diagResult.value = '正在加载历史数据...'
     showDiagDialog.value = true
     currentDiagType.value = 'gcChart'
     diagMode.value = 'chart'
+    console.log('[ApplicationView] Dialog设置: showDiagDialog=true, currentDiagType=gcChart')
   }
   
   try {
@@ -2622,27 +2214,48 @@ const showGcHistoryChart = async (row: any, refresh = false) => {
     const endTime = Date.now()
     const startTime = endTime - historyTimeRange.value * 3600 * 1000
     
+    console.log('[ApplicationView] 开始加载历史数据, app:', row.app, 'inst:', row.inst)
     const data = await getMemoryHistory(row.app, row.inst, startTime, endTime, 100)
+    console.log('[ApplicationView] 历史数据加载完成, 条数:', data?.length || 0)
     
-    if (data.length === 0) {
+    // 检查数据是否有效
+    if (!data || data.length === 0) {
       diagResult.value = '暂无历史数据'
       return
     }
     
-    memoryHistory.value = data.sort((a, b) => a.collectTime - b.collectTime)
+    // 更新数据
+    const sortedData = [...data].sort((a, b) => a.collectTime - b.collectTime)
+    
+    // 检查组件是否仍然挂载
+    if (!showDiagDialog.value || currentDiagType.value !== 'gcChart') {
+      console.log('组件已切换或关闭，忽略数据更新')
+      return
+    }
+    
+    memoryHistory.value = sortedData
     diagResult.value = 'loaded'
     
-    // 渲染GC图表
-    setTimeout(() => {
-      gcAnalysis.renderGcCharts(memoryHistory.value)
-    }, 500)
+    console.log('📊 历史数据加载完成:', {
+      数据条数: sortedData.length,
+      第一条: sortedData[0],
+      最后一条: sortedData[sortedData.length - 1]
+    })
     
-    if (!refresh) {
-      ElMessage.success(`加载了 ${data.length} 条历史记录`)
-    } else {
-      ElMessage.success('数据已刷新')
-    }
+    // 数据加载完成后，等待Dialog打开并渲染图表
+    nextTick(() => {
+      setTimeout(() => {
+        if (showDiagDialog.value && currentDiagType.value === 'gcChart' && memoryHistory.value.length > 0) {
+          renderGcCharts(memoryHistory.value)
+        }
+      }, 800) // 增加延迟确保DOM就绪
+    })
   } catch (e: any) {
+    // 忽略组件已销毁的错误
+    if (e.message && e.message.includes('__vnode')) {
+      console.warn('组件已销毁，忽略更新')
+      return
+    }
     diagResult.value = `加载失败: ${e.message || '未知错误'}`
   } finally {
     historyLoading.value = false
@@ -2666,18 +2279,38 @@ const showThreadHistoryChart = async (row: any, refresh = false) => {
     
     const data = await getMemoryHistory(row.app, row.inst, startTime, endTime, 100)
     
-    if (data.length === 0) {
+    // 检查数据是否有效
+    if (!data || data.length === 0) {
       diagResult.value = '暂无历史数据'
       return
     }
     
-    memoryHistory.value = data.sort((a, b) => a.collectTime - b.collectTime)
+    // 更新数据
+    const sortedData = [...data].sort((a, b) => a.collectTime - b.collectTime)
+    
+    // 检查组件是否仍然挂载
+    if (!showDiagDialog.value || currentDiagType.value !== 'threadChart') {
+      console.log('组件已切换或关闭，忽略数据更新')
+      return
+    }
+    
+    memoryHistory.value = sortedData
     diagResult.value = 'loaded'
     
-    // 渲染线程图表
-    setTimeout(() => {
-      threadMon.renderThreadCharts(memoryHistory.value)
-    }, 500)
+    console.log('📊 历史数据加载完成:', {
+      数据条数: sortedData.length,
+      第一条: sortedData[0],
+      最后一条: sortedData[sortedData.length - 1]
+    })
+    
+    // 数据加载完成后，等待Dialog打开并渲染图表
+    nextTick(() => {
+      setTimeout(() => {
+        if (showDiagDialog.value && currentDiagType.value === 'threadChart' && memoryHistory.value.length > 0) {
+          threadMon.renderThreadCharts(memoryHistory.value)
+        }
+      }, 800) // 增加延迟确保DOM就绪
+    })
     
     if (!refresh) {
       ElMessage.success(`加载了 ${data.length} 条历史记录`)
@@ -2685,6 +2318,11 @@ const showThreadHistoryChart = async (row: any, refresh = false) => {
       ElMessage.success('数据已刷新')
     }
   } catch (e: any) {
+    // 忽略组件已销毁的错误
+    if (e.message && (e.message.includes('__vnode') || e.message.includes('Cannot set properties of null'))) {
+      console.warn('组件已销毁或切换，忽略更新')
+      return
+    }
     diagResult.value = `加载失败: ${e.message || '未知错误'}`
   } finally {
     historyLoading.value = false
@@ -2708,18 +2346,31 @@ const showIoNetworkHistoryChart = async (row: any, refresh = false) => {
     
     const data = await getMemoryHistory(row.app, row.inst, startTime, endTime, 100)
     
-    if (data.length === 0) {
+    // 检查数据是否有效
+    if (!data || data.length === 0) {
       diagResult.value = '暂无历史数据'
       return
     }
     
-    memoryHistory.value = data.sort((a, b) => a.collectTime - b.collectTime)
+    // 更新数据
+    const sortedData = [...data].sort((a, b) => a.collectTime - b.collectTime)
+    memoryHistory.value = sortedData
     diagResult.value = 'loaded'
     
-    // 渲染IO/网络图表
-    setTimeout(() => {
-      ioNetworkMon.renderIoNetworkCharts(memoryHistory.value)
-    }, 500)
+    console.log('📊 历史数据加载完成:', {
+      数据条数: sortedData.length,
+      第一条: sortedData[0],
+      最后一条: sortedData[sortedData.length - 1]
+    })
+    
+    // 数据加载完成后，等待Dialog打开并渲染图表
+    nextTick(() => {
+      setTimeout(() => {
+        if (memoryHistory.value.length > 0) {
+          ioNetworkMon.renderIoNetworkCharts(memoryHistory.value)
+        }
+      }, 300)
+    })
     
     if (!refresh) {
       ElMessage.success(`加载了 ${data.length} 条历史记录`)
@@ -2727,6 +2378,11 @@ const showIoNetworkHistoryChart = async (row: any, refresh = false) => {
       ElMessage.success('数据已刷新')
     }
   } catch (e: any) {
+    // 忽略组件已销毁的错误
+    if (e.message && e.message.includes('__vnode')) {
+      console.warn('组件已销毁，忽略更新')
+      return
+    }
     diagResult.value = `加载失败: ${e.message || '未知错误'}`
   } finally {
     historyLoading.value = false
@@ -2791,13 +2447,34 @@ watch(currentDiagType, (newType) => {
       if (newType === 'memory' || newType === 'memoryChart') {
         renderMemoryCharts()
       } else if (newType === 'gcChart') {
-        gcAnalysis.renderGcCharts(memoryHistory.value)
+        renderGcCharts(memoryHistory.value)
       } else if (newType === 'threadChart') {
         threadMon.renderThreadCharts(memoryHistory.value)
       } else if (newType === 'ioNetworkChart') {
         ioNetworkMon.renderIoNetworkCharts(memoryHistory.value)
       }
     }, 300)
+  }
+})
+
+// 监听diagMode变化，从原始数据切回图表视图时重新渲染
+watch(diagMode, (newMode) => {
+  if (newMode === 'chart' && currentDiagType.value && memoryHistory.value.length > 0) {
+    // 等待DOM更新后重新渲染图表
+    nextTick(() => {
+      setTimeout(() => {
+        console.log('[ApplicationView] 从原始数据切回图表视图，重新渲染图表')
+        if (currentDiagType.value === 'memory' || currentDiagType.value === 'memoryChart') {
+          renderMemoryCharts()
+        } else if (currentDiagType.value === 'gcChart') {
+          renderGcCharts(memoryHistory.value)
+        } else if (currentDiagType.value === 'threadChart') {
+          threadMon.renderThreadCharts(memoryHistory.value)
+        } else if (currentDiagType.value === 'ioNetworkChart') {
+          ioNetworkMon.renderIoNetworkCharts(memoryHistory.value)
+        }
+      }, 500) // 等待Dialog内容区切换动画完成
+    })
   }
 })
 </script>

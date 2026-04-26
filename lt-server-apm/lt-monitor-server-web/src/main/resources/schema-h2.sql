@@ -93,7 +93,8 @@ CREATE TABLE IF NOT EXISTS bistoury_plugin_info (
 );
 
 -- Agent Memory History Table
-CREATE TABLE IF NOT EXISTS agent_memory_history (
+DROP TABLE IF EXISTS agent_memory_history;
+CREATE TABLE agent_memory_history (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   app_code VARCHAR(64) NOT NULL,
   inst_id VARCHAR(64) NOT NULL,
@@ -153,7 +154,10 @@ CREATE TABLE IF NOT EXISTS agent_memory_history (
   thread_count_runnable INTEGER,             -- Phase 7: RUNNABLE线程数
   thread_count_blocked INTEGER,              -- Phase 7: BLOCKED线程数
   performance_score DOUBLE,                  -- Phase 8: 综合性能评分 (0-100)
-  health_status VARCHAR(20)                  -- Phase 8: 健康状态
+  health_status VARCHAR(20),                  -- Phase 8: 健康状态
+  buffer_pools TEXT,                          -- 缓冲区池使用情况 (JSON)
+  total_physical_memory BIGINT,               -- 总物理内存 (bytes)
+  free_physical_memory BIGINT                 -- 空闲物理内存 (bytes)
 );
 
 -- 告警规则表

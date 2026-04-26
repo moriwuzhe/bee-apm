@@ -1,4 +1,4 @@
-                      x'x'x'x'z<template>
+<template>
   <div class="agent-diag-panel">
     <!-- 实例信息头部 -->
     <div v-if="agentInfo" class="agent-info-bar">
@@ -25,64 +25,40 @@
       
       <!-- Tab 1: 实时监控（趋势图表） -->
       <el-tab-pane v-if="enableRealtimeMonitor" label="📊 实时监控" name="realtime">
-        <div class="monitor-charts">
-          <!-- 空数据提示 -->
-          <div v-if="memoryHistoryData.length === 0" class="empty-data-tip">
-            <el-empty description="暂无监控数据">
-              <template #image>
-                <el-icon :size="80" color="#c0c4cc"><DataAnalysis /></el-icon>
-              </template>
-              <template #description>
-                <p style="color: #909399; margin: 8px 0;">请确保Agent正常运行并上报数据</p>
-                <p style="color: #c0c4cc; font-size: 12px;">数据将在Agent上报后自动显示</p>
-              </template>
-              <el-button type="primary" @click="loadHistoryData" :loading="loading">
-                <el-icon><Refresh /></el-icon>
-                刷新数据
-              </el-button>
-            </el-empty>
-          </div>
-          
-          <!-- 图表区域 -->
-          <template v-else>
-            <el-card shadow="hover" class="chart-card">
-              <template #header>
-                <div class="chart-header">
-                  <span>💾 内存趋势</span>
-                  <el-tag size="small" type="info">实时</el-tag>
-                </div>
-              </template>
-              <div ref="memoryChartRef" class="chart-container"></div>
-            </el-card>
-            <el-card shadow="hover" class="chart-card">
-              <template #header>
-                <div class="chart-header">
-                  <span>♻️ GC趋势</span>
-                  <el-tag size="small" type="info">实时</el-tag>
-                </div>
-              </template>
-              <div ref="gcChartRef" class="chart-container"></div>
-            </el-card>
-            <el-card shadow="hover" class="chart-card">
-              <template #header>
-                <div class="chart-header">
-                  <span>🧵 线程趋势</span>
-                  <el-tag size="small" type="info">实时</el-tag>
-                </div>
-              </template>
-              <div ref="threadChartRef" class="chart-container"></div>
-            </el-card>
-            <el-card shadow="hover" class="chart-card">
-              <template #header>
-                <div class="chart-header">
-                  <span>🌐 IO/网络趋势</span>
-                  <el-tag size="small" type="info">实时</el-tag>
-                </div>
-              </template>
-              <div ref="ioChartRef" class="chart-container"></div>
-            </el-card>
-          </template>
+        <!-- 空数据提示 -->
+        <div v-if="memoryHistoryData.length === 0" class="empty-data-tip">
+          <el-empty description="暂无监控数据">
+            <template #image>
+              <el-icon :size="80" color="#c0c4cc"><DataAnalysis /></el-icon>
+            </template>
+            <template #description>
+              <p style="color: #909399; margin: 8px 0;">请确保Agent正常运行并上报数据</p>
+              <p style="color: #c0c4cc; font-size: 12px;">数据将在Agent上报后自动显示</p>
+            </template>
+            <el-button type="primary" @click="loadHistoryData" :loading="loading">
+              <el-icon><Refresh /></el-icon>
+              刷新数据
+            </el-button>
+          </el-empty>
         </div>
+        
+        <!-- 使用监控组件 -->
+        <template v-else>
+          <el-tabs v-model="monitorSubTab" type="border-card">
+            <el-tab-pane label="💾 内存监控" name="memory">
+              <div ref="memoryContainerRef" class="monitor-container"></div>
+            </el-tab-pane>
+            <el-tab-pane label="♻️ GC分析" name="gc">
+              <div ref="gcContainerRef" class="monitor-container"></div>
+            </el-tab-pane>
+            <el-tab-pane label="🧵 线程监控" name="thread">
+              <div ref="threadContainerRef" class="monitor-container"></div>
+            </el-tab-pane>
+            <el-tab-pane label="🌐 IO/网络监控" name="io">
+              <div ref="ioContainerRef" class="monitor-container"></div>
+            </el-tab-pane>
+          </el-tabs>
+        </template>
       </el-tab-pane>
 
       <!-- Tab 2: 实时诊断 -->
@@ -297,6 +273,7 @@ const emit = defineEmits(['refresh'])
 
 // 状态
 const activeTab = ref('diagnostic')
+const monitorSubTab = ref('memory') // 实时监控子Tab
 const loading = ref(false)
 
 // JVM快照
@@ -324,11 +301,18 @@ const showResultDialog = ref(false)
 const resultDialogTitle = ref('')
 const resultData = ref('')
 
-// 图表引用
+// 图表引用（保留用于兼容）
 const memoryChartRef = ref<HTMLDivElement>()
 const gcChartRef = ref<HTMLDivElement>()
 const threadChartRef = ref<HTMLDivElement>()
 const ioChartRef = ref<HTMLDivElement>()
+
+// 新的监控容器引用
+const memoryContainerRef = ref<HTMLDivElement>()
+const gcContainerRef = ref<HTMLDivElement>()
+const threadContainerRef = ref<HTMLDivElement>()
+const ioContainerRef = ref<HTMLDivElement>()
+
 let memoryChart: echarts.ECharts | null = null
 let gcChart: echarts.ECharts | null = null
 let threadChart: echarts.ECharts | null = null
@@ -394,25 +378,31 @@ const loadHistoryData = async () => {
 const tryRenderCharts = (retryCount = 0) => {
   const maxRetries = 5
 
-  // 检查DOM是否存在且有尺寸
-  const hasMemoryDom = memoryChartRef.value && memoryChartRef.value.clientWidth > 0
-  const hasGcDom = gcChartRef.value && gcChartRef.value.clientWidth > 0
-  const hasThreadDom = threadChartRef.value && threadChartRef.value.clientWidth > 0
-  const hasIoDom = ioChartRef.value && ioChartRef.value.clientWidth > 0
-
-  if (hasMemoryDom) renderMemoryChart()
-  if (hasGcDom) renderGcChart()
-  if (hasThreadDom) renderThreadChart()
-  if (hasIoDom) renderIoChart()
-
-  // 如果还有图表未渲染且未达到最大重试次数，继续重试
-  const allRendered = (!hasMemoryDom || memoryChart) &&
-                      (!hasGcDom || gcChart) &&
-                      (!hasThreadDom || threadChart) &&
-                      (!hasIoDom || ioChart)
-
-  if (!allRendered && retryCount < maxRetries) {
-    setTimeout(() => tryRenderCharts(retryCount + 1), 200)
+  // 根据当前子Tab渲染对应的图表
+  if (monitorSubTab.value === 'memory') {
+    const hasMemoryDom = memoryContainerRef.value && memoryContainerRef.value.clientWidth > 0
+    if (hasMemoryDom) renderMemoryChart()
+    else if (retryCount < maxRetries) {
+      setTimeout(() => tryRenderCharts(retryCount + 1), 200)
+    }
+  } else if (monitorSubTab.value === 'gc') {
+    const hasGcDom = gcContainerRef.value && gcContainerRef.value.clientWidth > 0
+    if (hasGcDom) renderGcChart()
+    else if (retryCount < maxRetries) {
+      setTimeout(() => tryRenderCharts(retryCount + 1), 200)
+    }
+  } else if (monitorSubTab.value === 'thread') {
+    const hasThreadDom = threadContainerRef.value && threadContainerRef.value.clientWidth > 0
+    if (hasThreadDom) renderThreadChart()
+    else if (retryCount < maxRetries) {
+      setTimeout(() => tryRenderCharts(retryCount + 1), 200)
+    }
+  } else if (monitorSubTab.value === 'io') {
+    const hasIoDom = ioContainerRef.value && ioContainerRef.value.clientWidth > 0
+    if (hasIoDom) renderIoChart()
+    else if (retryCount < maxRetries) {
+      setTimeout(() => tryRenderCharts(retryCount + 1), 200)
+    }
   }
 }
 
@@ -443,18 +433,36 @@ watch(activeTab, (newTab) => {
   }
 })
 
+// 监听子Tab切换，渲染对应图表
+watch(monitorSubTab, (newSubTab) => {
+  console.log('[诊断] 子Tab切换到:', newSubTab)
+  if (activeTab.value === 'realtime' && memoryHistoryData.value.length > 0) {
+    setTimeout(() => {
+      if (newSubTab === 'memory') {
+        renderMemoryChart()
+      } else if (newSubTab === 'gc') {
+        renderGcChart()
+      } else if (newSubTab === 'thread') {
+        renderThreadChart()
+      } else if (newSubTab === 'io') {
+        renderIoChart()
+      }
+    }, 300)
+  }
+})
+
 // 渲染内存图表
 const renderMemoryChart = () => {
-  if (!memoryChartRef.value || memoryHistoryData.value.length === 0) {
+  if (!memoryContainerRef.value || memoryHistoryData.value.length === 0) {
     console.warn('[诊断] 内存图表: 无数据或DOM未就绪')
     return
   }
   // 检查DOM是否有有效尺寸
-  if (memoryChartRef.value.clientWidth === 0 || memoryChartRef.value.clientHeight === 0) {
+  if (memoryContainerRef.value.clientWidth === 0 || memoryContainerRef.value.clientHeight === 0) {
     console.warn('[诊断] 内存图表: DOM尺寸为0，跳过初始化')
     return
   }
-  if (!memoryChart) memoryChart = echarts.init(memoryChartRef.value)
+  if (!memoryChart) memoryChart = echarts.init(memoryContainerRef.value)
 
   const data = memoryHistoryData.value.sort((a, b) => a.collectTime - b.collectTime)
   const times = data.map(d => new Date(d.collectTime).toLocaleTimeString())
@@ -491,16 +499,16 @@ const renderMemoryChart = () => {
 
 // 渲染GC图表
 const renderGcChart = () => {
-  if (!gcChartRef.value || memoryHistoryData.value.length === 0) {
+  if (!gcContainerRef.value || memoryHistoryData.value.length === 0) {
     console.warn('[诊断] GC图表: 无数据或DOM未就绪')
     return
   }
   // 检查DOM是否有有效尺寸
-  if (gcChartRef.value.clientWidth === 0 || gcChartRef.value.clientHeight === 0) {
+  if (gcContainerRef.value.clientWidth === 0 || gcContainerRef.value.clientHeight === 0) {
     console.warn('[诊断] GC图表: DOM尺寸为0，跳过初始化')
     return
   }
-  if (!gcChart) gcChart = echarts.init(gcChartRef.value)
+  if (!gcChart) gcChart = echarts.init(gcContainerRef.value)
 
   const data = memoryHistoryData.value.sort((a, b) => a.collectTime - b.collectTime)
   const times = data.map(d => new Date(d.collectTime).toLocaleTimeString())
@@ -535,16 +543,16 @@ const renderGcChart = () => {
 
 // 渲染线程图表
 const renderThreadChart = () => {
-  if (!threadChartRef.value || memoryHistoryData.value.length === 0) {
+  if (!threadContainerRef.value || memoryHistoryData.value.length === 0) {
     console.warn('[诊断] 线程图表: 无数据或DOM未就绪')
     return
   }
   // 检查DOM是否有有效尺寸
-  if (threadChartRef.value.clientWidth === 0 || threadChartRef.value.clientHeight === 0) {
+  if (threadContainerRef.value.clientWidth === 0 || threadContainerRef.value.clientHeight === 0) {
     console.warn('[诊断] 线程图表: DOM尺寸为0，跳过初始化')
     return
   }
-  if (!threadChart) threadChart = echarts.init(threadChartRef.value)
+  if (!threadChart) threadChart = echarts.init(threadContainerRef.value)
 
   const data = memoryHistoryData.value.sort((a, b) => a.collectTime - b.collectTime)
   const times = data.map(d => new Date(d.collectTime).toLocaleTimeString())
@@ -578,16 +586,16 @@ const renderThreadChart = () => {
 
 // 渲染IO/网络图表
 const renderIoChart = () => {
-  if (!ioChartRef.value || memoryHistoryData.value.length === 0) {
+  if (!ioContainerRef.value || memoryHistoryData.value.length === 0) {
     console.warn('[诊断] IO图表: 无数据或DOM未就绪')
     return
   }
   // 检查DOM是否有有效尺寸
-  if (ioChartRef.value.clientWidth === 0 || ioChartRef.value.clientHeight === 0) {
+  if (ioContainerRef.value.clientWidth === 0 || ioContainerRef.value.clientHeight === 0) {
     console.warn('[诊断] IO图表: DOM尺寸为0，跳过初始化')
     return
   }
-  if (!ioChart) ioChart = echarts.init(ioChartRef.value)
+  if (!ioChart) ioChart = echarts.init(ioContainerRef.value)
 
   const data = memoryHistoryData.value.sort((a, b) => a.collectTime - b.collectTime)
   const times = data.map(d => new Date(d.collectTime).toLocaleTimeString())
@@ -1126,28 +1134,15 @@ defineExpose({
 }
 
 .monitor-charts {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  width: 100%;
 }
 
 .empty-data-tip {
-  grid-column: 1 / -1;
   padding: 40px 0;
 }
 
-.chart-card {
-  border-radius: 8px;
-}
-
-.chart-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.chart-container {
-  height: 300px;
+.monitor-container {
+  height: 500px;
   width: 100%;
 }
 

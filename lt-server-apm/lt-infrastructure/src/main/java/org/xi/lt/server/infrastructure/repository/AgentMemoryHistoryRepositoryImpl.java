@@ -32,105 +32,145 @@ public class AgentMemoryHistoryRepositoryImpl implements AgentMemoryHistoryRepos
                 String.class
             );
             System.out.println("[DIAG-DB] Columns in DB: " + columns);
+            System.out.println("[DIAG-DB] Total DB columns: " + columns.size());
+            
+            // 对比Java代码中的字段
+            String[] javaFields = {
+                "app_code", "inst_id", "collect_time", "heap_used", "heap_committed", "heap_max",
+                "non_heap_used", "non_heap_committed", "non_heap_max", "thread_count",
+                "peak_thread_count", "daemon_thread_count", "loaded_class_count", "total_loaded_class_count",
+                "unloaded_class_count", "class_loading_rate", "gc_count", "gc_time_ms",
+                "minor_gc_count", "minor_gc_time_ms", "full_gc_count", "full_gc_time_ms",
+                "process_cpu_load", "system_cpu_load", "memory_pools", "thread_states", "jvm_start_time",
+                "top_cpu_threads", "thread_pools", "gc_snapshot",
+                "disk_read_bytes", "disk_write_bytes", "network_recv_bytes", "network_sent_bytes", "disk_read_ops", "disk_write_ops",
+                "eden_used", "eden_max", "survivor_used", "survivor_max", "old_gen_used", "old_gen_max",
+                "metaspace_used", "metaspace_max", "code_cache_used", "code_cache_max",
+                "gc_reclaimed_bytes", "gc_efficiency", "memory_allocation_rate", "gc_reclaimed_last_interval", "gc_pressure",
+                "gc_reclaimed_bytes_current", "cpu_memory_correlation",
+                "top_cpu_thread_name", "top_cpu_thread_percent", "thread_count_runnable", "thread_count_blocked",
+                "performance_score", "health_status",
+                "buffer_pools", "total_physical_memory", "free_physical_memory"
+            };
+            System.out.println("[DIAG-DB] Java fields count: " + javaFields.length);
+            
+            // 找出DB中有但Java中没有的列
+            java.util.Set<String> javaFieldSet = new java.util.HashSet<>(java.util.Arrays.asList(javaFields));
+            javaFieldSet.add("id"); // 添加自增主键
+            for (String dbCol : columns) {
+                if (!javaFieldSet.contains(dbCol.toLowerCase())) {
+                    System.err.println("[DIAG-DB] WARNING: DB has extra column: " + dbCol);
+                }
+            }
         } catch (Exception e) {
             System.err.println("[DIAG-DB] Failed to check table structure: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
     @Override
     public void save(AgentMemoryMetrics metrics) {
-        // 1. 打印字段数量
-        String[] fields = {
-            "app_code", "inst_id", "collect_time", "heap_used", "heap_committed", "heap_max",
-            "non_heap_used", "non_heap_committed", "non_heap_max", "thread_count",
-            "peak_thread_count", "daemon_thread_count", "loaded_class_count", "total_loaded_class_count",
-            "unloaded_class_count", "class_loading_rate", "gc_count", "gc_time_ms",
-            "minor_gc_count", "minor_gc_time_ms", "full_gc_count", "full_gc_time_ms",
-            "process_cpu_load", "system_cpu_load", "memory_pools", "thread_states", "jvm_start_time",
-            "top_cpu_threads", "thread_pools", "gc_snapshot",
-            "disk_read_bytes", "disk_write_bytes", "network_recv_bytes", "network_sent_bytes", "disk_read_ops", "disk_write_ops",
-            "eden_used", "eden_max", "survivor_used", "survivor_max", "old_gen_used", "old_gen_max",
-            "metaspace_used", "metaspace_max", "code_cache_used", "code_cache_max",
-            "gc_reclaimed_bytes", "gc_efficiency", "memory_allocation_rate", "gc_reclaimed_last_interval", "gc_pressure",
-            "gc_reclaimed_bytes_current", "cpu_memory_correlation",
-            "top_cpu_thread_name", "top_cpu_thread_percent", "thread_count_runnable", "thread_count_blocked",
-            "performance_score", "health_status"
-        };
-        System.out.println("[DIAG-SQL] Total fields in SQL: " + fields.length);
-
-        String sql = "INSERT INTO agent_memory_history (" + String.join(", ", fields) + ") VALUES (" +
-                     "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
-                     "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
-                     "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
-                     "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
-                     "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
-                     "?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-        // 2. 打印参数数量
-        Object[] params = new Object[]{
-            metrics.getAppCode(),
-            metrics.getInstId(),
-            new Timestamp(metrics.getCollectTime()),
-            metrics.getHeapUsed(),
-            metrics.getHeapCommitted(),
-            metrics.getHeapMax(),
-            metrics.getNonHeapUsed(),
-            metrics.getNonHeapCommitted(),
-            metrics.getNonHeapMax(),
-            metrics.getThreadCount(),
-            metrics.getPeakThreadCount(),
-            metrics.getDaemonThreadCount(),
-            metrics.getLoadedClassCount(),
-            metrics.getTotalLoadedClassCount(),
-            metrics.getUnloadedClassCount(),
-            metrics.getClassLoadingRate(),
-            metrics.getGcCount(),
-            metrics.getGcTimeMs(),
-            metrics.getMinorGcCount(),
-            metrics.getMinorGcTimeMs(),
-            metrics.getFullGcCount(),
-            metrics.getFullGcTimeMs(),
-            metrics.getProcessCpuLoad(),
-            metrics.getSystemCpuLoad(),
-            metrics.getMemoryPools(),
-            metrics.getThreadStates(),
-            metrics.getJvmStartTime(),
-            metrics.getTopCpuThreads(),
-            metrics.getThreadPools(),
-            metrics.getGcSnapshot(),
-            metrics.getDiskReadBytes(),
-            metrics.getDiskWriteBytes(),
-            metrics.getNetworkRecvBytes(),
-            metrics.getNetworkSentBytes(),
-            metrics.getDiskReadOps(),
-            metrics.getDiskWriteOps(),
-            metrics.getEdenUsed(),
-            metrics.getEdenMax(),
-            metrics.getSurvivorUsed(),
-            metrics.getSurvivorMax(),
-            metrics.getOldGenUsed(),
-            metrics.getOldGenMax(),
-            metrics.getMetaspaceUsed(),
-            metrics.getMetaspaceMax(),
-            metrics.getCodeCacheUsed(),
-            metrics.getCodeCacheMax(),
-            metrics.getGcReclaimedBytes(),
-            metrics.getGcEfficiency(),
-            metrics.getMemoryAllocationRate(),
-            metrics.getGcReclaimedLastInterval(),
-            metrics.getGcPressure(),
-            metrics.getGcReclaimedBytesCurrent(),
-            metrics.getCpuMemoryCorrelation(),
-            metrics.getTopCpuThreadName(),
-            metrics.getTopCpuThreadPercent(),
-            metrics.getThreadCountRunnable(),
-            metrics.getThreadCountBlocked(),
-            metrics.getPerformanceScore(),
-            metrics.getHealthStatus()
-        };
-        System.out.println("[DIAG-SQL] Total params in Java: " + params.length);
-        
+        // 动态获取数据库表的列名（排除ID自增列）
         try {
+            java.sql.Connection conn = jdbcTemplate.getDataSource().getConnection();
+            java.sql.DatabaseMetaData metaData = conn.getMetaData();
+            java.sql.ResultSet rs = metaData.getColumns(null, null, "AGENT_MEMORY_HISTORY", null);
+            
+            java.util.List<String> dbColumns = new java.util.ArrayList<>();
+            while (rs.next()) {
+                String columnName = rs.getString("COLUMN_NAME");
+                if (!"ID".equalsIgnoreCase(columnName)) { // 排除自增主键
+                    dbColumns.add(columnName.toLowerCase());
+                }
+            }
+            rs.close();
+            conn.close();
+            
+            System.out.println("[DIAG-SQL] DB columns (excluding ID): " + dbColumns.size());
+            System.out.println("[DIAG-SQL] Columns: " + dbColumns);
+            
+            // 使用数据库实际列名构建SQL
+            String[] fields = dbColumns.toArray(new String[0]);
+            String placeholders = String.join(", ", java.util.Collections.nCopies(fields.length, "?"));
+            String sql = "INSERT INTO agent_memory_history (" + String.join(", ", fields) + ") VALUES (" + placeholders + ")";
+            
+            System.out.println("[DIAG-SQL] Generated SQL with " + fields.length + " fields");
+            
+            // 按数据库列顺序构建参数数组
+            Object[] params = new Object[fields.length];
+            for (int i = 0; i < fields.length; i++) {
+                String col = fields[i];
+                switch (col) {
+                    case "app_code": params[i] = metrics.getAppCode(); break;
+                    case "inst_id": params[i] = metrics.getInstId(); break;
+                    case "collect_time": params[i] = new Timestamp(metrics.getCollectTime()); break;
+                    case "heap_used": params[i] = metrics.getHeapUsed(); break;
+                    case "heap_committed": params[i] = metrics.getHeapCommitted(); break;
+                    case "heap_max": params[i] = metrics.getHeapMax(); break;
+                    case "non_heap_used": params[i] = metrics.getNonHeapUsed(); break;
+                    case "non_heap_committed": params[i] = metrics.getNonHeapCommitted(); break;
+                    case "non_heap_max": params[i] = metrics.getNonHeapMax(); break;
+                    case "thread_count": params[i] = metrics.getThreadCount(); break;
+                    case "peak_thread_count": params[i] = metrics.getPeakThreadCount(); break;
+                    case "daemon_thread_count": params[i] = metrics.getDaemonThreadCount(); break;
+                    case "loaded_class_count": params[i] = metrics.getLoadedClassCount(); break;
+                    case "total_loaded_class_count": params[i] = metrics.getTotalLoadedClassCount(); break;
+                    case "unloaded_class_count": params[i] = metrics.getUnloadedClassCount(); break;
+                    case "class_loading_rate": params[i] = metrics.getClassLoadingRate(); break;
+                    case "gc_count": params[i] = metrics.getGcCount(); break;
+                    case "gc_time_ms": params[i] = metrics.getGcTimeMs(); break;
+                    case "minor_gc_count": params[i] = metrics.getMinorGcCount(); break;
+                    case "minor_gc_time_ms": params[i] = metrics.getMinorGcTimeMs(); break;
+                    case "full_gc_count": params[i] = metrics.getFullGcCount(); break;
+                    case "full_gc_time_ms": params[i] = metrics.getFullGcTimeMs(); break;
+                    case "process_cpu_load": params[i] = metrics.getProcessCpuLoad(); break;
+                    case "system_cpu_load": params[i] = metrics.getSystemCpuLoad(); break;
+                    case "memory_pools": params[i] = metrics.getMemoryPools(); break;
+                    case "thread_states": params[i] = metrics.getThreadStates(); break;
+                    case "jvm_start_time": params[i] = metrics.getJvmStartTime(); break;
+                    case "top_cpu_threads": params[i] = metrics.getTopCpuThreads(); break;
+                    case "thread_pools": params[i] = metrics.getThreadPools(); break;
+                    case "gc_snapshot": params[i] = metrics.getGcSnapshot(); break;
+                    case "disk_read_bytes": params[i] = metrics.getDiskReadBytes(); break;
+                    case "disk_write_bytes": params[i] = metrics.getDiskWriteBytes(); break;
+                    case "network_recv_bytes": params[i] = metrics.getNetworkRecvBytes(); break;
+                    case "network_sent_bytes": params[i] = metrics.getNetworkSentBytes(); break;
+                    case "disk_read_ops": params[i] = metrics.getDiskReadOps(); break;
+                    case "disk_write_ops": params[i] = metrics.getDiskWriteOps(); break;
+                    case "eden_used": params[i] = metrics.getEdenUsed(); break;
+                    case "eden_max": params[i] = metrics.getEdenMax(); break;
+                    case "survivor_used": params[i] = metrics.getSurvivorUsed(); break;
+                    case "survivor_max": params[i] = metrics.getSurvivorMax(); break;
+                    case "old_gen_used": params[i] = metrics.getOldGenUsed(); break;
+                    case "old_gen_max": params[i] = metrics.getOldGenMax(); break;
+                    case "metaspace_used": params[i] = metrics.getMetaspaceUsed(); break;
+                    case "metaspace_max": params[i] = metrics.getMetaspaceMax(); break;
+                    case "code_cache_used": params[i] = metrics.getCodeCacheUsed(); break;
+                    case "code_cache_max": params[i] = metrics.getCodeCacheMax(); break;
+                    case "gc_reclaimed_bytes": params[i] = metrics.getGcReclaimedBytes(); break;
+                    case "gc_efficiency": params[i] = metrics.getGcEfficiency(); break;
+                    case "memory_allocation_rate": params[i] = metrics.getMemoryAllocationRate(); break;
+                    case "gc_reclaimed_last_interval": params[i] = metrics.getGcReclaimedLastInterval(); break;
+                    case "gc_pressure": params[i] = metrics.getGcPressure(); break;
+                    case "gc_reclaimed_bytes_current": params[i] = metrics.getGcReclaimedBytesCurrent(); break;
+                    case "cpu_memory_correlation": params[i] = metrics.getCpuMemoryCorrelation(); break;
+                    case "top_cpu_thread_name": params[i] = metrics.getTopCpuThreadName(); break;
+                    case "top_cpu_thread_percent": params[i] = metrics.getTopCpuThreadPercent(); break;
+                    case "thread_count_runnable": params[i] = metrics.getThreadCountRunnable(); break;
+                    case "thread_count_blocked": params[i] = metrics.getThreadCountBlocked(); break;
+                    case "performance_score": params[i] = metrics.getPerformanceScore(); break;
+                    case "health_status": params[i] = metrics.getHealthStatus(); break;
+                    case "buffer_pools": params[i] = metrics.getBufferPools(); break;
+                    case "total_physical_memory": params[i] = metrics.getTotalPhysicalMemory(); break;
+                    case "free_physical_memory": params[i] = metrics.getFreePhysicalMemory(); break;
+                    default: 
+                        System.err.println("[DIAG-SQL] WARNING: Unknown column: " + col);
+                        params[i] = null;
+                }
+            }
+            
+            System.out.println("[DIAG-SQL] Total params: " + params.length);
+            
             jdbcTemplate.update(sql, params);
             System.out.println("[DIAG-SQL] Save successful for: " + metrics.getAppCode());
         } catch (Exception e) {
@@ -155,7 +195,8 @@ public class AgentMemoryHistoryRepositoryImpl implements AgentMemoryHistoryRepos
             "gc_reclaimed_bytes, gc_efficiency, memory_allocation_rate, gc_reclaimed_last_interval, gc_pressure, " +
             "gc_reclaimed_bytes_current, cpu_memory_correlation, " +
             "top_cpu_thread_name, top_cpu_thread_percent, thread_count_runnable, thread_count_blocked, " +
-            "performance_score, health_status " +
+            "performance_score, health_status, " +
+            "buffer_pools, total_physical_memory, free_physical_memory " +
             "FROM agent_memory_history WHERE app_code = ? AND inst_id = ?"
         );
         
@@ -324,6 +365,15 @@ public class AgentMemoryHistoryRepositoryImpl implements AgentMemoryHistoryRepos
             metrics.setPerformanceScore(rs.wasNull() ? null : performanceScore);
             
             metrics.setHealthStatus(rs.getString("health_status"));
+            
+            // Buffer Pools & Physical Memory
+            metrics.setBufferPools(rs.getString("buffer_pools"));
+            
+            long totalPhysicalMemory = rs.getLong("total_physical_memory");
+            metrics.setTotalPhysicalMemory(rs.wasNull() ? null : totalPhysicalMemory);
+            
+            long freePhysicalMemory = rs.getLong("free_physical_memory");
+            metrics.setFreePhysicalMemory(rs.wasNull() ? null : freePhysicalMemory);
             
             return metrics;
         });

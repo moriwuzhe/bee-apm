@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import * as echarts from 'echarts'
 import type { AgentMemoryMetrics } from '../../api/agent'
+import { safeFormatBytes } from '../../utils/formatBytes'
 
 export function useThreadMonitoring() {
   // 图表DOM引用
@@ -75,13 +76,9 @@ export function useThreadMonitoring() {
     return !!memoryHistory[memoryHistory.length - 1].threadPools
   })
 
-  // 格式化字节
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 B'
-    const k = 1024
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i]
+  // 格式化字节（已迁移到 safeFormatBytes，保留此函数用于向后兼容）
+  const formatBytes = (bytes: number | string): string => {
+    return safeFormatBytes(bytes)
   }
 
   // 格式化纳秒时间

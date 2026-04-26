@@ -1,16 +1,9 @@
 import { ref, computed } from 'vue'
 import * as echarts from 'echarts'
 import type { AgentMemoryMetrics } from '../../api/agent'
+import { safeFormatBytes } from '../../utils/formatBytes'
 
 export function useGcAnalysis() {
-  // 图表DOM引用
-  const gcCountChartRef = ref<HTMLElement>()
-  const gcDurationChartRef = ref<HTMLElement>()
-  const minorVsFullGcChartRef = ref<HTMLElement>()
-  const gcEfficiencyChartRef = ref<HTMLElement>()
-  const gcVsHeapChartRef = ref<HTMLElement>()
-  const gcVsCpuChartRef = ref<HTMLElement>()
-  
   // 图表实例
   let gcCountChartInstance: any = null
   let gcDurationChartInstance: any = null
@@ -108,13 +101,9 @@ export function useGcAnalysis() {
     return `${score}分`
   })
 
-  // 格式化字节
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 B'
-    const k = 1024
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i]
+  // 格式化字节（已迁移到 safeFormatBytes，保留此函数用于向后兼容）
+  const formatBytes = (bytes: number | string): string => {
+    return safeFormatBytes(bytes)
   }
 
   // 渲染GC图表
@@ -127,8 +116,9 @@ export function useGcAnalysis() {
     })
     
     // 1. GC Count Chart
-    if (gcCountChartRef.value) {
-      if (!gcCountChartInstance) gcCountChartInstance = echarts.init(gcCountChartRef.value)
+    const gcCountEl = document.querySelector('[data-chart="gc-count"]') as HTMLElement
+    if (gcCountEl) {
+      if (!gcCountChartInstance) gcCountChartInstance = echarts.init(gcCountEl)
       
       const gcIncrements = memoryHistory.map((m, i) => {
         if (i === 0) return 0
@@ -149,8 +139,9 @@ export function useGcAnalysis() {
     }
     
     // 2. GC Duration Chart
-    if (gcDurationChartRef.value) {
-      if (!gcDurationChartInstance) gcDurationChartInstance = echarts.init(gcDurationChartRef.value)
+    const gcDurationEl = document.querySelector('[data-chart="gc-duration"]') as HTMLElement
+    if (gcDurationEl) {
+      if (!gcDurationChartInstance) gcDurationChartInstance = echarts.init(gcDurationEl)
       
       const gcTimeIncrements = memoryHistory.map((m, i) => {
         if (i === 0) return 0
@@ -171,8 +162,9 @@ export function useGcAnalysis() {
     }
     
     // 3. Minor vs Full GC Chart
-    if (minorVsFullGcChartRef.value) {
-      if (!minorVsFullGcChartInstance) minorVsFullGcChartInstance = echarts.init(minorVsFullGcChartRef.value)
+    const minorVsFullGcEl = document.querySelector('[data-chart="minor-vs-full-gc"]') as HTMLElement
+    if (minorVsFullGcEl) {
+      if (!minorVsFullGcChartInstance) minorVsFullGcChartInstance = echarts.init(minorVsFullGcEl)
       
       const minorGcData = memoryHistory.map((m, i) => {
         if (i === 0) return 0
@@ -203,8 +195,9 @@ export function useGcAnalysis() {
     }
     
     // 4. GC Efficiency Chart
-    if (gcEfficiencyChartRef.value && memoryHistory[0].memoryPools) {
-      if (!gcEfficiencyChartInstance) gcEfficiencyChartInstance = echarts.init(gcEfficiencyChartRef.value)
+    const gcEfficiencyEl = document.querySelector('[data-chart="gc-efficiency"]') as HTMLElement
+    if (gcEfficiencyEl && memoryHistory[0].memoryPools) {
+      if (!gcEfficiencyChartInstance) gcEfficiencyChartInstance = echarts.init(gcEfficiencyEl)
       
       const gcEfficiencyData: number[] = []
       memoryHistory.forEach((m, i) => {
@@ -237,7 +230,7 @@ export function useGcAnalysis() {
             if (value === undefined || value === null || isNaN(value)) {
               return params[0].name + '<br/>数据无效'
             }
-            return params[0].name + '<br/>回收内存: ' + formatBytes(value)
+            return params[0].name + '<br/>回收内存: ' + safeFormatBytes(value)
           }
         },
         grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
@@ -245,9 +238,9 @@ export function useGcAnalysis() {
         yAxis: { 
           type: 'value', 
           axisLabel: { 
-            formatter: (val: number) => {
+            formatter: (val: any) => {
               if (isNaN(val) || val === undefined) return '0 B'
-              return formatBytes(val)
+              return safeFormatBytes(val)
             }
           }
         },
@@ -263,112 +256,160 @@ export function useGcAnalysis() {
       gcEfficiencyChartInstance.resize()
     }
     
-    // 手动获取 GC 图表容器（备用方案）
-    if (memoryHistory.length > 0) {
-      const minorVsFullGcEl = document.querySelector('[data-chart="minor-vs-full-gc"]') as HTMLElement
-      if (minorVsFullGcEl) {
-        let minorVsFullGcChartInstance: any = null
-        const times = memoryHistory.map(m => {
-          const date = new Date(m.collectTime)
-          return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
-        })
-        
-        const minorGcData = memoryHistory.map((m, i) => {
-          if (i === 0) return 0
-          return (m.minorGcCount || 0) - (memoryHistory[i - 1].minorGcCount || 0)
-        })
-        const fullGcData = memoryHistory.map((m, i) => {
-          if (i === 0) return 0
-          return (m.fullGcCount || 0) - (memoryHistory[i - 1].fullGcCount || 0)
-        })
-        
-        minorVsFullGcChartInstance = echarts.init(minorVsFullGcEl)
-        minorVsFullGcChartInstance.setOption({
-          title: { text: 'Minor vs Full GC', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-          tooltip: { trigger: 'axis', formatter: (params: any) => {
-            let result = params[0].name + '<br/>'
-            params.forEach((p: any) => { result += `${p.marker} ${p.seriesName}: ${p.value} 次<br/>` })
-            return result
-          }},
-          legend: { data: ['Minor GC', 'Full GC'], bottom: 0 },
-          grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-          xAxis: { type: 'category', data: times, boundaryGap: false },
-          yAxis: { type: 'value', name: '次数' },
-          series: [
-            { name: 'Minor GC', type: 'bar', data: minorGcData, itemStyle: { color: '#409eff' } },
-            { name: 'Full GC', type: 'bar', data: fullGcData, itemStyle: { color: '#f56c6c' } }
-          ]
-        })
-        minorVsFullGcChartInstance.resize()
-        console.log('✅ Minor vs Full GC 图表通过 querySelector 渲染')
-      }
+    // 5. GC vs Heap Chart
+    const gcVsHeapEl = document.querySelector('[data-chart="gc-vs-heap"]') as HTMLElement
+    if (gcVsHeapEl && memoryHistory[0].memoryPools) {
+      if (!gcVsHeapChartInstance) gcVsHeapChartInstance = echarts.init(gcVsHeapEl)
       
-      const gcEfficiencyEl = document.querySelector('[data-chart="gc-efficiency"]') as HTMLElement
-      if (gcEfficiencyEl && memoryHistory[0].memoryPools) {
-        let gcEfficiencyChartInstance: any = null
-        const times = memoryHistory.map(m => {
-          const date = new Date(m.collectTime)
-          return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
-        })
-        
-        const gcEfficiencyData: number[] = []
-        memoryHistory.forEach((m, i) => {
-          if (i === 0) {
-            gcEfficiencyData.push(0)
-            return
-          }
-          try {
-            const pools: any[] = JSON.parse(m.memoryPools!)
-            const prevPools: any[] = JSON.parse(memoryHistory[i - 1].memoryPools!)
-            const eden = pools.find(p => p.name.includes('Eden'))
-            const prevEden = prevPools.find(p => p.name.includes('Eden'))
-            if (eden && prevEden && eden.used !== undefined && prevEden.used !== undefined) {
-              const reclaimed = prevEden.used - eden.used
-              gcEfficiencyData.push(reclaimed >= 0 ? reclaimed : 0)
-            } else {
-              gcEfficiencyData.push(0)
-            }
-          } catch (e) {
-            gcEfficiencyData.push(0)
-          }
-        })
-        
-        gcEfficiencyChartInstance = echarts.init(gcEfficiencyEl)
-        gcEfficiencyChartInstance.setOption({
-          title: { text: 'GC回收效率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
-          tooltip: { 
-            trigger: 'axis', 
-            formatter: (params: any) => {
-              const value = params[0].value
-              if (value === undefined || value === null || isNaN(value)) {
-                return params[0].name + '<br/>数据无效'
+      const heapUsedData: number[] = []
+      const gcTimeData: number[] = []
+      
+      memoryHistory.forEach((m, i) => {
+        if (i === 0) {
+          heapUsedData.push(0)
+          gcTimeData.push(0)
+          return
+        }
+        try {
+          const pools: any[] = JSON.parse(m.memoryPools!)
+          const heapUsed = pools.reduce((sum, p) => sum + (p.used || 0), 0)
+          heapUsedData.push(heapUsed)
+          
+          const gcTimeDiff = (m.gcTimeMs || 0) - (memoryHistory[i - 1].gcTimeMs || 0)
+          gcTimeData.push(gcTimeDiff)
+        } catch (e) {
+          heapUsedData.push(0)
+          gcTimeData.push(0)
+        }
+      })
+      
+      gcVsHeapChartInstance.setOption({
+        title: { text: 'GC耗时 vs 堆内存', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+        tooltip: { 
+          trigger: 'axis',
+          formatter: (params: any) => {
+            let result = params[0].name + '<br/>'
+            params.forEach((p: any) => {
+              if (p.seriesName === '堆内存使用') {
+                result += `${p.marker} ${p.seriesName}: ${safeFormatBytes(p.value)}<br/>`
+              } else {
+                result += `${p.marker} ${p.seriesName}: ${p.value} ms<br/>`
               }
-              return params[0].name + '<br/>回收内存: ' + formatBytes(value)
-            }
-          },
-          grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
-          xAxis: { type: 'category', data: times, boundaryGap: false },
-          yAxis: { 
+            })
+            return result
+          }
+        },
+        legend: { data: ['堆内存使用', 'GC耗时'], bottom: 0 },
+        grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
+        xAxis: { type: 'category', data: times, boundaryGap: false },
+        yAxis: [
+          { 
             type: 'value', 
+            name: '堆内存',
             axisLabel: { 
-              formatter: (val: number) => {
-                if (isNaN(val) || val === undefined) return '0 B'
-                return formatBytes(val)
-              }
+              formatter: (val: any) => isNaN(val) ? '0 B' : safeFormatBytes(val)
             }
           },
-          series: [{ 
-            name: '回收内存', 
+          { 
+            type: 'value', 
+            name: 'GC耗时(ms)',
+            position: 'right'
+          }
+        ],
+        series: [
+          { 
+            name: '堆内存使用', 
             type: 'line', 
-            data: gcEfficiencyData.map(v => isNaN(v) ? 0 : v),
+            yAxisIndex: 0,
+            data: heapUsedData,
             smooth: true, 
-            itemStyle: { color: '#67c23a' }, 
-            areaStyle: { color: 'rgba(103, 194, 58, 0.1)' }
-          }]
-        })
-        gcEfficiencyChartInstance.resize()
-        console.log('✅ GC回收效率 图表通过 querySelector 渲染')
-      }
+            itemStyle: { color: '#409eff' },
+            areaStyle: { color: 'rgba(64, 158, 255, 0.1)' }
+          },
+          { 
+            name: 'GC耗时', 
+            type: 'bar', 
+            yAxisIndex: 1,
+            data: gcTimeData,
+            itemStyle: { color: '#f56c6c' }
+          }
+        ]
+      })
+      gcVsHeapChartInstance.resize()
+    }
+    
+    // 6. GC vs CPU Chart
+    const gcVsCpuEl = document.querySelector('[data-chart="gc-vs-cpu"]') as HTMLElement
+    if (gcVsCpuEl) {
+      if (!gcVsCpuChartInstance) gcVsCpuChartInstance = echarts.init(gcVsCpuEl)
+      
+      const cpuLoadData: number[] = []
+      const gcTimeData: number[] = []
+      
+      memoryHistory.forEach((m, i) => {
+        if (i === 0) {
+          cpuLoadData.push(0)
+          gcTimeData.push(0)
+          return
+        }
+        const cpuLoad = m.processCpuLoad ? (m.processCpuLoad * 100).toFixed(1) : 0
+        cpuLoadData.push(parseFloat(cpuLoad))
+        
+        const gcTimeDiff = (m.gcTimeMs || 0) - (memoryHistory[i - 1].gcTimeMs || 0)
+        gcTimeData.push(gcTimeDiff)
+      })
+      
+      gcVsCpuChartInstance.setOption({
+        title: { text: 'GC耗时 vs CPU使用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
+        tooltip: { 
+          trigger: 'axis',
+          formatter: (params: any) => {
+            let result = params[0].name + '<br/>'
+            params.forEach((p: any) => {
+              if (p.seriesName === 'CPU使用率') {
+                result += `${p.marker} ${p.seriesName}: ${p.value}%<br/>`
+              } else {
+                result += `${p.marker} ${p.seriesName}: ${p.value} ms<br/>`
+              }
+            })
+            return result
+          }
+        },
+        legend: { data: ['CPU使用率', 'GC耗时'], bottom: 0 },
+        grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
+        xAxis: { type: 'category', data: times, boundaryGap: false },
+        yAxis: [
+          { 
+            type: 'value', 
+            name: 'CPU(%)',
+            max: 100
+          },
+          { 
+            type: 'value', 
+            name: 'GC耗时(ms)',
+            position: 'right'
+          }
+        ],
+        series: [
+          { 
+            name: 'CPU使用率', 
+            type: 'line', 
+            yAxisIndex: 0,
+            data: cpuLoadData,
+            smooth: true, 
+            itemStyle: { color: '#e6a23c' },
+            areaStyle: { color: 'rgba(230, 162, 60, 0.1)' }
+          },
+          { 
+            name: 'GC耗时', 
+            type: 'bar', 
+            yAxisIndex: 1,
+            data: gcTimeData,
+            itemStyle: { color: '#f56c6c' }
+          }
+        ]
+      })
+      gcVsCpuChartInstance.resize()
     }
   }
 
@@ -383,14 +424,6 @@ export function useGcAnalysis() {
   }
 
   return {
-    // 图表DOM引用
-    gcCountChartRef,
-    gcDurationChartRef,
-    minorVsFullGcChartRef,
-    gcEfficiencyChartRef,
-    gcVsHeapChartRef,
-    gcVsCpuChartRef,
-    
     // 计算属性工厂函数（需要传入memoryHistory）
     totalGcCount,
     totalGcTime,

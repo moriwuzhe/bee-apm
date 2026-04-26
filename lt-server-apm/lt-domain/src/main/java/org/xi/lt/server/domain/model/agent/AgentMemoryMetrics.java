@@ -99,6 +99,11 @@ public class AgentMemoryMetrics {
     // Performance Dashboard (Phase 8)
     private Double performanceScore;      // 综合性能评分 (0-100)
     private String healthStatus;          // 健康状态 (HEALTHY/WARNING/CRITICAL)
+    
+    // Buffer Pools & Physical Memory
+    private String bufferPools;            // 缓冲区池使用情况 (JSON)
+    private Long totalPhysicalMemory;      // 总物理内存 (bytes)
+    private Long freePhysicalMemory;       // 空闲物理内存 (bytes)
 
     public String getAppCode() {
         return appCode;
@@ -446,4 +451,12 @@ public class AgentMemoryMetrics {
     public void setPerformanceScore(Double performanceScore) { this.performanceScore = performanceScore; }
     public String getHealthStatus() { return healthStatus; }
     public void setHealthStatus(String healthStatus) { this.healthStatus = healthStatus; }
+    
+    // Buffer Pools & Physical Memory Getters/Setters
+    public String getBufferPools() { return bufferPools; }
+    public void setBufferPools(String bufferPools) { this.bufferPools = bufferPools; }
+    public Long getTotalPhysicalMemory() { return totalPhysicalMemory; }
+    public void setTotalPhysicalMemory(Long totalPhysicalMemory) { this.totalPhysicalMemory = totalPhysicalMemory; }
+    public Long getFreePhysicalMemory() { return freePhysicalMemory; }
+    public void setFreePhysicalMemory(Long freePhysicalMemory) { this.freePhysicalMemory = freePhysicalMemory; }
 }

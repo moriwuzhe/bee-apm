@@ -329,6 +329,18 @@ public class DiagAgentChannelHandler extends SimpleChannelInboundHandler<Datagra
         memoryMetrics.setPerformanceScore(getDouble(metrics, "performanceScore"));
         memoryMetrics.setHealthStatus(getString(metrics, "healthStatus"));
         
+        // Buffer Pools & Physical Memory
+        Object bufferPoolsObj = metrics.get("bufferPools");
+        if (bufferPoolsObj != null) {
+            try {
+                memoryMetrics.setBufferPools(bufferPoolsObj instanceof String ? (String) bufferPoolsObj : com.alibaba.fastjson.JSON.toJSONString(bufferPoolsObj));
+            } catch (Exception e) {
+                log.debug("Failed to serialize bufferPools: {}", e.getMessage());
+            }
+        }
+        memoryMetrics.setTotalPhysicalMemory(getLong(metrics, "totalPhysicalMemory"));
+        memoryMetrics.setFreePhysicalMemory(getLong(metrics, "freePhysicalMemory"));
+        
         memoryHistoryRepository.save(memoryMetrics);
         
         return memoryMetrics;

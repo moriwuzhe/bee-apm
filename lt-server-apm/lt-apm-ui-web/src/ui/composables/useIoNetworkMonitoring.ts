@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import * as echarts from 'echarts'
 import type { AgentMemoryMetrics } from '../../api/agent'
+import { safeFormatBytes } from '../../utils/formatBytes'
 
 export function useIoNetworkMonitoring() {
   // 图表DOM引用
@@ -194,13 +195,9 @@ export function useIoNetworkMonitoring() {
     }
   })
 
-  // 格式化字节
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 B'
-    const k = 1024
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i]
+  // 格式化字节（已迁移到 safeFormatBytes，保留此函数用于向后兼容）
+  const formatBytes = (bytes: number | string): string => {
+    return safeFormatBytes(bytes)
   }
 
   // 渲染IO/网络图表
@@ -238,7 +235,7 @@ export function useIoNetworkMonitoring() {
         legend: { data: ['读取速率', '写入速率'], bottom: 0 },
         grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
         xAxis: { type: 'category', data: times, boundaryGap: false },
-        yAxis: { type: 'value', name: '速率', axisLabel: { formatter: (val: number) => formatBytes(val) + '/s' } },
+        yAxis: { type: 'value', name: '速率', axisLabel: { formatter: (val: any) => safeFormatBytes(val) + '/s' } },
         series: [
           { name: '读取速率', type: 'line', data: readRates, smooth: true, itemStyle: { color: '#409eff' }, areaStyle: { color: 'rgba(64, 158, 255, 0.1)' } },
           { name: '写入速率', type: 'line', data: writeRates, smooth: true, itemStyle: { color: '#f56c6c' }, areaStyle: { color: 'rgba(245, 108, 108, 0.1)' } }
@@ -273,7 +270,7 @@ export function useIoNetworkMonitoring() {
         legend: { data: ['接收速率', '发送速率'], bottom: 0 },
         grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
         xAxis: { type: 'category', data: times, boundaryGap: false },
-        yAxis: { type: 'value', name: '速率', axisLabel: { formatter: (val: number) => formatBytes(val) + '/s' } },
+        yAxis: { type: 'value', name: '速率', axisLabel: { formatter: (val: any) => safeFormatBytes(val) + '/s' } },
         series: [
           { name: '接收速率', type: 'line', data: recvRates, smooth: true, itemStyle: { color: '#67c23a' }, areaStyle: { color: 'rgba(103, 194, 58, 0.1)' } },
           { name: '发送速率', type: 'line', data: sentRates, smooth: true, itemStyle: { color: '#e6a23c' }, areaStyle: { color: 'rgba(230, 162, 60, 0.1)' } }

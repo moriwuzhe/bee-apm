@@ -81,7 +81,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, nextTick } from 'vue'
+import { computed, ref, watch, nextTick, onMounted } from 'vue'
 import { MonitoringControls, MetricCards, JvmInfoPanel } from '../../components/monitoring'
 import { useThreadMonitoring } from '../../composables/useThreadMonitoring'
 
@@ -116,31 +116,77 @@ const cpuChartRef = ref<HTMLElement | null>(null)
 // 使用 Composable
 const threadMon = useThreadMonitoring()
 const {
-  maxThreadCountValue,
-  currentThreadCountValue,
-  daemonThreadCountValue,
-  peakThreadCountValue,
-  renderThreadCharts
+  renderThreadCharts,
+  threadChartRef: composableThreadChartRef,
+  classLoadingChartRef: composableClassLoadingChartRef,
+  cpuChartRef: composableCpuChartRef,
+  threadStatesChartRef: composableThreadStatesChartRef,
+  classLoadingDetailChartRef: composableClassLoadingDetailChartRef
 } = threadMon
 
-// 计算属性：线程指标卡片
-const threadMetricCards = computed(() => [
-  { title: '📊 最大线程数', value: maxThreadCountValue.value, subtitle: '历史峰值' },
-  { title: '🧵 当前线程数', value: currentThreadCountValue.value, subtitle: '活跃线程' },
-  { title: '🛡️ 守护线程', value: daemonThreadCountValue.value, subtitle: '后台线程' },
-  { title: '📈 峰值线程', value: peakThreadCountValue.value, subtitle: '最高记录' }
-])
+// 同步本地ref到composable的ref
+const syncRefs = () => {
+  console.log('[ThreadMonitoringView] 同步ref到composable')
+  if (composableThreadChartRef) composableThreadChartRef.value = threadChartRef.value as any
+  if (composableClassLoadingChartRef) composableClassLoadingChartRef.value = classLoadingChartRef.value as any
+  if (composableCpuChartRef) composableCpuChartRef.value = cpuChartRef.value as any
+  if (composableThreadStatesChartRef) composableThreadStatesChartRef.value = threadStatesChartRef.value as any
+  if (composableClassLoadingDetailChartRef) composableClassLoadingDetailChartRef.value = classLoadingDetailChartRef.value as any
+  console.log('[ThreadMonitoringView] ref同步完成')
+}
+
+// 组件挂载后同步ref
+onMounted(() => {
+  console.log('[ThreadMonitoringView] 组件已挂载')
+  syncRefs()
+})
+
+// 计算属性：线程指标卡片（基于props.memoryHistory）
+const threadMetricCards = computed(() => {
+  if (!props.memoryHistory || props.memoryHistory.length === 0) {
+    return [
+      { title: '📊 最大线程数', value: '-', subtitle: '历史峰值' },
+      { title: '🧵 当前线程数', value: '-', subtitle: '活跃线程' },
+      { title: '🛡️ 守护线程', value: '-', subtitle: '后台线程' },
+      { title: '📈 峰值线程', value: '-', subtitle: '最高记录' }
+    ]
+  }
+  
+  const latest = props.memoryHistory[props.memoryHistory.length - 1]
+  const maxCount = Math.max(...props.memoryHistory.map(m => m.threadCount || 0))
+  
+  return [
+    { title: '📊 最大线程数', value: `${maxCount} 线程`, subtitle: '历史峰值' },
+    { title: '🧵 当前线程数', value: `${latest.threadCount || 0} 线程`, subtitle: '活跃线程' },
+    { title: '🛡️ 守护线程', value: `${latest.daemonThreadCount || 0} 线程`, subtitle: '后台线程' },
+    { title: '📈 峰值线程', value: `${latest.peakThreadCount || maxCount} 线程`, subtitle: '最高记录' }
+  ]
+})
 
 // 监听数据变化，自动渲染图表
 watch(() => props.memoryHistory, (newData) => {
   if (newData && newData.length > 0) {
     nextTick(() => {
       setTimeout(() => {
+        // 同步ref
+        syncRefs()
         renderThreadCharts(newData)
-      }, 300)
+      }, 800) // 增加延迟确保DOM就绪
     })
   }
 }, { deep: true })
+
+// 监听时间范围变化，重新渲染图表
+watch(() => props.historyTimeRange, () => {
+  if (props.memoryHistory && props.memoryHistory.length > 0) {
+    nextTick(() => {
+      setTimeout(() => {
+        syncRefs()
+        renderThreadCharts(props.memoryHistory)
+      }, 500)
+    })
+  }
+})
 </script>
 
 <style scoped>

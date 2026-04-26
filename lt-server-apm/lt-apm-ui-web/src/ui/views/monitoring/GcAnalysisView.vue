@@ -156,6 +156,17 @@ watch(() => props.memoryHistory, (newData) => {
     })
   }
 }, { deep: true })
+
+// 监听时间范围变化，重新渲染图表
+watch(() => props.historyTimeRange, () => {
+  if (props.memoryHistory && props.memoryHistory.length > 0) {
+    nextTick(() => {
+      setTimeout(() => {
+        renderGcCharts(props.memoryHistory)
+      }, 500)
+    })
+  }
+})
 </script>
 
 <style scoped>

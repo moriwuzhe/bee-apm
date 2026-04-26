@@ -2226,6 +2226,13 @@ const showGcHistoryChart = async (row: any, refresh = false) => {
     
     // 更新数据
     const sortedData = [...data].sort((a, b) => a.collectTime - b.collectTime)
+    
+    // 检查组件是否仍然挂载
+    if (!showDiagDialog.value || currentDiagType.value !== 'gcChart') {
+      console.log('组件已切换或关闭，忽略数据更新')
+      return
+    }
+    
     memoryHistory.value = sortedData
     diagResult.value = 'loaded'
     
@@ -2236,31 +2243,13 @@ const showGcHistoryChart = async (row: any, refresh = false) => {
     })
     
     // 数据加载完成后，等待Dialog打开并渲染图表
-    if (!refresh) {
-      // 等待Dialog完全打开后再渲染图表（增加延迟确保DOM就绪）
-      nextTick(() => {
-        setTimeout(() => {
-          if (currentDiagType.value === 'gcChart' && memoryHistory.value.length > 0) {
-            renderGcCharts(memoryHistory.value)
-          } else if (currentDiagType.value === 'threadChart' && memoryHistory.value.length > 0) {
-            threadMon.renderThreadCharts(memoryHistory.value)
-          } else if (currentDiagType.value === 'ioNetworkChart' && memoryHistory.value.length > 0) {
-            ioNetworkMon.renderIoNetworkCharts(memoryHistory.value)
-          }
-        }, 800) // 增加延迟到800ms确保Dialog动画完成
-      })
-      ElMessage.success(`加载了 ${data.length} 条历史记录`)
-    } else {
-      // 刷新时直接渲染
-      if (currentDiagType.value === 'gcChart') {
-        renderGcCharts(memoryHistory.value)
-      } else if (currentDiagType.value === 'threadChart') {
-        threadMon.renderThreadCharts(memoryHistory.value)
-      } else if (currentDiagType.value === 'ioNetworkChart') {
-        ioNetworkMon.renderIoNetworkCharts(memoryHistory.value)
-      }
-      ElMessage.success('数据已刷新')
-    }
+    nextTick(() => {
+      setTimeout(() => {
+        if (showDiagDialog.value && currentDiagType.value === 'gcChart' && memoryHistory.value.length > 0) {
+          renderGcCharts(memoryHistory.value)
+        }
+      }, 800) // 增加延迟确保DOM就绪
+    })
   } catch (e: any) {
     // 忽略组件已销毁的错误
     if (e.message && e.message.includes('__vnode')) {
@@ -2298,6 +2287,13 @@ const showThreadHistoryChart = async (row: any, refresh = false) => {
     
     // 更新数据
     const sortedData = [...data].sort((a, b) => a.collectTime - b.collectTime)
+    
+    // 检查组件是否仍然挂载
+    if (!showDiagDialog.value || currentDiagType.value !== 'threadChart') {
+      console.log('组件已切换或关闭，忽略数据更新')
+      return
+    }
+    
     memoryHistory.value = sortedData
     diagResult.value = 'loaded'
     
@@ -2310,10 +2306,10 @@ const showThreadHistoryChart = async (row: any, refresh = false) => {
     // 数据加载完成后，等待Dialog打开并渲染图表
     nextTick(() => {
       setTimeout(() => {
-        if (memoryHistory.value.length > 0) {
+        if (showDiagDialog.value && currentDiagType.value === 'threadChart' && memoryHistory.value.length > 0) {
           threadMon.renderThreadCharts(memoryHistory.value)
         }
-      }, 300)
+      }, 800) // 增加延迟确保DOM就绪
     })
     
     if (!refresh) {
@@ -2323,8 +2319,8 @@ const showThreadHistoryChart = async (row: any, refresh = false) => {
     }
   } catch (e: any) {
     // 忽略组件已销毁的错误
-    if (e.message && e.message.includes('__vnode')) {
-      console.warn('组件已销毁，忽略更新')
+    if (e.message && (e.message.includes('__vnode') || e.message.includes('Cannot set properties of null'))) {
+      console.warn('组件已销毁或切换，忽略更新')
       return
     }
     diagResult.value = `加载失败: ${e.message || '未知错误'}`
@@ -2458,6 +2454,27 @@ watch(currentDiagType, (newType) => {
         ioNetworkMon.renderIoNetworkCharts(memoryHistory.value)
       }
     }, 300)
+  }
+})
+
+// 监听diagMode变化，从原始数据切回图表视图时重新渲染
+watch(diagMode, (newMode) => {
+  if (newMode === 'chart' && currentDiagType.value && memoryHistory.value.length > 0) {
+    // 等待DOM更新后重新渲染图表
+    nextTick(() => {
+      setTimeout(() => {
+        console.log('[ApplicationView] 从原始数据切回图表视图，重新渲染图表')
+        if (currentDiagType.value === 'memory' || currentDiagType.value === 'memoryChart') {
+          renderMemoryCharts()
+        } else if (currentDiagType.value === 'gcChart') {
+          renderGcCharts(memoryHistory.value)
+        } else if (currentDiagType.value === 'threadChart') {
+          threadMon.renderThreadCharts(memoryHistory.value)
+        } else if (currentDiagType.value === 'ioNetworkChart') {
+          ioNetworkMon.renderIoNetworkCharts(memoryHistory.value)
+        }
+      }, 500) // 等待Dialog内容区切换动画完成
+    })
   }
 })
 </script>

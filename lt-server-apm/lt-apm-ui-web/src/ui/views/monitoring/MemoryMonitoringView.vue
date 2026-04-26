@@ -169,45 +169,55 @@ const {
   memoryHealthStatus,
   renderMemoryCharts,
   memoryHistory: composableMemoryHistory,  // 获取composable内部的memoryHistory
-  // 获取composable内部的ref，并同步到本地ref
+  // 获取composable中的ref（有些可能未导出，需要检查）
   heapChartRef: composableHeapChartRef,
   nonHeapChartRef: composableNonHeapChartRef,
   youngGenChartRef: composableYoungGenChartRef,
   oldGenChartRef: composableOldGenChartRef,
   memoryPoolsGridRef: composableMemoryPoolsGridRef,
+  edenSurvivorChartRef: composableEdenSurvivorChartRef,
+  oldGenChartDetailRef: composableOldGenChartDetailRef,
+  // 以下ref可能未在composable中导出，使用可选链
   memoryUsageRateRef: composableMemoryUsageRateRef,
   memoryAllocationRef: composableMemoryAllocationRef,
   bufferPoolsChartRef: composableBufferPoolsChartRef,
   physicalMemoryRef: composablePhysicalMemoryRef,
   heapGrowthRateRef: composableHeapGrowthRateRef,
   gcPressureRef: composableGcPressureRef,
-  edenSurvivorChartRef: composableEdenSurvivorChartRef,
-  oldGenChartDetailRef: composableOldGenChartDetailRef,
   minorVsFullGcChartRef: composableMinorVsFullGcChartRef,
   gcEfficiencyChartRef: composableGcEfficiencyChartRef
 } = memoryMon
 
-// 同步本地ref到composable的ref
-watch([heapChartRef, nonHeapChartRef, youngGenChartRef, oldGenChartRef, memoryPoolsGridRef,
-       memoryUsageRateRef, memoryAllocationRef, bufferPoolsChartRef, physicalMemoryRef,
-       heapGrowthRateRef, gcPressureRef, edenSurvivorChartRef, oldGenChartDetailRef,
-       minorVsFullGcChartRef, gcEfficiencyChartRef], () => {
-  composableHeapChartRef.value = heapChartRef.value as any
-  composableNonHeapChartRef.value = nonHeapChartRef.value as any
-  composableYoungGenChartRef.value = youngGenChartRef.value as any
-  composableOldGenChartRef.value = oldGenChartRef.value as any
-  composableMemoryPoolsGridRef.value = memoryPoolsGridRef.value as any
-  composableMemoryUsageRateRef.value = memoryUsageRateRef.value as any
-  composableMemoryAllocationRef.value = memoryAllocationRef.value as any
-  composableBufferPoolsChartRef.value = bufferPoolsChartRef.value as any
-  composablePhysicalMemoryRef.value = physicalMemoryRef.value as any
-  composableHeapGrowthRateRef.value = heapGrowthRateRef.value as any
-  composableGcPressureRef.value = gcPressureRef.value as any
-  composableEdenSurvivorChartRef.value = edenSurvivorChartRef.value as any
-  composableOldGenChartDetailRef.value = oldGenChartDetailRef.value as any
-  composableMinorVsFullGcChartRef.value = minorVsFullGcChartRef.value as any
-  composableGcEfficiencyChartRef.value = gcEfficiencyChartRef.value as any
+// 组件挂载后同步ref并检查
+onMounted(() => {
+  console.log('[MemoryMonitoringView] 组件已挂载')
+  // 立即同步一次ref
+  syncRefs()
 })
+
+// 同步本地ref到composable的ref（只同步本地定义的ref）
+const syncRefs = () => {
+  console.log('[MemoryMonitoringView] 同步ref到composable')
+  
+  // 只同步本地定义且模板中使用的ref
+  if (composableHeapChartRef) composableHeapChartRef.value = heapChartRef.value as any
+  if (composableNonHeapChartRef) composableNonHeapChartRef.value = nonHeapChartRef.value as any
+  if (composableYoungGenChartRef) composableYoungGenChartRef.value = youngGenChartRef.value as any
+  if (composableOldGenChartRef) composableOldGenChartRef.value = oldGenChartRef.value as any
+  if (composableMemoryPoolsGridRef) composableMemoryPoolsGridRef.value = memoryPoolsGridRef.value as any
+  if (composableMemoryUsageRateRef) composableMemoryUsageRateRef.value = memoryUsageRateRef.value as any
+  if (composableMemoryAllocationRef) composableMemoryAllocationRef.value = memoryAllocationRef.value as any
+  if (composableBufferPoolsChartRef) composableBufferPoolsChartRef.value = bufferPoolsChartRef.value as any
+  if (composablePhysicalMemoryRef) composablePhysicalMemoryRef.value = physicalMemoryRef.value as any
+  if (composableHeapGrowthRateRef) composableHeapGrowthRateRef.value = heapGrowthRateRef.value as any
+  if (composableGcPressureRef) composableGcPressureRef.value = gcPressureRef.value as any
+  if (composableEdenSurvivorChartRef) composableEdenSurvivorChartRef.value = edenSurvivorChartRef.value as any
+  if (composableOldGenChartDetailRef) composableOldGenChartDetailRef.value = oldGenChartDetailRef.value as any
+  if (composableMinorVsFullGcChartRef) composableMinorVsFullGcChartRef.value = minorVsFullGcChartRef.value as any
+  if (composableGcEfficiencyChartRef) composableGcEfficiencyChartRef.value = gcEfficiencyChartRef.value as any
+  
+  console.log('[MemoryMonitoringView] ref同步完成')
+}
 
 // 同步props.memoryHistory到composable的memoryHistory，并渲染图表
 watch(() => props.memoryHistory, (newData) => {
@@ -216,15 +226,32 @@ watch(() => props.memoryHistory, (newData) => {
     // 同步数据到composable
     composableMemoryHistory.value = newData
     
+    // 等待DOM更新后再同步ref并渲染
     nextTick(() => {
       setTimeout(() => {
+        // 再次同步ref（确保DOM已渲染）
+        syncRefs()
+        
         console.log('[MemoryMonitoringView] 开始渲染图表...')
         renderMemoryCharts()
         console.log('[MemoryMonitoringView] 图表渲染完成')
-      }, 500)
+      }, 800) // 增加延迟到800ms确保Dialog动画和DOM渲染完成
     })
   }
 }, { deep: true })
+
+// 监听时间范围变化，重新渲染图表
+watch(() => props.historyTimeRange, () => {
+  if (props.memoryHistory && props.memoryHistory.length > 0) {
+    composableMemoryHistory.value = props.memoryHistory
+    nextTick(() => {
+      setTimeout(() => {
+        syncRefs()
+        renderMemoryCharts()
+      }, 500)
+    })
+  }
+})
 
 // 计算属性：内存指标卡片
 const memoryMetricCards = computed(() => [
@@ -269,6 +296,8 @@ const memoryMetricCards = computed(() => [
   border: 1px solid #e4e7ed;
   width: 100%;
   min-width: 0;
+  position: relative;
+  overflow: hidden;
 }
 
 .charts-row {

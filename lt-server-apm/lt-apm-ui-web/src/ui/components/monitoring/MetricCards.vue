@@ -74,16 +74,17 @@ const getProgressColor = (percentage: number): string => {
 
 .stat-card {
   text-align: center;
-  padding: 16px 12px;
-  min-height: 140px;
-  height: 140px;
+  padding: 16px 10px 14px;
+  min-height: 160px;
+  height: 160px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   border-radius: 8px;
   transition: all 0.3s ease;
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  box-sizing: border-box;
 }
 
 .stat-card:hover {
@@ -94,22 +95,27 @@ const getProgressColor = (percentage: number): string => {
 .stat-title {
   font-size: 12px;
   color: #606266;
-  margin-bottom: 10px;
-  line-height: 1.4;
-  min-height: 34px;
+  margin-bottom: 6px;
+  line-height: 1.3;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 500;
   word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .stat-value {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: bold;
   color: #303133;
-  margin-bottom: 8px;
-  line-height: 1.2;
+  margin: 6px 0;
+  line-height: 1.1;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -137,5 +143,12 @@ const getProgressColor = (percentage: number): string => {
   color: #909399;
   line-height: 1.3;
   word-break: break-word;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

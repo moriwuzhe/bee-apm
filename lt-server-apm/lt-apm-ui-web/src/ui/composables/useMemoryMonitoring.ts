@@ -435,6 +435,31 @@ export function useMemoryMonitoring() {
   const renderMemoryCharts = () => {
     if (memoryHistory.value.length === 0) return
     
+    // 清除所有旧实例（防止DOM切换导致的实例失效）
+    ;[heapChartInstance, nonHeapChartInstance, youngGenChartInstance, oldGenChartInstance,
+      gcCountChartInstance, gcDurationChartInstance, threadChartInstance, classLoadingChartInstance,
+      cpuChartInstance, memoryPoolsGridInstance].forEach(instance => {
+      if (instance) {
+        try {
+          instance.dispose()
+        } catch (e) {
+          // 忽略dispose错误
+        }
+      }
+    })
+    
+    // 重置实例引用
+    heapChartInstance = null
+    nonHeapChartInstance = null
+    youngGenChartInstance = null
+    oldGenChartInstance = null
+    gcCountChartInstance = null
+    gcDurationChartInstance = null
+    threadChartInstance = null
+    classLoadingChartInstance = null
+    cpuChartInstance = null
+    memoryPoolsGridInstance = null
+    
     const times = memoryHistory.value.map(m => {
       const date = new Date(m.collectTime)
       return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
@@ -442,7 +467,10 @@ export function useMemoryMonitoring() {
     
     // 1. Heap Memory Chart
     if (heapChartRef.value) {
-      if (!heapChartInstance) heapChartInstance = echarts.init(heapChartRef.value)
+      const existingInstance = echarts.getInstanceByDom(heapChartRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      heapChartInstance = echarts.init(heapChartRef.value)
       const heapData = memoryHistory.value.map(m => m.heapUsed)
       const heapCommittedData = memoryHistory.value.map(m => m.heapCommitted)
       const heapMaxData = memoryHistory.value.map(m => m.heapMax)
@@ -469,7 +497,10 @@ export function useMemoryMonitoring() {
     
     // 2. Non-Heap Memory Chart
     if (nonHeapChartRef.value) {
-      if (!nonHeapChartInstance) nonHeapChartInstance = echarts.init(nonHeapChartRef.value)
+      const existingInstance = echarts.getInstanceByDom(nonHeapChartRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      nonHeapChartInstance = echarts.init(nonHeapChartRef.value)
       nonHeapChartInstance.setOption({
         title: { text: '非堆内存', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
         tooltip: { trigger: 'axis', formatter: (params: any) => {
@@ -492,7 +523,10 @@ export function useMemoryMonitoring() {
     
     // 3. Young Generation Stacked Chart (Eden + S0 + S1)
     if (youngGenChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].memoryPools) {
-      if (!youngGenChartInstance) youngGenChartInstance = echarts.init(youngGenChartRef.value)
+      const existingInstance = echarts.getInstanceByDom(youngGenChartRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      youngGenChartInstance = echarts.init(youngGenChartRef.value)
       
       const edenData: number[] = []
       const s0Data: number[] = []
@@ -536,7 +570,10 @@ export function useMemoryMonitoring() {
     
     // 4. Old Generation Chart
     if (oldGenChartRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].memoryPools) {
-      if (!oldGenChartInstance) oldGenChartInstance = echarts.init(oldGenChartRef.value)
+      const existingInstance = echarts.getInstanceByDom(oldGenChartRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      oldGenChartInstance = echarts.init(oldGenChartRef.value)
       
       const oldGenData: number[] = []
       const oldGenMax: number[] = []
@@ -579,7 +616,10 @@ export function useMemoryMonitoring() {
     
     // 5. GC Count Chart
     if (gcCountChartRef.value) {
-      if (!gcCountChartInstance) gcCountChartInstance = echarts.init(gcCountChartRef.value)
+      const existingInstance = echarts.getInstanceByDom(gcCountChartRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      gcCountChartInstance = echarts.init(gcCountChartRef.value)
       const gcIncrements = memoryHistory.value.map((m, i) => {
         if (i === 0) return 0
         const increment = m.gcCount - memoryHistory.value[i - 1].gcCount
@@ -600,7 +640,10 @@ export function useMemoryMonitoring() {
     
     // 6. GC Duration Chart
     if (gcDurationChartRef.value) {
-      if (!gcDurationChartInstance) gcDurationChartInstance = echarts.init(gcDurationChartRef.value)
+      const existingInstance = echarts.getInstanceByDom(gcDurationChartRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      gcDurationChartInstance = echarts.init(gcDurationChartRef.value)
       const gcTimeIncrements = memoryHistory.value.map((m, i) => {
         if (i === 0) return 0
         const increment = m.gcTimeMs - memoryHistory.value[i - 1].gcTimeMs
@@ -621,7 +664,10 @@ export function useMemoryMonitoring() {
     
     // 7. Thread Count Chart
     if (threadChartRef.value) {
-      if (!threadChartInstance) threadChartInstance = echarts.init(threadChartRef.value)
+      const existingInstance = echarts.getInstanceByDom(threadChartRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      threadChartInstance = echarts.init(threadChartRef.value)
       threadChartInstance.setOption({
         title: { text: '线程数趋势', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
         tooltip: { trigger: 'axis' },
@@ -638,7 +684,10 @@ export function useMemoryMonitoring() {
     
     // 8. Class Loading Chart
     if (classLoadingChartRef.value) {
-      if (!classLoadingChartInstance) classLoadingChartInstance = echarts.init(classLoadingChartRef.value)
+      const existingInstance = echarts.getInstanceByDom(classLoadingChartRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      classLoadingChartInstance = echarts.init(classLoadingChartRef.value)
       classLoadingChartInstance.setOption({
         title: { text: '类加载统计', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
         tooltip: { trigger: 'axis' },
@@ -653,7 +702,10 @@ export function useMemoryMonitoring() {
     
     // 9. CPU Chart
     if (cpuChartRef.value) {
-      if (!cpuChartInstance) cpuChartInstance = echarts.init(cpuChartRef.value)
+      const existingInstance = echarts.getInstanceByDom(cpuChartRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      cpuChartInstance = echarts.init(cpuChartRef.value)
       const cpuData = memoryHistory.value.map(m => ((m.processCpuLoad || 0) * 100).toFixed(2))
       cpuChartInstance.setOption({
         title: { text: 'CPU使用率', left: 'center', textStyle: { fontSize: 14, fontWeight: 600 } },
@@ -670,7 +722,10 @@ export function useMemoryMonitoring() {
     
     // 10. Memory Pools Grid (Eden, Survivor, Old Gen, Metaspace, Code Cache)
     if (memoryPoolsGridRef.value && memoryHistory.value.length > 0 && memoryHistory.value[0].memoryPools) {
-      if (!memoryPoolsGridInstance) memoryPoolsGridInstance = echarts.init(memoryPoolsGridRef.value)
+      const existingInstance = echarts.getInstanceByDom(memoryPoolsGridRef.value)
+      if (existingInstance) existingInstance.dispose()
+      
+      memoryPoolsGridInstance = echarts.init(memoryPoolsGridRef.value)
       
       // 解析内存池数据
       const poolData: Record<string, number[]> = {}

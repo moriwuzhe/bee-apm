@@ -110,6 +110,26 @@ export function useGcAnalysis() {
   const renderGcCharts = (memoryHistory: AgentMemoryMetrics[]) => {
     if (memoryHistory.length === 0) return
     
+    // 清除所有旧实例（防止DOM切换导致的实例失效）
+    ;[gcCountChartInstance, gcDurationChartInstance, minorVsFullGcChartInstance, 
+      gcEfficiencyChartInstance, gcVsHeapChartInstance, gcVsCpuChartInstance].forEach(instance => {
+      if (instance) {
+        try {
+          instance.dispose()
+        } catch (e) {
+          // 忽略dispose错误
+        }
+      }
+    })
+    
+    // 重置实例引用
+    gcCountChartInstance = null
+    gcDurationChartInstance = null
+    minorVsFullGcChartInstance = null
+    gcEfficiencyChartInstance = null
+    gcVsHeapChartInstance = null
+    gcVsCpuChartInstance = null
+    
     const times = memoryHistory.map(m => {
       const date = new Date(m.collectTime)
       return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
@@ -118,7 +138,11 @@ export function useGcAnalysis() {
     // 1. GC Count Chart
     const gcCountEl = document.querySelector('[data-chart="gc-count"]') as HTMLElement
     if (gcCountEl) {
-      if (!gcCountChartInstance) gcCountChartInstance = echarts.init(gcCountEl)
+      // 检查DOM上是否已有实例，如果有先dispose
+      const existingInstance = echarts.getInstanceByDom(gcCountEl)
+      if (existingInstance) existingInstance.dispose()
+      
+      gcCountChartInstance = echarts.init(gcCountEl)
       
       const gcIncrements = memoryHistory.map((m, i) => {
         if (i === 0) return 0
@@ -141,7 +165,10 @@ export function useGcAnalysis() {
     // 2. GC Duration Chart
     const gcDurationEl = document.querySelector('[data-chart="gc-duration"]') as HTMLElement
     if (gcDurationEl) {
-      if (!gcDurationChartInstance) gcDurationChartInstance = echarts.init(gcDurationEl)
+      const existingInstance = echarts.getInstanceByDom(gcDurationEl)
+      if (existingInstance) existingInstance.dispose()
+      
+      gcDurationChartInstance = echarts.init(gcDurationEl)
       
       const gcTimeIncrements = memoryHistory.map((m, i) => {
         if (i === 0) return 0
@@ -164,7 +191,10 @@ export function useGcAnalysis() {
     // 3. Minor vs Full GC Chart
     const minorVsFullGcEl = document.querySelector('[data-chart="minor-vs-full-gc"]') as HTMLElement
     if (minorVsFullGcEl) {
-      if (!minorVsFullGcChartInstance) minorVsFullGcChartInstance = echarts.init(minorVsFullGcEl)
+      const existingInstance = echarts.getInstanceByDom(minorVsFullGcEl)
+      if (existingInstance) existingInstance.dispose()
+      
+      minorVsFullGcChartInstance = echarts.init(minorVsFullGcEl)
       
       const minorGcData = memoryHistory.map((m, i) => {
         if (i === 0) return 0
@@ -197,7 +227,10 @@ export function useGcAnalysis() {
     // 4. GC Efficiency Chart
     const gcEfficiencyEl = document.querySelector('[data-chart="gc-efficiency"]') as HTMLElement
     if (gcEfficiencyEl && memoryHistory[0].memoryPools) {
-      if (!gcEfficiencyChartInstance) gcEfficiencyChartInstance = echarts.init(gcEfficiencyEl)
+      const existingInstance = echarts.getInstanceByDom(gcEfficiencyEl)
+      if (existingInstance) existingInstance.dispose()
+      
+      gcEfficiencyChartInstance = echarts.init(gcEfficiencyEl)
       
       const gcEfficiencyData: number[] = []
       memoryHistory.forEach((m, i) => {
@@ -259,7 +292,10 @@ export function useGcAnalysis() {
     // 5. GC vs Heap Chart
     const gcVsHeapEl = document.querySelector('[data-chart="gc-vs-heap"]') as HTMLElement
     if (gcVsHeapEl && memoryHistory[0].memoryPools) {
-      if (!gcVsHeapChartInstance) gcVsHeapChartInstance = echarts.init(gcVsHeapEl)
+      const existingInstance = echarts.getInstanceByDom(gcVsHeapEl)
+      if (existingInstance) existingInstance.dispose()
+      
+      gcVsHeapChartInstance = echarts.init(gcVsHeapEl)
       
       const heapUsedData: number[] = []
       const gcTimeData: number[] = []
@@ -341,7 +377,10 @@ export function useGcAnalysis() {
     // 6. GC vs CPU Chart
     const gcVsCpuEl = document.querySelector('[data-chart="gc-vs-cpu"]') as HTMLElement
     if (gcVsCpuEl) {
-      if (!gcVsCpuChartInstance) gcVsCpuChartInstance = echarts.init(gcVsCpuEl)
+      const existingInstance = echarts.getInstanceByDom(gcVsCpuEl)
+      if (existingInstance) existingInstance.dispose()
+      
+      gcVsCpuChartInstance = echarts.init(gcVsCpuEl)
       
       const cpuLoadData: number[] = []
       const gcTimeData: number[] = []

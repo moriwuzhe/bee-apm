@@ -1,0 +1,138 @@
+@startuml
+
+!define RECTANGLE class
+!define COMPONENT component
+!define DATABASE database
+!define NOTE note
+
+skinparam backgroundColor white
+skinparam componentStyle rectangle
+skinparam classFontName "Arial"
+skinparam componentFontName "Arial"
+skinparam nodeFontName "Arial"
+skinparam noteFontName "Arial"
+skinparam titleFontName "Arial"
+
+skinparam component {
+  BackgroundColor white
+  BorderColor #667eea
+  FontColor #333333
+  FontSize 12
+  BorderWidth 2
+}
+
+skinparam class {
+  BackgroundColor white
+  BorderColor #764ba2
+  FontColor #333333
+  FontSize 12
+  BorderWidth 2
+}
+
+skinparam note {
+  BackgroundColor #f0f0f0
+  BorderColor #cccccc
+  FontColor #333333
+  FontSize 10
+}
+
+skinparam arrow {
+  Color #888888
+  Thickness 2
+  FontColor #666666
+  FontSize 10
+}
+
+title Code Analyzer 架构图
+
+' 前端层
+package "前端层" {
+  COMPONENT "HTML页面" as Frontend
+  COMPONENT "JavaScript" as JS
+}
+
+' 后端层
+package "后端层" {
+  COMPONENT "Spring Boot 控制器" as Controller
+  COMPONENT "Spring Boot 应用" as Application
+}
+
+' 分析层
+package "分析层" {
+  COMPONENT "SpringBootProjectAnalyzer" as Analyzer
+  COMPONENT "JavaCodeIndexer" as JavaIndexer
+  COMPONENT "CodeIndexerFactory" as IndexerFactory
+}
+
+' 模型层
+package "模型层" {
+  COMPONENT "KnowledgeGraph" as Graph
+  COMPONENT "GraphNode" as Node
+  COMPONENT "GraphEdge" as Edge
+}
+
+' 数据层
+DATABASE "项目代码" as Code
+DATABASE "Maven 配置" as Maven
+DATABASE "应用配置" as Config
+
+' 依赖关系
+Frontend --> Controller : API 请求
+JS --> Controller : API 请求
+Controller --> Analyzer : 项目分析
+Controller --> JavaIndexer : 代码索引
+Controller --> Graph : 知识图谱操作
+Analyzer --> Maven : 读取依赖
+Analyzer --> Config : 读取配置
+Analyzer --> Code : 分析代码结构
+JavaIndexer --> Code : 解析代码
+JavaIndexer --> Graph : 构建知识图谱
+JavaIndexer --> Node : 创建节点
+JavaIndexer --> Edge : 创建边
+IndexerFactory --> JavaIndexer : 创建实例
+Application --> Controller : 初始化
+
+' 功能说明
+NOTE right of Frontend
+  包含多个标签页：
+  - 项目概览
+  - 交互导览
+  - 使用向导
+  - 业务文档
+  - 深度分析
+  - 知识图谱
+  - Context 查询
+  - Impact Analysis
+  - 调用链追踪
+end note
+
+NOTE right of Controller
+  提供 REST API 接口：
+  - /api/code/projectAnalysis
+  - /api/code/index
+  - /api/code/graph
+  - /api/code/context/{nodeId}
+  - /api/code/impact/{nodeId}
+  - /api/code/callChain/{nodeId}
+end note
+
+NOTE right of Analyzer
+  负责项目分析：
+  - Maven 依赖分析
+  - 应用配置分析
+  - 包结构分析
+  - 控制器分析
+  - 服务类分析
+  - 数据访问层分析
+  - 实体分析
+end note
+
+NOTE right of JavaIndexer
+  负责代码索引：
+  - 解析 Java 文件
+  - 提取类、方法、字段
+  - 构建知识图谱
+  - 识别调用关系
+end note
+
+@enduml

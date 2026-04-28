@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeeAPM - 企业级智能监控系统</title>
+    <style>
+        :root {
+            --primary: #165DFF;
+            --primary-hover: #4080FF;
+            --success: #00C543;
+            --success-bg: rgba(0,197,67,0.15);
+            --warning: #F5A623;
+            --warning-bg: rgba(245,166,35,0.15);
+            --danger: #F53F3F;
+            --danger-bg: rgba(245,63,63,0.15);
+            --bg-base: #0F172A;
+            --bg-surface: #1C2333;
+            --bg-elevated: #232D3F;
+            --bg-hover: #2A3A52;
+            --border: #2E3548;
+            --text-primary: #E8ECF4;
+            --text-secondary: #8C93A5;
+            --text-tertiary: #5C6578;
+        }
+        .light-theme {
+            --bg-base: #F5F7FA;
+            --bg-surface: #FFFFFF;
+            --bg-elevated: #F0F2F5;
+            --bg-hover: #E8ECF4;
+            --border: #DDE1E7;
+            --text-primary: #1A1F36;
+            --text-secondary: #6B7280;
+            --text-tertiary: #9CA3AF;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-base); color: var(--text-primary); min-height: 100vh; transition: all 0.3s; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .header-left h1 { font-size: 22px; color: var(--primary); margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+        .header-left p { font-size: 12px; color: var(--text-secondary); }
+        .header-right { display: flex; gap: 12px; align-items: center; }
+        .theme-toggle { padding: 8px 16px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 12px; color: var(--text-secondary); }
+        .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; padding: 10px; background: var(--bg-surface); border-radius: 10px; overflow-x: auto; }
+        .tab { padding: 8px 14px; background: var(--bg-elevated); border: none; border-radius: 6px; color: var(--text-secondary); font-size: 12px; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
+        .tab:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .tab.active { background: var(--primary); color: white; }
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px; }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        .card { background: var(--bg-surface); border-radius: 10px; padding: 14px; border: 1px solid var(--border); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .card-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+        .card-action { font-size: 11px; color: var(--primary); cursor: pointer; }
+        .card .label { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
+        .card .value { font-size: 22px; font-weight: 700; color: var(--text-primary); }
+        .card .trend { font-size: 11px; color: var(--success); margin-top: 4px; }
+        .card .trend.down { color: var(--success); }
+        .card .trend.up { color: var(--danger); }
+        .charts { display: grid; gap: 12px; margin-bottom: 12px; }
+        .chart { background: var(--bg-surface); border-radius: 10px; padding: 14px; border: 1px solid var(--border); }
+        .chart-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .chart-tabs { display: flex; gap: 4px; margin-left: auto; }
+        .chart-tab { padding: 4px 10px; background: var(--bg-elevated); border: none; border-radius: 4px; font-size: 10px; color: var(--text-secondary); cursor: pointer; }
+        .chart-tab.active { background: var(--primary); color: white; }
+        .chart-placeholder { height: 160px; background: var(--bg-base); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary); font-size: 12px; flex-direction: column; gap: 8px; }
+        .gauge { width: 100px; height: 100px; border-radius: 50%; background: var(--bg-elevated); display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto; }
+        .gauge .value { font-size: 18px; font-weight: 700; color: var(--success); }
+        .gauge .label { font-size: 10px; color: var(--text-secondary); }
+        .table-container { background: var(--bg-surface); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+        .table-header { background: var(--bg-elevated); padding: 10px 12px; display: flex; align-items: center; }
+        .table-header-item { flex: 1; font-size: 11px; font-weight: 600; color: var(--text-secondary); }
+        .table-row { padding: 10px 12px; display: flex; align-items: center; border-bottom: 1px solid var(--border); transition: background 0.2s; }
+        .table-row:hover { background: var(--bg-hover); }
+        .table-row:last-child { border-bottom: none; }
+        .table-row.alt { background: var(--bg-base); }
+        .table-cell { flex: 1; font-size: 12px; color: var(--text-primary); }
+        .table-cell.secondary { color: var(--text-secondary); }
+        .table-cell.primary { color: var(--primary); font-weight: 600; }
+        .status-tag { padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 500; }
+        .status-success { background: var(--success-bg); color: var(--success); }
+        .status-warning { background: var(--warning-bg); color: var(--warning); }
+        .status-danger { background: var(--danger-bg); color: var(--danger); }
+        .status-info { background: rgba(22,93,255,0.15); color: var(--primary); }
+        .status-gray { background: rgba(140,147,165,0.15); color: var(--text-secondary); }
+        .btn { padding: 6px 12px; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-default { background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border); }
+        .btn-default:hover { background: var(--bg-hover); }
+        .btn-sm { padding: 4px 8px; font-size: 10px; }
+        .btn-icon { width: 28px; height: 28px; padding: 0; display: flex; align-items: center; justify-content: center; }
+        .form-group { margin-bottom: 12px; }
+        .form-label { display: block; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
+        .form-input { width: 100%; padding: 8px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 12px; }
+        .form-input:focus { outline: none; border-color: var(--primary); }
+        .form-select { width: 100%; padding: 8px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 12px; cursor: pointer; }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; }
+        .checkbox-item { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 11px; }
+        .checkbox-item.checked { background: var(--primary); border-color: var(--primary); color: white; }
+        .checkbox-item input { display: none; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal { background: var(--bg-surface); border-radius: 12px; width: 480px; max-height: 80vh; overflow: hidden; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--border); }
+        .modal-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+        .modal-close { width: 28px; height: 28px; border-radius: 6px; background: var(--bg-elevated); border: none; color: var(--text-secondary); cursor: pointer; }
+        .modal-body { padding: 16px; max-height: 60vh; overflow-y: auto; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border); }
+        .topology { background: var(--bg-surface); border-radius: 10px; padding: 16px; min-height: 280px; position: relative; border: 1px solid var(--border); }
+        .node { position: absolute; background: var(--bg-elevated); border-radius: 8px; padding: 10px; text-align: center; border: 2px solid; min-width: 80px; cursor: pointer; transition: all 0.2s; }
+        .node:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .node.gateway { border-color: var(--primary); top: 20px; left: 50%; transform: translateX(-50%); }
+        .node.server { border-color: var(--success); top: 90px; left: 10%; }
+        .node.server.warning { border-color: var(--warning); }
+        .node.server.danger { border-color: var(--danger); }
+        .node.db { border-color: var(--success); top: 160px; left: 15%; }
+        .node.mq { border-color: var(--danger); top: 160px; left: 40%; }
+        .node.redis { border-color: var(--success); top: 160px; right: 15%; }
+        .node.app { border-color: var(--success); top: 90px; right: 10%; }
+        .node-icon { font-size: 18px; margin-bottom: 4px; }
+        .node-label { font-size: 10px; color: var(--text-primary); }
+        .legend { position: absolute; bottom: 12px; left: 12px; background: var(--bg-elevated); padding: 8px 12px; border-radius: 6px; display: flex; gap: 12px; }
+        .legend-item { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-secondary); }
+        .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 6px; padding: 12px; }
+        .page-btn { min-width: 28px; height: 28px; padding: 0 8px; border-radius: 4px; background: var(--bg-elevated); border: none; color: var(--text-secondary); cursor: pointer; font-size: 11px; }
+        .page-btn.active { background: var(--primary); color: white; }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 12px; flex-wrap: wrap; }
+        .toolbar-left, .toolbar-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .search-input { padding: 8px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 12px; width: 180px; }
+        .select-input { padding: 8px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 12px; cursor: pointer; }
+        .badge { padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+        .badge-danger { background: var(--danger-bg); color: var(--danger); }
+        .badge-warning { background: var(--warning-bg); color: var(--warning); }
+        .badge-success { background: var(--success-bg); color: var(--success); }
+        .progress-bar { height: 6px; background: var(--bg-elevated); border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+        .heatmap { display: grid; grid-template-columns: repeat(24, 1fr); gap: 2px; }
+        .heatmap-cell { height: 20px; border-radius: 2px; background: var(--bg-elevated); }
+        .heatmap-cell.level-1 { background: rgba(0,197,67,0.2); }
+        .heatmap-cell.level-2 { background: rgba(0,197,67,0.4); }
+        .heatmap-cell.level-3 { background: rgba(245,166,35,0.4); }
+        .heatmap-cell.level-4 { background: rgba(245,63,63,0.4); }
+        .heatmap-cell.level-5 { background: rgba(245,63,63,0.6); }
+        .footer { text-align: center; padding: 16px; color: var(--text-tertiary); font-size: 11px; }
+        .flex { display: flex; }
+        .flex-1 { flex: 1; }
+        .gap-8 { gap: 8px; }
+        .gap-12 { gap: 12px; }
+        .mb-12 { margin-bottom: 12px; }
+        .text-center { text-align: center; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        @media (max-width: 1200px) { .grid-3 { grid-template-columns: repeat(2, 1fr); } .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 768px) { .grid, .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } .header { flex-direction: column; gap: 12px; } .modal { width: 95%; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1>🐝 BeeAPM 企业级智能监控系统</h1>
+                <p>一站式可观测性平台 | 监控 · 告警 · 日志 · 链路</p>
+            </div>
+            <div class="header-right">
+                <button class="theme-toggle" onclick="toggleTheme()">🌓 主题切换</button>
+                <select class="select-input">
+                    <option>中文</option>
+                    <option>English</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="show('dashboard')">📊 监控大盘</button>
+            <button class="tab" onclick="show('middleware')">⚙️ 中间件</button>
+            <button class="tab" onclick="show('database')">🗄️ 数据库</button>
+            <button class="tab" onclick="show('container')">📦 容器</button>
+            <button class="tab" onclick="show('log')">📝 日志分析</button>
+            <button class="tab" onclick="show('trace')">🔍 链路追踪</button>
+            <button class="tab" onclick="show('alert')">🚨 告警中心</button>
+            <button class="tab" onclick="show('users')">👥 用户管理</button>
+            <button class="tab" onclick="show('roles')">⚖️ 角色管理</button>
+            <button class="tab" onclick="show('permissions')">🔐 权限项</button>
+            <button class="tab" onclick="show('projects')">📁 项目</button>
+            <button class="tab" onclick="show('agent')">🤖 Agent</button>
+            <button class="tab" onclick="show('topology')">🕸️ 拓扑</button>
+            <button class="tab" onclick="show('bigscreen')">🖥️ 大屏</button>
+        </div>
+
+        <!-- 监控大屏 -->
+        <div id="bigscreen" class="page" style="padding: 0; max-width: 100%;">
+            <div style="background: linear-gradient(180deg, rgba(22,93,255,0.1) 0%, #0F172A 100%); padding: 20px; min-height: calc(100vh - 120px);">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h1 style="font-size: 32px; font-weight: 700; color: #165DFF; margin-bottom: 8px;">🐝 BeeAPM 智能运维监控大屏</h1>
+                    <div style="display: flex; justify-content: center; gap: 40px; font-size: 14px; color: #8C93A5;">
+                        <span>2026-04-28 14:32:18</span>
+                        <span style="color: #00C543;">● 系统运行正常</span>
+                        <span>刷新间隔: 5s</span>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 20px;">
+                    <div style="background: #1C2333; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 60px; height: 60px; background: rgba(22,93,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #165DFF;">◎</div>
+                        <div><div style="font-size: 13px; color: #8C93A5; margin-bottom: 4px;">接入应用总数</div><div style="font-size: 28px; font-weight: 700; color: #E8ECF4;">2,847</div><div style="font-size: 11px; color: #00C543;">↑ 5.2%</div></div>
+                    </div>
+                    <div style="background: #1C2333; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 60px; height: 60px; background: rgba(0,197,67,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #00C543;">◆</div>
+                        <div><div style="font-size: 13px; color: #8C93A5; margin-bottom: 4px;">Agent在线数量</div><div style="font-size: 28px; font-weight: 700; color: #E8ECF4;">1,284</div><div style="font-size: 11px; color: #00C543;">↑ 3.1%</div></div>
+                    </div>
+                    <div style="background: #1C2333; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 60px; height: 60px; background: rgba(245,166,35,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #F5A623;">☼</div>
+                        <div><div style="font-size: 13px; color: #8C93A5; margin-bottom: 4px;">服务器节点数</div><div style="font-size: 28px; font-weight: 700; color: #E8ECF4;">356</div><div style="font-size: 11px; color: #00C543;">↑ 8.5%</div></div>
+                    </div>
+                    <div style="background: #1C2333; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 60px; height: 60px; background: rgba(245,63,63,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #F53F3F;">⚠</div>
+                        <div><div style="font-size: 13px; color: #8C93A5; margin-bottom: 4px;">今日告警统计</div><div style="font-size: 28px; font-weight: 700; color: #E8ECF4;">23</div><div style="font-size: 11px; color: #00C543;">↓ 12%</div></div>
+                    </div>
+                    <div style="background: #1C2333; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 60px; height: 60px; background: rgba(0,197,67,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: #00C543;">♥</div>
+                        <div><div style="font-size: 13px; color: #8C93A5; margin-bottom: 4px;">系统健康度</div><div style="font-size: 28px; font-weight: 700; color: #00C543;">98.5%</div><div style="font-size: 11px; color: #00C543;">系统运行良好</div></div>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px;">
+                    <div style="background: #1C2333; border-radius: 12px; padding: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <div style="font-size: 15px; font-weight: 600; color: #E8ECF4;">📈 请求量趋势</div>
+                            <div style="display: flex; gap: 8px;"><div style="padding: 6px 12px; background: #165DFF; border-radius: 4px; font-size: 11px; color: white;">24小时</div><div style="padding: 6px 12px; background: #232D3F; border-radius: 4px; font-size: 11px; color: #8C93A5;">7天</div></div>
+                        </div>
+                        <div style="height: 220px; background: #0F172A; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #5C6578; font-size: 14px;">📊 折线图展示区域</div>
+                    </div>
+                    <div style="background: #1C2333; border-radius: 12px; padding: 16px;">
+                        <div style="font-size: 14px; font-weight: 600; color: #E8ECF4; margin-bottom: 12px;">🍩 应用健康度分布</div>
+                        <div style="display: flex; align-items: center; justify-content: center; height: 100px;">
+                            <div style="width: 100px; height: 100px; border-radius: 50%; background: #232D3F; display: flex; flex-direction: column; align-items: center; justify-content: center;"><div style="font-size: 20px; font-weight: 700; color: #00C543;">98%</div><div style="font-size: 10px; color: #8C93A5;">健康率</div></div>
+                        </div>
+                        <div style="display: flex; justify-content: center; gap: 16px; margin-top: 12px;">
+                            <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: #00C543;"></div><span style="font-size: 11px; color: #8C93A5;">正常</span></div>
+                            <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: #F5A623;"></div><span style="font-size: 11px; color: #8C93A5;">警告</span></div>
+                            <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: #F53F3F;"></div><span style="font-size: 11px; color: #8C93A5;">异常</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px;">
+                    <div style="background: #1C2333; border-radius: 12px; padding: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;"><div style="font-size: 15px; font-weight: 600; color: #E8ECF4;">🚨 实时告警</div><div style="padding: 4px 10px; background: rgba(245,63,63,0.2); border-radius: 10px; font-size: 11px; color: #F53F3F;">12条</div></div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="padding: 10px; background: rgba(245,63,63,0.1); border-radius: 6px; display: flex; align-items: center; gap: 10px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: #F53F3F; flex-shrink: 0;"></div><div><div style="font-size: 12px; color: #E8ECF4;">支付服务响应超时</div><div style="font-size: 10px; color: #8C93A5;">192.168.1.115 - 12分钟</div></div></div>
+                            <div style="padding: 10px; background: rgba(245,166,35,0.1); border-radius: 6px; display: flex; align-items: center; gap: 10px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: #F5A623; flex-shrink: 0;"></div><div><div style="font-size: 12px; color: #E8ECF4;">数据库连接数告警</div><div style="font-size: 10px; color: #8C93A5;">MySQL主库 - 5分钟</div></div></div>
+                            <div style="padding: 10px; background: rgba(22,93,255,0.1); border-radius: 6px; display: flex; align-items: center; gap: 10px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: #165DFF; flex-shrink: 0;"></div><div><div style="font-size: 12px; color: #E8ECF4;">Redis缓存命中率下降</div><div style="font-size: 10px; color: #8C93A5;">192.168.1.120 - 3分钟</div></div></div>
+                        </div>
+                    </div>
+                    <div style="background: #1C2333; border-radius: 12px; padding: 16px;">
+                        <div style="font-size: 15px; font-weight: 600; color: #E8ECF4; margin-bottom: 12px;">🖥️ 核心服务状态</div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="padding: 10px; background: #232D3F; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;"><div style="display: flex; align-items: center; gap: 10px;"><span style="font-size: 16px;">☂</span><span style="font-size: 13px; color: #E8ECF4;">API网关</span></div><span style="font-size: 12px; color: #00C543;">在线 99.9%</span></div>
+                            <div style="padding: 10px; background: #232D3F; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;"><div style="display: flex; align-items: center; gap: 10px;"><span style="font-size: 16px; color: #F53F3F;">◎</span><span style="font-size: 13px; color: #E8ECF4;">订单服务</span></div><span style="font-size: 12px; color: #F53F3F;">异常 超时</span></div>
+                            <div style="padding: 10px; background: #232D3F; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;"><div style="display: flex; align-items: center; gap: 10px;"><span style="font-size: 16px; color: #F5A623;">⚖</span><span style="font-size: 13px; color: #E8ECF4;">支付服务</span></div><span style="font-size: 12px; color: #F5A623;">警告 响应慢</span></div>
+                            <div style="padding: 10px; background: #232D3F; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;"><div style="display: flex; align-items: center; gap: 10px;"><span style="font-size: 16px;">♀</span><span style="font-size: 13px; color: #E8ECF4;">用户服务</span></div><span style="font-size: 12px; color: #00C543;">在线 正常</span></div>
+                        </div>
+                    </div>
+                    <div style="background: #1C2333; border-radius: 12px; padding: 16px;">
+                        <div style="font-size: 15px; font-weight: 600; color: #E8ECF4; margin-bottom: 12px;">⚡ TOP5 性能瓶颈</div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="padding: 10px; background: #232D3F; border-radius: 6px; display: flex; align-items: center; gap: 10px;"><div style="width: 20px; height: 20px; background: rgba(245,63,63,0.2); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #F53F3F;">1</div><div style="flex: 1;"><div style="font-size: 12px; color: #E8ECF4;">payment-service</div><div style="font-size: 10px; color: #8C93A5;">192.168.1.115</div></div><div style="font-size: 12px; color: #F53F3F; font-weight: 600;">3.2s</div></div>
+                            <div style="padding: 10px; background: #232D3F; border-radius: 6px; display: flex; align-items: center; gap: 10px;"><div style="width: 20px; height: 20px; background: rgba(245,166,35,0.2); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #F5A623;">2</div><div style="flex: 1;"><div style="font-size: 12px; color: #E8ECF4;">order-service</div><div style="font-size: 10px; color: #8C93A5;">192.168.1.101</div></div><div style="font-size: 12px; color: #F5A623; font-weight: 600;">2.8s</div></div>
+                            <div style="padding: 10px; background: #232D3F; border-radius: 6px; display: flex; align-items: center; gap: 10px;"><div style="width: 20px; height: 20px; background: rgba(22,93,255,0.2); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #165DFF;">3</div><div style="flex: 1;"><div style="font-size: 12px; color: #E8ECF4;">user-service</div><div style="font-size: 10px; color: #8C93A5;">192.168.1.108</div></div><div style="font-size: 12px; color: #165DFF; font-weight: 600;">1.5s</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px; margin-bottom: 20px;">
+                    <div style="background: #1C2333; border-radius: 12px; padding: 16px;">
+                        <div style="font-size: 15px; font-weight: 600; color: #E8ECF4; margin-bottom: 12px;">🌍 服务分布地图</div>
+                        <div style="height: 200px; background: #0F172A; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #5C6578; font-size: 12px; position: relative;">
+                            <div style="position: absolute; top: 20%; left: 15%; width: 8px; height: 8px; border-radius: 50%; background: #00C543; box-shadow: 0 0 10px #00C543;"></div>
+                            <div style="position: absolute; top: 30%; left: 45%; width: 8px; height: 8px; border-radius: 50%; background: #00C543; box-shadow: 0 0 10px #00C543;"></div>
+                            <div style="position: absolute; top: 50%; left: 70%; width: 8px; height: 8px; border-radius: 50%; background: #F5A623; box-shadow: 0 0 10px #F5A623;"></div>
+                            <div style="position: absolute; top: 65%; left: 30%; width: 8px; height: 8px; border-radius: 50%; background: #00C543; box-shadow: 0 0 10px #00C543;"></div>
+                            <div style="position: absolute; top: 40%; left: 85%; width: 8px; height: 8px; border-radius: 50%; background: #F53F3F; box-shadow: 0 0 10px #F53F3F;"></div>
+                            <div style="position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px;">
+                                <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: #00C543;"></div><span style="font-size: 10px; color: #8C93A5;">正常</span></div>
+                                <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: #F5A623;"></div><span style="font-size: 10px; color: #8C93A5;">警告</span></div>
+                                <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 8px; height: 8px; border-radius: 50%; background: #F53F3F;"></div><span style="font-size: 10px; color: #8C93A5;">异常</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="background: #1C2333; border-radius: 12px; padding: 16px;">
+                        <div style="font-size: 15px; font-weight: 600; color: #E8ECF4; margin-bottom: 12px;">🔥 24小时业务热力图</div>
+                        <div style="display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px;">
+                            <div style="height: 24px; background: rgba(0,197,67,0.2); border-radius: 3px;" title="00:00 - 低"></div>
+                            <div style="height: 24px; background: rgba(0,197,67,0.15); border-radius: 3px;" title="01:00 - 低"></div>
+                            <div style="height: 24px; background: rgba(0,197,67,0.1); border-radius: 3px;" title="02:00 - 最低"></div>
+                            <div style="height: 24px; background: rgba(0,197,67,0.12); border-radius: 3px;" title="03:00 - 低"></div>
+                            <div style="height: 24px; background: rgba(0,197,67,0.18); border-radius: 3px;" title="04:00 - 低"></div>
+                            <div style="height: 24px; background: rgba(245,166,35,0.3); border-radius: 3px;" title="05:00 - 中"></div>
+                            <div style="height: 24px; background: rgba(245,166,35,0.45); border-radius: 3px;" title="06:00 - 中高"></div>
+                            <div style="height: 24px; background: rgba(245,166,35,0.6); border-radius: 3px;" title="07:00 - 高"></div>
+                            <div style="height: 24px; background: rgba(245,63,63,0.5); border-radius: 3px;" title="08:00 - 很高"></div>
+                            <div style="height: 24px; background: rgba(245,63,63,0.65); border-radius: 3px;" title="09:00 - 峰值"></div>
+                            <div style="height: 24px; background: rgba(245,63,63,0.55); border-radius: 3px;" title="10:00 - 很高"></div>
+                            <div style="height: 24px; background: rgba(245,166,35,0.5); border-radius: 3px;" title="11:00 - 高"></div>
+                            <div style="height: 24px; background: rgba(245,166,35,0.55); border-radius: 3px;" title="12:00 - 高"></div>
+                            <div style="height: 24px; background: rgba(245,166,35,0.45); border-radius: 3px;" title="13:00 - 中高"></div>
+                            <div style="height: 24px; background: rgba(245,166,35,0.5); border-radius: 3px;" title="14:00 - 高"></div>
+                            <div style="height: 24px; background: rgba(245,63,63,0.55); border-radius: 3px;" title="15:00 - 很高"></div>
+                            <div style="height: 24px; background: rgba(245,63,63,0.6); border-radius: 3px;" title="16:00 - 很高"></div>
+                            <div style="height: 24px; background: rgba(245,166,35,0.5); border-radius: 3px;" title="17:00 - 高"></div>
+                            <div style="height: 24px; background: rgba(245,166,35,0.4); border-radius: 3px;" title="18:00 - 中高"></div>
+                            <div style="height: 24px; background: rgba(245,63,63,0.45); border-radius: 3px;" title="19:00 - 中高"></div>
+                            <div style="height: 24px; background: rgba(245,166,35,0.35); border-radius: 3px;" title="20:00 - 中"></div>
+                            <div style="height: 24px; background: rgba(245,166,35,0.3); border-radius: 3px;" title="21:00 - 中"></div>
+                            <div style="height: 24px; background: rgba(0,197,67,0.35); border-radius: 3px;" title="22:00 - 中低"></div>
+                            <div style="height: 24px; background: rgba(0,197,67,0.25); border-radius: 3px;" title="23:00 - 低"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 8px;">
+                            <span style="font-size: 10px; color: #8C93A5;">00:00</span>
+                            <span style="font-size: 10px; color: #8C93A5;">06:00</span>
+                            <span style="font-size: 10px; color: #8C93A5;">12:00</span>
+                            <span style="font-size: 10px; color: #8C93A5;">18:00</span>
+                            <span style="font-size: 10px; color: #8C93A5;">24:00</span>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+                    <div style="background: #1C2333; border-radius: 12px; padding: 16px;">
+                        <div style="font-size: 14px; font-weight: 600; color: #E8ECF4; margin-bottom: 12px;">💾 存储使用率</div>
+                        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+                            <div style="width: 80px; height: 80px; border-radius: 50%; background: conic-gradient(#165DFF 0deg, #165DFF 216deg, #232D3F 216deg); display: flex; align-items: center; justify-content: center;">
+                                <div style="width: 56px; height: 56px; border-radius: 50%; background: #1C2333; display: flex; flex-direction: column; align-items: center; justify-content: center;"><div style="font-size: 14px; font-weight: 700; color: #165DFF;">60%</div></div>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px;"><span style="color: #8C93A5;">已用 1.2TB</span><span style="color: #8C93A5;">总计 2TB</span></div>
+                    </div>
+                    <div style="background: #1C2333; border-radius: 12px; padding: 16px;">
+                        <div style="font-size: 14px; font-weight: 600; color: #E8ECF4; margin-bottom: 12px;">📊 带宽使用</div>
+                        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+                            <div style="width: 80px; height: 80px; border-radius: 50%; background: conic-gradient(#00C543 0deg, #00C543 144deg, #232D3F 144deg); display: flex; align-items: center; justify-content: center;">
+                                <div style="width: 56px; height: 56px; border-radius: 50%; background: #1C2333; display: flex; flex-direction: column; align-items: center; justify-content: center;"><div style="font-size: 14px; font-weight: 700; color: #00C543;">40%</div></div>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px;"><span style="color: #8C93A5;">800Mbps</span><span style="color: #8C93A5;">2Gbps</span></div>
+                    </div>
+                    <div style="background: #1C2333; border-radius: 12px; padding: 16px;">
+                        <div style="font-size: 14px; font-weight: 600; color: #E8ECF4; margin-bottom: 12px;">🔌 数据库连接</div>
+                        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+                            <div style="width: 80px; height: 80px; border-radius: 50%; background: conic-gradient(#F5A623 0deg, #F5A623 90deg, #232D3F 90deg); display: flex; align-items: center; justify-content: center;">
+                                <div style="width: 56px; height: 56px; border-radius: 50%; background: #1C2333; display: flex; flex-direction: column; align-items: center; justify-content: center;"><div style="font-size: 14px; font-weight: 700; color: #F5A623;">25%</div></div>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px;"><span style="color: #8C93A5;">125</span><span style="color: #8C93A5;">500</span></div>
+                    </div>
+                    <div style="background: #1C2333; border-radius: 12px; padding: 16px;">
+                        <div style="font-size: 14px; font-weight: 600; color: #E8ECF4; margin-bottom: 12px;">☁️ 云服务状态</div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;"><span style="font-size: 11px; color: #8C93A5;">AWS EC2</span><span style="font-size: 11px; color: #00C543;">● 正常</span></div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;"><span style="font-size: 11px; color: #8C93A5;">阿里云 OSS</span><span style="font-size: 11px; color: #00C543;">● 正常</span></div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;"><span style="font-size: 11px; color: #8C93A5;">腾讯云 CBS</span><span style="font-size: 11px; color: #F5A623;">● 维护中</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 版本发布 -->
+        <div id="dashboard" class="page active">
+            <div class="grid">
+                <div class="card"><div class="label">接入应用总数</div><div class="value">2,847</div><div class="trend">↑ 5.2%</div></div>
+                <div class="card"><div class="label">Agent在线数量</div><div class="value">1,284</div><div class="trend">↑ 3.1%</div></div>
+                <div class="card"><div class="label">服务器节点数</div><div class="value">356</div><div class="trend">↑ 8.5%</div></div>
+                <div class="card"><div class="label">今日告警统计</div><div class="value">23</div><div class="trend">↓ 12%</div></div>
+                <div class="card"><div class="label">系统健康度</div><div class="value">98.5%</div><div class="trend">健康</div></div>
+            </div>
+            <div class="charts">
+                <div class="chart"><div class="chart-title">核心指标趋势</div><div class="chart-placeholder">📈 折线图区域</div></div>
+                <div class="chart"><div class="chart-title">系统健康度</div><div class="gauge"><div class="value">98.5%</div><div class="label">系统健康</div></div></div>
+            </div>
+            <div class="card">
+                <div class="chart-title" style="margin-bottom: 12px;">故障快捷入口</div>
+                <div style="display: flex; gap: 12px;">
+                    <div style="flex:1; padding: 12px; background: rgba(245,63,63,0.15); border-radius: 8px;">
+                        <div style="font-size: 12px; color: var(--text-primary);">支付服务响应超时</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">持续 12分钟</div>
+                    </div>
+                    <div style="flex:1; padding: 12px; background: rgba(245,166,35,0.15); border-radius: 8px;">
+                        <div style="font-size: 12px; color: var(--text-primary);">数据库连接数告警</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">持续 5分钟</div>
+                    </div>
+                    <div style="flex:1; padding: 12px; background: rgba(0,197,67,0.15); border-radius: 8px;">
+                        <div style="font-size: 12px; color: var(--text-primary);">订单服务已恢复</div>
+                        <div style="font-size: 11px; color: var(--success);">已解决</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 用户管理 -->
+        <div id="users" class="page">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                <button class="btn btn-primary">+ 新增用户</button>
+                <input type="text" class="btn btn-default" placeholder="搜索用户..." style="width: 200px;">
+            </div>
+            <div class="table-container">
+                <div class="table-header">
+                    <div class="table-header-item" style="width: 40px;"><input type="checkbox"></div>
+                    <div class="table-header-item">用户名</div>
+                    <div class="table-header-item">状态</div>
+                    <div class="table-header-item">角色</div>
+                    <div class="table-header-item">操作</div>
+                </div>
+                <div class="table-row"><div style="width: 40px;"><input type="checkbox"></div><div class="table-cell">张明远</div><div class="table-cell"><span class="status-tag status-online">正常</span></div><div class="table-cell secondary">超级管理员</div><div class="table-cell"><button class="btn btn-default">编辑</button><button class="btn btn-default">禁用</button></div></div>
+                <div class="table-row alt"><div style="width: 40px;"><input type="checkbox"></div><div class="table-cell">李晓华</div><div class="table-cell"><span class="status-tag status-error">禁用</span></div><div class="table-cell secondary">运维人员</div><div class="table-cell"><button class="btn btn-default">编辑</button><button class="btn btn-primary">启用</button></div></div>
+                <div class="table-row"><div style="width: 40px;"><input type="checkbox"></div><div class="table-cell">王建国</div><div class="table-cell"><span class="status-tag status-online">正常</span></div><div class="table-cell secondary">开发人员</div><div class="table-cell"><button class="btn btn-default">编辑</button><button class="btn btn-default">禁用</button></div></div>
+            </div>
+        </div>
+
+        <!-- 角色管理 -->
+        <div id="roles" class="page">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                <button class="btn btn-primary">+ 新增角色</button>
+            </div>
+            <div class="table-container">
+                <div class="table-header">
+                    <div class="table-header-item" style="width: 40px;"><input type="checkbox"></div>
+                    <div class="table-header-item">角色名称</div>
+                    <div class="table-header-item">描述</div>
+                    <div class="table-header-item">用户数</div>
+                    <div class="table-header-item">操作</div>
+                </div>
+                <div class="table-row"><div style="width: 40px;"><input type="checkbox"></div><div class="table-cell" style="color: var(--primary);">超级管理员</div><div class="table-cell secondary">拥有系统所有权限</div><div class="table-cell">3人</div><div class="table-cell"><button class="btn btn-primary">分配权限</button></div></div>
+                <div class="table-row alt"><div style="width: 40px;"><input type="checkbox"></div><div class="table-cell">运维人员</div><div class="table-cell secondary">负责系统运维和监控</div><div class="table-cell">8人</div><div class="table-cell"><button class="btn btn-default">编辑</button><button class="btn btn-primary">权限</button></div></div>
+                <div class="table-row"><div style="width: 40px;"><input type="checkbox"></div><div class="table-cell">开发人员</div><div class="table-cell secondary">应用开发和调试</div><div class="table-cell">15人</div><div class="table-cell"><button class="btn btn-default">编辑</button><button class="btn btn-primary">权限</button></div></div>
+            </div>
+        </div>
+
+        <!-- 项目管理 -->
+        <div id="projects" class="page">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                <button class="btn btn-primary">+ 新增项目</button>
+                <input type="text" class="btn btn-default" placeholder="搜索项目..." style="width: 200px;">
+            </div>
+            <div class="table-container">
+                <div class="table-header">
+                    <div class="table-header-item" style="width: 40px;"><input type="checkbox"></div>
+                    <div class="table-header-item">项目名称</div>
+                    <div class="table-header-item">环境</div>
+                    <div class="table-header-item">应用数</div>
+                    <div class="table-header-item">状态</div>
+                </div>
+                <div class="table-row"><div style="width: 40px;"><input type="checkbox"></div><div class="table-cell">电商核心系统</div><div class="table-cell secondary">生产</div><div class="table-cell">12个</div><div class="table-cell"><span class="status-tag status-online">正常</span></div></div>
+                <div class="table-row alt"><div style="width: 40px;"><input type="checkbox"></div><div class="table-cell">支付中台服务</div><div class="table-cell secondary">生产</div><div class="table-cell">8个</div><div class="table-cell"><span class="status-tag status-error">异常</span></div></div>
+                <div class="table-row"><div style="width: 40px;"><input type="checkbox"></div><div class="table-cell">用户中心服务</div><div class="table-cell secondary">测试</div><div class="table-cell">5个</div><div class="table-cell"><span class="status-tag status-online">正常</span></div></div>
+            </div>
+        </div>
+
+        <!-- 应用管理 -->
+        <div id="applications" class="page">
+            <div class="table-container">
+                <div class="table-header">
+                    <div class="table-header-item" style="width: 40px;"><input type="checkbox"></div>
+                    <div class="table-header-item">应用名称</div>
+                    <div class="table-header-item">项目</div>
+                    <div class="table-header-item">状态</div>
+                    <div class="table-header-item">IP</div>
+                </div>
+                <div class="table-row"><div style="width: 40px;"><input type="checkbox"></div><div class="table-cell">order-service</div><div class="table-cell secondary">订单处理系统</div><div class="table-cell"><span class="status-tag status-online">在线</span></div><div class="table-cell secondary">192.168.1.101</div></div>
+                <div class="table-row alt"><div style="width: 40px;"><input type="checkbox"></div><div class="table-cell">payment-service</div><div class="table-cell secondary">支付中台服务</div><div class="table-cell"><span class="status-tag status-error">异常</span></div><div class="table-cell secondary">192.168.1.115</div></div>
+            </div>
+            <div class="card" style="margin-top: 12px;">
+                <div class="chart-title">JVM基础信息</div>
+                <div class="grid">
+                    <div style="padding: 12px; background: var(--bg-elevated); border-radius: 8px;">
+                        <div class="label">堆内存</div><div class="value">512MB</div>
+                    </div>
+                    <div style="padding: 12px; background: var(--bg-elevated); border-radius: 8px;">
+                        <div class="label">线程数</div><div class="value">128</div>
+                    </div>
+                    <div style="padding: 12px; background: var(--bg-elevated); border-radius: 8px;">
+                        <div class="label">类加载</div><div class="value">12,845</div>
+                    </div>
+                    <div style="padding: 12px; background: var(--bg-elevated); border-radius: 8px;">
+                        <div class="label">YGC/FGC</div><div class="value">245/12</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Agent管控 -->
+        <div id="agent" class="page">
+            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                <div style="padding: 8px 16px; background: var(--primary); border-radius: 6px; font-size: 12px; color: white;">节点列表</div>
+                <div style="padding: 8px 16px; background: var(--bg-surface); border-radius: 6px; font-size: 12px; color: var(--text-secondary);">插件管理</div>
+                <div style="padding: 8px 16px; background: var(--bg-surface); border-radius: 6px; font-size: 12px; color: var(--text-secondary);">插件市场</div>
+            </div>
+            <div class="table-container">
+                <div class="table-header">
+                    <div class="table-header-item" style="width: 40px;"><input type="checkbox"></div>
+                    <div class="table-header-item">节点名称</div>
+                    <div class="table-header-item">IP</div>
+                    <div class="table-header-item">状态</div>
+                </div>
+                <div class="table-row"><div style="width: 40px;"><input type="checkbox"></div><div class="table-cell">agent-node-001</div><div class="table-cell secondary">192.168.1.101</div><div class="table-cell"><span class="status-tag status-online">已连接</span></div></div>
+                <div class="table-row alt"><div style="width: 40px;"><input type="checkbox"></div><div class="table-cell">agent-node-015</div><div class="table-cell secondary">192.168.1.115</div><div class="table-cell"><span class="status-tag status-error">已断开</span></div></div>
+            </div>
+            <div class="card" style="margin-top: 12px;">
+                <div class="chart-title">已安装插件</div>
+                <div style="display: flex; gap: 12px;">
+                    <div style="flex:1; padding: 12px; background: var(--bg-elevated); border-radius: 8px;">
+                        <div style="font-size: 12px; color: var(--text-primary);">HTTP追踪插件</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">v1.2.0</div>
+                    </div>
+                    <div style="flex:1; padding: 12px; background: var(--bg-elevated); border-radius: 8px;">
+                        <div style="font-size: 12px; color: var(--text-primary);">MySQL监控</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">v1.1.5</div>
+                    </div>
+                    <div style="flex:1; padding: 12px; background: var(--bg-elevated); border-radius: 8px;">
+                        <div style="font-size: 12px; color: var(--text-primary);">Redis监控</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">v1.0.8</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- JVM监控 -->
+        <div id="jvm" class="page">
+            <div class="grid">
+                <div class="card"><div class="label">CPU使用率</div><div class="value" style="color: var(--success);">23.5%</div></div>
+                <div class="card"><div class="label">内存使用率</div><div class="value" style="color: var(--warning);">67.8%</div></div>
+                <div class="card"><div class="label">磁盘IO</div><div class="value">45MB/s</div></div>
+                <div class="card"><div class="label">网络流量</div><div class="value">128Mbps</div></div>
+            </div>
+            <div class="charts">
+                <div class="chart"><div class="chart-title">堆内存趋势</div><div class="chart-placeholder">📊 堆内存折线图</div></div>
+                <div class="chart"><div class="chart-title">GC监控</div><div class="chart-placeholder">📊 GC次数统计</div></div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                <div class="card"><div class="chart-title">线程监控</div><div style="display: flex; justify-content: space-between; margin-top: 8px;"><div>总线程</div><div>128</div></div><div style="display: flex; justify-content: space-between;"><div>运行中</div><div>45</div></div></div>
+                <div class="card"><div class="chart-title">类加载统计</div><div style="display: flex; justify-content: space-between; margin-top: 8px;"><div>已加载</div><div>12,845</div></div><div style="display: flex; justify-content: space-between;"><div>加载率</div><div>99.1%</div></div></div>
+                <div class="card"><div class="chart-title">GC统计</div><div style="display: flex; justify-content: space-between; margin-top: 8px;"><div>YGC</div><div>245次</div></div><div style="display: flex; justify-content: space-between;"><div>FGC</div><div>12次</div></div></div>
+            </div>
+        </div>
+
+        <!-- 网络拓扑 -->
+        <div id="topology" class="page">
+            <div class="topology">
+                <div class="node gateway"><div style="font-size: 20px;">☂</div><div style="font-size: 10px; margin-top: 4px;">API网关</div></div>
+                <div class="node server"><div style="font-size: 20px;">☼</div><div style="font-size: 10px; margin-top: 4px;">Server-01</div></div>
+                <div class="node db"><div style="font-size: 20px;">☃</div><div style="font-size: 10px; margin-top: 4px;">MySQL</div></div>
+                <div class="node mq"><div style="font-size: 20px;">☲</div><div style="font-size: 10px; margin-top: 4px;">RabbitMQ</div></div>
+                <div class="node app"><div style="font-size: 20px;">☕</div><div style="font-size: 10px; margin-top: 4px;">Java App</div></div>
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-dot" style="background: var(--success);"></div>正常</div>
+                    <div class="legend-item"><div class="legend-dot" style="background: var(--warning);"></div>警告</div>
+                    <div class="legend-item"><div class="legend-dot" style="background: var(--danger);"></div>故障</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 服务依赖 -->
+        <div id="service" class="page">
+            <div class="topology">
+                <div class="node gateway"><div style="font-size: 20px;">☂</div><div style="font-size: 10px;">Gateway</div></div>
+                <div class="node server" style="left: 20%;"><div style="font-size: 20px;">◎</div><div style="font-size: 10px;">order-service</div></div>
+                <div class="node db" style="left: 35%;"><div style="font-size: 20px;">⚖</div><div style="font-size: 10px;">payment-svc</div></div>
+                <div class="node mq" style="left: 50%;"><div style="font-size: 20px;">♀</div><div style="font-size: 10px;">user-service</div></div>
+                <div class="node app" style="left: 65%;"><div style="font-size: 20px;">☐</div><div style="font-size: 10px;">inventory</div></div>
+                <div style="position: absolute; top: 20px; right: 20px; background: var(--bg-elevated); padding: 12px; border-radius: 8px;">
+                    <div style="font-size: 12px; color: var(--danger); margin-bottom: 8px;">异常链路</div>
+                    <div style="font-size: 11px; color: var(--text-primary);">Gateway → order-service</div>
+                    <div style="font-size: 10px; color: var(--danger);">响应时间 &gt; 3s</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 版本发布 -->
+        <div id="release" class="page">
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px;">
+                <div class="card">
+                    <div class="chart-title">版本历史</div>
+                    <div style="padding: 8px; background: var(--primary); border-radius: 6px; margin-bottom: 8px;"><div style="font-size: 12px; color: white;">v2.4.1</div><div style="font-size: 10px; color: rgba(255,255,255,0.7);">2024-04-26</div></div>
+                    <div style="padding: 8px; background: var(--bg-elevated); border-radius: 6px;"><div style="font-size: 12px;">v2.4.0</div><div style="font-size: 10px; color: var(--text-secondary);">2024-04-20</div></div>
+                </div>
+                <div>
+                    <div class="card">
+                        <div class="chart-title">影响分析 - v2.4.1</div>
+                        <div class="grid">
+                            <div style="padding: 12px; background: var(--bg-elevated); border-radius: 8px;"><div class="label">影响服务数</div><div class="value" style="color: var(--warning);">5</div></div>
+                            <div style="padding: 12px; background: var(--bg-elevated); border-radius: 8px;"><div class="label">关联接口</div><div class="value">23</div></div>
+                            <div style="padding: 12px; background: var(--bg-elevated); border-radius: 8px;"><div class="label">风险节点</div><div class="value" style="color: var(--danger);">2</div></div>
+                            <div style="padding: 12px; background: var(--bg-elevated); border-radius: 8px;"><div class="label">预计时长</div><div class="value" style="color: var(--success);">30min</div></div>
+                        </div>
+                    </div>
+                    <div class="card" style="margin-top: 12px;">
+                        <div class="chart-title">发布影响链路</div>
+                        <div class="chart-placeholder">🚀 发布链路可视化</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 版本发布 -->
+        <div id="release" class="page">
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px;">
+                <div class="card">
+                    <div class="chart-title">版本历史</div>
+                    <div style="padding: 8px; background: var(--primary); border-radius: 6px; margin-bottom: 8px;"><div style="font-size: 12px; color: white;">v2.4.1</div><div style="font-size: 10px; color: rgba(255,255,255,0.7);">2024-04-26</div></div>
+                    <div style="padding: 8px; background: var(--bg-elevated); border-radius: 6px;"><div style="font-size: 12px;">v2.4.0</div><div style="font-size: 10px; color: var(--text-secondary);">2024-04-20</div></div>
+                </div>
+                <div>
+                    <div class="card">
+                        <div class="chart-title">影响分析 - v2.4.1</div>
+                        <div class="grid">
+                            <div style="padding: 12px; background: var(--bg-elevated); border-radius: 8px;"><div class="label">影响服务数</div><div class="value" style="color: var(--warning);">5</div></div>
+                            <div style="padding: 12px; background: var(--bg-elevated); border-radius: 8px;"><div class="label">关联接口</div><div class="value">23</div></div>
+                            <div style="padding: 12px; background: var(--bg-elevated); border-radius: 8px;"><div class="label">风险节点</div><div class="value" style="color: var(--danger);">2</div></div>
+                            <div style="padding: 12px; background: var(--bg-elevated); border-radius: 8px;"><div class="label">预计时长</div><div class="value" style="color: var(--success);">30min</div></div>
+                        </div>
+                    </div>
+                    <div class="card" style="margin-top: 12px;">
+                        <div class="chart-title">发布影响链路</div>
+                        <div class="chart-placeholder">🚀 发布链路可视化</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 中间件监控 -->
+        <div id="middleware" class="page">
+            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                <div style="padding: 8px 16px; background: var(--primary); border-radius: 6px; font-size: 12px; color: white;">全部</div>
+                <div style="padding: 8px 16px; background: var(--bg-surface); border-radius: 6px; font-size: 12px; color: var(--text-secondary);">Redis</div>
+                <div style="padding: 8px 16px; background: var(--bg-surface); border-radius: 6px; font-size: 12px; color: var(--text-secondary);">Nginx</div>
+                <div style="padding: 8px 16px; background: var(--bg-surface); border-radius: 6px; font-size: 12px; color: var(--text-secondary);">Kafka</div>
+                <div style="padding: 8px 16px; background: var(--bg-surface); border-radius: 6px; font-size: 12px; color: var(--text-secondary);">Elasticsearch</div>
+                <div style="padding: 8px 16px; background: var(--bg-surface); border-radius: 6px; font-size: 12px; color: var(--text-secondary);">MongoDB</div>
+            </div>
+            <div class="grid">
+                <div class="card"><div class="label">Redis 集群</div><div class="value" style="color: var(--success);">在线</div><div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">192.168.1.50:6379</div></div>
+                <div class="card"><div class="label">Nginx 网关</div><div class="value" style="color: var(--success);">在线</div><div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">192.168.1.10:80</div></div>
+                <div class="card"><div class="label">Kafka 消息队列</div><div class="value" style="color: var(--warning);">负载高</div><div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">192.168.1.60:9092</div></div>
+                <div class="card"><div class="label">ES 搜索引擎</div><div class="value" style="color: var(--success);">在线</div><div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">192.168.1.70:9200</div></div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                <div class="card">
+                    <div class="chart-title">Redis 内存使用</div>
+                    <div class="chart-placeholder">📊 内存使用趋势图</div>
+                    <div style="margin-top: 10px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;"><span>已用内存</span><span>2.4GB / 4GB</span></div>
+                        <div class="progress-bar"><div class="progress-fill" style="width: 60%; background: var(--primary);"></div></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="chart-title">Redis QPS</div>
+                    <div class="chart-placeholder">📊 每秒请求数</div>
+                    <div style="display: flex; gap: 12px; margin-top: 10px;">
+                        <div><div class="label">GET/s</div><div class="value" style="font-size: 16px;">12,450</div></div>
+                        <div><div class="label">SET/s</div><div class="value" style="font-size: 16px;">8,320</div></div>
+                        <div><div class="label">命中率</div><div class="value" style="font-size: 16px; color: var(--success);">98.5%</div></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="chart-title">Nginx 连接状态</div>
+                    <div class="grid" style="grid-template-columns: repeat(3, 1fr);">
+                        <div style="padding: 10px; background: var(--bg-elevated); border-radius: 6px; text-align: center;"><div class="label">活跃连接</div><div class="value" style="font-size: 18px; color: var(--success);">1,284</div></div>
+                        <div style="padding: 10px; background: var(--bg-elevated); border-radius: 6px; text-align: center;"><div class="label">等待连接</div><div class="value" style="font-size: 18px;">56</div></div>
+                        <div style="padding: 10px; background: var(--bg-elevated); border-radius: 6px; text-align: center;"><div class="label">QPS</div><div class="value" style="font-size: 18px;">8,920</div></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="chart-title">Kafka Topic 状态</div>
+                    <div class="table-container" style="margin-top: 8px;">
+                        <div class="table-header"><div class="table-header-item">Topic</div><div class="table-header-item">分区</div><div class="table-header-item">延迟</div></div>
+                        <div class="table-row"><div class="table-cell primary">order-events</div><div class="table-cell">12</div><div class="table-cell"><span class="status-tag status-success">正常</span></div></div>
+                        <div class="table-row alt"><div class="table-cell primary">payment-notify</div><div class="table-cell">8</div><div class="table-cell"><span class="status-tag status-warning">2ms</span></div></div>
+                        <div class="table-row"><div class="table-cell primary">user-action</div><div class="table-cell">6</div><div class="table-cell"><span class="status-tag status-success">正常</span></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 数据库监控 -->
+        <div id="database" class="page">
+            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                <div style="padding: 8px 16px; background: var(--primary); border-radius: 6px; font-size: 12px; color: white;">全部</div>
+                <div style="padding: 8px 16px; background: var(--bg-surface); border-radius: 6px; font-size: 12px; color: var(--text-secondary);">MySQL</div>
+                <div style="padding: 8px 16px; background: var(--bg-surface); border-radius: 6px; font-size: 12px; color: var(--text-secondary);">PostgreSQL</div>
+                <div style="padding: 8px 16px; background: var(--bg-surface); border-radius: 6px; font-size: 12px; color: var(--text-secondary);">Oracle</div>
+            </div>
+            <div class="grid">
+                <div class="card"><div class="label">MySQL 主库</div><div class="value" style="color: var(--success);">在线</div><div style="font-size: 11px; color: var(--text-secondary);">192.168.1.80:3306</div></div>
+                <div class="card"><div class="label">MySQL 从库</div><div class="value" style="color: var(--success);">在线</div><div style="font-size: 11px; color: var(--text-secondary);">192.168.1.81:3306</div></div>
+                <div class="card"><div class="label">PostgreSQL</div><div class="value" style="color: var(--warning);">慢查询</div><div style="font-size: 11px; color: var(--text-secondary);">192.168.1.82:5432</div></div>
+                <div class="card"><div class="label">Oracle</div><div class="value" style="color: var(--success);">在线</div><div style="font-size: 11px; color: var(--text-secondary);">192.168.1.83:1521</div></div>
+            </div>
+            <div class="charts">
+                <div class="chart"><div class="chart-title">QPS 趋势</div><div class="chart-placeholder">📊 数据库每秒查询数</div></div>
+                <div class="chart"><div class="chart-title">连接数监控</div><div class="chart-placeholder">📊 数据库连接池使用</div></div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+                <div class="card"><div class="label">活跃连接</div><div class="value" style="color: var(--success);">245</div></div>
+                <div class="card"><div class="label">总连接数</div><div class="value">500</div></div>
+                <div class="card"><div class="label">慢查询</div><div class="value" style="color: var(--warning);">12</div></div>
+                <div class="card"><div class="label">TPS</div><div class="value">1,892</div></div>
+            </div>
+            <div class="card" style="margin-top: 12px;">
+                <div class="chart-title">实时慢查询</div>
+                <div class="table-container">
+                    <div class="table-header"><div class="table-header-item">SQL语句</div><div class="table-header-item">耗时</div><div class="table-header-item">时间</div></div>
+                    <div class="table-row"><div class="table-cell secondary">SELECT * FROM orders WHERE status = 1 LIMIT 1000</div><div class="table-cell" style="color: var(--danger);">3.2s</div><div class="table-cell secondary">14:32:18</div></div>
+                    <div class="table-row alt"><div class="table-cell secondary">UPDATE users SET last_login = NOW() WHERE id = ?</div><div class="table-cell" style="color: var(--warning);">1.5s</div><div class="table-cell secondary">14:31:45</div></div>
+                    <div class="table-row"><div class="table-cell secondary">JOIN orders, products ON ...</div><div class="table-cell" style="color: var(--warning);">1.2s</div><div class="table-cell secondary">14:30:22</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 容器监控 -->
+        <div id="container" class="page">
+            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                <div style="padding: 8px 16px; background: var(--primary); border-radius: 6px; font-size: 12px; color: white;">全部容器</div>
+                <div style="padding: 8px 16px; background: var(--bg-surface); border-radius: 6px; font-size: 12px; color: var(--text-secondary);">Docker</div>
+                <div style="padding: 8px 16px; background: var(--bg-surface); border-radius: 6px; font-size: 12px; color: var(--text-secondary);">Kubernetes</div>
+            </div>
+            <div class="grid">
+                <div class="card"><div class="label">运行中容器</div><div class="value" style="color: var(--success);">156</div></div>
+                <div class="card"><div class="label">已停止容器</div><div class="value">12</div></div>
+                <div class="card"><div class="label">K8s 集群</div><div class="value">3</div></div>
+                <div class="card"><div class="label">Pod 总数</div><div class="value" style="color: var(--success);">428</div></div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                <div class="card">
+                    <div class="chart-title">K8s 集群资源使用</div>
+                    <div class="grid" style="grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                        <div style="padding: 10px; background: var(--bg-elevated); border-radius: 6px;"><div class="label">CPU 使用率</div><div class="value" style="font-size: 18px;">45%</div><div class="progress-bar" style="margin-top: 6px;"><div class="progress-fill" style="width: 45%; background: var(--success);"></div></div></div>
+                        <div style="padding: 10px; background: var(--bg-elevated); border-radius: 6px;"><div class="label">内存使用率</div><div class="value" style="font-size: 18px;">62%</div><div class="progress-bar" style="margin-top: 6px;"><div class="progress-fill" style="width: 62%; background: var(--warning);"></div></div></div>
+                        <div style="padding: 10px; background: var(--bg-elevated); border-radius: 6px;"><div class="label">磁盘使用率</div><div class="value" style="font-size: 18px;">38%</div><div class="progress-bar" style="margin-top: 6px;"><div class="progress-fill" style="width: 38%; background: var(--success);"></div></div></div>
+                        <div style="padding: 10px; background: var(--bg-elevated); border-radius: 6px;"><div class="label">网络IO</div><div class="value" style="font-size: 18px;">256MB/s</div></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="chart-title">Pod 状态分布</div>
+                    <div style="display: flex; align-items: center; gap: 16px; margin-top: 10px;">
+                        <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--bg-elevated); display: flex; flex-direction: column; align-items: center; justify-content: center;"><div style="font-size: 20px; font-weight: 700; color: var(--success);">412</div><div style="font-size: 10px; color: var(--text-secondary);">Running</div></div>
+                        <div style="flex: 1;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><span style="font-size: 11px; color: var(--text-secondary);">Running</span><span style="font-size: 11px; color: var(--success);">412</span></div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><span style="font-size: 11px; color: var(--text-secondary);">Pending</span><span style="font-size: 11px; color: var(--warning);">12</span></div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;"><span style="font-size: 11px; color: var(--text-secondary);">Failed</span><span style="font-size: 11px; color: var(--danger);">4</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card" style="grid-column: span 2;">
+                    <div class="chart-title">容器列表</div>
+                    <div class="table-container">
+                        <div class="table-header"><div class="table-header-item">容器名称</div><div class="table-header-item">镜像</div><div class="table-header-item">状态</div><div class="table-header-item">CPU</div><div class="table-header-item">内存</div><div class="table-header-item">重启</div></div>
+                        <div class="table-row"><div class="table-cell primary">order-pod-7d8f9c</div><div class="table-cell secondary">order-service:v2.4.1</div><div class="table-cell"><span class="status-tag status-success">Running</span></div><div class="table-cell">12%</div><div class="table-cell">256MB</div><div class="table-cell">0</div></div>
+                        <div class="table-row alt"><div class="table-cell primary">payment-pod-3a2b1</div><div class="table-cell secondary">payment:v2.3.5</div><div class="table-cell"><span class="status-tag status-warning">Pending</span></div><div class="table-cell">-</div><div class="table-cell">-</div><div class="table-cell">5</div></div>
+                        <div class="table-row"><div class="table-cell primary">user-pod-8c7d6e</div><div class="table-cell secondary">user-service:v2.4.0</div><div class="table-cell"><span class="status-tag status-success">Running</span></div><div class="table-cell">8%</div><div class="table-cell">128MB</div><div class="table-cell">0</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 日志分析 -->
+        <div id="log" class="page">
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <select class="select-input"><option>全部日志</option><option>Error</option><option>Warning</option><option>Info</option></select>
+                    <input type="text" class="search-input" placeholder="搜索关键字...">
+                    <input type="text" class="search-input" placeholder="时间范围" style="width: 140px;">
+                </div>
+                <div class="toolbar-right">
+                    <button class="btn btn-default">导出</button>
+                    <button class="btn btn-primary">全文检索</button>
+                </div>
+            </div>
+            <div class="grid" style="grid-template-columns: repeat(4, 1fr);">
+                <div class="card"><div class="label">今日日志总量</div><div class="value">1,284,592</div></div>
+                <div class="card"><div class="label">Error 日志</div><div class="value" style="color: var(--danger);">1,245</div></div>
+                <div class="card"><div class="label">Warning 日志</div><div class="value" style="color: var(--warning);">12,847</div></div>
+                <div class="card"><div class="label">日志存储</div><div class="value">128GB</div></div>
+            </div>
+            <div class="card" style="margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                    <div style="padding: 4px 12px; background: var(--danger-bg); border-radius: 4px; font-size: 11px; color: var(--danger);">ERROR</div>
+                    <div style="font-size: 12px; color: var(--text-primary);">payment-service</div>
+                    <div style="font-size: 11px; color: var(--text-tertiary);">2026-04-28 14:32:18.456</div>
+                    <div style="font-size: 11px; color: var(--text-tertiary);">192.168.1.115</div>
+                </div>
+                <div style="background: var(--bg-base); padding: 12px; border-radius: 6px; font-family: monospace; font-size: 11px; color: var(--text-secondary); white-space: pre-wrap;">[ERROR] PaymentService - 支付超时异常
+java.net.SocketTimeoutException: Read timed out
+    at java.net.SocketInputStream.socketRead0(Native Method)
+    at com.example.payment.service.impl.PaymentService.process(PaymentService.java:45)
+    at com.example.payment.controller.PaymentController.pay(PaymentController.java:23)</div>
+            </div>
+            <div class="card" style="margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                    <div style="padding: 4px 12px; background: var(--warning-bg); border-radius: 4px; font-size: 11px; color: var(--warning);">WARN</div>
+                    <div style="font-size: 12px; color: var(--text-primary);">mysql-monitor</div>
+                    <div style="font-size: 11px; color: var(--text-tertiary);">2026-04-28 14:31:52.123</div>
+                    <div style="font-size: 11px; color: var(--text-tertiary);">192.168.1.80</div>
+                </div>
+                <div style="background: var(--bg-base); padding: 12px; border-radius: 6px; font-family: monospace; font-size: 11px; color: var(--text-secondary); white-space: pre-wrap;">[WARN] Connection pool approaching limit: 450/500
+Slow query detected (> 1s): SELECT orders.* FROM orders WHERE create_time > '2026-04-28'</div>
+            </div>
+            <div class="card">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                    <div style="padding: 4px 12px; background: rgba(22,93,255,0.15); border-radius: 4px; font-size: 11px; color: var(--primary);">INFO</div>
+                    <div style="font-size: 12px; color: var(--text-primary);">api-gateway</div>
+                    <div style="font-size: 11px; color: var(--text-tertiary);">2026-04-28 14:30:15.789</div>
+                    <div style="font-size: 11px; color: var(--text-tertiary);">192.168.1.10</div>
+                </div>
+                <div style="background: var(--bg-base); padding: 12px; border-radius: 6px; font-family: monospace; font-size: 11px; color: var(--text-secondary); white-space: pre-wrap;">[INFO] Request completed: GET /api/v2/orders/12345
+Status: 200 OK | Duration: 45ms | Size: 2.3KB</div>
+            </div>
+        </div>
+
+        <!-- 链路追踪 -->
+        <div id="trace" class="page">
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <input type="text" class="search-input" placeholder="Trace ID...">
+                    <select class="select-input"><option>全部服务</option><option>order-service</option><option>payment-service</option><option>user-service</option></select>
+                    <select class="select-input"><option>全部状态</option><option>成功</option><option>失败</option><option>超时</option></select>
+                </div>
+                <div class="toolbar-right">
+                    <button class="btn btn-primary">查询</button>
+                </div>
+            </div>
+            <div class="grid">
+                <div class="card"><div class="label">总请求量</div><div class="value">892,451</div></div>
+                <div class="card"><div class="label">平均响应时间</div><div class="value" style="color: var(--success);">45ms</div></div>
+                <div class="card"><div class="label">错误率</div><div class="value" style="color: var(--success);">0.12%</div></div>
+                <div class="card"><div class="label">超时数量</div><div class="value">23</div></div>
+            </div>
+            <div class="card" style="margin-bottom: 12px;">
+                <div class="chart-title">Trace 列表</div>
+                <div class="table-container">
+                    <div class="table-header"><div class="table-header-item">Trace ID</div><div class="table-header-item">服务</div><div class="table-header-item">耗时</div><div class="table-header-item">状态</div><div class="table-header-item">时间</div></div>
+                    <div class="table-row"><div class="table-cell primary">a7f8e2d1c3b4</div><div class="table-cell secondary">order-service</div><div class="table-cell">123ms</div><div class="table-cell"><span class="status-tag status-success">成功</span></div><div class="table-cell secondary">14:32:15</div></div>
+                    <div class="table-row alt"><div class="table-cell primary">b8c9d2e3f4a5</div><div class="table-cell secondary">payment-service</div><div class="table-cell" style="color: var(--danger);">3,250ms</div><div class="table-cell"><span class="status-tag status-danger">超时</span></div><div class="table-cell secondary">14:31:48</div></div>
+                    <div class="table-row"><div class="table-cell primary">c9d0e1f2a3b4</div><div class="table-cell secondary">user-service</div><div class="table-cell">56ms</div><div class="table-cell"><span class="status-tag status-success">成功</span></div><div class="table-cell secondary">14:30:22</div></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="chart-title">链路详情 - a7f8e2d1c3b4</div>
+                <div style="padding: 16px; background: var(--bg-base); border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <div style="width: 12px; height: 12px; border-radius: 50%; background: var(--primary);"></div>
+                        <div style="font-size: 12px; color: var(--text-primary);">API Gateway</div>
+                        <div style="font-size: 11px; color: var(--text-tertiary); margin-left: auto;">入口 | 0ms</div>
+                    </div>
+                    <div style="border-left: 2px solid var(--border); margin-left: 5px; padding-left: 20px; margin-bottom: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <div style="width: 12px; height: 12px; border-radius: 50%; background: var(--success);"></div>
+                            <div style="font-size: 12px; color: var(--text-primary);">order-service</div>
+                            <div style="font-size: 11px; color: var(--success);">45ms</div>
+                        </div>
+                        <div style="border-left: 2px solid var(--border); margin-left: 5px; padding-left: 20px;">
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                                <div style="width: 12px; height: 12px; border-radius: 50%; background: var(--success);"></div>
+                                <div style="font-size: 12px; color: var(--text-primary);">mysql-query</div>
+                                <div style="font-size: 11px; color: var(--success);">12ms</div>
+                            </div>
+                        </div>
+                        <div style="border-left: 2px solid var(--border); margin-left: 5px; padding-left: 20px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="width: 12px; height: 12px; border-radius: 50%; background: var(--success);"></div>
+                                <div style="font-size: 12px; color: var(--text-primary);">redis-cache</div>
+                                <div style="font-size: 11px; color: var(--success);">3ms</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 12px; height: 12px; border-radius: 50%; background: var(--success);"></div>
+                        <div style="font-size: 12px; color: var(--text-primary);">Response</div>
+                        <div style="font-size: 11px; color: var(--text-tertiary); margin-left: auto;">总耗时 123ms</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 告警中心 -->
+        <div id="alert" class="page">
+            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                <div style="padding: 8px 16px; background: var(--primary); border-radius: 6px; font-size: 12px; color: white;">全部告警</div>
+                <div style="padding: 8px 16px; background: var(--bg-surface); border-radius: 6px; font-size: 12px; color: var(--text-secondary);">活跃告警</div>
+                <div style="padding: 8px 16px; background: var(--bg-surface); border-radius: 6px; font-size: 12px; color: var(--text-secondary);">已解决</div>
+                <div style="padding: 8px 16px; background: var(--bg-surface); border-radius: 6px; font-size: 12px; color: var(--text-secondary);">告警规则</div>
+                <div style="padding: 8px 16px; background: var(--bg-surface); border-radius: 6px; font-size: 12px; color: var(--text-secondary);">告警订阅</div>
+            </div>
+            <div class="grid">
+                <div class="card"><div class="label">活跃告警</div><div class="value" style="color: var(--danger);">12</div></div>
+                <div class="card"><div class="label">今日新增</div><div class="value">28</div></div>
+                <div class="card"><div class="label">已解决</div><div class="value" style="color: var(--success);">16</div></div>
+                <div class="card"><div class="label">告警规则</div><div class="value">45</div></div>
+            </div>
+            <div class="table-container" style="margin-bottom: 12px;">
+                <div class="table-header"><div class="table-header-item">告警名称</div><div class="table-header-item">级别</div><div class="table-header-item">服务</div><div class="table-header-item">状态</div><div class="table-header-item">持续时间</div><div class="table-header-item">操作</div></div>
+                <div class="table-row"><div class="table-cell primary">支付服务响应超时</div><div class="table-cell"><span class="badge badge-danger">P1</span></div><div class="table-cell secondary">payment-service</div><div class="table-cell"><span class="status-tag status-danger">触发中</span></div><div class="table-cell secondary">12分钟</div><div class="table-cell"><button class="btn btn-danger btn-sm">处理</button><button class="btn btn-default btn-sm">详情</button></div></div>
+                <div class="table-row alt"><div class="table-cell primary">数据库连接数告警</div><div class="table-cell"><span class="badge badge-warning">P2</span></div><div class="table-cell secondary">MySQL主库</div><div class="table-cell"><span class="status-tag status-warning">触发中</span></div><div class="table-cell secondary">5分钟</div><div class="table-cell"><button class="btn btn-default btn-sm">处理</button><button class="btn btn-default btn-sm">详情</button></div></div>
+                <div class="table-row"><div class="table-cell primary">Redis缓存命中率下降</div><div class="table-cell"><span class="badge badge-warning">P2</span></div><div class="table-cell secondary">Redis集群</div><div class="table-cell"><span class="status-tag status-success">已恢复</span></div><div class="table-cell secondary">8分钟</div><div class="table-cell"><button class="btn btn-default btn-sm">详情</button></div></div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                <div class="card">
+                    <div class="chart-title">告警趋势（24小时）</div>
+                    <div class="chart-placeholder">📊 告警数量趋势图</div>
+                </div>
+                <div class="card">
+                    <div class="chart-title">告警级别分布</div>
+                    <div style="display: flex; align-items: center; gap: 16px; margin-top: 10px;">
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px;"><div style="width: 12px; height: 12px; border-radius: 2px; background: var(--danger);"></div><span style="font-size: 11px;">P1 紧急</span></div>
+                            <div style="display: flex; align-items: center; gap: 8px;"><div style="width: 12px; height: 12px; border-radius: 2px; background: var(--warning);"></div><span style="font-size: 11px;">P2 重要</span></div>
+                            <div style="display: flex; align-items: center; gap: 8px;"><div style="width: 12px; height: 12px; border-radius: 2px; background: var(--primary);"></div><span style="font-size: 11px;">P3 一般</span></div>
+                        </div>
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                            <div><div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;"><span>12</span><span style="color: var(--danger);">立即处理</span></div><div class="progress-bar"><div class="progress-fill" style="width: 30%; background: var(--danger);"></div></div></div>
+                            <div><div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;"><span>18</span><span style="color: var(--warning);">需关注</span></div><div class="progress-bar"><div class="progress-fill" style="width: 45%; background: var(--warning);"></div></div></div>
+                            <div><div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;"><span>10</span><span style="color: var(--primary);">可延迟</span></div><div class="progress-bar"><div class="progress-fill" style="width: 25%; background: var(--primary);"></div></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 权限项管理 -->
+        <div id="permissions" class="page">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                <button class="btn btn-primary">+ 新增权限项</button>
+            </div>
+            <div class="card" style="margin-bottom: 12px;">
+                <div class="chart-title">菜单权限</div>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                    <div class="checkbox-item checked"><input type="checkbox" checked>📊 监控大盘</div>
+                    <div class="checkbox-item checked"><input type="checkbox" checked>👥 用户管理</div>
+                    <div class="checkbox-item checked"><input type="checkbox" checked>⚖️ 角色管理</div>
+                    <div class="checkbox-item checked"><input type="checkbox" checked>🔐 权限项</div>
+                    <div class="checkbox-item checked"><input type="checkbox" checked>📁 项目管理</div>
+                    <div class="checkbox-item"><input type="checkbox">🤖 Agent管理</div>
+                    <div class="checkbox-item"><input type="checkbox">🗄️ 数据库</div>
+                    <div class="checkbox-item"><input type="checkbox">📦 容器</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="chart-title">操作权限</div>
+                <div class="table-container">
+                    <div class="table-header"><div class="table-header-item" style="width: 40px;"><input type="checkbox"></div><div class="table-header-item">权限标识</div><div class="table-header-item">权限名称</div><div class="table-header-item">所属模块</div><div class="table-header-item">操作</div></div>
+                    <div class="table-row"><div style="width: 40px;"><input type="checkbox" checked></div><div class="table-cell primary">user:create</div><div class="table-cell secondary">创建用户</div><div class="table-cell">用户管理</div><div class="table-cell"><button class="btn btn-default btn-sm">编辑</button></div></div>
+                    <div class="table-row alt"><div style="width: 40px;"><input type="checkbox" checked></div><div class="table-cell primary">user:edit</div><div class="table-cell secondary">编辑用户</div><div class="table-cell">用户管理</div><div class="table-cell"><button class="btn btn-default btn-sm">编辑</button></div></div>
+                    <div class="table-row"><div style="width: 40px;"><input type="checkbox" checked></div><div class="table-cell primary">user:delete</div><div class="table-cell secondary">删除用户</div><div class="table-cell">用户管理</div><div class="table-cell"><button class="btn btn-default btn-sm">编辑</button></div></div>
+                    <div class="table-row alt"><div style="width: 40px;"><input type="checkbox"></div><div class="table-cell primary">role:assign</div><div class="table-cell secondary">分配角色</div><div class="table-cell">角色管理</div><div class="table-cell"><button class="btn btn-default btn-sm">编辑</button></div></div>
+                    <div class="table-row"><div style="width: 40px;"><input type="checkbox"></div><div class="table-cell primary">alert:config</div><div class="table-cell secondary">配置告警</div><div class="table-cell">告警中心</div><div class="table-cell"><button class="btn btn-default btn-sm">编辑</button></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">BeeAPM 监控运维管理平台 - 企业级深色风格设计</div>
+    </div>
+
+    <script>
+        function show(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+{
+  "routes": [
+    {
+      "path": "/dashboard",
+      "src": "src/pages/Dashboard.tsx"
+    },
+    {
+      "path": "/projects",
+      "src": "src/pages/Projects.tsx"
+    },
+    {
+      "path": "/applications",
+      "src": "src/pages/Applications.tsx"
+    },
+    {
+      "path": "/agent",
+      "src": "src/pages/AgentControl.tsx"
+    },
+    {
+      "path": "/jvm",
+      "src": "src/pages/JVMMonitor.tsx"
+    },
+    {
+      "path": "/topology",
+      "src": "src/pages/NetworkTopology.tsx"
+    },
+    {
+      "path": "/service-dep",
+      "src": "src/pages/ServiceDependency.tsx"
+    },
+    {
+      "path": "/releases",
+      "src": "src/pages/Releases.tsx"
+    },
+    {
+      "path": "/users",
+      "src": "src/pages/Users.tsx"
+    },
+    {
+      "path": "/roles",
+      "src": "src/pages/Roles.tsx"
+    },
+    {
+      "path": "/permissions",
+      "src": "src/pages/Permissions.tsx"
+    },
+    {
+      "path": "/alert-rules",
+      "src": "src/pages/AlertRules.tsx"
+    },
+    {
+      "path": "/release-analysis",
+      "src": "src/pages/ReleaseAnalysis.tsx"
+    }
+  ],
+  "components": []
+}

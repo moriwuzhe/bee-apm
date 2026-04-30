@@ -72,6 +72,98 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
 };
 
 export default function Dashboard() {
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<any>(null);
+  const [trendData, setTrendData] = useState(defaultTrendData);
+  const [alertData, setAlertData] = useState(defaultAlertData);
+  const [recentAlerts, setRecentAlerts] = useState(defaultRecentAlerts);
+  const [topApps, setTopApps] = useState(defaultTopApps);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // 获取统计数据
+        try {
+          const statsResponse = await dashboardApi.getStats();
+          setStats(statsResponse.data);
+        } catch (error) {
+          console.log("使用默认统计数据");
+        }
+
+        // 获取趋势数据
+        try {
+          const trendResponse = await dashboardApi.getTrend();
+          if (trendResponse.data) {
+            setTrendData(trendResponse.data);
+          }
+        } catch (error) {
+          console.log("使用默认趋势数据");
+        }
+
+        // 获取告警趋势
+        try {
+          const alertTrendResponse = await dashboardApi.getAlertTrend();
+          if (alertTrendResponse.data) {
+            setAlertData(alertTrendResponse.data);
+          }
+        } catch (error) {
+          console.log("使用默认告警数据");
+        }
+
+        // 获取最新告警
+        try {
+          const recentAlertsResponse = await dashboardApi.getRecentAlerts();
+          if (recentAlertsResponse.data) {
+            setRecentAlerts(recentAlertsResponse.data);
+          }
+        } catch (error) {
+          console.log("使用默认告警数据");
+        }
+
+        // 获取Top应用
+        try {
+          const topAppsResponse = await dashboardApi.getTopApps();
+          if (topAppsResponse.data) {
+            setTopApps(topAppsResponse.data);
+          }
+        } catch (error) {
+          console.log("使用默认应用数据");
+        }
+      } catch (error) {
+        console.error("加载Dashboard数据失败:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const displayStats = stats || {
+    totalApps: 128,
+    onlineAgents: 96,
+    totalAgents: 112,
+    serverNodes: 48,
+    activeAlerts: 23,
+    healthScore: 87.3,
+    avgResponseTime: 142,
+  };
+
+  if (loading) {
+    return (
+      <MainLayout title="监控大盘">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <div className="text-sm" style={{ color: "#94A3B8" }}>加载中...</div>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout title="监控大盘">
       <div data-cmp="Dashboard" className="space-y-4">
@@ -79,22 +171,22 @@ export default function Dashboard() {
         {/* Metric cards row */}
         <div className="flex gap-3">
           <div className="flex-1">
-            <MetricCard title="接入应用总数" value="128" unit="个" trend={5} trendLabel="+5 本周" color="#165DFF" icon={<Layers size={14} />} />
+            <MetricCard title="接入应用总数" value={displayStats.totalApps} unit="个" trend={5} trendLabel="+5 本周" color="#165DFF" icon={<Layers size={14} />} />
           </div>
           <div className="flex-1">
-            <MetricCard title="Agent 在线" value="96" unit="/112" trend={0} trendLabel="在线率 85.7%" color="#00D68F" icon={<Activity size={14} />} />
+            <MetricCard title="Agent 在线" value={displayStats.onlineAgents} unit={`/${displayStats.totalAgents}`} trend={0} trendLabel="在线率 85.7%" color="#00D68F" icon={<Activity size={14} />} />
           </div>
           <div className="flex-1">
-            <MetricCard title="服务器节点" value="48" unit="台" trend={0} trendLabel="12台告警" color="#FFAA00" icon={<Server size={14} />} />
+            <MetricCard title="服务器节点" value={displayStats.serverNodes} unit="台" trend={0} trendLabel="12台告警" color="#FFAA00" icon={<Server size={14} />} />
           </div>
           <div className="flex-1">
-            <MetricCard title="活跃告警" value="23" unit="条" trend={15} trendLabel="+15% 今日" color="#FF4D4F" icon={<AlertTriangle size={14} />} />
+            <MetricCard title="活跃告警" value={displayStats.activeAlerts} unit="条" trend={15} trendLabel="+15% 今日" color="#FF4D4F" icon={<AlertTriangle size={14} />} />
           </div>
           <div className="flex-1">
-            <MetricCard title="系统健康度" value="87.3" unit="%" trend={-3} trendLabel="-3% 较昨日" color="#00D68F" icon={<CheckCircle size={14} />} />
+            <MetricCard title="系统健康度" value={displayStats.healthScore} unit="%" trend={-3} trendLabel="-3% 较昨日" color="#00D68F" icon={<CheckCircle size={14} />} />
           </div>
           <div className="flex-1">
-            <MetricCard title="平均响应时间" value="142" unit="ms" trend={8} trendLabel="+8ms 较昨日" color="#A855F7" icon={<Zap size={14} />} />
+            <MetricCard title="平均响应时间" value={displayStats.avgResponseTime} unit="ms" trend={8} trendLabel="+8ms 较昨日" color="#A855F7" icon={<Zap size={14} />} />
           </div>
         </div>
 

@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MainLayout from "../components/Layout/MainLayout";
 import PageHeader from "../components/UI/PageHeader";
 import TechButton from "../components/UI/TechButton";
 import StatusBadge from "../components/UI/StatusBadge";
 import { Plus, Search, Edit2, Trash2, Eye, FolderOpen, Tag } from "lucide-react";
+import { projectsApi } from "../services/api";
 
-const projects = [
+const defaultProjects = [
   { id: 1, name: "电商核心平台",    group: "生产",  env: "production", appCount: 12, status: "online",  owner: "张伟",  updated: "2024-01-15", desc: "包含订单、支付、用户等核心服务" },
   { id: 2, name: "物流调度系统",    group: "生产",  env: "production", appCount: 8,  status: "warning", owner: "李明",  updated: "2024-01-14", desc: "货物追踪与路由调度" },
   { id: 3, name: "数据分析平台",    group: "测试",  env: "staging",    appCount: 5,  status: "online",  owner: "王芳",  updated: "2024-01-13", desc: "实时数据处理与分析" },
@@ -33,6 +34,38 @@ export default function Projects() {
   const [search, setSearch] = useState("");
   const [envFilter, setEnvFilter] = useState("all");
   const [showModal, setShowModal] = useState(false);
+  const [projects, setProjects] = useState(defaultProjects);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const response = await projectsApi.getAll();
+        if (response.data && response.data.length > 0) {
+          // 转换后端数据格式以匹配前端需求
+          const convertedProjects = response.data.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            group: p.groupName || "默认分组",
+            env: p.environment || "dev",
+            appCount: p.appCount || 0,
+            status: p.status || "online",
+            owner: p.owner || "未知",
+            updated: p.updatedAt || new Date().toISOString().split('T')[0],
+            desc: p.description || "",
+          }));
+          setProjects(convertedProjects);
+        }
+      } catch (error) {
+        console.log("使用默认项目数据");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const filtered = projects.filter(
     (p) =>

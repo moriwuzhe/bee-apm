@@ -9,8 +9,11 @@ import {
   Activity, Layers, Zap, ArrowRight, Clock
 } from "lucide-react";
 import StatusBadge from "../components/UI/StatusBadge";
+import { useEffect, useState } from "react";
+import { dashboardApi } from "../services/api";
 
-const trendData = [
+// 默认数据，在API未加载时显示
+const defaultTrendData = [
   { time: "00:00", cpu: 32, mem: 54, net: 120, err: 2 },
   { time: "02:00", cpu: 28, mem: 52, net: 98,  err: 0 },
   { time: "04:00", cpu: 22, mem: 51, net: 76,  err: 1 },
@@ -25,7 +28,7 @@ const trendData = [
   { time: "22:00", cpu: 41, mem: 58, net: 190, err: 2 },
 ];
 
-const alertData = [
+const defaultAlertData = [
   { name: "Mon", critical: 3, warning: 8, info: 15 },
   { name: "Tue", critical: 1, warning: 5, info: 12 },
   { name: "Wed", critical: 5, warning: 12, info: 20 },
@@ -35,7 +38,7 @@ const alertData = [
   { name: "Sun", critical: 0, warning: 2, info: 6 },
 ];
 
-const recentAlerts = [
+const defaultRecentAlerts = [
   { app: "order-service", env: "production", type: "OOM", level: "error", time: "2分钟前" },
   { app: "192.168.1.15", env: "host",       type: "CPU > 85%", level: "warning", time: "8分钟前" },
   { app: "gateway-v2",   env: "production", type: "响应延迟 > 2s", level: "warning", time: "15分钟前" },
@@ -43,12 +46,12 @@ const recentAlerts = [
   { app: "user-service", env: "staging",    type: "实例宕机", level: "error", time: "35分钟前" },
 ];
 
-const topApps = [
-  { name: "order-service",   status: "error",   cpu: 85, mem: 92, inst: 3 },
-  { name: "payment-gateway", status: "online",  cpu: 42, mem: 68, inst: 2 },
-  { name: "user-service",    status: "warning",  cpu: 68, mem: 75, inst: 4 },
-  { name: "inventory-svc",   status: "online",  cpu: 31, mem: 55, inst: 2 },
-  { name: "notification-svc",status: "online",  cpu: 18, mem: 42, inst: 1 },
+const defaultTopApps = [
+  { name: "order-service", status: "error", cpu: 85, mem: 92, inst: 3 },
+  { name: "payment-gateway", status: "online", cpu: 42, mem: 68, inst: 2 },
+  { name: "user-service", status: "warning", cpu: 68, mem: 75, inst: 4 },
+  { name: "inventory-svc", status: "online", cpu: 31, mem: 55, inst: 2 },
+  { name: "notification-svc", status: "online", cpu: 18, mem: 42, inst: 1 },
 ];
 
 const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) => {

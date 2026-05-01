@@ -3,7 +3,34 @@
     <el-tabs v-model="activeTab" type="border-card">
       <!-- Tab 1: 应用定义 -->
       <el-tab-pane label="应用定义" name="definition">
-        <ApplicationDefinition />
+        <div class="tab-content">
+          <div class="page-head">
+            <div class="title">应用定义管理</div>
+            <div class="controls">
+              <el-button :loading="loading" type="primary" @click="loadData">刷新</el-button>
+              <el-button type="primary" @click="showCreateDialog = true">新建应用</el-button>
+            </div>
+          </div>
+
+          <el-table :data="applications" border stripe v-loading="loading" style="width: 100%">
+            <el-table-column prop="appCode" label="应用编码" width="180" />
+            <el-table-column prop="appName" label="应用名称" width="180" />
+            <el-table-column prop="projectCode" label="所属项目编码" width="180" />
+            <el-table-column prop="appType" label="应用类型" width="120">
+              <template #default="{ row }">
+                <el-tag :type="row.appType === 'agent-attached' ? 'primary' : 'info'">
+                  {{ row.appType === 'agent-attached' ? 'Agent接入' : '自建' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="appSecretKey" label="应用密钥" width="280">
+              <template #default="{ row }">
+                <el-tag type="success">{{ row.appSecretKey }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="description" label="描述" />
+          </el-table>
+        </div>
       </el-tab-pane>
 
       <!-- Tab 2: 运行实例 -->
@@ -930,6 +957,37 @@
         </div>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="showCreateDialog" title="新建应用" width="500px">
+      <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
+        <el-form-item label="所属项目" prop="projectCode">
+          <el-select v-model="form.projectCode" placeholder="请选择项目">
+            <el-option v-for="p in projects" :key="p.projectCode" :label="p.projectName + ' (' + p.projectCode + ')'" :value="p.projectCode" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="应用编码" prop="appCode">
+          <el-input v-model="form.appCode" placeholder="如: order-service" />
+        </el-form-item>
+        <el-form-item label="应用名称" prop="appName">
+          <el-input v-model="form.appName" placeholder="如: 订单服务" />
+        </el-form-item>
+        <el-form-item label="应用类型" prop="appType">
+          <el-select v-model="form.appType" placeholder="请选择应用类型">
+            <el-option label="自建" value="self-built" />
+            <el-option label="Agent接入" value="agent-attached" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="描述" prop="description">
+          <el-input type="textarea" v-model="form.description" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="showCreateDialog = false">取消</el-button>
+          <el-button type="primary" @click="submitCreate">确认</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 <script setup lang="ts">
@@ -952,6 +1010,7 @@ import {
 } from '../../api/agent'
 
 // 导入 Composables
+import { useApplicationManagement } from '../composables/useApplicationManagement'
 import { useAgentInstances } from '../composables/useAgentInstances'
 import { useDiagnosis } from '../composables/useDiagnosis'
 import { useMemoryMonitoring } from '../composables/useMemoryMonitoring'
@@ -969,11 +1028,24 @@ import {
   JvmInfoView
 } from './monitoring'
 
-// 导入子组件
-import ApplicationDefinition from './ApplicationDefinition.vue'
-
 // ==================== Tab 状态 ====================
 const activeTab = ref('definition')
+
+// ==================== 应用管理 ====================
+const appMgmt = useApplicationManagement()
+const { 
+  applications, 
+  projects, 
+  loading, 
+  showCreateDialog, 
+  form, 
+  rules,
+  loadData,
+  submitCreate,
+  resetForm 
+} = appMgmt
+
+const formRef = ref()
 
 // ==================== Agent 实例监控 ====================
 const agentInst = useAgentInstances()
@@ -1845,23 +1917,31 @@ const topCpuThreadsTable = computed(() => {
 
 // 处理诊断命令（覆盖 Composable 中的版本，添加渲染逻辑）
 const handleDiagCommand = async (command: string, row: any) => {
+  console.log('[ApplicationView] 点击诊断命令:', command, '实例:', row)
   const agentId = `${row.app}@${row.inst}`
   currentDiagRow.value = row
 
   switch (command) {
     case 'config':
+      // 配置管理 - 由父组件处理
+      break
     case 'instanceConfig':
+      // 实例配置 - 由父组件处理
       break
     case 'memoryChart':
+      console.log('[ApplicationView] 调用 showMemoryHistoryChart')
       await showMemoryHistoryChart(row)
       break
     case 'gcChart':
+      console.log('[ApplicationView] 调用 showGcHistoryChart')
       await showGcHistoryChart(row)
       break
     case 'threadChart':
+      console.log('[ApplicationView] 调用 showThreadHistoryChart')
       await showThreadHistoryChart(row)
       break
     case 'ioNetworkChart':
+      console.log('[ApplicationView] 调用 showIoNetworkHistoryChart')
       await showIoNetworkHistoryChart(row)
       break
     case 'jvmInfo':
@@ -1903,7 +1983,8 @@ const handleDiagCommand = async (command: string, row: any) => {
   }
 }
 
-// 刷新历史图表（用户点击"🔄 刷新数据"按钮时调用）
+// 刷新历史图表（覆盖 Composable 中的版本）
+// 刷新历史图表（用户点击“🔄 刷新数据”按钮时调用）
 const refreshHistoryChart = () => {
   if (!currentDiagRow.value) {
     ElMessage.warning('无法获取实例信息')
@@ -1912,11 +1993,14 @@ const refreshHistoryChart = () => {
   
   switch (currentDiagType.value) {
     case 'memoryChart':
+      // 先刷新数据
       showMemoryHistoryChart(currentDiagRow.value, true)
+      // 然后渲染底部 4 个图表
       setTimeout(() => {
+        console.log('⏰ 开始渲染底部 GC 图表...')
         renderGcCharts(memoryHistory.value)
         ElMessage.success('所有图表已刷新')
-      }, 2500)
+      }, 2500) // 等待数据加载和主要图表渲染完成后
       break
     case 'gcChart':
       showGcHistoryChart(currentDiagRow.value, true)
@@ -1932,25 +2016,13 @@ const refreshHistoryChart = () => {
   }
 }
 
-// 通用历史数据加载函数
-const loadHistoryData = async (
-  row: any,
-  chartType: 'memoryChart' | 'gcChart' | 'threadChart' | 'ioNetworkChart',
-  title: string,
-  refresh: boolean,
-  renderCallback?: (data: any[]) => void
-) => {
+// 显示内存历史监控图表（覆盖 Composable 中的版本，添加渲染逻辑）
+const showMemoryHistoryChart = async (row: any, refresh = false) => {
   if (!refresh) {
-    const titles: Record<string, string> = {
-      memoryChart: `💾 内存监控 - ${row.app}@${row.inst}`,
-      gcChart: `♻️ GC分析 - ${row.app}@${row.inst}`,
-      threadChart: `🧵 线程监控 - ${row.app}@${row.inst}`,
-      ioNetworkChart: `🌐 IO/网络监控 - ${row.app}@${row.inst}`
-    }
-    diagDialogTitle.value = titles[chartType]
+    diagDialogTitle.value = `💾 内存监控 - ${row.app}@${row.inst}`
     diagResult.value = '正在加载历史数据...'
     showDiagDialog.value = true
-    currentDiagType.value = chartType
+    currentDiagType.value = 'memoryChart'
     diagMode.value = 'chart'
   }
   
@@ -1961,26 +2033,35 @@ const loadHistoryData = async (
     
     const data = await getMemoryHistory(row.app, row.inst, startTime, endTime, 100)
     
+    // 检查数据是否有效
     if (!data || data.length === 0) {
-      diagResult.value = '暂无历史数据'
+      diagResult.value = '暂无历史数据，请确保Agent正常运行并上报数据'
       return
     }
     
+    // 更新数据
     const sortedData = [...data].sort((a, b) => a.collectTime - b.collectTime)
     memoryHistory.value = sortedData
+    diagResult.value = 'loaded'
     
-    // 更新原始数据
+    // 如果不是刷新，等待 Dialog 打开后再渲染
     if (!refresh) {
+      // Dialog 打开后会触发 handleDialogOpened
+      console.log('⏳ 等待 Dialog 打开...')
+      
+      // 同时更新原始数据（供切换查看）
+      const dataInfo: Record<string, string> = {
+        memoryChart: '内存监控',
+        gcChart: 'GC分析',
+        threadChart: '线程监控',
+        ioNetworkChart: 'IO/网络监控'
+      }
+      const title = dataInfo[currentDiagType.value] || '监控数据'
       diagResult.value = `【${title} - 原始数据】\n\n记录总数: ${sortedData.length} 条\n时间范围: ${new Date(sortedData[0].collectTime).toLocaleString()} ~ ${new Date(sortedData[sortedData.length - 1].collectTime).toLocaleString()}\n\n${JSON.stringify(sortedData, null, 2)}`
+    } else {
+      // 刷新时直接渲染
+      renderChartsAfterDialogOpen()
     }
-    
-    nextTick(() => {
-      setTimeout(() => {
-        if (showDiagDialog.value && currentDiagType.value === chartType && memoryHistory.value.length > 0) {
-          renderCallback?.(memoryHistory.value)
-        }
-      }, 800)
-    })
     
     if (!refresh) {
       ElMessage.success(`加载了 ${data.length} 条历史记录`)
@@ -1988,7 +2069,9 @@ const loadHistoryData = async (
       ElMessage.success('数据已刷新')
     }
   } catch (e: any) {
-    if (e.message && (e.message.includes('__vnode') || e.message.includes('Cannot set properties of null'))) {
+    // 忽略组件已销毁的错误
+    if (e.message && e.message.includes('__vnode')) {
+      console.warn('组件已销毁，忽略更新')
       return
     }
     diagResult.value = `加载失败: ${e.message || '未知错误'}`
@@ -1997,57 +2080,40 @@ const loadHistoryData = async (
   }
 }
 
-// 显示内存历史监控图表
-const showMemoryHistoryChart = async (row: any, refresh = false) => {
-  await loadHistoryData(row, 'memoryChart', '内存监控', refresh, (data) => {
-    if (!refresh) {
-      renderChartsAfterDialogOpen()
-    }
-  })
-}
-
-// 显示GC历史监控图表
-const showGcHistoryChart = async (row: any, refresh = false) => {
-  await loadHistoryData(row, 'gcChart', 'GC分析', refresh, (data) => {
-    const rootEl = document.querySelector('.gc-analysis-view') as HTMLElement
-    if (rootEl && rootEl.offsetParent !== null) {
-      renderGcCharts(data)
-    }
-  })
-}
-
-// 显示线程历史监控图表
-const showThreadHistoryChart = async (row: any, refresh = false) => {
-  await loadHistoryData(row, 'threadChart', '线程监控', refresh, (data) => {
-    threadMon.renderThreadCharts(data)
-  })
-}
-
-// 显示IO/网络历史监控图表
-const showIoNetworkHistoryChart = async (row: any, refresh = false) => {
-  await loadHistoryData(row, 'ioNetworkChart', 'IO/网络监控', refresh, (data) => {
-    ioNetworkMon.renderIoNetworkCharts(data)
-  })
-}
-
 // Dialog 打开后的回调
 const handleDialogOpened = () => {
+  // 根据当前诊断类型渲染对应的图表
   if (currentDiagType.value === 'memoryChart') {
+    // 使用 nextTick 确保 DOM 更新
     nextTick(() => {
+      // 等待 Dialog 动画完全完成
       setTimeout(() => {
         renderChartsAfterDialogOpen()
-      }, 500)
+      }, 500) // 等待 500ms 确保 Dialog 动画完成
     })
   } else if (currentDiagType.value === 'gcChart') {
+    // GC 分析图表
+    console.log('🎨 handleDialogOpened: 准备渲染GC图表')
     nextTick(() => {
       setTimeout(() => {
+        // 检查组件是否可见
         const rootEl = document.querySelector('.gc-analysis-view') as HTMLElement
-        if (rootEl && rootEl.offsetParent !== null && memoryHistory.value.length > 0) {
+        if (!rootEl || rootEl.offsetParent === null) {
+          console.log('⚠️ handleDialogOpened: GC组件被隐藏，跳过渲染')
+          return
+        }
+        
+        console.log('🎨 handleDialogOpened: 开始渲染GC图表, memoryHistory.length:', memoryHistory.value.length)
+        if (memoryHistory.value.length > 0) {
           renderGcCharts(memoryHistory.value)
+          console.log('✅ handleDialogOpened: GC图表渲染完成')
+        } else {
+          console.warn('⚠️ handleDialogOpened: memoryHistory为空，跳过渲染')
         }
       }, 500)
     })
   } else if (currentDiagType.value === 'threadChart') {
+    // 线程监控图表
     nextTick(() => {
       setTimeout(() => {
         if (memoryHistory.value.length > 0) {
@@ -2056,6 +2122,7 @@ const handleDialogOpened = () => {
       }, 500)
     })
   } else if (currentDiagType.value === 'ioNetworkChart') {
+    // IO/网络监控图表
     nextTick(() => {
       setTimeout(() => {
         if (memoryHistory.value.length > 0) {
@@ -2066,38 +2133,306 @@ const handleDialogOpened = () => {
   }
 }
 
-// 在 Dialog 打开后渲染图表
-const renderChartsAfterDialogOpen = () => {
+// 手动刷新图表（用户点击按钮时调用）
+const refreshCharts = () => {
+  console.log('🔄 用户手动刷新图表...')
+  
+  // 确保在 history Tab
   memoryTab.value = 'history'
   
-  nextTick(() => {
+  // 等待一小段时间后渲染
+  setTimeout(() => {
+    console.log('⏰ 开始渲染内存图表...')
+    renderMemoryCharts()
+    
+    // 等待 500ms 后再渲染 GC 图表，确保 DOM 完全就绪
     setTimeout(() => {
+      console.log('⏰ 开始渲染 GC 图表...')
+      
+      // 直接检查 DOM 是否存在
+      const minorEl = document.querySelector('[data-chart="minor-vs-full-gc"]')
+      const gcEffEl = document.querySelector('[data-chart="gc-efficiency"]')
+      
+      console.log('GC 图表 DOM 检查:', {
+        minorVsFullGc: !!minorEl,
+        gcEfficiency: !!gcEffEl
+      })
+      
+      if (minorEl && gcEffEl) {
+        console.log('✅ GC 图表 DOM 已就绪，开始渲染...')
+        renderGcCharts(memoryHistory.value)
+      } else {
+        console.warn('⚠️ GC 图表 DOM 未就绪，强制渲染...')
+        renderGcCharts(memoryHistory.value)
+      }
+      
+      console.log('✅ 所有图表渲染完成')
+      ElMessage.success('图表已刷新')
+    }, 500)
+  }, 300)
+}
+
+// 在 Dialog 打开后渲染图表
+const renderChartsAfterDialogOpen = () => {
+  // 强制切换到 history Tab
+  memoryTab.value = 'history'
+  
+  // 使用 nextTick 确保 DOM 更新
+  nextTick(() => {
+    // 等待 Dialog 动画完全完成
+    setTimeout(() => {
+      // 渲染所有内存图表（包括底部图表）
       renderMemoryCharts()
       
+      // 使用 nextTick 确保图表 DOM 更新
       nextTick(() => {
+        // 延迟渲染 GC 图表（确保 Dialog 完全展开）
         setTimeout(() => {
+          // 检查组件是否可见
           const rootEl = document.querySelector('.gc-analysis-view') as HTMLElement
           if (rootEl && rootEl.offsetParent !== null) {
             renderGcCharts(memoryHistory.value)
+          } else {
+            console.log('⚠️ renderChartsAfterDialogOpen: GC组件被隐藏，跳过渲染')
           }
           
+          // 最终 resize 所有底部图表
           setTimeout(() => {
             const edenEl = document.querySelector('[data-chart="eden-survivor"]') as HTMLElement
             const oldGenEl = document.querySelector('[data-chart="old-gen"]') as HTMLElement
             const minorGcEl = document.querySelector('[data-chart="minor-vs-full-gc"]') as HTMLElement
             const gcEffEl = document.querySelector('[data-chart="gc-efficiency"]') as HTMLElement
             
-            [edenEl, oldGenEl, minorGcEl, gcEffEl].forEach(el => {
+            const charts = [
+              { name: 'Eden+Survivor', el: edenEl },
+              { name: 'Old Gen', el: oldGenEl },
+              { name: 'Minor vs Full GC', el: minorGcEl },
+              { name: 'GC Efficiency', el: gcEffEl }
+            ]
+            
+            charts.forEach(({ el }) => {
               if (el) {
                 const instance = echarts.getInstanceByDom(el)
-                instance?.resize()
+                if (instance) {
+                  instance.resize()
+                }
               }
             })
           }, 500)
         }, 1000)
       })
-    }, 1000)
+    }, 1000) // 等待 1 秒确保 Dialog 动画完成
   })
+}
+
+// 显示GC历史监控图表
+const showGcHistoryChart = async (row: any, refresh = false) => {
+  console.log('[ApplicationView] showGcHistoryChart 被调用, row:', row, 'refresh:', refresh)
+  if (!refresh) {
+    diagDialogTitle.value = `♻️ GC分析 - ${row.app}@${row.inst}`
+    diagResult.value = '正在加载历史数据...'
+    showDiagDialog.value = true
+    currentDiagType.value = 'gcChart'
+    diagMode.value = 'chart'
+    console.log('[ApplicationView] Dialog设置: showDiagDialog=true, currentDiagType=gcChart')
+  }
+  
+  try {
+    historyLoading.value = true
+    const endTime = Date.now()
+    const startTime = endTime - historyTimeRange.value * 3600 * 1000
+    
+    console.log('[ApplicationView] 开始加载历史数据, app:', row.app, 'inst:', row.inst)
+    const data = await getMemoryHistory(row.app, row.inst, startTime, endTime, 100)
+    console.log('[ApplicationView] 历史数据加载完成, 条数:', data?.length || 0)
+    
+    // 检查数据是否有效
+    if (!data || data.length === 0) {
+      diagResult.value = '暂无历史数据'
+      return
+    }
+    
+    // 更新数据
+    const sortedData = [...data].sort((a, b) => a.collectTime - b.collectTime)
+    
+    // 检查组件是否仍然挂载
+    if (!showDiagDialog.value || currentDiagType.value !== 'gcChart') {
+      console.log('组件已切换或关闭，忽略数据更新')
+      return
+    }
+    
+    memoryHistory.value = sortedData
+    diagResult.value = 'loaded'
+    
+    // 同时更新原始数据（供切换查看）
+    if (!refresh) {
+      const title = 'GC分析'
+      diagResult.value = `【${title} - 原始数据】\n\n记录总数: ${sortedData.length} 条\n时间范围: ${new Date(sortedData[0].collectTime).toLocaleString()} ~ ${new Date(sortedData[sortedData.length - 1].collectTime).toLocaleString()}\n\n${JSON.stringify(sortedData, null, 2)}`
+    }
+    
+    console.log('📊 历史数据加载完成:', {
+      数据条数: sortedData.length,
+      第一条: sortedData[0],
+      最后一条: sortedData[sortedData.length - 1]
+    })
+    
+    // 数据加载完成后，等待Dialog打开并渲染图表
+    nextTick(() => {
+      setTimeout(() => {
+        if (showDiagDialog.value && currentDiagType.value === 'gcChart' && memoryHistory.value.length > 0) {
+          renderGcCharts(memoryHistory.value)
+        }
+      }, 800) // 增加延迟确保DOM就绪
+    })
+  } catch (e: any) {
+    // 忽略组件已销毁的错误
+    if (e.message && e.message.includes('__vnode')) {
+      console.warn('组件已销毁，忽略更新')
+      return
+    }
+    diagResult.value = `加载失败: ${e.message || '未知错误'}`
+  } finally {
+    historyLoading.value = false
+  }
+}
+
+// 显示线程历史监控图表
+const showThreadHistoryChart = async (row: any, refresh = false) => {
+  if (!refresh) {
+    diagDialogTitle.value = `🧵 线程监控 - ${row.app}@${row.inst}`
+    diagResult.value = '正在加载历史数据...'
+    showDiagDialog.value = true
+    currentDiagType.value = 'threadChart'
+    diagMode.value = 'chart'
+  }
+  
+  try {
+    historyLoading.value = true
+    const endTime = Date.now()
+    const startTime = endTime - historyTimeRange.value * 3600 * 1000
+    
+    const data = await getMemoryHistory(row.app, row.inst, startTime, endTime, 100)
+    
+    // 检查数据是否有效
+    if (!data || data.length === 0) {
+      diagResult.value = '暂无历史数据'
+      return
+    }
+    
+    // 更新数据
+    const sortedData = [...data].sort((a, b) => a.collectTime - b.collectTime)
+    
+    // 检查组件是否仍然挂载
+    if (!showDiagDialog.value || currentDiagType.value !== 'threadChart') {
+      console.log('组件已切换或关闭，忽略数据更新')
+      return
+    }
+    
+    memoryHistory.value = sortedData
+    diagResult.value = 'loaded'
+    
+    // 同时更新原始数据（供切换查看）
+    if (!refresh) {
+      const title = '线程监控'
+      diagResult.value = `【${title} - 原始数据】\n\n记录总数: ${sortedData.length} 条\n时间范围: ${new Date(sortedData[0].collectTime).toLocaleString()} ~ ${new Date(sortedData[sortedData.length - 1].collectTime).toLocaleString()}\n\n${JSON.stringify(sortedData, null, 2)}`
+    }
+    
+    console.log('📊 历史数据加载完成:', {
+      数据条数: sortedData.length,
+      第一条: sortedData[0],
+      最后一条: sortedData[sortedData.length - 1]
+    })
+    
+    // 数据加载完成后，等待Dialog打开并渲染图表
+    nextTick(() => {
+      setTimeout(() => {
+        if (showDiagDialog.value && currentDiagType.value === 'threadChart' && memoryHistory.value.length > 0) {
+          threadMon.renderThreadCharts(memoryHistory.value)
+        }
+      }, 800) // 增加延迟确保DOM就绪
+    })
+    
+    if (!refresh) {
+      ElMessage.success(`加载了 ${data.length} 条历史记录`)
+    } else {
+      ElMessage.success('数据已刷新')
+    }
+  } catch (e: any) {
+    // 忽略组件已销毁的错误
+    if (e.message && (e.message.includes('__vnode') || e.message.includes('Cannot set properties of null'))) {
+      console.warn('组件已销毁或切换，忽略更新')
+      return
+    }
+    diagResult.value = `加载失败: ${e.message || '未知错误'}`
+  } finally {
+    historyLoading.value = false
+  }
+}
+
+// 显示IO/网络历史监控图表
+const showIoNetworkHistoryChart = async (row: any, refresh = false) => {
+  if (!refresh) {
+    diagDialogTitle.value = `🌐 IO/网络监控 - ${row.app}@${row.inst}`
+    diagResult.value = '正在加载历史数据...'
+    showDiagDialog.value = true
+    currentDiagType.value = 'ioNetworkChart'
+    diagMode.value = 'chart'
+  }
+  
+  try {
+    historyLoading.value = true
+    const endTime = Date.now()
+    const startTime = endTime - historyTimeRange.value * 3600 * 1000
+    
+    const data = await getMemoryHistory(row.app, row.inst, startTime, endTime, 100)
+    
+    // 检查数据是否有效
+    if (!data || data.length === 0) {
+      diagResult.value = '暂无历史数据'
+      return
+    }
+    
+    // 更新数据
+    const sortedData = [...data].sort((a, b) => a.collectTime - b.collectTime)
+    memoryHistory.value = sortedData
+    diagResult.value = 'loaded'
+    
+    // 同时更新原始数据（供切换查看）
+    if (!refresh) {
+      const title = 'IO/网络监控'
+      diagResult.value = `【${title} - 原始数据】\n\n记录总数: ${sortedData.length} 条\n时间范围: ${new Date(sortedData[0].collectTime).toLocaleString()} ~ ${new Date(sortedData[sortedData.length - 1].collectTime).toLocaleString()}\n\n${JSON.stringify(sortedData, null, 2)}`
+    }
+    
+    console.log('📊 历史数据加载完成:', {
+      数据条数: sortedData.length,
+      第一条: sortedData[0],
+      最后一条: sortedData[sortedData.length - 1]
+    })
+    
+    // 数据加载完成后，等待Dialog打开并渲染图表
+    nextTick(() => {
+      setTimeout(() => {
+        if (memoryHistory.value.length > 0) {
+          ioNetworkMon.renderIoNetworkCharts(memoryHistory.value)
+        }
+      }, 300)
+    })
+    
+    if (!refresh) {
+      ElMessage.success(`加载了 ${data.length} 条历史记录`)
+    } else {
+      ElMessage.success('数据已刷新')
+    }
+  } catch (e: any) {
+    // 忽略组件已销毁的错误
+    if (e.message && e.message.includes('__vnode')) {
+      console.warn('组件已销毁，忽略更新')
+      return
+    }
+    diagResult.value = `加载失败: ${e.message || '未知错误'}`
+  } finally {
+    historyLoading.value = false
+  }
 }
 
 // 格式化持续时间
@@ -2124,6 +2459,7 @@ const getUsageLevel = (percent: number): 'success' | 'warning' | 'danger' | 'inf
 // ==================== 生命周期 ====================
 
 onMounted(() => {
+  loadData()
   if (activeTab.value === 'instances') {
     loadInstances()
   }

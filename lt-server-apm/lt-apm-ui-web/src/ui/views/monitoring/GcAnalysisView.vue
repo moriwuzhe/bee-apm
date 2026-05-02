@@ -147,13 +147,26 @@ const gcMetricCards = computed(() => [
 ])
 
 // 监听数据变化，自动渲染图表
+let gcWatchTimer: ReturnType<typeof setTimeout> | null = null
 watch(() => props.memoryHistory, (newData) => {
   if (newData && newData.length > 0) {
-    nextTick(() => {
-      setTimeout(() => {
-        renderGcCharts(newData)
-      }, 300)
-    })
+    // 清除之前的定时器（防抖）
+    if (gcWatchTimer) {
+      clearTimeout(gcWatchTimer)
+    }
+    
+    gcWatchTimer = setTimeout(() => {
+      // 检查当前组件是否可见（通过检查自己的根元素）
+      const rootEl = document.querySelector('.gc-analysis-view') as HTMLElement
+      if (!rootEl || rootEl.offsetParent === null) {
+        console.log('[GcAnalysisView] 组件被隐藏（offsetParent为null），跳过渲染')
+        gcWatchTimer = null
+        return // 直接跳过，不渲染
+      }
+      
+      renderGcCharts(newData)
+      gcWatchTimer = null
+    }, 600) // 增加延迟到600ms
   }
 }, { deep: true })
 
@@ -162,6 +175,13 @@ watch(() => props.historyTimeRange, () => {
   if (props.memoryHistory && props.memoryHistory.length > 0) {
     nextTick(() => {
       setTimeout(() => {
+        // 检查组件是否可见
+        const rootEl = document.querySelector('.gc-analysis-view') as HTMLElement
+        if (!rootEl || rootEl.offsetParent === null) {
+          console.log('[GcAnalysisView] 组件被隐藏（timeRange变化），跳过渲染')
+          return
+        }
+        
         renderGcCharts(props.memoryHistory)
       }, 500)
     })

@@ -220,23 +220,36 @@ const syncRefs = () => {
 }
 
 // 同步props.memoryHistory到composable的memoryHistory，并渲染图表
+let memoryWatchTimer: ReturnType<typeof setTimeout> | null = null
 watch(() => props.memoryHistory, (newData) => {
   console.log('[MemoryMonitoringView] memoryHistory变化, length:', newData?.length || 0)
   if (newData && newData.length > 0) {
+    // 清除之前的定时器（防抖）
+    if (memoryWatchTimer) {
+      clearTimeout(memoryWatchTimer)
+    }
+    
     // 同步数据到composable
     composableMemoryHistory.value = newData
     
     // 等待DOM更新后再同步ref并渲染
-    nextTick(() => {
-      setTimeout(() => {
-        // 再次同步ref（确保DOM已渲染）
-        syncRefs()
-        
-        console.log('[MemoryMonitoringView] 开始渲染图表...')
-        renderMemoryCharts()
-        console.log('[MemoryMonitoringView] 图表渲染完成')
-      }, 800) // 增加延迟到800ms确保Dialog动画和DOM渲染完成
-    })
+    memoryWatchTimer = setTimeout(() => {
+      // 检查当前组件是否可见（通过检查自己的根元素）
+      const rootEl = document.querySelector('.memory-monitoring-view') as HTMLElement
+      if (!rootEl || rootEl.offsetParent === null) {
+        console.log('[MemoryMonitoringView] 组件被隐藏（offsetParent为null），跳过渲染')
+        memoryWatchTimer = null
+        return // 直接跳过，不渲染
+      }
+      
+      // 再次同步ref（确保DOM已渲染）
+      syncRefs()
+      
+      console.log('[MemoryMonitoringView] 开始渲染图表...')
+      renderMemoryCharts()
+      console.log('[MemoryMonitoringView] 图表渲染完成')
+      memoryWatchTimer = null
+    }, 800) // 增加延迟到800ms确保Dialog动画和DOM渲染完成
   }
 }, { deep: true })
 

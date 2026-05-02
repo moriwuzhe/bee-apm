@@ -164,15 +164,28 @@ const threadMetricCards = computed(() => {
 })
 
 // 监听数据变化，自动渲染图表
+let threadWatchTimer: ReturnType<typeof setTimeout> | null = null
 watch(() => props.memoryHistory, (newData) => {
   if (newData && newData.length > 0) {
-    nextTick(() => {
-      setTimeout(() => {
-        // 同步ref
-        syncRefs()
-        renderThreadCharts(newData)
-      }, 800) // 增加延迟确保DOM就绪
-    })
+    // 清除之前的定时器（防抖）
+    if (threadWatchTimer) {
+      clearTimeout(threadWatchTimer)
+    }
+    
+    threadWatchTimer = setTimeout(() => {
+      // 检查当前组件是否可见（通过检查自己的根元素）
+      const rootEl = document.querySelector('.thread-monitoring-view') as HTMLElement
+      if (!rootEl || rootEl.offsetParent === null) {
+        console.log('[ThreadMonitoringView] 组件被隐藏（offsetParent为null），跳过渲染')
+        threadWatchTimer = null
+        return // 直接跳过，不渲染
+      }
+      
+      // 同步ref
+      syncRefs()
+      renderThreadCharts(newData)
+      threadWatchTimer = null
+    }, 800) // 增加延迟确保DOM就绪
   }
 }, { deep: true })
 

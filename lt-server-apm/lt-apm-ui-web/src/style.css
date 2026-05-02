@@ -85,7 +85,7 @@ p {
 
 code,
 .counter {
-  font-family: var(--mono);
+  font-family: var(--mono), serif;
   display: inline-flex;
   border-radius: 4px;
   color: var(--text-h);

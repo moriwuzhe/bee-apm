@@ -152,15 +152,28 @@ const formatBytes = (bytes: number): string => {
 }
 
 // 监听数据变化，自动渲染图表
+let ioWatchTimer: ReturnType<typeof setTimeout> | null = null
 watch(() => props.memoryHistory, (newData) => {
   if (newData && newData.length > 0) {
-    nextTick(() => {
-      setTimeout(() => {
-        // 同步ref
-        syncRefs()
-        renderIoNetworkCharts(newData)
-      }, 800) // 增加延迟确保DOM就绪
-    })
+    // 清除之前的定时器（防抖）
+    if (ioWatchTimer) {
+      clearTimeout(ioWatchTimer)
+    }
+    
+    ioWatchTimer = setTimeout(() => {
+      // 检查当前组件是否可见（通过检查自己的根元素）
+      const rootEl = document.querySelector('.io-network-view') as HTMLElement
+      if (!rootEl || rootEl.offsetParent === null) {
+        console.log('[IoNetworkView] 组件被隐藏（offsetParent为null），跳过渲染')
+        ioWatchTimer = null
+        return // 直接跳过，不渲染
+      }
+      
+      // 同步ref
+      syncRefs()
+      renderIoNetworkCharts(newData)
+      ioWatchTimer = null
+    }, 800) // 增加延迟确保DOM就绪
   }
 }, { deep: true })
 

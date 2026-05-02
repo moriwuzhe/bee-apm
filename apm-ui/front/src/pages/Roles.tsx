@@ -1,17 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MainLayout from "../components/Layout/MainLayout";
 import PageHeader from "../components/UI/PageHeader";
 import TechButton from "../components/UI/TechButton";
-import { Plus, Shield, Edit2, Users, CheckSquare, Square } from "lucide-react";
+import { Plus, Shield, Edit2, Users, CheckSquare, Square, Trash2, X, ChevronDown, ChevronUp } from "lucide-react";
+import { rolesApi } from "../services/api";
+import { useToast } from "../context/ToastContext";
+import type { Role as RoleType } from "../types";
 
-const roles = [
-  { id: 1, name: "超级管理员", desc: "拥有全部系统权限，不可删除", users: 1, perms: 48, system: true,  color: "#FF4D4F" },
-  { id: 2, name: "运维管理员", desc: "管理基础设施、监控、Agent等运维功能", users: 3, perms: 36, system: false, color: "#165DFF" },
-  { id: 3, name: "项目负责人", desc: "管理所属项目及应用，可查看监控数据", users: 5, perms: 22, system: false, color: "#A855F7" },
-  { id: 4, name: "运维工程师", desc: "执行运维操作，查看系统监控", users: 8, perms: 18, system: false, color: "#00D68F" },
-  { id: 5, name: "开发工程师", desc: "查看应用信息、发布版本、基本监控", users: 24, perms: 12, system: false, color: "#94A3B8" },
-  { id: 6, name: "只读用户",   desc: "仅可查看，无法操作任何资源", users: 10, perms: 6,  system: false, color: "#64748B" },
-];
+const colors = ["#FF4D4F", "#165DFF", "#A855F7", "#00D68F", "#94A3B8", "#64748B"];
 
 const permModules = [
   {
@@ -60,178 +56,500 @@ const permModules = [
   },
 ];
 
-const defaultPerms: Record<number, Set<string>> = {
-  1: new Set(permModules.flatMap(m => m.perms.map(p => p.key))),
-  2: new Set(["project:view","project:edit","app:view","app:deploy","monitor:view","monitor:alert","agent:manage","jvm:view","release:view","release:create","release:rollback"]),
-  3: new Set(["project:view","project:create","project:edit","app:view","app:create","app:edit","app:deploy","monitor:view","release:view","release:create"]),
-  4: new Set(["project:view","app:view","monitor:view","monitor:alert","agent:manage","jvm:view","release:view"]),
-  5: new Set(["project:view","app:view","app:deploy","monitor:view","release:view","release:create"]),
-  6: new Set(["project:view","app:view","monitor:view","release:view"]),
-};
+const defaultRoles: RoleType[] = [
+  { id: 1, name: "超级管理员", description: "拥有全部系统权限，不可删除", userCount: 1, permissionCount: 20, isSystem: true, color: "#FF4D4F" },
+  { id: 2, name: "运维管理员", description: "管理基础设施、监控、Agent等运维功能", userCount: 3, permissionCount: 15, isSystem: false, color: "#165DFF" },
+  { id: 3, name: "项目负责人", description: "管理所属项目及应用，可查看监控数据", userCount: 5, permissionCount: 10, isSystem: false, color: "#A855F7" },
+  { id: 4, name: "运维工程师", description: "执行运维操作，查看系统监控", userCount: 8, permissionCount: 8, isSystem: false, color: "#00D68F" },
+  { id: 5, name: "开发工程师", description: "查看应用信息、发布版本、基本监控", userCount: 24, permissionCount: 5, isSystem: false, color: "#94A3B8" },
+];
+
+interface RoleFormData {
+  name: string;
+  description: string;
+  permissions: string[];
+}
 
 export default function Roles() {
   const [selected, setSelected] = useState(1);
-  const [perms, setPerms] = useState<Record<number, Set<string>>>(defaultPerms);
+  const [roles, setRoles] = useState<RoleType[]>(defaultRoles);
+  const [perms, setPerms] = useState<Record<number, Set<string>>>({
+    1: new Set(permModules.flatMap(m => m.perms.map(p => p.key))),
+    2: new Set(["project:view", "project:edit", "app:view", "app:deploy", "monitor:view", "monitor:alert", "agent:manage", "jvm:view", "release:view", "release:create", "release:rollback"]),
+    3: new Set(["project:view", "project:create", "project:edit", "app:view", "app:create", "app:edit", "app:deploy", "monitor:view", "release:view", "release:create"]),
+    4: new Set(["project:view", "app:view", "monitor:view", "monitor:alert", "agent:manage", "jvm:view", "release:view"]),
+    5: new Set(["project:view", "app:view", "app:deploy", "monitor:view", "release:view", "release:create"]),
+  });
   const [showModal, setShowModal] = useState(false);
+  const [editingRole, setEditingRole] = useState<RoleType | null>(null);
+  const [deletingRole, setDeletingRole] = useState<RoleType | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set(permModules.map(m => m.module)));
+  const { showToast } = useToast();
+
+  const [formData, setFormData] = useState<RoleFormData>({
+    name: "",
+    description: "",
+    permissions: [],
+  });
+
+  useEffect(() => {
+    fetchRoles();
+  }, []);
+
+  const fetchRoles = async () => {
+    try {
+      setLoading(true);
+      const response = await rolesApi.getAll();
+      if (response.data && response.data.length > 0) {
+        const convertedRoles = response.data.map((r: any, index: number) => ({
+          ...r,
+          color: colors[index % colors.length],
+          userCount: 0,
+          permissionCount: 0,
+        }));
+        setRoles(convertedRoles);
+      }
+    } catch (error) {
+      console.error("加载角色数据失败:", error);
+      showToast("获取角色数据失败", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const currentPerms = perms[selected] || new Set<string>();
-  const currentRole = roles.find(r => r.id === selected)!;
+  const currentRole = roles.find(r => r.id === selected);
+
+  const toggleModule = (moduleName: string) => {
+    const next = new Set(expandedModules);
+    if (next.has(moduleName)) next.delete(moduleName);
+    else next.add(moduleName);
+    setExpandedModules(next);
+  };
 
   const togglePerm = (key: string) => {
-    if (currentRole?.system) return;
+    if (currentRole?.isSystem) return;
     const next = new Set(currentPerms);
-    if (next.has(key)) next.delete(key); else next.add(key);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
     setPerms({ ...perms, [selected]: next });
   };
 
-  const toggleModule = (keys: string[]) => {
-    if (currentRole?.system) return;
-    const allChecked = keys.every(k => currentPerms.has(k));
+  const toggleModulePerms = (moduleKeys: string[]) => {
+    if (currentRole?.isSystem) return;
+    const allChecked = moduleKeys.every(k => currentPerms.has(k));
     const next = new Set(currentPerms);
-    if (allChecked) keys.forEach(k => next.delete(k)); else keys.forEach(k => next.add(k));
+    if (allChecked) moduleKeys.forEach(k => next.delete(k));
+    else moduleKeys.forEach(k => next.add(k));
     setPerms({ ...perms, [selected]: next });
   };
+
+  const handleCreate = () => {
+    setEditingRole(null);
+    setFormData({
+      name: "",
+      description: "",
+      permissions: [],
+    });
+    setShowModal(true);
+  };
+
+  const handleEdit = (role: RoleType) => {
+    setEditingRole(role);
+    setFormData({
+      name: role.name,
+      description: role.description,
+      permissions: Array.from(perms[role.id] || []),
+    });
+    setShowModal(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deletingRole) return;
+    try {
+      await rolesApi.delete(deletingRole.id);
+      setRoles(roles.filter(r => r.id !== deletingRole.id));
+      const newPerms = { ...perms };
+      delete newPerms[deletingRole.id];
+      setPerms(newPerms);
+      if (selected === deletingRole.id && roles.length > 0) {
+        setSelected(roles[0].id);
+      }
+      showToast(`角色 ${deletingRole.name} 删除成功`, "success");
+      setDeletingRole(null);
+    } catch (error) {
+      console.error("删除角色失败:", error);
+      showToast("删除角色失败", "error");
+    }
+  };
+
+  const handleSave = async () => {
+    if (!formData.name.trim()) {
+      showToast("请输入角色名称", "error");
+      return;
+    }
+
+    try {
+      // 只发送后端需要的字段
+      const payload = {
+        name: formData.name,
+        description: formData.description,
+        color: editingRole ? editingRole.color : colors[roles.length % colors.length],
+        isSystem: false,
+      };
+      
+      console.log("Sending payload:", payload);
+
+      if (editingRole) {
+        const response = await rolesApi.update(editingRole.id, payload);
+        if (response.data) {
+          const updatedRole = {
+            ...response.data,
+            color: editingRole.color,
+            userCount: editingRole.userCount,
+            permissionCount: formData.permissions.length,
+          };
+          setRoles(roles.map(r => r.id === editingRole.id ? updatedRole : r));
+          setPerms({
+            ...perms,
+            [editingRole.id]: new Set(formData.permissions),
+          });
+          showToast(`角色 ${formData.name} 更新成功`, "success");
+        }
+      } else {
+        const response = await rolesApi.create(payload);
+        if (response.data) {
+          const newId = Math.max(...roles.map(r => r.id), 0) + 1;
+          const newRole = {
+            ...response.data,
+            id: newId,
+            color: colors[roles.length % colors.length],
+            userCount: 0,
+            permissionCount: formData.permissions.length,
+            isSystem: false,
+          };
+          setRoles([...roles, newRole]);
+          setPerms({
+            ...perms,
+            [newId]: new Set(formData.permissions),
+          });
+          showToast(`角色 ${formData.name} 创建成功`, "success");
+        }
+      }
+      setShowModal(false);
+    } catch (error) {
+      console.error("保存角色失败:", error);
+      showToast("保存角色失败", "error");
+    }
+  };
+
+  const handleSavePermissions = async () => {
+    if (!currentRole || currentRole.isSystem) return;
+    try {
+      // 权限保存在前端状态，不用发送到后端
+      setRoles(roles.map(r => r.id === currentRole.id ? { ...r, permissionCount: currentPerms.size } : r));
+      showToast("权限保存成功", "success");
+    } catch (error) {
+      console.error("保存权限失败:", error);
+      showToast("保存权限失败", "error");
+    }
+  };
+
+  const toggleFormPerm = (key: string) => {
+    const newPerms = formData.permissions.includes(key)
+      ? formData.permissions.filter(k => k !== key)
+      : [...formData.permissions, key];
+    setFormData({ ...formData, permissions: newPerms });
+  };
+
+  if (loading) {
+    return (
+      <MainLayout title="角色管理">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <div className="text-sm" style={{ color: "#94A3B8" }}>加载中...</div>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout title="角色管理">
       <div data-cmp="Roles" className="space-y-4">
         <PageHeader
           title="角色与权限管理"
-          subtitle={`${roles.length} 个角色 · ${roles.reduce((a, r) => a + r.users, 0)} 个用户`}
+          subtitle={`${roles.length} 个角色 · ${roles.reduce((a, r) => a + (r.userCount || 0), 0)} 个用户`}
           actions={
-            <TechButton variant="primary" icon={<Plus size={13} />} onClick={() => setShowModal(true)}>新建角色</TechButton>
+            <TechButton variant="primary" icon={<Plus size={13} />} onClick={handleCreate}>新建角色</TechButton>
           }
         />
 
         <div className="flex gap-4">
-          {/* Role list */}
-          <div className="w-64 flex-shrink-0 space-y-2">
-            {roles.map((r) => (
+          <div className="w-72 flex-shrink-0 space-y-2">
+            {roles.map((r, index) => (
               <div
                 key={r.id}
                 onClick={() => setSelected(r.id)}
-                className="p-3.5 rounded-lg cursor-pointer transition-all"
+                className="p-4 rounded-xl cursor-pointer transition-all flex items-start justify-between"
                 style={{
                   background: selected === r.id ? "rgba(22,93,255,0.12)" : "var(--card)",
                   border: selected === r.id ? "1px solid #165DFF" : "1px solid var(--border)",
                 }}
               >
-                <div className="flex items-center gap-2 mb-1.5">
-                  <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: `${r.color}1a` }}>
-                    <Shield size={14} style={{ color: r.color }} />
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${r.color}1a` }}>
+                    <Shield size={16} style={{ color: r.color }} />
                   </div>
                   <div>
-                    <div className="text-xs font-medium text-white flex items-center gap-1">
+                    <div className="text-sm font-medium text-white flex items-center gap-2">
                       {r.name}
-                      {r.system && <span className="text-xs px-1 rounded" style={{ background: "rgba(255,77,79,0.15)", color: "#FF4D4F", fontSize: "9px" }}>系统</span>}
+                      {r.isSystem && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: "rgba(255,77,79,0.15)", color: "#FF4D4F", fontSize: "10px" }}>系统</span>}
+                    </div>
+                    <div className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>{r.description}</div>
+                    <div className="flex items-center gap-4 mt-2 text-xs" style={{ color: "var(--muted-foreground)" }}>
+                      <span className="flex items-center gap-1"><Users size={10} />{r.userCount}人</span>
+                      <span>{r.permissionCount}项权限</span>
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 text-xs" style={{ color: "var(--muted-foreground)" }}>
-                  <span className="flex items-center gap-1"><Users size={10} />{r.users}人</span>
-                  <span>{r.perms}项权限</span>
-                </div>
+                {!r.isSystem && (
+                  <div className="flex gap-1">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleEdit(r); }}
+                      className="w-6 h-6 rounded flex items-center justify-center transition-colors"
+                      style={{ color: "var(--muted-foreground)" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = "#165DFF"; e.currentTarget.style.background = "rgba(22,93,255,0.1)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = "var(--muted-foreground)"; e.currentTarget.style.background = "transparent"; }}
+                    >
+                      <Edit2 size={11} />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setDeletingRole(r); }}
+                      className="w-6 h-6 rounded flex items-center justify-center transition-colors"
+                      style={{ color: "var(--muted-foreground)" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = "#FF4D4F"; e.currentTarget.style.background = "rgba(255,77,79,0.1)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = "var(--muted-foreground)"; e.currentTarget.style.background = "transparent"; }}
+                    >
+                      <Trash2 size={11} />
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
 
-          {/* Permission editor */}
           <div className="flex-1 rounded-xl overflow-hidden" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md flex items-center justify-center" style={{ background: `${currentRole?.color ?? "#165DFF"}1a` }}>
-                  <Shield size={16} style={{ color: currentRole?.color ?? "#165DFF" }} />
+            {currentRole && (
+              <>
+                <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${currentRole.color}1a` }}>
+                      <Shield size={18} style={{ color: currentRole.color }} />
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-white">{currentRole.name}</div>
+                      <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>{currentRole.description}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>已选 {currentPerms.size} 项</span>
+                    {!currentRole.isSystem && (
+                      <TechButton variant="primary" size="xs" icon={<Edit2 size={11} />} onClick={handleSavePermissions}>保存权限</TechButton>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-5 space-y-5 max-h-[600px] overflow-y-auto">
+                  {permModules.map((m) => {
+                    const moduleKeys = m.perms.map(p => p.key);
+                    const allChecked = moduleKeys.every(k => currentPerms.has(k));
+                    const someChecked = moduleKeys.some(k => currentPerms.has(k)) && !allChecked;
+                    const isExpanded = expandedModules.has(m.module);
+                    return (
+                      <div key={m.module}>
+                        <div className="flex items-center gap-3 mb-3">
+                          <button
+                            className="flex items-center gap-2 text-xs font-medium text-white"
+                            onClick={() => toggleModule(m.module)}
+                            style={{ cursor: "pointer" }}
+                          >
+                            {isExpanded ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                            {m.module}
+                          </button>
+                          {!currentRole.isSystem && (
+                            <button
+                              className="flex items-center gap-1 text-xs text-white"
+                              onClick={() => toggleModulePerms(moduleKeys)}
+                              style={{ cursor: "pointer" }}
+                            >
+                              <div style={{ color: allChecked ? "#165DFF" : someChecked ? "#FFAA00" : "var(--muted-foreground)" }}>
+                                <CheckSquare size={14} />
+                              </div>
+                              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                                {moduleKeys.filter(k => currentPerms.has(k)).length}/{moduleKeys.length}
+                              </span>
+                            </button>
+                          )}
+                          {currentRole.isSystem && (
+                            <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                              {moduleKeys.filter(k => currentPerms.has(k)).length}/{moduleKeys.length}
+                            </span>
+                          )}
+                          <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
+                        </div>
+                        {isExpanded && (
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {m.perms.map((p) => {
+                              const checked = currentPerms.has(p.key);
+                              return (
+                                <button
+                                  key={p.key}
+                                  onClick={() => togglePerm(p.key)}
+                                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs transition-colors"
+                                  style={{
+                                    background: checked ? "rgba(22,93,255,0.15)" : "var(--muted)",
+                                    border: `1px solid ${checked ? "#165DFF" : "var(--border)"}`,
+                                    color: checked ? "#60A5FA" : "var(--muted-foreground)",
+                                    cursor: currentRole.isSystem ? "default" : "pointer",
+                                  }}
+                                  disabled={currentRole.isSystem}
+                                >
+                                  {checked ? <CheckSquare size={12} /> : <Square size={12} />}
+                                  {p.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {showModal && (
+          <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: "rgba(0,0,0,0.7)" }} onClick={() => setShowModal(false)}>
+            <div className="w-[520px] rounded-xl p-6 relative" style={{ background: "var(--card)", border: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setShowModal(false)} className="absolute top-4 right-4 w-7 h-7 rounded flex items-center justify-center" style={{ color: "var(--muted-foreground)" }}>
+                <X size={14} />
+              </button>
+              <div className="text-sm font-semibold text-white mb-5 flex items-center gap-2">
+                <Shield size={15} style={{ color: "#165DFF" }} />
+                {editingRole ? "编辑角色" : "新建角色"}
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs mb-1.5" style={{ color: "var(--muted-foreground)" }}>角色名称</label>
+                  <input
+                    className="w-full h-9 px-3 rounded-md text-xs text-white outline-none"
+                    style={{ background: "var(--input)", border: "1px solid var(--border)" }}
+                    placeholder="输入角色名称"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-white">{currentRole?.name}</div>
-                  <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>{currentRole?.desc}</div>
+                  <label className="block text-xs mb-1.5" style={{ color: "var(--muted-foreground)" }}>角色描述</label>
+                  <textarea
+                    className="w-full px-3 py-2 rounded-md text-xs text-white outline-none resize-none"
+                    style={{ background: "var(--input)", border: "1px solid var(--border)", minHeight: "80px" }}
+                    placeholder="描述该角色的职责范围"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  />
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>已选 {currentPerms.size} 项</span>
-                {!currentRole?.system && <TechButton variant="primary" size="xs" icon={<Edit2 size={11} />}>保存权限</TechButton>}
-              </div>
-            </div>
-
-            {/* Permission grid */}
-            <div className="p-5 space-y-5">
-              {permModules.map((m) => {
-                const moduleKeys = m.perms.map(p => p.key);
-                const allChecked = moduleKeys.every(k => currentPerms.has(k));
-                const someChecked = moduleKeys.some(k => currentPerms.has(k));
-                return (
-                  <div key={m.module}>
-                    {/* Module header */}
-                    <div className="flex items-center gap-3 mb-3">
-                      <button
-                        className="flex items-center gap-2 text-xs font-medium text-white"
-                        onClick={() => toggleModule(moduleKeys)}
-                        style={{ cursor: currentRole?.system ? "default" : "pointer" }}
-                      >
-                        <div style={{ color: allChecked ? "#165DFF" : someChecked ? "#FFAA00" : "var(--muted-foreground)" }}>
-                          <CheckSquare size={14} />
-                        </div>
-                        {m.module}
-                      </button>
-                      <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
-                      <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{moduleKeys.filter(k => currentPerms.has(k)).length}/{moduleKeys.length}</span>
-                    </div>
-                    {/* Perm items */}
-                    <div className="flex flex-wrap gap-2">
-                      {m.perms.map((p) => {
-                        const checked = currentPerms.has(p.key);
+                {!editingRole && (
+                  <div>
+                    <label className="block text-xs mb-1.5" style={{ color: "var(--muted-foreground)" }}>初始权限</label>
+                    <div className="space-y-3">
+                      {permModules.map((m) => {
+                        const moduleKeys = m.perms.map(p => p.key);
+                        const allChecked = moduleKeys.every(k => formData.permissions.includes(k));
+                        const someChecked = moduleKeys.some(k => formData.permissions.includes(k)) && !allChecked;
+                        const isModuleExpanded = true;
                         return (
-                          <button
-                            key={p.key}
-                            onClick={() => togglePerm(p.key)}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs transition-colors"
-                            style={{
-                              background: checked ? "rgba(22,93,255,0.15)" : "var(--muted)",
-                              border: `1px solid ${checked ? "#165DFF" : "var(--border)"}`,
-                              color: checked ? "#60A5FA" : "var(--muted-foreground)",
-                              cursor: currentRole?.system ? "default" : "pointer",
-                            }}
-                          >
-                            {checked ? <CheckSquare size={12} /> : <Square size={12} />}
-                            {p.label}
-                          </button>
+                          <div key={m.module}>
+                            <div className="flex items-center gap-3 mb-2">
+                              <button
+                                className="flex items-center gap-2 text-xs font-medium text-white"
+                                onClick={() => {
+                                  const allSelected = moduleKeys.every(k => formData.permissions.includes(k));
+                                  const newPerms = allSelected
+                                    ? formData.permissions.filter(k => !moduleKeys.includes(k))
+                                    : [...formData.permissions, ...moduleKeys.filter(k => !formData.permissions.includes(k))];
+                                  setFormData({ ...formData, permissions: newPerms });
+                                }}
+                                style={{ cursor: "pointer" }}
+                              >
+                                <div style={{ color: allChecked ? "#165DFF" : someChecked ? "#FFAA00" : "var(--muted-foreground)" }}>
+                                  <CheckSquare size={14} />
+                                </div>
+                                {m.module}
+                              </button>
+                              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                                {moduleKeys.filter(k => formData.permissions.includes(k)).length}/{moduleKeys.length}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-2 ml-6">
+                              {m.perms.map((p) => {
+                                const checked = formData.permissions.includes(p.key);
+                                return (
+                                  <button
+                                    key={p.key}
+                                    onClick={() => toggleFormPerm(p.key)}
+                                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs transition-colors"
+                                    style={{
+                                      background: checked ? "rgba(22,93,255,0.15)" : "transparent",
+                                      border: `1px solid ${checked ? "#165DFF" : "var(--border)"}`,
+                                      color: checked ? "#60A5FA" : "var(--muted-foreground)",
+                                    }}
+                                  >
+                                    {checked ? <CheckSquare size={10} /> : <Square size={10} />}
+                                    {p.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
                         );
                       })}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* New role modal */}
-        <div className={`fixed inset-0 flex items-center justify-center ${showModal ? "" : "hidden"}`} style={{ background: "rgba(0,0,0,0.7)", zIndex: 200 }} onClick={() => setShowModal(false)}>
-          <div className="w-[420px] rounded-xl p-6" style={{ background: "var(--card)", border: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
-            <div className="text-sm font-semibold text-white mb-5 flex items-center gap-2"><Shield size={15} style={{ color: "#165DFF" }} />新建角色</div>
-            <div className="space-y-4">
-              {[["角色名称", "输入角色名称"], ["角色描述", "描述该角色的职责范围"]].map(([label, ph]) => (
-                <div key={label}>
-                  <label className="block text-xs mb-1.5" style={{ color: "var(--muted-foreground)" }}>{label}</label>
-                  <input className="w-full h-8 px-3 rounded-md text-xs text-white outline-none" style={{ background: "var(--input)", border: "1px solid var(--border)" }} placeholder={ph} />
-                </div>
-              ))}
-              <div>
-                <label className="block text-xs mb-1.5" style={{ color: "var(--muted-foreground)" }}>基于角色复制权限</label>
-                <div className="flex flex-wrap gap-2">
-                  {roles.filter(r => !r.system).map(r => (
-                    <button key={r.id} className="text-xs px-2 py-1 rounded-md" style={{ background: "var(--muted)", border: "1px solid var(--border)", color: "var(--muted-foreground)" }}>{r.name}</button>
-                  ))}
-                </div>
+                )}
+              </div>
+              <div className="flex justify-end gap-2 mt-6">
+                <TechButton variant="secondary" onClick={() => setShowModal(false)}>取消</TechButton>
+                <TechButton variant="primary" onClick={handleSave}>保存</TechButton>
               </div>
             </div>
-            <div className="flex justify-end gap-2 mt-6">
-              <TechButton variant="secondary" onClick={() => setShowModal(false)}>取消</TechButton>
-              <TechButton variant="primary" onClick={() => setShowModal(false)}>创建角色</TechButton>
+          </div>
+        )}
+
+        {deletingRole && (
+          <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: "rgba(0,0,0,0.7)" }} onClick={() => setDeletingRole(null)}>
+            <div className="w-[400px] rounded-xl p-6 relative" style={{ background: "var(--card)", border: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setDeletingRole(null)} className="absolute top-4 right-4 w-7 h-7 rounded flex items-center justify-center" style={{ color: "var(--muted-foreground)" }}>
+                <X size={14} />
+              </button>
+              <div className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                <Trash2 size={15} style={{ color: "#FF4D4F" }} />确认删除
+              </div>
+              <div className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+                确定要删除角色 <span className="text-white font-medium">{deletingRole.name}</span> 吗？此操作不可撤销。
+              </div>
+              <div className="flex justify-end gap-2 mt-6">
+                <TechButton variant="secondary" onClick={() => setDeletingRole(null)}>取消</TechButton>
+                <TechButton variant="danger" onClick={handleDelete}>确认删除</TechButton>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </MainLayout>
   );

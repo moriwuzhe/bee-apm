@@ -13,7 +13,7 @@ import {
   RotateCcwIcon,
   BellIcon,
 } from "lucide-react";
-import { toast } from "sonner";
+import { useToast } from "../context/ToastContext";
 
 const nodes = [
   { id: "lb",        label: "负载均衡",      x: 380,  y: 60,   type: "gateway", status: "online"  },
@@ -69,6 +69,13 @@ const statusColors: Record<string, string> = {
   offline: "#64748B",
 };
 
+const statusLabels: Record<string, string> = {
+  all:     "全部",
+  online:  "正常",
+  warning: "警告",
+  error:   "异常",
+};
+
 const typeColors: Record<string, { bg: string; border: string; text: string }> = {
   gateway: { bg: "rgba(22,93,255,0.2)",   border: "#165DFF", text: "#60A5FA" },
   service: { bg: "rgba(168,85,247,0.2)",  border: "#A855F7", text: "#C084FC" },
@@ -84,6 +91,7 @@ interface ContextMenu {
 }
 
 export default function NetworkTopology() {
+  const { showToast } = useToast();
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
@@ -92,6 +100,7 @@ export default function NetworkTopology() {
   const [animated, setAnimated] = useState(true);
   const [showAsync, setShowAsync] = useState(true);
   const [showSync, setShowSync] = useState(true);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [hoveredEdge, setHoveredEdge] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenu>({
     visible: false, x: 0, y: 0, nodeId: "", nodeLabel: "",
@@ -146,16 +155,16 @@ export default function NetworkTopology() {
     switch (action) {
       case "detail":
         setSelected(contextMenu.nodeId);
-        toast.info(`正在加载 ${label} 详情...`);
+        showToast(`正在加载 ${label} 详情...`, "info");
         break;
       case "ssh":
-        toast.warning(`SSH 连接到 ${label}，请稍等...`);
+        showToast(`SSH 连接到 ${label}，请稍等...`, "warning");
         break;
       case "restart":
-        toast.error(`已发送重启指令：${label}`);
+        showToast(`已发送重启指令：${label}`, "error");
         break;
       case "alert":
-        toast.success(`已为 ${label} 创建告警规则`);
+        showToast(`已为 ${label} 创建告警规则`, "success");
         break;
     }
   };
@@ -185,32 +194,67 @@ export default function NetworkTopology() {
           subtitle={`${nodes.length} 节点 · ${edges.length} 连接 · ${nodes.filter(n => n.status !== "online").length} 异常`}
           actions={
             <>
-              {/* 状态过滤 */}
-              <div className="flex items-center gap-1 p-1 rounded-md" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-                {([["all", "全部"], ["online", "正常"], ["warning", "警告"], ["error", "异常"]] as [string, string][]).map(([v, l]) => (
+              <div className="flex items-center gap-1.5">
+                {/* 状态过滤下拉 */}
+                <div className="relative">
                   <button
-                    key={v}
-                    onClick={() => setFilterStatus(v)}
-                    className="px-3 py-1 rounded text-xs transition-colors"
-                    style={{ background: filterStatus === v ? "#165DFF" : "transparent", color: filterStatus === v ? "#fff" : "var(--muted-foreground)" }}
-                  >{l}</button>
-                ))}
-              </div>
-              {/* 同步/异步切换 */}
-              <div className="flex items-center gap-1 p-1 rounded-md" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+                    onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs"
+                    style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+                  >
+                    <span>{statusLabels[filterStatus]}</span>
+                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+                      <path d="M5 6L0 0h10L5 6z" fill="var(--muted-foreground)" />
+                    </svg>
+                  </button>
+                  {showStatusDropdown && (
+                    <div className="absolute top-full left-0 mt-1 py-1 rounded-md z-10 min-w-[80px]" style={{ background: "var(--card)", border: "1px solid var(--border)", boxShadow: "0 4px 12px rgba(0,0,0,0.3)" }}>
+                      {([["all", "全部"], ["online", "正常"], ["warning", "警告"], ["error", "异常"]] as [string, string][]).map(([v, l]) => (
+                        <button
+                          key={v}
+                          onClick={() => { setFilterStatus(v); setShowStatusDropdown(false); }}
+                          className="w-full px-3 py-1.5 text-left text-xs transition-colors"
+                          style={{ color: filterStatus === v ? "#165DFF" : "var(--foreground)" }}
+                        >{l}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 同步/异步切换 */}
+                <div className="flex items-center gap-0.5 p-0.5 rounded-md" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+                  <button
+                    onClick={() => setShowSync(v => !v)}
+                    className="px-2.5 py-1 rounded text-xs transition-colors"
+                    style={{ background: showSync ? "#165DFF" : "transparent", color: showSync ? "#fff" : "var(--muted-foreground)" }}
+                  >同步</button>
+                  <button
+                    onClick={() => setShowAsync(v => !v)}
+                    className="px-2.5 py-1 rounded text-xs transition-colors"
+                    style={{ background: showAsync ? "#A855F7" : "transparent", color: showAsync ? "#fff" : "var(--muted-foreground)" }}
+                  >异步</button>
+                </div>
+
+                {/* 动画开关 */}
                 <button
-                  onClick={() => setShowSync(v => !v)}
-                  className="px-2.5 py-1 rounded text-xs transition-colors"
-                  style={{ background: showSync ? "rgba(22,93,255,0.3)" : "transparent", color: showSync ? "#60A5FA" : "var(--muted-foreground)", border: showSync ? "1px solid rgba(22,93,255,0.4)" : "1px solid transparent" }}
-                >同步</button>
+                  onClick={() => setAnimated(!animated)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs transition-colors"
+                  style={{ background: animated ? "#00D68F" : "var(--card)", border: "1px solid var(--border)", color: animated ? "#0B1120" : "var(--muted-foreground)" }}
+                >
+                  <ActivityIcon size={12} />
+                  <span>{animated ? "动画" : "静态"}</span>
+                </button>
+
+                {/* 刷新按钮 */}
                 <button
-                  onClick={() => setShowAsync(v => !v)}
-                  className="px-2.5 py-1 rounded text-xs transition-colors"
-                  style={{ background: showAsync ? "rgba(168,85,247,0.25)" : "transparent", color: showAsync ? "#C084FC" : "var(--muted-foreground)", border: showAsync ? "1px solid rgba(168,85,247,0.4)" : "1px solid transparent" }}
-                >异步/消息</button>
+                  onClick={() => { showToast("正在刷新拓扑图...", "info"); setTimeout(() => showToast("拓扑图刷新成功", "success"), 1000); }}
+                  className="w-8 h-8 rounded-md flex items-center justify-center transition-colors"
+                  style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+                  title="刷新拓扑图"
+                >
+                  <RefreshCwIcon size={14} style={{ color: "var(--foreground)" }} />
+                </button>
               </div>
-              <TechButton variant={animated ? "primary" : "secondary"} icon={<ActivityIcon size={13} />} onClick={() => setAnimated(!animated)}>{animated ? "动画开" : "动画关"}</TechButton>
-              <TechButton variant="secondary" icon={<RefreshCwIcon size={13} />}>刷新</TechButton>
             </>
           }
         />

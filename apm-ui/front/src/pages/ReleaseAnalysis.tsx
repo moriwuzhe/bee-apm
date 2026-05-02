@@ -16,7 +16,7 @@ import {
   UnlockIcon,
   FilterIcon,
 } from "lucide-react";
-import { toast } from "sonner";
+import { useToast } from "../context/ToastContext";
 
 // ─── 类型定义 ────────────────────────────────────────
 type ChangeType = "add" | "modify" | "delete";
@@ -219,6 +219,7 @@ function NodeAlertTooltip({ node, alerts, x, y }: { node: GraphNode; alerts: Moc
 
 // ─── 主组件 ───────────────────────────────────────────
 export default function ReleaseAnalysis() {
+  const { showToast } = useToast();
   const [changeFilter, setChangeFilter] = useState<"all" | ChangeType>("all");
   const [hoveredCell, setHoveredCell] = useState<{ cell: HeatCell; x: number; y: number } | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<string | null>(null);
@@ -257,13 +258,13 @@ export default function ReleaseAnalysis() {
 
   // 跳转到告警列表（带过滤参数，模拟）
   const navigateToAlerts = (nodeId: string) => {
-    toast.info(`已跳转到告警列表，筛选节点: ${nodeId}`);
+    showToast(`已跳转到告警列表，筛选节点: ${nodeId}`, "info");
     console.log(`navigate to /alert-rules?node=${nodeId}`);
   };
 
   // 点击热力格：跳转变更详情
   const handleCellClick = (cell: HeatCell) => {
-    toast.info(`查看 ${cell.service} ${cell.version} 变更详情`);
+    showToast(`查看 ${cell.service} ${cell.version} 变更详情`, "info");
     console.log(`navigate to change detail: ${cell.service}@${cell.version}`);
   };
 
@@ -296,7 +297,7 @@ export default function ReleaseAnalysis() {
                   >{l}</button>
                 ))}
               </div>
-              <TechButton variant="secondary" icon={<FilterIcon size={13} />}>导出报告</TechButton>
+              <TechButton variant="secondary" icon={<FilterIcon size={13} />} onClick={() => { showToast("正在生成发布影响分析报告...", "info"); setTimeout(() => showToast("报告已生成并下载", "success"), 1500); }}>导出报告</TechButton>
             </>
           }
         />
@@ -604,7 +605,7 @@ export default function ReleaseAnalysis() {
                       onContextMenu={e => {
                         e.preventDefault();
                         toggleLock(node.id);
-                        toast.info(`节点 ${node.label} ${isLocked ? "已解锁" : "已锁定"}`);
+                        showToast(`节点 ${node.label} ${isLocked ? "已解锁" : "已锁定"}`, "info");
                       }}
                     >
                       {/* 高风险节点脉冲环 */}
@@ -663,7 +664,7 @@ export default function ReleaseAnalysis() {
                 {mockAlerts.length} 条活跃
               </span>
             </div>
-            <TechButton variant="ghost" size="xs" onClick={() => toast.info(`已跳转到告警规则列表`)}>
+            <TechButton variant="ghost" size="xs" onClick={() => showToast(`已跳转到告警规则列表`, "info")}>
               查看全部告警
             </TechButton>
           </div>

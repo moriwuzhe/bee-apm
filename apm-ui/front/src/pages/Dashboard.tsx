@@ -83,58 +83,67 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
+        console.log("开始加载Dashboard数据...");
+
         // 获取统计数据
         try {
           const statsResponse = await dashboardApi.getStats();
-          setStats(statsResponse.data);
+          console.log("Dashboard统计响应:", statsResponse);
+          if (statsResponse.data) {
+            setStats(statsResponse.data);
+          }
         } catch (error) {
-          console.log("使用默认统计数据");
+          console.error("获取统计数据失败:", error);
         }
 
         // 获取趋势数据
         try {
           const trendResponse = await dashboardApi.getTrend();
+          console.log("Dashboard趋势响应:", trendResponse);
           if (trendResponse.data) {
             setTrendData(trendResponse.data);
           }
         } catch (error) {
-          console.log("使用默认趋势数据");
+          console.error("获取趋势数据失败:", error);
         }
 
         // 获取告警趋势
         try {
           const alertTrendResponse = await dashboardApi.getAlertTrend();
+          console.log("Dashboard告警趋势响应:", alertTrendResponse);
           if (alertTrendResponse.data) {
             setAlertData(alertTrendResponse.data);
           }
         } catch (error) {
-          console.log("使用默认告警数据");
+          console.error("获取告警趋势失败:", error);
         }
 
         // 获取最新告警
         try {
           const recentAlertsResponse = await dashboardApi.getRecentAlerts();
+          console.log("Dashboard最新告警响应:", recentAlertsResponse);
           if (recentAlertsResponse.data) {
             setRecentAlerts(recentAlertsResponse.data);
           }
         } catch (error) {
-          console.log("使用默认告警数据");
+          console.error("获取最新告警失败:", error);
         }
 
         // 获取Top应用
         try {
           const topAppsResponse = await dashboardApi.getTopApps();
+          console.log("Dashboard Top应用响应:", topAppsResponse);
           if (topAppsResponse.data) {
             setTopApps(topAppsResponse.data);
           }
         } catch (error) {
-          console.log("使用默认应用数据");
+          console.error("获取Top应用失败:", error);
         }
       } catch (error) {
         console.error("加载Dashboard数据失败:", error);
       } finally {
         setLoading(false);
+        console.log("Dashboard数据加载完成");
       }
     };
 
@@ -193,7 +202,7 @@ export default function Dashboard() {
         {/* Charts row */}
         <div className="flex gap-3">
           {/* Core trend */}
-          <div className="flex-1 rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="flex-1 rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)", minHeight: 250 }}>
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm font-medium text-white">核心指标趋势</span>
               <div className="flex gap-2">
@@ -226,7 +235,7 @@ export default function Dashboard() {
           </div>
 
           {/* Alert trend */}
-          <div className="w-72 rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="w-72 rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)", minHeight: 250 }}>
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm font-medium text-white">告警趋势</span>
               <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>近7天</span>

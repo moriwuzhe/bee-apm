@@ -42,7 +42,12 @@ class ErrorBoundary extends React.Component<
 }
 
 const App = () => (
-  <BrowserRouter>
+  <BrowserRouter
+    future={{
+      v7_startTransition: true,
+      v7_relativeSplatPath: true,
+    }}
+  >
     <ErrorBoundary>
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />

@@ -7,6 +7,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
 import { Cpu, HardDrive, Wifi, Activity, Thermometer, RefreshCw } from "lucide-react";
+import { useToast } from "../context/ToastContext";
 
 const timePoints = ["10:00", "10:05", "10:10", "10:15", "10:20", "10:25", "10:30", "10:35", "10:40", "10:45", "10:50", "10:55", "11:00"];
 
@@ -30,6 +31,7 @@ const MiniTooltip = ({ active, payload }: { active?: boolean; payload?: { value:
 };
 
 export default function JVMMonitor() {
+  const { showToast } = useToast();
   const [selectedApp, setSelectedApp] = useState("order-service");
   const [timeRange, setTimeRange] = useState("30m");
 
@@ -54,7 +56,7 @@ export default function JVMMonitor() {
                   <button key={t} onClick={() => setTimeRange(t)} className="px-2.5 py-1 rounded text-xs" style={{ background: timeRange === t ? "#165DFF" : "transparent", color: timeRange === t ? "#fff" : "var(--muted-foreground)" }}>{t}</button>
                 ))}
               </div>
-              <TechButton variant="secondary" icon={<RefreshCw size={13} />}>刷新</TechButton>
+              <TechButton variant="secondary" icon={<RefreshCw size={13} />} onClick={() => { showToast(`正在刷新 ${selectedApp} 的监控数据...`, "info"); setTimeout(() => showToast("数据刷新成功", "success"), 1000); }}>刷新</TechButton>
             </>
           }
         />
@@ -89,7 +91,7 @@ export default function JVMMonitor() {
         {/* JVM Charts - Row 1 */}
         <div className="flex gap-3">
           {/* Heap memory */}
-          <div className="flex-1 rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="flex-1 rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)", minHeight: 200 }}>
             <div className="flex items-center justify-between mb-3">
               <div>
                 <div className="text-sm font-medium text-white">堆内存 / 非堆内存</div>
@@ -120,7 +122,7 @@ export default function JVMMonitor() {
           </div>
 
           {/* Thread monitor */}
-          <div className="flex-1 rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="flex-1 rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)", minHeight: 200 }}>
             <div className="flex items-center justify-between mb-3">
               <div>
                 <div className="text-sm font-medium text-white">线程监控</div>
@@ -144,7 +146,7 @@ export default function JVMMonitor() {
         {/* JVM Charts - Row 2 */}
         <div className="flex gap-3">
           {/* GC */}
-          <div className="flex-1 rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="flex-1 rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)", minHeight: 200 }}>
             <div className="flex items-center justify-between mb-3">
               <div>
                 <div className="text-sm font-medium text-white">GC 监控</div>
@@ -172,7 +174,7 @@ export default function JVMMonitor() {
           </div>
 
           {/* Network */}
-          <div className="flex-1 rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="flex-1 rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)", minHeight: 200 }}>
             <div className="flex items-center justify-between mb-3">
               <div>
                 <div className="text-sm font-medium text-white">网络流量</div>

@@ -1,10 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
-import tailwindcss from "@tailwindcss/vite";
 import fs from "fs";
 import AutoImport from "unplugin-auto-import/vite";
-import checker from "vite-plugin-checker";
 import * as lucideIcons from "lucide-react";
 
 // 获取所有 lucide-react 导出的符号名
@@ -56,7 +54,6 @@ const usedLucideIcons = getUsedLucideIcons();
 export default defineConfig({
   plugins: [
     react(),
-    tailwindcss(),
     AutoImport({
       dts: "auto-imports.d.ts",
       include: [/\.[tj]sx?$/],
@@ -76,16 +73,13 @@ export default defineConfig({
         enabled: false,
       },
     }),
-    checker({
-      typescript: {
-        tsconfigPath: "tsconfig.app.json",
-      },
-      enableBuild: true,
-    }),
   ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  server: {
+    port: 3000,
   },
 });

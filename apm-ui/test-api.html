@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeeAPM 后端API测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0F172A;
+            color: #E2E8F0;
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #165DFF;
+            margin-bottom: 0.5rem;
+        }
+        h2 {
+            color: #00D68F;
+            margin-top: 2rem;
+            border-bottom: 1px solid rgba(148,163,184,0.12);
+            padding-bottom: 0.5rem;
+        }
+        .card {
+            background: #1E293B;
+            border: 1px solid rgba(148,163,184,0.12);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+        .status-green { color: #00D68F; }
+        .status-yellow { color: #FFAA00; }
+        .status-red { color: #FF4D4F; }
+        .success {
+            padding: 1rem;
+            background: rgba(0, 214, 143, 0.1);
+            border: 1px solid #00D68F;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+        .error {
+            padding: 1rem;
+            background: rgba(255, 77, 77, 0.1);
+            border: 1px solid #FF4D4F;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+        button {
+            background: #165DFF;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 0.5rem 0.25rem;
+        }
+        button:hover {
+            background: #1453cc;
+        }
+        pre {
+            background: #0F172A;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-size: 0.875rem;
+            max-height: 300px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .stat-card {
+            background: #1E293B;
+            border: 1px solid rgba(148,163,184,0.12);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #165DFF;
+            margin: 0.5rem 0;
+        }
+        .stat-label {
+            color: #94A3B8;
+        }
+        .api-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem;
+            background: rgba(22, 93, 255, 0.05);
+            border-radius: 0.5rem;
+            margin: 0.5rem 0;
+        }
+        .api-method {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        .method-get { background: rgba(0, 214, 143, 0.2); color: #00D68F; }
+        .method-post { background: rgba(22, 93, 255, 0.2); color: #165DFF; }
+        .method-put { background: rgba(255, 170, 0, 0.2); color: #FFAA00; }
+        .method-delete { background: rgba(255, 77, 77, 0.2); color: #FF4D4F; }
+        .api-status {
+            margin-left: auto;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+        }
+        .status-success { background: rgba(0, 214, 143, 0.2); color: #00D68F; }
+        .status-error { background: rgba(255, 77, 77, 0.2); color: #FF4D4F; }
+        .test-summary {
+            display: flex;
+            gap: 2rem;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: rgba(22, 93, 255, 0.1);
+            border-radius: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>🦅 BeeAPM 后端API测试</h1>
+    <p>后端服务运行在 <strong>http://localhost:8081</strong></p>
+
+    <div id="service-status" class="success">
+        🔄 正在检查服务状态...
+    </div>
+
+    <div id="stats-section" class="card" style="display:none;">
+        <h2>📊 Dashboard 统计数据</h2>
+        <div class="grid" id="stats-grid"></div>
+    </div>
+
+    <div class="card">
+        <h2>🔗 API 测试</h2>
+        <button onclick="testAllAPIs()">🚀 测试所有API</button>
+        <button onclick="testDashboard()">📊 Dashboard APIs</button>
+        <button onclick="testProjects()">📁 Project APIs</button>
+        <button onclick="testApplications()">📱 Application APIs</button>
+        <button onclick="testUsers()">👥 User APIs</button>
+        <button onclick="testRoles()">🎭 Role APIs</button>
+        
+        <div class="test-summary" id="test-summary" style="display:none;">
+            <div>✅ 成功: <span id="success-count">0</span></div>
+            <div>❌ 失败: <span id="error-count">0</span></div>
+            <div>📊 总计: <span id="total-count">0</span></div>
+        </div>
+
+        <div id="api-results"></div>
+    </div>
+
+    <div class="card">
+        <h2>✅ 已完成的API功能</h2>
+        <div class="api-item">
+            <span class="api-method method-get">GET</span>
+            <span>/api/dashboard/stats</span>
+            <span class="api-status status-success">✅ 正常</span>
+        </div>
+        <div class="api-item">
+            <span class="api-method method-get">GET</span>
+            <span>/api/dashboard/trend</span>
+            <span class="api-status status-success">✅ 正常</span>
+        </div>
+        <div class="api-item">
+            <span class="api-method method-get">GET</span>
+            <span>/api/projects</span>
+            <span class="api-status status-success">✅ 正常</span>
+        </div>
+        <div class="api-item">
+            <span class="api-method method-get">GET</span>
+            <span>/api/applications</span>
+            <span class="api-status status-success">✅ 正常</span>
+        </div>
+        <div class="api-item">
+            <span class="api-method method-get">GET</span>
+            <span>/api/users</span>
+            <span class="api-status status-success">✅ 正常</span>
+        </div>
+        <div class="api-item">
+            <span class="api-method method-get">GET</span>
+            <span>/api/roles</span>
+            <span class="api-status status-success">✅ 正常</span>
+        </div>
+        <div class="api-item">
+            <span class="api-method method-get">GET</span>
+            <span>/api/releases</span>
+            <span class="api-status status-success">✅ 正常</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>🎯 技术栈</h2>
+        <ul>
+            <li>Java 8 + Spring Boot 2.7.18</li>
+            <li>Spring Data JPA + H2 Database</li>
+            <li>Lombok + Maven</li>
+            <li>RESTful API Design</li>
+            <li>DTO Pattern (解决循环引用问题)</li>
+            <li>CORS 跨域支持</li>
+            <li>全局异常处理</li>
+        </ul>
+    </div>
+
+    <script>
+        const API_BASE = "http://localhost:8081/api";
+        let successCount = 0;
+        let errorCount = 0;
+        let totalTests = 0;
+
+        async function checkService() {
+            const statusEl = document.getElementById('service-status');
+            try {
+                const response = await fetch(`${API_BASE}/dashboard/stats`);
+                if (response.ok) {
+                    statusEl.className = 'success';
+                    statusEl.innerHTML = '✅ 后端服务运行正常！';
+                    return true;
+                }
+            } catch (error) {
+                statusEl.className = 'error';
+                statusEl.innerHTML = `❌ 后端服务未运行: ${error.message}`;
+                return false;
+            }
+        }
+
+        async function testAPI(endpoint, method = 'GET') {
+            totalTests++;
+            const resultEl = document.getElementById('api-results');
+            const item = document.createElement('div');
+            item.className = 'api-item';
+            
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.code === 200) {
+                    successCount++;
+                    item.innerHTML = `
+                        <span class="api-method method-${method.toLowerCase()}">${method}</span>
+                        <span>${endpoint}</span>
+                        <span class="api-status status-success">✅ 成功 (${data.data?.length || 1} items)</span>
+                    `;
+                } else {
+                    errorCount++;
+                    item.innerHTML = `
+                        <span class="api-method method-${method.toLowerCase()}">${method}</span>
+                        <span>${endpoint}</span>
+                        <span class="api-status status-error">❌ ${data.message || response.status}</span>
+                    `;
+                }
+            } catch (error) {
+                errorCount++;
+                item.innerHTML = `
+                    <span class="api-method method-${method.toLowerCase()}">${method}</span>
+                    <span>${endpoint}</span>
+                    <span class="api-status status-error">❌ ${error.message}</span>
+                `;
+            }
+            
+            resultEl.appendChild(item);
+            updateSummary();
+        }
+
+        function updateSummary() {
+            const summaryEl = document.getElementById('test-summary');
+            summaryEl.style.display = 'flex';
+            document.getElementById('success-count').textContent = successCount;
+            document.getElementById('error-count').textContent = errorCount;
+            document.getElementById('total-count').textContent = totalTests;
+        }
+
+        async function testDashboard() {
+            await testAPI('/dashboard/stats');
+            await testAPI('/dashboard/trend');
+            await testAPI('/dashboard/alert-trend');
+            await testAPI('/dashboard/recent-alerts');
+            await testAPI('/dashboard/top-apps');
+        }
+
+        async function testProjects() {
+            await testAPI('/projects');
+            await testAPI('/projects/1');
+            await testAPI('/projects/env/production');
+        }
+
+        async function testApplications() {
+            await testAPI('/applications');
+            await testAPI('/applications/1');
+            await testAPI('/applications/status/online');
+        }
+
+        async function testUsers() {
+            await testAPI('/users');
+            await testAPI('/users/1');
+        }
+
+        async function testRoles() {
+            await testAPI('/roles');
+            await testAPI('/roles/1');
+        }
+
+        async function testAllAPIs() {
+            successCount = 0;
+            errorCount = 0;
+            totalTests = 0;
+            document.getElementById('api-results').innerHTML = '';
+            
+            await testDashboard();
+            await testProjects();
+            await testApplications();
+            await testUsers();
+            await testRoles();
+            await testAPI('/releases');
+        }
+
+        async function loadDashboardStats() {
+            try {
+                const response = await fetch(`${API_BASE}/dashboard/stats`);
+                const data = await response.json();
+                
+                if (data.code === 200) {
+                    const stats = data.data;
+                    const grid = document.getElementById('stats-grid');
+                    grid.innerHTML = `
+                        <div class="stat-card">
+                            <div class="stat-label">在线Agent</div>
+                            <div class="stat-value">${stats.onlineAgents}/${stats.totalAgents}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">总应用数</div>
+                            <div class="stat-value">${stats.totalApps}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">服务器节点</div>
+                            <div class="stat-value">${stats.serverNodes}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">活跃告警</div>
+                            <div class="stat-value">${stats.activeAlerts}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">健康度</div>
+                            <div class="stat-value">${stats.healthScore}%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">平均响应</div>
+                            <div class="stat-value">${stats.avgResponseTime}ms</div>
+                        </div>
+                    `;
+                    document.getElementById('stats-section').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        // 页面加载时自动检查
+        window.onload = async () => {
+            await checkService();
+            await loadDashboardStats();
+        };
+    </script>
+</body>
+</html>

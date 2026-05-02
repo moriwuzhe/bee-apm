@@ -3,6 +3,7 @@ import MainLayout from "../components/Layout/MainLayout";
 import PageHeader from "../components/UI/PageHeader";
 import TechButton from "../components/UI/TechButton";
 import { RefreshCw, GitBranch, ArrowRight } from "lucide-react";
+import { useToast } from "../context/ToastContext";
 
 const services = [
   { id: "api-gw",      name: "API Gateway",       lang: "Java",   qps: 4820, p99: 48,  err: 0.02, status: "online"  },
@@ -50,6 +51,7 @@ const nodePositions: Record<string, { x: number; y: number }> = {
 };
 
 export default function ServiceDependency() {
+  const { showToast } = useToast();
   const [selected, setSelected] = useState<string | null>(null);
   const [focusMode, setFocusMode] = useState(false);
 
@@ -75,7 +77,7 @@ export default function ServiceDependency() {
               <TechButton variant={focusMode ? "primary" : "secondary"} icon={<GitBranch size={13} />} onClick={() => setFocusMode(!focusMode)}>
                 {focusMode ? "聚焦模式" : "全局模式"}
               </TechButton>
-              <TechButton variant="secondary" icon={<RefreshCw size={13} />}>刷新</TechButton>
+              <TechButton variant="secondary" icon={<RefreshCw size={13} />} onClick={() => { showToast("正在刷新服务依赖关系...", "info"); setTimeout(() => showToast("服务依赖刷新成功", "success"), 1000); }}>刷新</TechButton>
             </>
           }
         />

@@ -6,6 +6,8 @@ import StatusBadge from "../components/UI/StatusBadge";
 import { GitBranch, Package, AlertTriangle, CheckCircle, Clock, User, ArrowRight, Plus, ChevronDown, Edit, Trash, Eye, X } from "lucide-react";
 import { releasesApi } from "../services/api";
 import { useToast } from "../context/ToastContext";
+import { usePagination } from "@/hooks/usePagination";
+import { Pagination } from "@/components/business";
 
 type Env = "production" | "staging";
 
@@ -71,9 +73,12 @@ export default function Releases() {
   const [editingRelease, setEditingRelease] = useState<Release | null>(null);
   const [deletingRelease, setDeletingRelease] = useState<Release | null>(null);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const { showToast } = useToast();
+
+  const {
+    currentPage, pageSize, totalPages, startIndex, endIndex,
+    paginatedData, setCurrentPage, setPageSize, canPrevPage, canNextPage,
+  } = usePagination({ data: releases, defaultPageSize: 10 });
 
   const [formData, setFormData] = useState<ReleaseFormData>({
     app: "",
@@ -82,21 +87,6 @@ export default function Releases() {
     env: "production",
     changes: [""],
   });
-
-  const totalPages = Math.ceil(releases.length / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
-  const paginatedReleases = releases.slice(startIndex, startIndex + pageSize);
-
-  const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
-
-  const handlePageSizeChange = (size: number) => {
-    setPageSize(size);
-    setCurrentPage(1);
-  };
 
   useEffect(() => {
     fetchReleases();
@@ -287,7 +277,7 @@ export default function Releases() {
         </div>
 
         <div className="space-y-2">
-          {paginatedReleases.map((r) => {
+          {paginatedData.map((r) => {
             const ec = envColors[r.env];
             const isOpen = expanded === r.id;
             return (
@@ -384,53 +374,12 @@ export default function Releases() {
           })}
         </div>
 
-        <div className="flex items-center justify-between py-3 px-4 rounded-lg" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-          <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-            显示第 {startIndex + 1} - {Math.min(startIndex + pageSize, releases.length)} 条，共 {releases.length} 条
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="px-2 py-1 rounded text-xs disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--muted)] transition-colors"
-              style={{ background: "var(--card)", border: "1px solid var(--border)" }}
-            >
-              上一页
-            </button>
-            {Array.from({ length: Math.max(totalPages, 1) }, (_, i) => i + 1).map((page) => (
-              <button
-                key={page}
-                onClick={() => handlePageChange(page)}
-                className={`px-2 py-1 rounded text-xs transition-colors ${
-                  currentPage === page
-                    ? "bg-[#165DFF] text-white"
-                    : "hover:bg-[var(--muted)]"
-                }`}
-                style={{ border: "1px solid var(--border)" }}
-              >
-                {page}
-              </button>
-            ))}
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="px-2 py-1 rounded text-xs disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--muted)] transition-colors"
-              style={{ background: "var(--card)", border: "1px solid var(--border)" }}
-            >
-              下一页
-            </button>
-            <select
-              value={pageSize}
-              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-              className="ml-2 px-2 py-1 rounded text-xs outline-none"
-              style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
-            >
-              <option value={5} style={{ color: "#000", background: "#fff" }}>5条/页</option>
-              <option value={10} style={{ color: "#000", background: "#fff" }}>10条/页</option>
-              <option value={20} style={{ color: "#000", background: "#fff" }}>20条/页</option>
-              <option value={50} style={{ color: "#000", background: "#fff" }}>50条/页</option>
-            </select>
-          </div>
+        <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-card border border-border">
+          <Pagination
+            currentPage={currentPage} pageSize={pageSize} totalPages={totalPages} totalCount={releases.length}
+            startIndex={startIndex} endIndex={endIndex} onPageChange={setCurrentPage} onPageSizeChange={setPageSize}
+            canPrev={canPrevPage} canNext={canNextPage}
+          />
         </div>
       </div>
 
@@ -483,8 +432,8 @@ export default function Releases() {
                   className="w-full h-9 px-3 rounded-md text-xs text-white outline-none"
                   style={{ background: "var(--input)", border: "1px solid var(--border)" }}
                 >
-                  <option value="production" style={{ background: "#1E293B" }}>生产环境</option>
-                  <option value="staging" style={{ background: "#1E293B" }}>测试环境</option>
+                  <option value="production" style={{ color: "#fff", background: "#1E293B" }}>生产环境</option>
+                  <option value="staging" style={{ color: "#fff", background: "#1E293B" }}>测试环境</option>
                 </select>
               </div>
               <div>

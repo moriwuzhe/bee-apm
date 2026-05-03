@@ -44,12 +44,12 @@ export default function JVMMonitor() {
           actions={
             <>
               <select
-                className="h-8 px-3 rounded-md text-xs outline-none"
-                style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
+                className="h-8 px-3 rounded-md text-xs outline-none appearance-none cursor-pointer"
+                style={{ background: "var(--input)", border: "1px solid var(--border)", color: "#fff" }}
                 value={selectedApp}
                 onChange={(e) => setSelectedApp(e.target.value)}
               >
-                {apps.map((a) => <option key={a} value={a}>{a}</option>)}
+                {apps.map((a) => <option key={a} value={a} style={{ color: "#fff", background: "#1E293B" }}>{a}</option>)}
               </select>
               <div className="flex gap-1 p-1 rounded-md" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
                 {["5m", "30m", "1h", "6h", "24h"].map((t) => (

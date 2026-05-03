@@ -496,10 +496,10 @@ export default function Users() {
               )}
               <div>
                 <label className="block text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>状态</label>
-                <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-3 py-2 rounded-md text-xs text-white" style={{ background: "var(--muted)", border: "1px solid var(--border)" }}>
-                  <option value="online">在线</option>
-                  <option value="offline">离线</option>
-                  <option value="disabled">禁用</option>
+                <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-3 py-2 rounded-md text-xs text-white outline-none appearance-none cursor-pointer" style={{ background: "var(--muted)", border: "1px solid var(--border)" }}>
+                  <option value="online" style={{ color: "#fff", background: "#1E293B" }}>在线</option>
+                  <option value="offline" style={{ color: "#fff", background: "#1E293B" }}>离线</option>
+                  <option value="disabled" style={{ color: "#fff", background: "#1E293B" }}>禁用</option>
                 </select>
               </div>
             </div>

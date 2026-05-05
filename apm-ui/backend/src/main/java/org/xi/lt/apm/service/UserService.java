@@ -11,6 +11,7 @@ import org.xi.lt.apm.repository.RoleRepository;
 import org.xi.lt.apm.repository.UserRepository;
 
 import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -166,7 +167,7 @@ public class UserService {
     public List<String> getUserPermissions(Long userId) {
         Optional<User> userOpt = userRepository.findById(userId);
         if (!userOpt.isPresent()) {
-            return List.of();
+            return Collections.emptyList();
         }
         
         User user = userOpt.get();

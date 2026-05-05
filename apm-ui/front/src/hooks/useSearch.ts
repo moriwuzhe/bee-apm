@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 
 interface UseSearchOptions<T> {
   data: T[];
@@ -23,6 +23,25 @@ export function useSearch<T>({
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedTerm, setDebouncedTerm] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    setIsSearching(true);
+    debounceTimerRef.current = setTimeout(() => {
+      setDebouncedTerm(searchTerm);
+      setIsSearching(false);
+    }, debounceMs);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [searchTerm, debounceMs]);
 
   const filteredData = useMemo(() => {
     if (!debouncedTerm) return data;
@@ -43,10 +62,12 @@ export function useSearch<T>({
   }, [data, debouncedTerm, searchKeys]);
 
   const handleSearch = useCallback(() => {
-    setIsSearching(true);
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
     setDebouncedTerm(searchTerm);
-    setTimeout(() => setIsSearching(false), debounceMs);
-  }, [searchTerm, debounceMs]);
+    setIsSearching(false);
+  }, [searchTerm]);
 
   const clearSearch = useCallback(() => {
     setSearchTerm("");

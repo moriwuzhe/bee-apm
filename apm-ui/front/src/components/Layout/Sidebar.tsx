@@ -18,6 +18,11 @@ import {
   ChevronDown,
   ChevronUp,
   BellIcon,
+  Heart,
+  FileText,
+  Book,
+  Database,
+  Settings,
 } from "lucide-react";
 
 interface NavItem {
@@ -40,6 +45,9 @@ const navGroups = [
       { icon: <GitBranch size={16} />, label: "服务依赖", path: "/service-dep" },
       { icon: <PackageOpen size={16} />, label: "版本发布", path: "/releases" },
       { icon: <BellIcon size={16} />, label: "告警规则", path: "/alert-rules" },
+      { icon: <Activity size={16} />, label: "链路追踪", path: "/trace-tracking" },
+      { icon: <Heart size={16} />, label: "健康检查", path: "/health-check" },
+      { icon: <FileText size={16} />, label: "日志查看", path: "/log-viewer" },
     ],
   },
   {
@@ -48,6 +56,14 @@ const navGroups = [
       { icon: <Users size={16} />, label: "用户管理", path: "/users" },
       { icon: <Shield size={16} />, label: "角色管理", path: "/roles" },
       { icon: <Key size={16} />, label: "权限管理", path: "/permissions" },
+    ],
+  },
+  {
+    group: "开发工具",
+    items: [
+      { icon: <Book size={16} />, label: "API文档", path: "/api-docs" },
+      { icon: <Database size={16} />, label: "数据库管理", path: "/database" },
+      { icon: <Settings size={16} />, label: "系统设置", path: "/settings" },
     ],
   },
 ];
@@ -61,7 +77,7 @@ export default function Sidebar({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [openGroups, setOpenGroups] = useState<string[]>(["监控运维", "权限管控"]);
+  const [openGroups, setOpenGroups] = useState<string[]>(["监控运维", "权限管控", "开发工具"]);
 
   const toggleGroup = (group: string) => {
     setOpenGroups((prev) =>

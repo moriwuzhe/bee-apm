@@ -1,242 +1,377 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import MainLayout from "../components/Layout/MainLayout";
-import PageHeader from "../components/UI/PageHeader";
-import TechButton from "../components/UI/TechButton";
-import { RefreshCw, GitBranch, ArrowRight } from "lucide-react";
-import { useToast } from "../context/ToastContext";
+import { Search, Filter, Download, RefreshCw, Server, ArrowRight, Activity, Database, Globe, Wifi } from "lucide-react";
 
-const services = [
-  { id: "api-gw",      name: "API Gateway",       lang: "Java",   qps: 4820, p99: 48,  err: 0.02, status: "online"  },
-  { id: "order",       name: "order-service",      lang: "Java",   qps: 1240, p99: 352, err: 1.8,  status: "error"   },
-  { id: "pay",         name: "payment-service",    lang: "Java",   qps: 420,  p99: 88,  err: 0.1,  status: "online"  },
-  { id: "user",        name: "user-service",       lang: "Java",   qps: 2180, p99: 242, err: 0.5,  status: "warning" },
-  { id: "inventory",   name: "inventory-service",  lang: "Go",     qps: 680,  p99: 32,  err: 0.0,  status: "online"  },
-  { id: "search",      name: "search-service",     lang: "Python", qps: 3100, p99: 65,  err: 0.3,  status: "online"  },
-  { id: "notify",      name: "notify-service",     lang: "Java",   qps: 380,  p99: 28,  err: 0.0,  status: "online"  },
-  { id: "risk",        name: "risk-engine",        lang: "Java",   qps: 820,  p99: 120, err: 0.0,  status: "online"  },
+interface ServiceNode {
+  id: string;
+  name: string;
+  type: "app" | "database" | "cache" | "gateway" | "external";
+  status: "healthy" | "warning" | "critical";
+  calls: number;
+  avgResponseTime: number;
+  errorRate: number;
+}
+
+interface ServiceCall {
+  source: string;
+  target: string;
+  calls: number;
+  avgTime: number;
+}
+
+const mockServices: ServiceNode[] = [
+  { id: "1", name: "API Gateway", type: "gateway", status: "healthy", calls: 12500, avgResponseTime: 45, errorRate: 0.1 },
+  { id: "2", name: "User Service", type: "app", status: "healthy", calls: 8900, avgResponseTime: 32, errorRate: 0.2 },
+  { id: "3", name: "Order Service", type: "app", status: "warning", calls: 5600, avgResponseTime: 120, errorRate: 1.5 },
+  { id: "4", name: "Payment Service", type: "app", status: "healthy", calls: 3200, avgResponseTime: 85, errorRate: 0.3 },
+  { id: "5", name: "Inventory Service", type: "app", status: "healthy", calls: 4100, avgResponseTime: 28, errorRate: 0.1 },
+  { id: "6", name: "MySQL", type: "database", status: "healthy", calls: 15000, avgResponseTime: 12, errorRate: 0 },
+  { id: "7", name: "Redis", type: "cache", status: "healthy", calls: 28000, avgResponseTime: 2, errorRate: 0 },
+  { id: "8", name: "Kafka", type: "external", status: "warning", calls: 5200, avgResponseTime: 15, errorRate: 0.8 },
 ];
 
-const dependencies: Record<string, string[]> = {
-  "api-gw":    ["order", "pay", "user", "inventory", "search"],
-  "order":     ["pay", "inventory", "notify", "risk"],
-  "pay":       ["risk", "notify"],
-  "user":      ["notify"],
-  "inventory": ["search"],
-  "search":    [],
-  "notify":    [],
-  "risk":      [],
+const mockCalls: ServiceCall[] = [
+  { source: "API Gateway", target: "User Service", calls: 4500, avgTime: 25 },
+  { source: "API Gateway", target: "Order Service", calls: 3200, avgTime: 38 },
+  { source: "API Gateway", target: "Payment Service", calls: 1800, avgTime: 42 },
+  { source: "User Service", target: "MySQL", calls: 8900, avgTime: 8 },
+  { source: "User Service", target: "Redis", calls: 12000, avgTime: 1 },
+  { source: "Order Service", target: "MySQL", calls: 5600, avgTime: 15 },
+  { source: "Order Service", target: "Redis", calls: 7800, avgTime: 2 },
+  { source: "Order Service", target: "Inventory Service", calls: 2800, avgTime: 18 },
+  { source: "Order Service", target: "Kafka", calls: 3500, avgTime: 12 },
+  { source: "Payment Service", target: "MySQL", calls: 3200, avgTime: 10 },
+  { source: "Payment Service", target: "Kafka", calls: 1700, avgTime: 8 },
+  { source: "Inventory Service", target: "MySQL", calls: 4100, avgTime: 12 },
+];
+
+const typeConfig = {
+  app: { icon: Server, color: "#165DFF", label: "应用服务" },
+  database: { icon: Database, color: "#00B42A", label: "数据库" },
+  cache: { icon: Wifi, color: "#FFAA00", label: "缓存" },
+  gateway: { icon: Globe, color: "#722ED1", label: "网关" },
+  external: { icon: Activity, color: "#86909C", label: "外部服务" },
 };
 
-const statusColors: Record<string, string> = {
-  online: "#00D68F",
-  warning: "#FFAA00",
-  error: "#FF4D4F",
-};
-
-const langColors: Record<string, string> = {
-  Java: "#165DFF",
-  Go: "#00D68F",
-  Python: "#FFAA00",
-};
-
-const nodePositions: Record<string, { x: number; y: number }> = {
-  "api-gw":    { x: 370, y: 60  },
-  "order":     { x: 120, y: 200 },
-  "pay":       { x: 310, y: 200 },
-  "user":      { x: 500, y: 200 },
-  "inventory": { x: 690, y: 200 },
-  "search":    { x: 690, y: 340 },
-  "notify":    { x: 310, y: 340 },
-  "risk":      { x: 500, y: 340 },
+const statusConfig = {
+  healthy: { color: "#00D68F", label: "健康" },
+  warning: { color: "#FFAA00", label: "警告" },
+  critical: { color: "#FF4D4F", label: "危急" },
 };
 
 export default function ServiceDependency() {
-  const { showToast } = useToast();
-  const [selected, setSelected] = useState<string | null>(null);
-  const [focusMode, setFocusMode] = useState(false);
+  const [selectedService, setSelectedService] = useState<ServiceNode | null>(null);
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
 
-  const focusServices = selected
-    ? new Set([selected, ...(dependencies[selected] || []), ...Object.keys(dependencies).filter(k => (dependencies[k] || []).includes(selected!))])
-    : new Set(services.map(s => s.id));
+  const filteredServices = useMemo(() => {
+    return mockServices.filter((service) => {
+      const matchesType = filterType === "all" || service.type === filterType;
+      const matchesStatus = filterStatus === "all" || service.status === filterStatus;
+      return matchesType && matchesStatus;
+    });
+  }, [filterType, filterStatus]);
 
-  const visibleSvcs = focusMode && selected ? services.filter(s => focusServices.has(s.id)) : services;
-  const visibleIds = new Set(visibleSvcs.map(s => s.id));
+  const stats = {
+    totalCalls: mockCalls.reduce((sum, c) => sum + c.calls, 0),
+    avgResponseTime: Math.round(mockServices.reduce((sum, s) => sum + s.avgResponseTime, 0) / mockServices.length),
+    totalErrors: mockServices.reduce((sum, s) => sum + (s.calls * s.errorRate / 100), 0),
+    healthyServices: mockServices.filter((s) => s.status === "healthy").length,
+  };
 
-  const selectedSvc = selected ? services.find(s => s.id === selected) : null;
-  const deps = selected ? (dependencies[selected] || []) : [];
-  const callers = selected ? Object.keys(dependencies).filter(k => (dependencies[k] || []).includes(selected!)) : [];
+  const getRelatedCalls = (serviceName: string) => {
+    return mockCalls.filter((c) => c.source === serviceName || c.target === serviceName);
+  };
 
   return (
-    <MainLayout title="服务依赖拓扑">
-      <div data-cmp="ServiceDependency" className="space-y-4">
-        <PageHeader
-          title="服务依赖拓扑图"
-          subtitle={`${services.length} 个微服务 · ${Object.values(dependencies).flat().length} 条依赖关系`}
-          actions={
-            <>
-              <TechButton variant={focusMode ? "primary" : "secondary"} icon={<GitBranch size={13} />} onClick={() => setFocusMode(!focusMode)}>
-                {focusMode ? "聚焦模式" : "全局模式"}
-              </TechButton>
-              <TechButton variant="secondary" icon={<RefreshCw size={13} />} onClick={() => { showToast("正在刷新服务依赖关系...", "info"); setTimeout(() => showToast("服务依赖刷新成功", "success"), 1000); }}>刷新</TechButton>
-            </>
-          }
-        />
-
-        <div className="flex gap-3">
-          {/* Service list */}
-          <div className="w-56 flex-shrink-0 rounded-xl overflow-hidden" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <div className="px-3 py-2.5 text-xs font-medium" style={{ color: "var(--muted-foreground)", borderBottom: "1px solid var(--border)" }}>服务列表</div>
-            {services.map((s) => (
-              <div
-                key={s.id}
-                className="px-3 py-2.5 cursor-pointer transition-colors"
-                style={{
-                  borderBottom: "1px solid var(--border)",
-                  background: selected === s.id ? "rgba(22,93,255,0.12)" : "transparent",
-                  borderLeft: selected === s.id ? "2px solid #165DFF" : "2px solid transparent",
-                }}
-                onClick={() => setSelected(selected === s.id ? null : s.id)}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-white truncate max-w-32">{s.name}</span>
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: statusColors[s.status] ?? "#94A3B8" }} />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs px-1 rounded" style={{ background: `${langColors[s.lang] ?? "#94A3B8"}1a`, color: langColors[s.lang] ?? "#94A3B8" }}>{s.lang}</span>
-                  <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{s.qps} QPS</span>
+    <MainLayout title="服务依赖">
+      <div className="space-y-4">
+        {/* 统计卡片 */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="p-4 rounded-lg" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>总调用量</div>
+                <div className="text-xl font-bold mt-1" style={{ color: "var(--foreground)" }}>
+                  {(stats.totalCalls / 1000).toFixed(1)}K
                 </div>
               </div>
-            ))}
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(22, 93, 255, 0.1)" }}>
+                <Activity size={20} style={{ color: "#165DFF" }} />
+              </div>
+            </div>
           </div>
+          <div className="p-4 rounded-lg" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>平均响应</div>
+                <div className="text-xl font-bold mt-1" style={{ color: "var(--foreground)" }}>
+                  {stats.avgResponseTime}<span className="text-sm font-normal">ms</span>
+                </div>
+              </div>
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(0, 214, 143, 0.1)" }}>
+                <Server size={20} style={{ color: "#00D68F" }} />
+              </div>
+            </div>
+          </div>
+          <div className="p-4 rounded-lg" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>错误数/日</div>
+                <div className="text-xl font-bold mt-1" style={{ color: "#FF4D4F" }}>
+                  {Math.round(stats.totalErrors)}
+                </div>
+              </div>
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(255, 77, 79, 0.1)" }}>
+                <Activity size={20} style={{ color: "#FF4D4F" }} />
+              </div>
+            </div>
+          </div>
+          <div className="p-4 rounded-lg" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>健康服务</div>
+                <div className="text-xl font-bold mt-1" style={{ color: "#00D68F" }}>
+                  {stats.healthyServices}/{mockServices.length}
+                </div>
+              </div>
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(0, 214, 143, 0.1)" }}>
+                <Server size={20} style={{ color: "#00D68F" }} />
+              </div>
+            </div>
+          </div>
+        </div>
 
-          {/* Topology canvas */}
-          <div className="flex-1 rounded-xl overflow-hidden relative" style={{ background: "#080E1A", border: "1px solid var(--border)", height: 480 }}>
-            <svg width="100%" height="100%" viewBox="0 0 830 420">
-              <defs>
-                <pattern id="dots" x="0" y="0" width="25" height="25" patternUnits="userSpaceOnUse">
-                  <circle cx="1" cy="1" r="0.6" fill="rgba(100,116,139,0.18)" />
-                </pattern>
-                <marker id="dep-arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-                  <path d="M0,0 L0,6 L6,3 z" fill="rgba(22,93,255,0.7)" />
-                </marker>
-                <marker id="dep-arrow-hi" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-                  <path d="M0,0 L0,6 L6,3 z" fill="#60A5FA" />
-                </marker>
-              </defs>
-              <rect width="830" height="420" fill="url(#dots)" />
+        {/* 筛选 */}
+        <div className="flex flex-wrap items-center gap-3 p-4 rounded-lg" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <Filter className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="px-3 py-2 rounded-lg border text-sm"
+            style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+          >
+            <option value="all">全部类型</option>
+            <option value="gateway">网关</option>
+            <option value="app">应用服务</option>
+            <option value="database">数据库</option>
+            <option value="cache">缓存</option>
+            <option value="external">外部服务</option>
+          </select>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="px-3 py-2 rounded-lg border text-sm"
+            style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+          >
+            <option value="all">全部状态</option>
+            <option value="healthy">健康</option>
+            <option value="warning">警告</option>
+            <option value="critical">危急</option>
+          </select>
+          <button
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium ml-auto"
+            style={{ background: "rgba(22, 93, 255, 0.1)", color: "#165DFF" }}
+          >
+            <RefreshCw size={14} />
+            刷新
+          </button>
+        </div>
 
-              {/* Edges */}
-              {Object.entries(dependencies).map(([from, tos]) =>
-                tos.map((to) => {
-                  if (!visibleIds.has(from) || !visibleIds.has(to)) return null;
-                  const fp = nodePositions[from];
-                  const tp = nodePositions[to];
-                  if (!fp || !tp) return null;
-                  const isHighlighted = selected === from || selected === to;
-                  const opacity = selected && !isHighlighted ? 0.08 : 1;
-                  return (
-                    <line
-                      key={`${from}-${to}`}
-                      x1={fp.x} y1={fp.y} x2={tp.x} y2={tp.y}
-                      stroke={isHighlighted ? "#60A5FA" : "rgba(22,93,255,0.4)"}
-                      strokeWidth={isHighlighted ? 2 : 1}
-                      markerEnd={isHighlighted ? "url(#dep-arrow-hi)" : "url(#dep-arrow)"}
-                      opacity={opacity}
-                    />
-                  );
-                })
-              )}
-
-              {/* Nodes */}
-              {visibleSvcs.map((s) => {
-                const pos = nodePositions[s.id];
-                if (!pos) return null;
-                const isSelected = selected === s.id;
-                const sc = statusColors[s.status] ?? "#94A3B8";
-                const dimmed = selected && !focusServices.has(s.id);
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* 服务列表 */}
+          <div className="lg:col-span-1 rounded-lg overflow-hidden" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="p-4 border-b" style={{ borderColor: "var(--border)" }}>
+              <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>服务列表</span>
+            </div>
+            <div className="divide-y" style={{ borderColor: "var(--border)" }}>
+              {filteredServices.map((service) => {
+                const TypeIcon = typeConfig[service.type].icon;
+                const statusStyle = statusConfig[service.status];
+                
                 return (
-                  <g
-                    key={s.id}
-                    transform={`translate(${pos.x}, ${pos.y})`}
-                    style={{ cursor: "pointer", opacity: dimmed ? 0.3 : 1 }}
-                    onClick={() => setSelected(selected === s.id ? null : s.id)}
+                  <div
+                    key={service.id}
+                    className={`p-4 cursor-pointer transition-colors ${selectedService?.id === service.id ? "" : "hover:bg-input"}`}
+                    style={{ 
+                      background: selectedService?.id === service.id ? "var(--accent)" : "transparent",
+                      borderLeft: selectedService?.id === service.id ? `3px solid ${typeConfig[service.type].color}` : "3px solid transparent"
+                    }}
+                    onClick={() => setSelectedService(service)}
                   >
-                    {/* Glow */}
-                    {isSelected && <circle r={38} fill="rgba(22,93,255,0.1)" />}
-                    {/* Body */}
-                    <rect x={-50} y={-26} width={100} height={52} rx={8} fill={isSelected ? "rgba(22,93,255,0.25)" : "rgba(30,41,59,0.9)"} stroke={isSelected ? "#60A5FA" : sc} strokeWidth={isSelected ? 2 : 1.5} />
-                    {/* Status dot */}
-                    <circle cx={42} cy={-18} r={5} fill={sc} />
-                    {/* Service name */}
-                    <text y={-6} textAnchor="middle" fontSize="10" fill="rgba(226,232,240,0.95)" fontWeight="600">{s.name.replace("-service", "")}</text>
-                    {/* QPS */}
-                    <text y={12} textAnchor="middle" fontSize="9" fill="rgba(100,116,139,0.9)">{s.qps} QPS</text>
-                    {/* Error rate */}
-                    {s.err > 0 && <text y={25} textAnchor="middle" fontSize="9" fill={s.err > 1 ? "#FF4D4F" : "#FFAA00"}>ERR {s.err}%</text>}
-                  </g>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center"
+                        style={{ background: `${typeConfig[service.type].color}15` }}
+                      >
+                        <TypeIcon size={16} style={{ color: typeConfig[service.type].color }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>
+                            {service.name}
+                          </span>
+                          <span
+                            className="w-2 h-2 rounded-full flex-shrink-0"
+                            style={{ background: statusStyle.color }}
+                          />
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 text-xs" style={{ color: "var(--muted-foreground)" }}>
+                          <span>{typeConfig[service.type].label}</span>
+                          <span>|</span>
+                          <span>{service.calls.toLocaleString()} 调用</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
-            </svg>
-
-            {/* Legend */}
-            <div className="absolute bottom-3 left-3 flex gap-3">
-              {[["正常", "#00D68F"], ["警告", "#FFAA00"], ["异常", "#FF4D4F"]].map(([l, c]) => (
-                <div key={l} className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full" style={{ background: c }} />
-                  <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{l}</span>
-                </div>
-              ))}
             </div>
           </div>
 
-          {/* Detail panel */}
-          <div className="w-60 flex-shrink-0 rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <div className="text-sm font-medium text-white mb-3">
-              {selectedSvc ? selectedSvc.name : "选择服务查看详情"}
-            </div>
-            {selectedSvc ? (
-              <div className="space-y-3">
-                <div className="p-3 rounded-md space-y-2" style={{ background: "var(--muted)" }}>
-                  {[["QPS", `${selectedSvc.qps}/s`], ["P99延迟", `${selectedSvc.p99}ms`], ["错误率", `${selectedSvc.err}%`], ["语言", selectedSvc.lang]].map(([k, v]) => (
-                    <div key={k} className="flex justify-between text-xs">
-                      <span style={{ color: "var(--muted-foreground)" }}>{k}</span>
-                      <span className="text-white font-medium">{v}</span>
+          {/* 服务依赖图和详情 */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* 依赖关系可视化 */}
+            <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+              <div className="flex items-center gap-2 mb-4">
+                <ArrowRight size={14} style={{ color: "#165DFF" }} />
+                <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>服务调用拓扑</span>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {mockServices.map((service) => {
+                  const TypeIcon = typeConfig[service.type].icon;
+                  const statusStyle = statusConfig[service.status];
+                  
+                  return (
+                    <div
+                      key={service.id}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all hover:scale-105"
+                      style={{ 
+                        background: `${typeConfig[service.type].color}10`,
+                        border: `1px solid ${typeConfig[service.type].color}30`
+                      }}
+                      onClick={() => setSelectedService(service)}
+                    >
+                      <TypeIcon size={14} style={{ color: typeConfig[service.type].color }} />
+                      <span className="text-xs font-medium" style={{ color: "var(--foreground)" }}>
+                        {service.name}
+                      </span>
+                      <span
+                        className="w-2 h-2 rounded-full"
+                        style={{ background: statusStyle.color }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              {/* 调用连线 */}
+              <div className="mt-4 pt-4 border-t" style={{ borderColor: "var(--border)" }}>
+                <div className="text-xs mb-2" style={{ color: "var(--muted-foreground)" }}>调用关系</div>
+                <div className="space-y-1 max-h-32 overflow-y-auto">
+                  {mockCalls.slice(0, 8).map((call, index) => (
+                    <div key={index} className="flex items-center gap-2 text-xs">
+                      <span style={{ color: "var(--foreground)" }}>{call.source}</span>
+                      <ArrowRight size={12} style={{ color: "var(--muted-foreground)" }} />
+                      <span style={{ color: "var(--foreground)" }}>{call.target}</span>
+                      <span className="ml-auto" style={{ color: "var(--muted-foreground)" }}>
+                        {call.calls.toLocaleString()} 调用 / {call.avgTime}ms
+                      </span>
                     </div>
                   ))}
                 </div>
-                {callers.length > 0 && (
-                  <div>
-                    <div className="text-xs font-medium mb-2" style={{ color: "var(--muted-foreground)" }}>上游调用者 ({callers.length})</div>
-                    {callers.map((c) => {
-                      const cs = services.find(s => s.id === c);
-                      return cs ? (
-                        <div key={c} className="flex items-center gap-1.5 p-2 rounded mb-1" style={{ background: "var(--muted)" }}>
-                          <div className="w-2 h-2 rounded-full" style={{ background: statusColors[cs.status] ?? "#94A3B8" }} />
-                          <span className="text-xs text-white">{cs.name}</span>
-                          <ArrowRight size={10} style={{ color: "var(--muted-foreground)" }} />
-                        </div>
-                      ) : null;
-                    })}
+              </div>
+            </div>
+
+            {/* 选中服务详情 */}
+            {selectedService ? (
+              <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    {(() => {
+                      const TypeIcon = typeConfig[selectedService.type].icon;
+                      return (
+                        <>
+                          <div
+                            className="w-10 h-10 rounded-lg flex items-center justify-center"
+                            style={{ background: `${typeConfig[selectedService.type].color}15` }}
+                          >
+                            <TypeIcon size={20} style={{ color: typeConfig[selectedService.type].color }} />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
+                                {selectedService.name}
+                              </span>
+                              <span
+                                className="px-2 py-0.5 rounded text-xs"
+                                style={{ 
+                                  background: `${statusConfig[selectedService.status].color}15`,
+                                  color: statusConfig[selectedService.status].color
+                                }}
+                              >
+                                {statusConfig[selectedService.status].label}
+                              </span>
+                            </div>
+                            <div className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
+                              {typeConfig[selectedService.type].label}
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
-                )}
-                {deps.length > 0 && (
-                  <div>
-                    <div className="text-xs font-medium mb-2" style={{ color: "var(--muted-foreground)" }}>下游依赖 ({deps.length})</div>
-                    {deps.map((d) => {
-                      const ds = services.find(s => s.id === d);
-                      return ds ? (
-                        <div key={d} className="flex items-center gap-1.5 p-2 rounded mb-1" style={{ background: "var(--muted)" }}>
-                          <ArrowRight size={10} style={{ color: "var(--muted-foreground)" }} />
-                          <div className="w-2 h-2 rounded-full" style={{ background: statusColors[ds.status] ?? "#94A3B8" }} />
-                          <span className="text-xs text-white">{ds.name}</span>
-                        </div>
-                      ) : null;
-                    })}
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="p-3 rounded-lg" style={{ background: "var(--input)" }}>
+                    <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>调用量</div>
+                    <div className="text-lg font-bold mt-1" style={{ color: "var(--foreground)" }}>
+                      {selectedService.calls.toLocaleString()}
+                    </div>
                   </div>
-                )}
+                  <div className="p-3 rounded-lg" style={{ background: "var(--input)" }}>
+                    <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>平均响应</div>
+                    <div className="text-lg font-bold mt-1" style={{ color: "var(--foreground)" }}>
+                      {selectedService.avgResponseTime}<span className="text-sm font-normal">ms</span>
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-lg" style={{ background: "var(--input)" }}>
+                    <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>错误率</div>
+                    <div className="text-lg font-bold mt-1" style={{ color: selectedService.errorRate > 1 ? "#FF4D4F" : "var(--foreground)" }}>
+                      {selectedService.errorRate}<span className="text-sm font-normal">%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-4 border-t" style={{ borderColor: "var(--border)" }}>
+                  <div className="text-xs mb-2" style={{ color: "var(--muted-foreground)" }}>相关调用</div>
+                  <div className="space-y-2">
+                    {getRelatedCalls(selectedService.name).map((call, index) => (
+                      <div key={index} className="flex items-center justify-between text-xs p-2 rounded" style={{ background: "var(--input)" }}>
+                        <div className="flex items-center gap-2">
+                          <span style={{ color: call.source === selectedService.name ? "var(--foreground)" : "var(--muted-foreground)" }}>
+                            {call.source}
+                          </span>
+                          <ArrowRight size={12} style={{ color: "var(--muted-foreground)" }} />
+                          <span style={{ color: call.target === selectedService.name ? "var(--foreground)" : "var(--muted-foreground)" }}>
+                            {call.target}
+                          </span>
+                        </div>
+                        <span style={{ color: "var(--muted-foreground)" }}>
+                          {call.calls.toLocaleString()} / {call.avgTime}ms
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             ) : (
-              <div className="text-xs text-center py-12" style={{ color: "var(--muted-foreground)" }}>点击画布中的服务节点</div>
+              <div className="rounded-lg p-8 text-center" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+                <Server size={32} style={{ color: "var(--muted-foreground)" }} className="mx-auto mb-2" />
+                <div className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+                  点击左侧服务查看详情
+                </div>
+              </div>
             )}
           </div>
         </div>

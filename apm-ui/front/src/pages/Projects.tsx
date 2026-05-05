@@ -194,10 +194,10 @@ export default function Projects() {
             value={view}
             onChange={(e) => setView(e.target.value as "table" | "card")}
             className="px-3 py-1.5 rounded-md text-xs outline-none appearance-none cursor-pointer hover:border-primary transition-colors"
-            style={{ background: "#1E293B", border: "1px solid rgba(148, 163, 184, 0.12)", color: "#fff", minWidth: "100px" }}
+            style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)", minWidth: "100px" }}
           >
-            <option value="table" style={{ color: "#fff", background: "#1E293B" }}>列表视图</option>
-            <option value="card" style={{ color: "#fff", background: "#1E293B" }}>卡片视图</option>
+            <option value="table" style={{ color: "var(--foreground)", background: "var(--card)" }}>列表视图</option>
+            <option value="card" style={{ color: "var(--foreground)", background: "var(--card)" }}>卡片视图</option>
           </select>
         </div>
 
@@ -320,38 +320,38 @@ export default function Projects() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-xs mb-1.5 text-muted-foreground">项目名称 *</label>
-                  <input required className="w-full h-8 px-3 rounded-md text-xs text-white bg-input border border-border outline-none" placeholder="输入项目名称" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                  <input required className="w-full h-8 px-3 rounded-md text-xs bg-input border border-border outline-none" style={{ color: "var(--foreground)" }} placeholder="输入项目名称" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
                 </div>
                 <div>
                   <label className="block text-xs mb-1.5 text-muted-foreground">描述</label>
-                  <textarea className="w-full px-3 py-2 rounded-md text-xs text-white bg-input border border-border outline-none resize-none" placeholder="简短描述项目用途" rows={2} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+                  <textarea className="w-full px-3 py-2 rounded-md text-xs bg-input border border-border outline-none resize-none" style={{ color: "var(--foreground)" }} placeholder="简短描述项目用途" rows={2} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs mb-1.5 text-muted-foreground">分组</label>
-                    <input className="w-full h-8 px-3 rounded-md text-xs text-white bg-input border border-border outline-none" placeholder="分组名称" value={formData.groupName} onChange={(e) => setFormData({ ...formData, groupName: e.target.value })} />
+                    <input className="w-full h-8 px-3 rounded-md text-xs bg-input border border-border outline-none" style={{ color: "var(--foreground)" }} placeholder="分组名称" value={formData.groupName} onChange={(e) => setFormData({ ...formData, groupName: e.target.value })} />
                   </div>
                   <div>
                     <label className="block text-xs mb-1.5 text-muted-foreground">负责人</label>
-                    <input className="w-full h-8 px-3 rounded-md text-xs text-white bg-input border border-border outline-none" placeholder="负责人姓名" value={formData.owner} onChange={(e) => setFormData({ ...formData, owner: e.target.value })} />
+                    <input className="w-full h-8 px-3 rounded-md text-xs bg-input border border-border outline-none" style={{ color: "var(--foreground)" }} placeholder="负责人姓名" value={formData.owner} onChange={(e) => setFormData({ ...formData, owner: e.target.value })} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs mb-1.5 text-muted-foreground">环境</label>
-                    <select className="w-full h-8 px-3 rounded-md text-xs text-white outline-none appearance-none cursor-pointer" style={{ background: "#1E293B", border: "1px solid rgba(148, 163, 184, 0.12)" }} value={formData.environment} onChange={(e) => setFormData({ ...formData, environment: e.target.value })}>
-                      <option value="dev" style={{ color: "#fff", background: "#1E293B" }}>开发</option>
-                      <option value="staging" style={{ color: "#fff", background: "#1E293B" }}>测试</option>
-                      <option value="production" style={{ color: "#fff", background: "#1E293B" }}>生产</option>
+                    <select className="w-full h-8 px-3 rounded-md text-xs outline-none appearance-none cursor-pointer" style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }} value={formData.environment} onChange={(e) => setFormData({ ...formData, environment: e.target.value })}>
+                      <option value="dev" style={{ color: "var(--foreground)", background: "var(--card)" }}>开发</option>
+                      <option value="staging" style={{ color: "var(--foreground)", background: "var(--card)" }}>测试</option>
+                      <option value="production" style={{ color: "var(--foreground)", background: "var(--card)" }}>生产</option>
                     </select>
                   </div>
                   <div>
                     <label className="block text-xs mb-1.5 text-muted-foreground">状态</label>
-                    <select className="w-full h-8 px-3 rounded-md text-xs text-white outline-none appearance-none cursor-pointer" style={{ background: "#1E293B", border: "1px solid rgba(148, 163, 184, 0.12)" }} value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
-                      <option value="online" style={{ color: "#fff", background: "#1E293B" }}>在线</option>
-                      <option value="warning" style={{ color: "#fff", background: "#1E293B" }}>警告</option>
-                      <option value="offline" style={{ color: "#fff", background: "#1E293B" }}>离线</option>
-                      <option value="error" style={{ color: "#fff", background: "#1E293B" }}>错误</option>
+                    <select className="w-full h-8 px-3 rounded-md text-xs outline-none appearance-none cursor-pointer" style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }} value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
+                      <option value="online" style={{ color: "var(--foreground)", background: "var(--card)" }}>在线</option>
+                      <option value="warning" style={{ color: "var(--foreground)", background: "var(--card)" }}>警告</option>
+                      <option value="offline" style={{ color: "var(--foreground)", background: "var(--card)" }}>离线</option>
+                      <option value="error" style={{ color: "var(--foreground)", background: "var(--card)" }}>错误</option>
                     </select>
                   </div>
                 </div>

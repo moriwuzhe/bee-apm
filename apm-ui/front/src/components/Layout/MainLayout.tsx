@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLocalStorage } from "../../hooks";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 
@@ -9,7 +9,7 @@ export default function MainLayout({
   children?: React.ReactNode;
   title?: string;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useLocalStorage("sidebarCollapsed", false);
 
   return (
     <div data-cmp="MainLayout" className="flex h-full w-full overflow-hidden" style={{ background: "var(--background)", minWidth: "1440px" }}>

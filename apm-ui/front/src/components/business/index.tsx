@@ -70,12 +70,12 @@ export function Pagination({
           value={pageSize}
           onChange={(e) => onPageSizeChange(Number(e.target.value))}
           className="ml-2 px-2 py-1 rounded text-xs outline-none hover:border-primary transition-colors cursor-pointer appearance-none"
-          style={{ background: "#1E293B", border: "1px solid rgba(148, 163, 184, 0.12)", color: "#fff" }}
+          style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
         >
-          <option value={5} style={{ color: "#fff", background: "#1E293B" }}>5条/页</option>
-          <option value={10} style={{ color: "#fff", background: "#1E293B" }}>10条/页</option>
-          <option value={20} style={{ color: "#fff", background: "#1E293B" }}>20条/页</option>
-          <option value={50} style={{ color: "#fff", background: "#1E293B" }}>50条/页</option>
+          <option value={5} style={{ color: "var(--foreground)", background: "var(--card)" }}>5条/页</option>
+          <option value={10} style={{ color: "var(--foreground)", background: "var(--card)" }}>10条/页</option>
+          <option value={20} style={{ color: "var(--foreground)", background: "var(--card)" }}>20条/页</option>
+          <option value={50} style={{ color: "var(--foreground)", background: "var(--card)" }}>50条/页</option>
         </select>
       </div>
     </div>
@@ -139,13 +139,13 @@ export function FilterDropdown({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className="px-3 py-1.5 rounded-md text-xs hover:border-primary transition-colors cursor-pointer outline-none appearance-none"
-      style={{ minWidth: "120px", background: "#1E293B", border: "1px solid rgba(148, 163, 184, 0.12)", color: "#fff" }}
+      style={{ minWidth: "120px", background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
     >
       {options.map((option) => (
         <option
           key={option.value}
           value={option.value}
-          style={{ color: "#fff", background: "#1E293B", padding: "8px 12px" }}
+          style={{ color: "var(--foreground)", background: "var(--card)", padding: "8px 12px" }}
         >
           {option.label}
         </option>

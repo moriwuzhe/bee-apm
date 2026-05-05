@@ -6,6 +6,7 @@ import org.xi.lt.apm.dto.ReleaseDTO;
 import org.xi.lt.apm.entity.Release;
 import org.xi.lt.apm.repository.ReleaseRepository;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -52,6 +53,20 @@ public class ReleaseService {
         releaseRepository.deleteById(id);
     }
 
+    private List<String> parseChanges(String changes) {
+        if (changes == null || changes.isEmpty()) {
+            return Arrays.asList("");
+        }
+        return Arrays.asList(changes.split("\n"));
+    }
+
+    private String joinChanges(List<String> changes) {
+        if (changes == null || changes.isEmpty()) {
+            return "";
+        }
+        return String.join("\n", changes);
+    }
+
     private ReleaseDTO toDTO(Release release) {
         return new ReleaseDTO(
             release.getId(),
@@ -61,11 +76,11 @@ public class ReleaseService {
             release.getEnv(),
             release.getStatus(),
             release.getOperator(),
-            release.getChanges(),
-            release.getImpactServices(),
-            release.getImpactApis(),
-            release.getImpactInstances(),
-            release.getAlertsCount(),
+            parseChanges(release.getChanges()),
+            release.getImpactServices() != null ? release.getImpactServices() : 0,
+            release.getImpactApis() != null ? release.getImpactApis() : 0,
+            release.getImpactInstances() != null ? release.getImpactInstances() : 0,
+            release.getAlertsCount() != null ? release.getAlertsCount() : 0,
             release.getCreatedAt() != null ? release.getCreatedAt().toString() : ""
         );
     }

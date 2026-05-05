@@ -398,8 +398,8 @@ export default function Releases() {
                   value={formData.app}
                   onChange={(e) => setFormData({ ...formData, app: e.target.value })}
                   placeholder="选择应用"
-                  className="w-full h-9 px-3 rounded-md text-xs text-white outline-none"
-                  style={{ background: "var(--input)", border: "1px solid var(--border)" }}
+                  className="w-full h-9 px-3 rounded-md text-xs outline-none"
+                  style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -409,8 +409,8 @@ export default function Releases() {
                     value={formData.version}
                     onChange={(e) => setFormData({ ...formData, version: e.target.value })}
                     placeholder="如 v3.2.2"
-                    className="w-full h-9 px-3 rounded-md text-xs text-white outline-none"
-                    style={{ background: "var(--input)", border: "1px solid var(--border)" }}
+                    className="w-full h-9 px-3 rounded-md text-xs outline-none"
+                    style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
                   />
                 </div>
                 <div>
@@ -419,8 +419,8 @@ export default function Releases() {
                     value={formData.prev}
                     onChange={(e) => setFormData({ ...formData, prev: e.target.value })}
                     placeholder="如 v3.2.1"
-                    className="w-full h-9 px-3 rounded-md text-xs text-white outline-none"
-                    style={{ background: "var(--input)", border: "1px solid var(--border)" }}
+                    className="w-full h-9 px-3 rounded-md text-xs outline-none"
+                    style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
                   />
                 </div>
               </div>
@@ -429,11 +429,11 @@ export default function Releases() {
                 <select
                   value={formData.env}
                   onChange={(e) => setFormData({ ...formData, env: e.target.value as Env })}
-                  className="w-full h-9 px-3 rounded-md text-xs text-white outline-none"
-                  style={{ background: "var(--input)", border: "1px solid var(--border)" }}
+                  className="w-full h-9 px-3 rounded-md text-xs outline-none"
+                  style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
                 >
-                  <option value="production" style={{ color: "#fff", background: "#1E293B" }}>生产环境</option>
-                  <option value="staging" style={{ color: "#fff", background: "#1E293B" }}>测试环境</option>
+                  <option value="production" style={{ color: "var(--foreground)", background: "var(--card)" }}>生产环境</option>
+                  <option value="staging" style={{ color: "var(--foreground)", background: "var(--card)" }}>测试环境</option>
                 </select>
               </div>
               <div>

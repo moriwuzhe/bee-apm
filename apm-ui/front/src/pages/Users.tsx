@@ -254,7 +254,8 @@ export default function Users() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="搜索用户..."
-                className="bg-transparent border-none outline-none text-xs flex-1 text-white"
+                className="bg-transparent border-none outline-none text-xs flex-1"
+                style={{ color: "var(--foreground)" }}
               />
             </div>
 
@@ -394,15 +395,15 @@ export default function Users() {
             <div className="space-y-3">
               <div>
                 <label className="block text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>姓名 *</label>
-                <input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-3 py-2 rounded-md text-xs text-white" style={{ background: "var(--muted)", border: "1px solid var(--border)" }} placeholder="请输入姓名" />
+                <input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-3 py-2 rounded-md text-xs" style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }} placeholder="请输入姓名" />
               </div>
               <div>
                 <label className="block text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>账号 *</label>
-                <input value={formData.account} onChange={(e) => setFormData({ ...formData, account: e.target.value })} className="w-full px-3 py-2 rounded-md text-xs text-white" style={{ background: "var(--muted)", border: "1px solid var(--border)" }} placeholder="请输入账号" />
+                <input value={formData.account} onChange={(e) => setFormData({ ...formData, account: e.target.value })} className="w-full px-3 py-2 rounded-md text-xs" style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }} placeholder="请输入账号" />
               </div>
               <div>
                 <label className="block text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>邮箱</label>
-                <input value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} type="email" className="w-full px-3 py-2 rounded-md text-xs text-white" style={{ background: "var(--muted)", border: "1px solid var(--border)" }} placeholder="请输入邮箱" />
+                <input value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} type="email" className="w-full px-3 py-2 rounded-md text-xs" style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }} placeholder="请输入邮箱" />
               </div>
               <div>
                 <label className="block text-xs mb-1.5" style={{ color: "var(--muted-foreground)" }}>角色（可多选）</label>
@@ -491,15 +492,15 @@ export default function Users() {
               {!editingUser && (
                 <div>
                   <label className="block text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>密码</label>
-                  <input value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} type="password" className="w-full px-3 py-2 rounded-md text-xs text-white" style={{ background: "var(--muted)", border: "1px solid var(--border)" }} placeholder="默认密码: 123456" />
+                  <input value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} type="password" className="w-full px-3 py-2 rounded-md text-xs" style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }} placeholder="默认密码: 123456" />
                 </div>
               )}
               <div>
                 <label className="block text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>状态</label>
-                <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-3 py-2 rounded-md text-xs text-white outline-none appearance-none cursor-pointer" style={{ background: "var(--muted)", border: "1px solid var(--border)" }}>
-                  <option value="online" style={{ color: "#fff", background: "#1E293B" }}>在线</option>
-                  <option value="offline" style={{ color: "#fff", background: "#1E293B" }}>离线</option>
-                  <option value="disabled" style={{ color: "#fff", background: "#1E293B" }}>禁用</option>
+                <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-3 py-2 rounded-md text-xs outline-none appearance-none cursor-pointer" style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}>
+                  <option value="online" style={{ color: "var(--foreground)", background: "var(--card)" }}>在线</option>
+                  <option value="offline" style={{ color: "var(--foreground)", background: "var(--card)" }}>离线</option>
+                  <option value="disabled" style={{ color: "var(--foreground)", background: "var(--card)" }}>禁用</option>
                 </select>
               </div>
             </div>

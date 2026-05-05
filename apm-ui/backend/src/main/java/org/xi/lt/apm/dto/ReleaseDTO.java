@@ -2,6 +2,7 @@ package org.xi.lt.apm.dto;
 
 import lombok.Data;
 import java.io.Serializable;
+import java.util.List;
 
 @Data
 public class ReleaseDTO implements Serializable {
@@ -14,18 +15,24 @@ public class ReleaseDTO implements Serializable {
     private String env;
     private String status;
     private String operator;
-    private String changes;
-    private Integer impactServices;
-    private Integer impactApis;
-    private Integer impactInstances;
-    private Integer alertsCount;
-    private String createdAt;
+    private List<String> changes;
+    private ImpactScope impact;
+    private Integer alerts;
+    private String time;
+
+    @Data
+    public static class ImpactScope implements Serializable {
+        private static final long serialVersionUID = 1L;
+        private Integer services;
+        private Integer apis;
+        private Integer instances;
+    }
 
     public ReleaseDTO() {}
 
     public ReleaseDTO(Long id, String appName, String version, String prevVersion, String env,
-                     String status, String operator, String changes, Integer impactServices,
-                     Integer impactApis, Integer impactInstances, Integer alertsCount, String createdAt) {
+                     String status, String operator, List<String> changes, Integer services,
+                     Integer apis, Integer instances, Integer alerts, String time) {
         this.id = id;
         this.appName = appName;
         this.version = version;
@@ -34,10 +41,11 @@ public class ReleaseDTO implements Serializable {
         this.status = status;
         this.operator = operator;
         this.changes = changes;
-        this.impactServices = impactServices;
-        this.impactApis = impactApis;
-        this.impactInstances = impactInstances;
-        this.alertsCount = alertsCount;
-        this.createdAt = createdAt;
+        this.impact = new ImpactScope();
+        this.impact.services = services;
+        this.impact.apis = apis;
+        this.impact.instances = instances;
+        this.alerts = alerts;
+        this.time = time;
     }
 }

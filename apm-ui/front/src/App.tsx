@@ -15,6 +15,13 @@ import Roles from "./pages/Roles";
 import Permissions from "./pages/Permissions";
 import AlertRules from "./pages/AlertRules";
 import ReleaseAnalysis from "./pages/ReleaseAnalysis";
+import TraceTracking from "./pages/TraceTracking";
+import HealthCheck from "./pages/HealthCheck";
+import AlertHistory from "./pages/AlertHistory";
+import LogViewer from "./pages/LogViewer";
+import APIDocs from "./pages/APIDocs";
+import DatabaseManagement from "./pages/DatabaseManagement";
+import SystemSettings from "./pages/SystemSettings";
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -64,6 +71,13 @@ const App = () => (
         <Route path="/permissions" element={<Permissions />} />
         <Route path="/alert-rules" element={<AlertRules />} />
         <Route path="/release-analysis" element={<ReleaseAnalysis />} />
+        <Route path="/trace-tracking" element={<TraceTracking />} />
+        <Route path="/health-check" element={<HealthCheck />} />
+        <Route path="/alert-history" element={<AlertHistory />} />
+        <Route path="/log-viewer" element={<LogViewer />} />
+        <Route path="/api-docs" element={<APIDocs />} />
+        <Route path="/database" element={<DatabaseManagement />} />
+        <Route path="/settings" element={<SystemSettings />} />
       </Routes>
     </ErrorBoundary>
     <Toaster position="top-right" />

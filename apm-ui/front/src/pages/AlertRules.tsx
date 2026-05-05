@@ -332,21 +332,21 @@ export default function AlertRules() {
             <div className="space-y-4">
               <div>
                 <label className="text-xs mb-1.5 block text-muted-foreground">规则名称</label>
-                <input value={formData.name} onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))} placeholder="输入规则名称..." className="w-full px-3 py-2 rounded-md text-xs text-white outline-none bg-input border border-border" />
+                <input value={formData.name} onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))} placeholder="输入规则名称..." className="w-full px-3 py-2 rounded-md text-xs outline-none bg-input border border-border" style={{ color: "var(--foreground)" }} />
               </div>
               <div>
                 <label className="text-xs mb-1.5 block text-muted-foreground">监控指标</label>
-                <select value={formData.metric} onChange={(e) => setFormData((prev) => ({ ...prev, metric: e.target.value }))} className="w-full px-3 py-2 rounded-md text-xs text-white outline-none appearance-none cursor-pointer" style={{ background: "#1E293B", border: "1px solid rgba(148, 163, 184, 0.12)" }}>
-                  {metricOptions.map((m) => <option key={m.value} value={m.value} style={{ color: "#fff", background: "#1E293B" }}>{m.label}</option>)}
+                <select value={formData.metric} onChange={(e) => setFormData((prev) => ({ ...prev, metric: e.target.value }))} className="w-full px-3 py-2 rounded-md text-xs outline-none appearance-none cursor-pointer" style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}>
+                  {metricOptions.map((m) => <option key={m.value} value={m.value} style={{ color: "var(--foreground)", background: "var(--card)" }}>{m.label}</option>)}
                 </select>
               </div>
               <div>
                 <label className="text-xs mb-1.5 block text-muted-foreground">触发条件</label>
                 <div className="flex gap-2 items-center">
-                  <select value={formData.condition} onChange={(e) => setFormData((prev) => ({ ...prev, condition: e.target.value }))} className="w-20 px-2 py-2 rounded-md text-xs text-white outline-none appearance-none cursor-pointer text-center" style={{ background: "#1E293B", border: "1px solid rgba(148, 163, 184, 0.12)" }}>
-                    {[">", ">=", "<", "<=", "="].map((c) => <option key={c} value={c} style={{ color: "#fff", background: "#1E293B" }}>{c}</option>)}
+                  <select value={formData.condition} onChange={(e) => setFormData((prev) => ({ ...prev, condition: e.target.value }))} className="w-20 px-2 py-2 rounded-md text-xs outline-none appearance-none cursor-pointer text-center" style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}>
+                    {[">", ">=", "<", "<=", "="].map((c) => <option key={c} value={c} style={{ color: "var(--foreground)", background: "var(--card)" }}>{c}</option>)}
                   </select>
-                  <input type="number" value={formData.threshold} onChange={(e) => setFormData((prev) => ({ ...prev, threshold: Number(e.target.value) }))} className="flex-1 px-3 py-2 rounded-md text-xs text-white outline-none bg-input border border-border" />
+                  <input type="number" value={formData.threshold} onChange={(e) => setFormData((prev) => ({ ...prev, threshold: Number(e.target.value) }))} className="flex-1 px-3 py-2 rounded-md text-xs outline-none bg-input border border-border" style={{ color: "var(--foreground)" }} />
                   <span className="text-xs text-muted-foreground">{metricOptions.find((m) => m.value === formData.metric)?.label.match(/\((.+)\)/)?.[1] || ""}</span>
                 </div>
               </div>

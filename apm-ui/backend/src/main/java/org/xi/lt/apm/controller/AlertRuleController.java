@@ -3,7 +3,7 @@ package org.xi.lt.apm.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.xi.lt.apm.common.Result;
-import org.xi.lt.apm.entity.AlertRule;
+import org.xi.lt.apm.dto.AlertRuleDTO;
 import org.xi.lt.apm.service.AlertRuleService;
 
 import java.util.List;
@@ -18,35 +18,36 @@ public class AlertRuleController {
     private AlertRuleService alertRuleService;
 
     @GetMapping
-    public Result<List<AlertRule>> getAll() {
-        return Result.success(alertRuleService.findAll());
+    public Result<List<AlertRuleDTO>> getAll() {
+        return Result.success(alertRuleService.findAllDTO());
     }
 
     @GetMapping("/{id}")
-    public Result<AlertRule> getById(@PathVariable Long id) {
-        Optional<AlertRule> alertRule = alertRuleService.findById(id);
+    public Result<AlertRuleDTO> getById(@PathVariable Long id) {
+        Optional<AlertRuleDTO> alertRule = alertRuleService.findByIdDTO(id);
         return alertRule.map(Result::success)
             .orElseGet(() -> Result.error("Alert rule not found"));
     }
 
     @GetMapping("/status/{status}")
-    public Result<List<AlertRule>> getByStatus(@PathVariable String status) {
-        return Result.success(alertRuleService.findByStatus(status));
+    public Result<List<AlertRuleDTO>> getByStatus(@PathVariable String status) {
+        return Result.success(alertRuleService.findByStatusDTO(status));
     }
 
     @GetMapping("/app/{appName}")
-    public Result<List<AlertRule>> getByAppName(@PathVariable String appName) {
-        return Result.success(alertRuleService.findByAppName(appName));
+    public Result<List<AlertRuleDTO>> getByAppName(@PathVariable String appName) {
+        return Result.success(alertRuleService.findByAppNameDTO(appName));
     }
 
     @PostMapping
-    public Result<AlertRule> create(@RequestBody AlertRule alertRule) {
-        return Result.success(alertRuleService.save(alertRule));
+    public Result<AlertRuleDTO> create(@RequestBody AlertRuleDTO alertRule) {
+        AlertRuleDTO saved = alertRuleService.saveDTO(alertRule);
+        return Result.success(saved);
     }
 
     @PutMapping("/{id}")
-    public Result<AlertRule> update(@PathVariable Long id, @RequestBody AlertRule alertRule) {
-        AlertRule updated = alertRuleService.update(id, alertRule);
+    public Result<AlertRuleDTO> update(@PathVariable Long id, @RequestBody AlertRuleDTO alertRule) {
+        AlertRuleDTO updated = alertRuleService.updateDTO(id, alertRule);
         if (updated != null) {
             return Result.success(updated);
         }
@@ -54,8 +55,8 @@ public class AlertRuleController {
     }
 
     @PutMapping("/{id}/status")
-    public Result<AlertRule> toggleStatus(@PathVariable Long id, @RequestBody AlertRule alertRule) {
-        AlertRule updated = alertRuleService.toggleStatus(id, alertRule.getStatus());
+    public Result<AlertRuleDTO> toggleStatus(@PathVariable Long id, @RequestBody AlertRuleDTO alertRule) {
+        AlertRuleDTO updated = alertRuleService.toggleStatusDTO(id, alertRule.getStatus());
         if (updated != null) {
             return Result.success(updated);
         }

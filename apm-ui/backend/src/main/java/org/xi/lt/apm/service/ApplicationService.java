@@ -124,4 +124,16 @@ public class ApplicationService {
             app.getProject() != null ? app.getProject().getName() : ""
         );
     }
+
+    public void updateInstanceCount(String appName, Integer instanceCount) {
+        if (appName == null || instanceCount == null) {
+            return;
+        }
+        List<Application> apps = applicationRepository.findByNameContaining(appName);
+        if (!apps.isEmpty()) {
+            Application app = apps.get(0);
+            app.setInstanceCount(instanceCount);
+            applicationRepository.save(app);
+        }
+    }
 }

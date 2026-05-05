@@ -447,8 +447,8 @@ export default function Roles() {
                 <div>
                   <label className="block text-xs mb-1.5" style={{ color: "var(--muted-foreground)" }}>角色名称</label>
                   <input
-                    className="w-full h-9 px-3 rounded-md text-xs text-white outline-none"
-                    style={{ background: "var(--input)", border: "1px solid var(--border)" }}
+                    className="w-full h-9 px-3 rounded-md text-xs outline-none"
+                    style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)" }}
                     placeholder="输入角色名称"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -457,8 +457,8 @@ export default function Roles() {
                 <div>
                   <label className="block text-xs mb-1.5" style={{ color: "var(--muted-foreground)" }}>角色描述</label>
                   <textarea
-                    className="w-full px-3 py-2 rounded-md text-xs text-white outline-none resize-none"
-                    style={{ background: "var(--input)", border: "1px solid var(--border)", minHeight: "80px" }}
+                    className="w-full px-3 py-2 rounded-md text-xs outline-none resize-none"
+                    style={{ background: "var(--input)", border: "1px solid var(--border)", color: "var(--foreground)", minHeight: "80px" }}
                     placeholder="描述该角色的职责范围"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}

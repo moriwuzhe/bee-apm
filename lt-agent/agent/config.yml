@@ -1,0 +1,24 @@
+# LT Agent 配置
+app:
+  name: apm-backend
+
+agent:
+  enabled: true
+
+reporter:
+  type: okhttp
+  serverUrl: http://localhost:8081/apm/report
+  okhttp:
+    url:
+      - http://localhost:8081/apm/report
+  threadNum: 1
+  queueSize: 1000
+  batchSize: 100
+  idleSleep: 100
+  log: true
+
+sampling:
+  rate: 1
+
+logging:
+  level: INFO

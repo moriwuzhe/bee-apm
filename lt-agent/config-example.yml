@@ -1,0 +1,44 @@
+# LT Agent 配置示例
+# 将此文件复制为 config.yml 并修改相应配置
+
+# 应用配置
+app:
+  name: your-app-name  # 应用名称
+
+# Agent 配置
+agent:
+  enabled: true
+  # 上报地址配置（支持多种配置方式，优先级从高到低）
+  report:
+    url: http://localhost:8081/apm/report  # 改为你的 Backend 地址
+
+# Reporter 配置（可选，如果上面 agent.report.url 不生效可以尝试这些）
+reporter:
+  # 上报类型：okhttp（默认）、grpc、kafka 等
+  type: okhttp
+  # 服务器地址
+  serverUrl: http://localhost:8081/apm/report
+  # HTTP 上报详细配置
+  okhttp:
+    url:
+      - http://localhost:8081/apm/report
+  # 上报线程数（默认1）
+  threadNum: 1
+  # 队列大小（默认1000）
+  queueSize: 1000
+  # 批处理大小（默认100）
+  batchSize: 100
+  # 空闲时休眠时间（毫秒，默认100）
+  idleSleep: 100
+  # 是否打印日志（生产环境建议关闭）
+  log: false
+
+# 采样配置
+sampling:
+  # 采样率（0-1，1表示100%采样）
+  rate: 1.0
+
+# 日志配置
+logging:
+  # 日志级别
+  level: INFO

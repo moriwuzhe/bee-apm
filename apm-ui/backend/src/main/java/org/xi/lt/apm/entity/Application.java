@@ -14,11 +14,17 @@ public class Application extends BaseEntity {
     @Column(name = "name", nullable = false, length = 128)
     private String name;
 
+    @Column(name = "env", length = 32)
+    private String env;
+
     @Column(name = "status", length = 32)
     private String status = "online";
 
     @Column(name = "ip", length = 64)
     private String ip;
+
+    @Column(name = "port")
+    private Integer port;
 
     @Column(name = "agent_version", length = 32)
     private String agentVersion;

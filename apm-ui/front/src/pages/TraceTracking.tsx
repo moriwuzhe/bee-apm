@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import MainLayout from "../components/Layout/MainLayout";
 import { traceApi } from "../services/api";
 import type { TraceSpan, TraceStats, TraceDetail } from "../types";
@@ -20,6 +20,63 @@ export default function TraceTracking() {
     loadData();
   }, []);
 
+  // 安全解析函数
+  const safeParseInt = (value: any, defaultValue: number = 0): number => {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+      const parsed = parseInt(value, 10);
+      return isNaN(parsed) ? defaultValue : parsed;
+    }
+    return defaultValue;
+  };
+
+  const safeParseDate = (value: any): Date => {
+    if (!value) return new Date();
+    if (value instanceof Date) return value;
+    const date = new Date(value);
+    return isNaN(date.getTime()) ? new Date() : date;
+  };
+
+  const safeParseTags = (tags: any): Record<string, any> => {
+    if (!tags) return {};
+    if (typeof tags === 'object') {
+      if (Array.isArray(tags)) {
+        try {
+          return JSON.parse(tags.join(''));
+        } catch {
+          return {};
+        }
+      }
+      return tags;
+    }
+    if (typeof tags === 'string') {
+      try {
+        const cleaned = tags.trim()
+          .replace(/^["']|["']$/g, '')
+          .replace(/\\"/g, '"')
+          .replace(/\\'/g, "'")
+          .replace(/\\\\/g, "\\");
+        return JSON.parse(cleaned);
+      } catch {
+        try {
+          return JSON.parse(tags);
+        } catch {
+          return {};
+        }
+      }
+    }
+    return {};
+  };
+
+  const formatDuration = (ms: number | null | undefined) => {
+    if (ms === null || ms === undefined || ms === 0) return "-";
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(2)}s`;
+  };
+
+  // 有效的链路追踪类型
+  const validSpanTypes = ['HTTP', 'SQL', 'REDIS', 'RPC', 'LOCAL', 'UNKNOWN', 'jvm', 'hb'];
+  
   const loadData = async () => {
     try {
       setLoading(true);
@@ -29,16 +86,44 @@ export default function TraceTracking() {
       ]);
 
       if (tracesRes.data) {
-        // 转换后端数据格式
-        const processedTraces = tracesRes.data.map((t: any) => ({
-          ...t,
-          startTime: t.timestamp ? new Date(t.timestamp).getTime() : Date.now(),
-          endTime: t.timestamp ? new Date(t.timestamp).getTime() + (t.duration || 0) : Date.now(),
-          tags: t.tags ? (typeof t.tags === 'string' ? JSON.parse(t.tags) : t.tags) : {},
-          duration: t.duration || 0,
-          spanType: t.spanType || 'UNKNOWN',
-          appName: t.appName || 'unknown',
-        }));
+        // 转换后端数据格式 - 更安全的解析
+        const processedTraces = tracesRes.data.map((t: any, index: number) => {
+          const timestamp = safeParseDate(t.timestamp);
+          const duration = safeParseInt(t.duration, safeParseInt(t.spend, 0));
+          
+          const parsedTags = safeParseTags(t.tags);
+          const spanType = t.spanType || t.type || 'UNKNOWN';
+          const originalTraceId = t.traceId || t.id;
+          
+          let traceId = originalTraceId || `trace-${index}`;
+          if (spanType === 'hb' && (!originalTraceId || originalTraceId.startsWith('unknown'))) {
+            traceId = `heartbeat-${t.id}-${Date.now()}`;
+          }
+          
+          return {
+            id: t.id || `span-${index}`,
+            traceId: traceId,
+            spanId: t.spanId || `span-${index}`,
+            parentId: t.parentId || null,
+            spanType: spanType,
+            appName: t.appName || t.app || 'unknown',
+            serviceName: t.serviceName || t.appName || t.app || 'unknown',
+            methodName: t.methodName || t.method || t.name || '-',
+            env: t.env,
+            instanceName: t.instanceName || t.inst,
+            ipAddress: t.ipAddress || t.ip,
+            port: t.port,
+            processId: t.processId || t.pid,
+            groupId: t.groupId || t.gid,
+            startTime: timestamp.getTime(),
+            endTime: timestamp.getTime() + duration,
+            duration: duration,
+            success: t.success !== false,
+            errorMsg: t.errorMsg,
+            tags: parsedTags,
+          };
+        }).filter(t => validSpanTypes.includes(t.spanType)); // 过滤掉心跳和JVM指标
+        
         setTraces(processedTraces);
       }
       if (statsRes.data) {
@@ -55,17 +140,37 @@ export default function TraceTracking() {
     try {
       const res = await traceApi.getTraceById(traceId);
       if (res.data) {
-        // 处理链路详情数据
+        // 处理链路详情数据 - 使用安全解析
         const spans = Array.isArray(res.data) ? res.data : [res.data];
-        const processedSpans = spans.map((s: any) => ({
-          ...s,
-          startTime: s.timestamp ? new Date(s.timestamp).getTime() : Date.now(),
-          endTime: s.timestamp ? new Date(s.timestamp).getTime() + (s.duration || 0) : Date.now(),
-          tags: s.tags ? (typeof s.tags === 'string' ? JSON.parse(s.tags) : s.tags) : {},
-          duration: s.duration || 0,
-          spanType: s.spanType || 'UNKNOWN',
-          appName: s.appName || 'unknown',
-        }));
+        const processedSpans = spans.map((s: any, index: number) => {
+          const timestamp = safeParseDate(s.timestamp);
+          const duration = safeParseInt(s.duration, safeParseInt(s.spend, 0));
+          
+          const parsedTags = safeParseTags(s.tags);
+          return {
+            id: s.id || `span-${index}`,
+            traceId: s.traceId || traceId,
+            spanId: s.spanId || `span-${index}`,
+            parentId: s.parentId || null,
+            spanType: s.spanType || s.type || 'UNKNOWN',
+            appName: s.appName || s.app || 'unknown',
+            serviceName: s.serviceName || s.appName || s.app || 'unknown',
+            methodName: s.methodName || s.method || '-',
+            env: s.env,
+            instanceName: s.instanceName || s.inst,
+            ipAddress: s.ipAddress || s.ip,
+            port: s.port,
+            processId: s.processId || s.pid,
+            groupId: s.groupId || s.gid,
+            startTime: timestamp.getTime(),
+            endTime: timestamp.getTime() + duration,
+            duration: duration,
+            success: s.success !== false,
+            errorMsg: s.errorMsg,
+            tags: parsedTags,
+          };
+        });
+        
         const detail: TraceDetail = {
           traceId,
           spans: processedSpans,
@@ -159,13 +264,10 @@ export default function TraceTracking() {
       REDIS: "#FF7D00",
       RPC: "#722ED1",
       LOCAL: "#86909C",
+      jvm: "#9C59B2",
+      hb: "#3498DB",
     };
     return colors[type] || "#86909C";
-  };
-
-  const formatDuration = (ms: number) => {
-    if (ms < 1000) return `${ms}ms`;
-    return `${(ms / 1000).toFixed(2)}s`;
   };
 
   const formatTime = (timestamp: number) => {
@@ -690,16 +792,24 @@ export default function TraceTracking() {
                         </div>
                       )}
                       {span.tags && Object.keys(span.tags).length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {Object.entries(span.tags).map(([key, value]) => (
-                            <span
-                              key={key}
-                              className="px-2 py-1 rounded text-xs"
-                              style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}
-                            >
-                              {key}: {value}
-                            </span>
-                          ))}
+                        <div className="mt-2">
+                          {span.spanType === 'jvm' ? (
+                            <JVMDetails tags={span.tags} />
+                          ) : span.spanType === 'hb' ? (
+                            <HBDetails tags={span.tags} />
+                          ) : (
+                            <div className="flex flex-wrap gap-2">
+                              {Object.entries(span.tags).map(([key, value]) => (
+                                <span
+                                  key={key}
+                                  className="px-2 py-1 rounded text-xs"
+                                  style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}
+                                >
+                                  {key}: {typeof value === 'object' ? JSON.stringify(value) : value}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -719,7 +829,7 @@ interface DurationHistogramProps {
 }
 
 function DurationHistogram({ traces }: DurationHistogramProps) {
-  if (traces.length === 0) {
+  if (!traces || traces.length === 0) {
     return <div className="text-center py-8" style={{ color: "var(--muted-foreground)" }}>暂无数据</div>;
   }
 
@@ -732,8 +842,12 @@ function DurationHistogram({ traces }: DurationHistogramProps) {
   ];
 
   const counts = bins.map((bin) => 
-    traces.filter((t) => t.duration >= bin.min && t.duration < bin.max).length
+    traces.filter((t) => {
+      const duration = t.duration || 0;
+      return duration >= bin.min && duration < bin.max;
+    }).length
   );
+  
   const maxCount = Math.max(...counts, 1);
 
   return (
@@ -780,10 +894,12 @@ interface ServiceDependencyGraphProps {
 function ServiceDependencyGraph({ traces }: ServiceDependencyGraphProps) {
   const serviceMap = useMemo(() => {
     const map: Record<string, { count: number; type: string }> = {};
+    if (!traces) return map;
+    
     traces.forEach((trace) => {
       if (trace.appName) {
         if (!map[trace.appName]) {
-          map[trace.appName] = { count: 0, type: trace.spanType };
+          map[trace.appName] = { count: 0, type: trace.spanType || 'UNKNOWN' };
         }
         map[trace.appName].count++;
       }
@@ -792,7 +908,7 @@ function ServiceDependencyGraph({ traces }: ServiceDependencyGraphProps) {
   }, [traces]);
 
   const services = Object.entries(serviceMap);
-  const maxCount = Math.max(...services.map(([, v]) => v.count), 1);
+  const maxCount = services.length > 0 ? Math.max(...services.map(([, v]) => v.count), 1) : 1;
 
   if (services.length === 0) {
     return <div className="text-center py-8" style={{ color: "var(--muted-foreground)" }}>暂无数据</div>;
@@ -846,13 +962,23 @@ interface FlameGraphProps {
 }
 
 function FlameGraph({ spans }: FlameGraphProps) {
-  if (spans.length === 0) {
+  if (!spans || spans.length === 0) {
     return <div className="text-center py-8" style={{ color: "var(--muted-foreground)" }}>暂无数据</div>;
   }
 
-  const minStartTime = Math.min(...spans.map((s) => s.startTime));
-  const maxEndTime = Math.max(...spans.map((s) => s.endTime));
-  const totalDuration = maxEndTime - minStartTime;
+  // 安全获取开始时间和结束时间
+  const startTimes = spans.map((s) => s.startTime || 0).filter(t => t > 0);
+  const endTimes = spans.map((s) => s.endTime || 0).filter(t => t > 0);
+  
+  const minStartTime = startTimes.length > 0 ? Math.min(...startTimes) : Date.now() - 1000;
+  const maxEndTime = endTimes.length > 0 ? Math.max(...endTimes) : Date.now();
+  
+  let totalDuration = maxEndTime - minStartTime;
+  // 防止totalDuration为0或太小
+  if (totalDuration <= 0) {
+    totalDuration = 1000; // 默认1秒
+  }
+  
   const width = 100;
 
   const getSpanColor = (type: string) => {
@@ -862,35 +988,42 @@ function FlameGraph({ spans }: FlameGraphProps) {
       REDIS: "#FF7D00",
       RPC: "#722ED1",
       LOCAL: "#86909C",
+      jvm: "#9C59B2",
+      hb: "#3498DB",
     };
     return colors[type] || "#86909C";
   };
 
   const sortedSpans = [...spans].sort((a, b) => {
-    if (a.startTime !== b.startTime) return a.startTime - b.startTime;
-    return b.duration - a.duration;
+    const aStart = a.startTime || 0;
+    const bStart = b.startTime || 0;
+    if (aStart !== bStart) return aStart - bStart;
+    return (b.duration || 0) - (a.duration || 0);
   });
 
   return (
     <div className="space-y-2">
       {sortedSpans.map((span, index) => {
-        const left = ((span.startTime - minStartTime) / totalDuration) * width;
-        const spanWidth = (span.duration / totalDuration) * width;
+        const spanStartTime = span.startTime || minStartTime;
+        const left = ((spanStartTime - minStartTime) / totalDuration) * width;
+        // 确保有最小宽度
+        const spanDuration = span.duration || 1;
+        const spanWidth = Math.max((spanDuration / totalDuration) * width, 2);
 
         return (
           <div key={span.id || index} className="relative h-8 flex items-center">
             <div
               className="absolute left-0 top-0 h-full w-full flex items-center"
-              style={{ paddingLeft: `${left}%` }}
+              style={{ paddingLeft: `${Math.min(left, 90)}%` }}
             >
               <div
                 className="h-6 rounded-sm flex items-center px-2 relative group cursor-pointer"
                 style={{
-                  width: `${Math.max(spanWidth, 2)}%`,
+                  width: `${Math.min(spanWidth, 100 - Math.min(left, 90))}%`,
                   background: getSpanColor(span.spanType),
                   minWidth: "40px",
                 }}
-                title={`${span.methodName} - ${span.duration}ms`}
+                title={`${span.methodName} - ${spanDuration}ms`}
               >
                 <span className="text-xs text-white font-medium truncate">
                   {span.methodName}
@@ -900,7 +1033,7 @@ function FlameGraph({ spans }: FlameGraphProps) {
                   <div className="text-xs text-white font-medium">{span.serviceName}.{span.methodName}</div>
                   <div className="text-xs mt-1" style={{ color: "#94A3B8" }}>
                     <div>类型: {span.spanType}</div>
-                    <div>耗时: {span.duration}ms</div>
+                    <div>耗时: {spanDuration}ms</div>
                     <div>应用: {span.appName}</div>
                   </div>
                 </div>
@@ -911,10 +1044,97 @@ function FlameGraph({ spans }: FlameGraphProps) {
       })}
       {/* 时间轴 */}
       <div className="flex justify-between text-xs pt-2 border-t" style={{ color: "var(--muted-foreground)", borderColor: "var(--border)" }}>
-        <span>0ms</span>
-        <span>{Math.round(totalDuration / 2)}ms</span>
-        <span>{totalDuration}ms</span>
-      </div>
+      <span>0ms</span>
+      <span>{Math.round(totalDuration / 2)}ms</span>
+      <span>{totalDuration}ms</span>
+    </div>
+  </div>
+);
+}
+
+interface JVMDetailsProps {
+  tags: Record<string, any>;
+}
+
+function JVMDetails({ tags }: JVMDetailsProps) {
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const { memory, thread, gc, heap } = tags;
+
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {heap && (
+        <div className="p-2 rounded-md" style={{ background: "var(--muted)" }}>
+          <div className="text-xs font-medium mb-1" style={{ color: "var(--foreground)" }}>堆内存</div>
+          <div className="text-xs space-y-1" style={{ color: "var(--muted-foreground)" }}>
+            <div>最大: {formatBytes(heap.max || 0)}</div>
+            <div>已用: {formatBytes(heap.used || 0)}</div>
+            {heap.max && (
+              <div className="mt-1 h-1 rounded-full" style={{ background: "var(--border)" }}>
+                <div 
+                  className="h-full rounded-full" 
+                  style={{ 
+                    background: "#165DFF",
+                    width: `${Math.min((heap.used / heap.max) * 100, 100)}%`
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {memory && (
+        <div className="p-2 rounded-md" style={{ background: "var(--muted)" }}>
+          <div className="text-xs font-medium mb-1" style={{ color: "var(--foreground)" }}>内存区域</div>
+          <div className="text-xs space-y-1" style={{ color: "var(--muted-foreground)" }}>
+            <div>Old: {formatBytes(memory.oldSize || 0)}</div>
+            <div>Young: {formatBytes(memory.youngSize || 0)}</div>
+            <div>PermGen: {formatBytes(memory.permGenSize || 0)}</div>
+          </div>
+        </div>
+      )}
+      {thread && (
+        <div className="p-2 rounded-md" style={{ background: "var(--muted)" }}>
+          <div className="text-xs font-medium mb-1" style={{ color: "var(--foreground)" }}>线程</div>
+          <div className="text-xs space-y-1" style={{ color: "var(--muted-foreground)" }}>
+            <div>总数: {thread.threadCount || 0}</div>
+            <div>守护线程: {thread.daemonThreadCount || 0}</div>
+          </div>
+        </div>
+      )}
+      {gc && (
+        <div className="p-2 rounded-md" style={{ background: "var(--muted)" }}>
+          <div className="text-xs font-medium mb-1" style={{ color: "var(--foreground)" }}>GC统计</div>
+          <div className="text-xs space-y-1" style={{ color: "var(--muted-foreground)" }}>
+            <div>Young GC: {gc.youngGcCount || 0}次 ({gc.youngGcTime || 0}ms)</div>
+            <div>Old GC: {gc.oldGcCount || 0}次 ({gc.oldGcTime || 0}ms)</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface HBDetailsProps {
+  tags: Record<string, any>;
+}
+
+function HBDetails({ tags }: HBDetailsProps) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {Object.entries(tags).map(([key, value]) => (
+        <span
+          key={key}
+          className="px-2 py-1 rounded text-xs"
+          style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}
+        >
+          {key}: {typeof value === 'object' ? JSON.stringify(value) : value}
+        </span>
+      ))}
     </div>
   );
 }

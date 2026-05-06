@@ -67,20 +67,22 @@ public class ApplicationService {
     public Application save(Application application) {
         return applicationRepository.save(application);
     }
-    
+
     public ApplicationDTO saveDTO(ApplicationDTO appDTO) {
         Application app = toEntity(appDTO);
         Application saved = applicationRepository.save(app);
         return toDTO(saved);
     }
-    
+
     public ApplicationDTO updateDTO(Long id, ApplicationDTO appDTO) {
         Optional<Application> existing = applicationRepository.findById(id);
         if (existing.isPresent()) {
             Application app = existing.get();
             if (appDTO.getName() != null) app.setName(appDTO.getName());
+            if (appDTO.getEnv() != null) app.setEnv(appDTO.getEnv());
             if (appDTO.getStatus() != null) app.setStatus(appDTO.getStatus());
             if (appDTO.getIp() != null) app.setIp(appDTO.getIp());
+            if (appDTO.getPort() != null) app.setPort(appDTO.getPort());
             if (appDTO.getAgentVersion() != null) app.setAgentVersion(appDTO.getAgentVersion());
             if (appDTO.getJvmVersion() != null) app.setJvmVersion(appDTO.getJvmVersion());
             if (appDTO.getHeapUsage() != null) app.setHeapUsage(appDTO.getHeapUsage());
@@ -95,12 +97,14 @@ public class ApplicationService {
     public void deleteById(Long id) {
         applicationRepository.deleteById(id);
     }
-    
+
     private Application toEntity(ApplicationDTO dto) {
         Application app = new Application();
         app.setName(dto.getName());
+        app.setEnv(dto.getEnv());
         app.setStatus(dto.getStatus());
         app.setIp(dto.getIp());
+        app.setPort(dto.getPort());
         app.setAgentVersion(dto.getAgentVersion());
         app.setJvmVersion(dto.getJvmVersion());
         app.setHeapUsage(dto.getHeapUsage());
@@ -113,8 +117,10 @@ public class ApplicationService {
         return new ApplicationDTO(
             app.getId(),
             app.getName(),
+            app.getEnv(),
             app.getStatus(),
             app.getIp(),
+            app.getPort(),
             app.getAgentVersion(),
             app.getJvmVersion(),
             app.getHeapUsage(),
@@ -133,6 +139,26 @@ public class ApplicationService {
         if (!apps.isEmpty()) {
             Application app = apps.get(0);
             app.setInstanceCount(instanceCount);
+            applicationRepository.save(app);
+        }
+    }
+
+    public Application findByAppName(String appName) {
+        List<Application> apps = applicationRepository.findByNameContaining(appName);
+        return apps.isEmpty() ? null : apps.get(0);
+    }
+
+    public void updateHeartbeat(String appName, String ip) {
+        if (appName == null) {
+            return;
+        }
+        List<Application> apps = applicationRepository.findByNameContaining(appName);
+        if (!apps.isEmpty()) {
+            Application app = apps.get(0);
+            app.setStatus("online");
+            if (ip != null) {
+                app.setIp(ip);
+            }
             applicationRepository.save(app);
         }
     }

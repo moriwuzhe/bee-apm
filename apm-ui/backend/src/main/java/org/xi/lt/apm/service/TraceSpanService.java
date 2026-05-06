@@ -49,8 +49,17 @@ public class TraceSpanService {
         try {
             TraceSpan span = new TraceSpan();
 
-            span.setTraceId(getString(spanMap, "id"));
-            span.setSpanType(getString(spanMap, "type"));
+            String traceId = getString(spanMap, "id");
+            String spanType = getString(spanMap, "type");
+            
+            if ("hb".equals(spanType) || "jvm".equals(spanType)) {
+                if (traceId == null || traceId.startsWith("unknown")) {
+                    traceId = spanType + "-" + System.currentTimeMillis() + "-" + ThreadLocalRandom.current().nextLong(100000);
+                }
+            }
+            
+            span.setTraceId(traceId);
+            span.setSpanType(spanType);
             span.setAppName(getString(spanMap, "app"));
             span.setServiceName(getString(spanMap, "serviceName"));
             span.setMethodName(getString(spanMap, "methodName"));
@@ -225,5 +234,10 @@ public class TraceSpanService {
     public List<String> findAllAppNames(int hours) {
         LocalDateTime since = LocalDateTime.now().minusHours(hours);
         return traceSpanRepository.findDistinctAppNamesSince(since);
+    }
+
+    public void deleteAll() {
+        traceSpanRepository.deleteAll();
+        logger.info("All trace span data cleared");
     }
 }

@@ -138,4 +138,15 @@ public class TraceSpanController {
     public Result<String> health() {
         return Result.success("OK");
     }
+
+    @DeleteMapping("/clear")
+    public Result<String> clearAllData() {
+        try {
+            traceSpanService.deleteAll();
+            return Result.success("All data cleared successfully");
+        } catch (Exception e) {
+            logger.error("Failed to clear data", e);
+            return Result.error("Failed to clear data: " + e.getMessage());
+        }
+    }
 }

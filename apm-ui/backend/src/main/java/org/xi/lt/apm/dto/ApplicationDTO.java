@@ -9,8 +9,10 @@ public class ApplicationDTO implements Serializable {
 
     private Long id;
     private String name;
+    private String env;
     private String status;
     private String ip;
+    private Integer port;
     private String agentVersion;
     private String jvmVersion;
     private Double heapUsage;
@@ -21,13 +23,15 @@ public class ApplicationDTO implements Serializable {
 
     public ApplicationDTO() {}
 
-    public ApplicationDTO(Long id, String name, String status, String ip, String agentVersion,
-                        String jvmVersion, Double heapUsage, String uptime, Integer instanceCount,
-                        Long projectId, String projectName) {
+    public ApplicationDTO(Long id, String name, String env, String status, String ip, Integer port,
+                        String agentVersion, String jvmVersion, Double heapUsage, String uptime,
+                        Integer instanceCount, Long projectId, String projectName) {
         this.id = id;
         this.name = name;
+        this.env = env;
         this.status = status;
         this.ip = ip;
+        this.port = port;
         this.agentVersion = agentVersion;
         this.jvmVersion = jvmVersion;
         this.heapUsage = heapUsage;

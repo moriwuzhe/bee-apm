@@ -135,10 +135,10 @@ export default function JVMMonitor() {
         {/* Host metrics row */}
         <div className="flex gap-3">
           {[
-            { title: "CPU 使用率", value: "72.4", unit: "%", color: "#165DFF", icon: <Cpu size={14} />, sub: "8核 / 16线程", warn: true },
-            { title: "内存使用率", value: "68.1", unit: "%", color: "#00D68F", icon: <Activity size={14} />, sub: "10.9GB / 16GB", warn: false },
-            { title: "磁盘 IO",    value: "45.2", unit: "MB/s", color: "#FFAA00", icon: <HardDrive size={14} />, sub: "读 28 / 写 17", warn: false },
-            { title: "网络流量",   value: "128.6", unit: "Mbps", color: "#A855F7", icon: <Wifi size={14} />, sub: "IN 80 / OUT 48", warn: false },
+            { title: "CPU 使用率", value: hostMetrics.cpuUsage?.toString() || "72.4", unit: "%", color: "#165DFF", icon: <Cpu size={14} />, sub: "8核 / 16线程", warn: parseFloat(hostMetrics.cpuUsage?.toString() || "0") > 80 },
+            { title: "内存使用率", value: hostMetrics.memUsage?.toString() || "68.1", unit: "%", color: "#00D68F", icon: <Activity size={14} />, sub: "10.9GB / 16GB", warn: false },
+            { title: "磁盘 IO",    value: hostMetrics.diskIO?.toString() || "45.2", unit: "MB/s", color: "#FFAA00", icon: <HardDrive size={14} />, sub: "读 28 / 写 17", warn: false },
+            { title: "网络流量",   value: hostMetrics.network?.toString() || "128.6", unit: "Mbps", color: "#A855F7", icon: <Wifi size={14} />, sub: "IN 80 / OUT 48", warn: false },
           ].map((m) => (
             <div key={m.title} className="flex-1 rounded-lg p-4 card-hover" style={{ background: "var(--card)", border: `1px solid ${m.warn ? "rgba(255,77,79,0.3)" : "var(--border)"}` }}>
               <div className="flex items-center justify-between mb-2">
@@ -171,7 +171,7 @@ export default function JVMMonitor() {
               <Thermometer size={16} style={{ color: "#FF4D4F" }} />
             </div>
             <ResponsiveContainer width="100%" height={160}>
-              <AreaChart data={memData}>
+              <AreaChart data={chartData.memData}>
                 <defs>
                   <linearGradient id="gradHeap" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#165DFF" stopOpacity={0.35} />
@@ -201,7 +201,7 @@ export default function JVMMonitor() {
               </div>
             </div>
             <ResponsiveContainer width="100%" height={160}>
-              <LineChart data={threadData}>
+              <LineChart data={chartData.threadData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" />
                 <XAxis dataKey="t" tick={{ fill: "#64748B", fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: "#64748B", fontSize: 10 }} axisLine={false} tickLine={false} />
@@ -233,7 +233,7 @@ export default function JVMMonitor() {
               </div>
             </div>
             <ResponsiveContainer width="100%" height={160}>
-              <BarChart data={gcData} barSize={10}>
+              <BarChart data={chartData.gcData} barSize={10}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" />
                 <XAxis dataKey="t" tick={{ fill: "#64748B", fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: "#64748B", fontSize: 10 }} axisLine={false} tickLine={false} />
@@ -254,7 +254,7 @@ export default function JVMMonitor() {
               <Wifi size={16} style={{ color: "#A855F7" }} />
             </div>
             <ResponsiveContainer width="100%" height={160}>
-              <AreaChart data={netData}>
+              <AreaChart data={chartData.netData}>
                 <defs>
                   <linearGradient id="gradRx" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#165DFF" stopOpacity={0.3} />

@@ -20,5 +20,92 @@ reporter:
 sampling:
   rate: 1
 
-logging:
-  level: INFO
+
+logger:
+    console: true  #日志输出到控制台，默认false
+    level: trace   #日志输出级别，默认error
+    fileSize: 10485760 #日志文件大小，单位字节,默认10M
+    fileNum: 3     #日志文件保留数量，默认5个文件
+
+plugins:
+    process:
+        enable: true  #采集开关
+        spend: -1 #耗时阀值
+        enableMethodSign: true #是否采集方法签名,默认false
+        param:
+            enable: true  #参数采集开关
+            excludeTypePrefix: #排除的参数类型，参数不被系列化
+                - javax.
+                - org.w3c
+                - org.springframework
+                - org.apache
+                - org.jdom
+                - com.fasterxml
+                - org.mybatis
+                - com.fasterxml
+                - net.sf.json
+                - org.codehaus
+                - java.lang.reflect
+                - java.lang.Object
+                - java.io
+                - java.nio
+                - sun.nio
+                - org.aspectj
+            excludePointMatches: #正则表达式，排除的采集点的参数不被采集，可以配置到方法级别，优先级别高于includePointPrefix
+                - com.asiainfo.rule.*
+            includePointMatches:  #正则表达式，包含的采集点的参数才被采集，可以配置到方法级别，不配置的话默认都采集，前提在interceptPoints的前提下
+                - org.xi.lt.demo.*
+        error:
+            enable: true
+            #白名单配置，不在白名单的不采集，该前缀是在interceptPoint的前提下，支持到方法级别(fullClassName.methodName)
+            includeErrorPointPrefix:
+                - org.xi.lt.demo
+            #黑名单配置，优先级别最高，该前缀是在interceptPoint的前提下，支持到方法级别(fullClassName.methodName)
+            excludeErrorPointPrefix:
+        #采集范围配置，请根据自己的情况，调整下采集范围
+        interceptPoints: #数组类型
+            -
+                typeMatch:  #类匹配规则
+                    include: #包含规则named,nameStartsWith,nameEndsWith,nameContains,nameMatches,hasSuperType,hasAnnotation
+                        nameStartsWith: org.xi.lt.demo
+                    exclude: #排除规则named,nameStartsWith,nameEndsWith,nameContains,nameMatches,hasSuperType,hasAnnotation
+                        nameContains: CGLIB
+                        nameStartsWith: org.apache.catalina,org.xi.lt.demo.model.,org.xi.lt.demo.common.,org.xi.lt.demo.entity.
+                methodMatch: #方法匹配规则
+                    include: #包含规则named,nameStartsWith,nameEndsWith,nameContains,nameMatches,isAnnotatedWith
+                        named:
+                    exclude: #排除规则named,nameStartsWith,nameEndsWith,nameContains,nameMatches,isAnnotatedWith
+                        named:
+
+    jdbc:
+        enable: true       #开关，是否采集
+        spend: -1           #耗时阀值
+        enableParam: true  #参数采集开关
+    logger:
+        enable: true    #开关，是否采集,默认true
+        errorRate: false #开关，error及以上级别是否使用采样率,默认false
+        defLevel: debug #默认级别，默认值为debug
+        points:
+        #日志采集点配置，规则为包名和日志级别，如a.b.c|debug，日志级别可不配置，为默认defLevel级别
+            - org.xi.lt.demo|trace
+        loggerClass: #要埋点的目标logger类数组
+
+    servlet:
+        enable: true       #开关，是否采集
+        enableReqParam: true #参数采集开关，是否采集
+        enableReqBody: true  #RequestBody采集开关，是否采集
+        enableReqHeaders: true  #Request headers采集开关，是否采集
+        enableRespBody: true # response采集开关，是否采集
+        spend: 1           #耗时阀值，小于等于process.spend
+        excludeUrlSuffix: .html,.jsp,hello2 #url后缀排除，多个用逗号分开
+        excludeClassPrefix: #配置要排除的类前缀
+            - org.apache.
+    springTx:
+        enable: true       #开关，是否采集
+        spend: 0           #耗时阀值
+    thread:
+        enable: true
+        excludeClass:
+            nameStartsWith: #数组类型
+                - org.apache.tomcat.util
+#           nameContains:   #数组类型

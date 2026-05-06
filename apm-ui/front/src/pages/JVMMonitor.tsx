@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MainLayout from "../components/Layout/MainLayout";
 import PageHeader from "../components/UI/PageHeader";
 import TechButton from "../components/UI/TechButton";
@@ -8,16 +8,21 @@ import {
 } from "recharts";
 import { Cpu, HardDrive, Wifi, Activity, Thermometer, RefreshCw } from "lucide-react";
 import { useToast } from "../context/ToastContext";
+import { jvmApi } from "../services/api";
 
 const timePoints = ["10:00", "10:05", "10:10", "10:15", "10:20", "10:25", "10:30", "10:35", "10:40", "10:45", "10:50", "10:55", "11:00"];
 
-const cpuData = timePoints.map((t, i) => ({ t, v: 40 + Math.sin(i * 0.7) * 20 + Math.random() * 10 }));
-const memData = timePoints.map((t, i) => ({ t, heap: 60 + Math.sin(i * 0.5) * 15, nonheap: 25 + Math.sin(i * 0.3) * 5 }));
-const gcData   = timePoints.map((t, i) => ({ t, ygc: Math.floor(i * 0.8 + Math.random() * 2), fgc: i % 5 === 0 ? 1 : 0 }));
-const netData  = timePoints.map((t, i) => ({ t, rx: 50 + Math.random() * 100, tx: 20 + Math.random() * 60 }));
-const threadData = timePoints.map((t, i) => ({ t, live: 180 + Math.floor(Math.random() * 40), daemon: 120 + Math.floor(Math.random() * 20), peak: 220 + Math.floor(Math.random() * 10) }));
+const generateMockData = () => {
+  return {
+    cpuData: timePoints.map((t, i) => ({ t, v: 40 + Math.sin(i * 0.7) * 20 + Math.random() * 10 })),
+    memData: timePoints.map((t, i) => ({ t, heap: 60 + Math.sin(i * 0.5) * 15, nonheap: 25 + Math.sin(i * 0.3) * 5 })),
+    gcData: timePoints.map((t, i) => ({ t, ygc: Math.floor(i * 0.8 + Math.random() * 2), fgc: i % 5 === 0 ? 1 : 0 })),
+    netData: timePoints.map((t, i) => ({ t, rx: 50 + Math.random() * 100, tx: 20 + Math.random() * 60 })),
+    threadData: timePoints.map((t, i) => ({ t, live: 180 + Math.floor(Math.random() * 40), daemon: 120 + Math.floor(Math.random() * 20), peak: 220 + Math.floor(Math.random() * 10) })),
+  };
+};
 
-const apps = ["order-service", "payment-gateway", "user-service", "inventory-service"];
+const defaultApps = ["order-service", "payment-gateway", "user-service", "inventory-service"];
 
 const MiniTooltip = ({ active, payload }: { active?: boolean; payload?: { value: number; color: string; name: string }[] }) => {
   if (active && payload?.length) {
@@ -34,6 +39,72 @@ export default function JVMMonitor() {
   const { showToast } = useToast();
   const [selectedApp, setSelectedApp] = useState("order-service");
   const [timeRange, setTimeRange] = useState("30m");
+  const [apps, setApps] = useState<string[]>(defaultApps);
+  const [loading, setLoading] = useState(false);
+  const [metrics, setMetrics] = useState<Record<string, any>>({});
+  const [chartData, setChartData] = useState(generateMockData());
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [appsRes, hostMetricsRes, heapRes, threadRes, gcRes, netRes] = await Promise.all([
+        jvmApi.getApplications(),
+        jvmApi.getHostMetrics(selectedApp),
+        jvmApi.getHeapMemData(),
+        jvmApi.getThreadData(),
+        jvmApi.getGcData(),
+        jvmApi.getNetworkData(),
+      ]);
+      
+      if (appsRes.data && appsRes.data.length > 0) {
+        setApps(appsRes.data);
+      }
+      
+      if (hostMetricsRes.data) {
+        setMetrics(hostMetricsRes.data);
+      }
+      
+      if (heapRes.data && heapRes.data.length > 0) {
+        setChartData(prev => ({ ...prev, memData: heapRes.data }));
+      }
+      
+      if (threadRes.data && threadRes.data.length > 0) {
+        setChartData(prev => ({ ...prev, threadData: threadRes.data }));
+      }
+      
+      if (gcRes.data && gcRes.data.length > 0) {
+        setChartData(prev => ({ ...prev, gcData: gcRes.data }));
+      }
+      
+      if (netRes.data && netRes.data.length > 0) {
+        setChartData(prev => ({ ...prev, netData: netRes.data }));
+      }
+      
+      showToast("数据刷新成功", "success");
+    } catch (error) {
+      console.error("Failed to load JVM data:", error);
+      showToast("数据加载失败，使用模拟数据", "warning");
+      setChartData(generateMockData());
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleRefresh = () => {
+    showToast(`正在刷新 ${selectedApp} 的监控数据...`, "info");
+    loadData();
+  };
+
+  const hostMetrics = metrics || {
+    cpuUsage: 72.4,
+    memUsage: 68.1,
+    diskIO: 45.2,
+    network: 128.6,
+  };
 
   return (
     <MainLayout title="主机 & JVM 监控">
@@ -56,7 +127,7 @@ export default function JVMMonitor() {
                   <button key={t} onClick={() => setTimeRange(t)} className="px-2.5 py-1 rounded text-xs" style={{ background: timeRange === t ? "#165DFF" : "transparent", color: timeRange === t ? "#fff" : "var(--muted-foreground)" }}>{t}</button>
                 ))}
               </div>
-              <TechButton variant="secondary" icon={<RefreshCw size={13} />} onClick={() => { showToast(`正在刷新 ${selectedApp} 的监控数据...`, "info"); setTimeout(() => showToast("数据刷新成功", "success"), 1000); }}>刷新</TechButton>
+              <TechButton variant="secondary" icon={<RefreshCw size={13} />} onClick={handleRefresh} disabled={loading}>{loading ? "刷新中..." : "刷新"}</TechButton>
             </>
           }
         />

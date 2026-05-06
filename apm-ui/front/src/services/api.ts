@@ -247,94 +247,104 @@ async function request<T>(
 
 export const dashboardApi = {
     getStats: () =>
-        request<ApiResponse<DashboardStats>>("/dashboard/stats", { method: "GET" }),
+        request<ApiResponse<DashboardStats>>("/api/dashboard/stats", { method: "GET" }),
     getTrend: (range: string = "24h") =>
-        request<ApiResponse<TrendData[]>>("/dashboard/trend?range=" + range, { method: "GET" }),
+        request<ApiResponse<TrendData[]>>("/api/dashboard/trend?range=" + range, { method: "GET" }),
     getAlertTrend: () =>
-        request<ApiResponse<{ time: string; count: number }[]>>("/dashboard/alert-trend", { method: "GET" }),
+        request<ApiResponse<{ time: string; count: number }[]>>("/api/dashboard/alert-trend", { method: "GET" }),
     getRecentAlerts: () =>
-        request<ApiResponse<Alert[]>>("/dashboard/recent-alerts", { method: "GET" }),
+        request<ApiResponse<Alert[]>>("/api/dashboard/recent-alerts", { method: "GET" }),
     getTopApps: () =>
-        request<ApiResponse<TopApp[]>>("/dashboard/top-apps", { method: "GET" }),
+        request<ApiResponse<TopApp[]>>("/api/dashboard/top-apps", { method: "GET" }),
 };
 
 export const projectsApi = {
-    getAll: () => request<ApiResponse<Project[]>>("/projects", { method: "GET" }),
-    getById: (id: number) => request<ApiResponse<Project>>("/projects/" + id, { method: "GET" }),
-    getByEnv: (env: string) => request<ApiResponse<Project[]>>("/projects/env/" + env, { method: "GET" }),
-    create: (project: ProjectFormData) => request<ApiResponse<Project>>("/projects", { method: "POST", body: JSON.stringify(project) }),
-    update: (id: number, project: Partial<ProjectFormData>) => request<ApiResponse<Project>>("/projects/" + id, { method: "PUT", body: JSON.stringify(project) }),
-    delete: (id: number) => request<ApiResponse<void>>("/projects/" + id, { method: "DELETE" }),
-    search: (keyword: string) => request<ApiResponse<Project[]>>("/projects/search?keyword=" + encodeURIComponent(keyword), { method: "GET" }),
+    getAll: () => request<ApiResponse<Project[]>>("/api/projects", { method: "GET" }),
+    getById: (id: number) => request<ApiResponse<Project>>("/api/projects/" + id, { method: "GET" }),
+    getByEnv: (env: string) => request<ApiResponse<Project[]>>("/api/projects/env/" + env, { method: "GET" }),
+    create: (project: ProjectFormData) => request<ApiResponse<Project>>("/api/projects", { method: "POST", body: JSON.stringify(project) }),
+    update: (id: number, project: Partial<ProjectFormData>) => request<ApiResponse<Project>>("/api/projects/" + id, { method: "PUT", body: JSON.stringify(project) }),
+    delete: (id: number) => request<ApiResponse<void>>("/api/projects/" + id, { method: "DELETE" }),
+    search: (keyword: string) => request<ApiResponse<Project[]>>("/api/projects/search?keyword=" + encodeURIComponent(keyword), { method: "GET" }),
 };
 
 export const applicationsApi = {
-    getAll: () => request<ApiResponse<Application[]>>("/applications", { method: "GET" }),
-    getById: (id: number) => request<ApiResponse<Application>>("/applications/" + id, { method: "GET" }),
-    getByProjectId: (projectId: number) => request<ApiResponse<Application[]>>("/applications/project/" + projectId, { method: "GET" }),
-    getByStatus: (status: string) => request<ApiResponse<Application[]>>("/applications/status/" + status, { method: "GET" }),
-    create: (app: Partial<Application>) => request<ApiResponse<Application>>("/applications", { method: "POST", body: JSON.stringify(app) }),
-    update: (id: number, app: Partial<Application>) => request<ApiResponse<Application>>("/applications/" + id, { method: "PUT", body: JSON.stringify(app) }),
-    delete: (id: number) => request<ApiResponse<void>>("/applications/" + id, { method: "DELETE" }),
-    search: (keyword: string) => request<ApiResponse<Application[]>>("/applications/search?keyword=" + encodeURIComponent(keyword), { method: "GET" }),
+    getAll: () => request<ApiResponse<Application[]>>("/api/applications", { method: "GET" }),
+    getById: (id: number) => request<ApiResponse<Application>>("/api/applications/" + id, { method: "GET" }),
+    getByProjectId: (projectId: number) => request<ApiResponse<Application[]>>("/api/applications/project/" + projectId, { method: "GET" }),
+    getByStatus: (status: string) => request<ApiResponse<Application[]>>("/api/applications/status/" + status, { method: "GET" }),
+    create: (app: Partial<Application>) => request<ApiResponse<Application>>("/api/applications", { method: "POST", body: JSON.stringify(app) }),
+    update: (id: number, app: Partial<Application>) => request<ApiResponse<Application>>("/api/applications/" + id, { method: "PUT", body: JSON.stringify(app) }),
+    delete: (id: number) => request<ApiResponse<void>>("/api/applications/" + id, { method: "DELETE" }),
+    search: (keyword: string) => request<ApiResponse<Application[]>>("/api/applications/search?keyword=" + encodeURIComponent(keyword), { method: "GET" }),
 };
 
 export const usersApi = {
-    getAll: () => request<ApiResponse<User[]>>("/users", { method: "GET" }),
-    getById: (id: number) => request<ApiResponse<User>>("/users/" + id, { method: "GET" }),
-    create: (user: Partial<User>) => request<ApiResponse<User>>("/users", { method: "POST", body: JSON.stringify(user) }),
-    update: (id: number, user: Partial<User>) => request<ApiResponse<User>>("/users/" + id, { method: "PUT", body: JSON.stringify(user) }),
-    delete: (id: number) => request<ApiResponse<void>>("/users/" + id, { method: "DELETE" }),
-    search: (keyword: string) => request<ApiResponse<User[]>>("/users/search?keyword=" + encodeURIComponent(keyword), { method: "GET" }),
+    getAll: () => request<ApiResponse<User[]>>("/api/users", { method: "GET" }),
+    getById: (id: number) => request<ApiResponse<User>>("/api/users/" + id, { method: "GET" }),
+    create: (user: Partial<User>) => request<ApiResponse<User>>("/api/users", { method: "POST", body: JSON.stringify(user) }),
+    update: (id: number, user: Partial<User>) => request<ApiResponse<User>>("/api/users/" + id, { method: "PUT", body: JSON.stringify(user) }),
+    delete: (id: number) => request<ApiResponse<void>>("/api/users/" + id, { method: "DELETE" }),
+    search: (keyword: string) => request<ApiResponse<User[]>>("/api/users/search?keyword=" + encodeURIComponent(keyword), { method: "GET" }),
 };
 
 export const rolesApi = {
-    getAll: () => request<ApiResponse<Role[]>>("/roles", { method: "GET" }),
-    getById: (id: number) => request<ApiResponse<Role>>("/roles/" + id, { method: "GET" }),
-    create: (role: Partial<Role>) => request<ApiResponse<Role>>("/roles", { method: "POST", body: JSON.stringify(role) }),
-    update: (id: number, role: Partial<Role>) => request<ApiResponse<Role>>("/roles/" + id, { method: "PUT", body: JSON.stringify(role) }),
-    delete: (id: number) => request<ApiResponse<void>>("/roles/" + id, { method: "DELETE" }),
+    getAll: () => request<ApiResponse<Role[]>>("/api/roles", { method: "GET" }),
+    getById: (id: number) => request<ApiResponse<Role>>("/api/roles/" + id, { method: "GET" }),
+    create: (role: Partial<Role>) => request<ApiResponse<Role>>("/api/roles", { method: "POST", body: JSON.stringify(role) }),
+    update: (id: number, role: Partial<Role>) => request<ApiResponse<Role>>("/api/roles/" + id, { method: "PUT", body: JSON.stringify(role) }),
+    delete: (id: number) => request<ApiResponse<void>>("/api/roles/" + id, { method: "DELETE" }),
 };
 
 export const permissionsApi = {
-    getAll: () => request<ApiResponse<Permission[]>>("/permissions", { method: "GET" }),
-    getById: (id: number) => request<ApiResponse<Permission>>("/permissions/" + id, { method: "GET" }),
-    getByModule: (module: string) => request<ApiResponse<Permission[]>>("/permissions/module/" + module, { method: "GET" }),
-    create: (permission: Partial<Permission>) => request<ApiResponse<Permission>>("/permissions", { method: "POST", body: JSON.stringify(permission) }),
-    update: (id: number, permission: Partial<Permission>) => request<ApiResponse<Permission>>("/permissions/" + id, { method: "PUT", body: JSON.stringify(permission) }),
-    delete: (id: number) => request<ApiResponse<void>>("/permissions/" + id, { method: "DELETE" }),
+    getAll: () => request<ApiResponse<Permission[]>>("/api/permissions", { method: "GET" }),
+    getById: (id: number) => request<ApiResponse<Permission>>("/api/permissions/" + id, { method: "GET" }),
+    getByModule: (module: string) => request<ApiResponse<Permission[]>>("/api/permissions/module/" + module, { method: "GET" }),
+    create: (permission: Partial<Permission>) => request<ApiResponse<Permission>>("/api/permissions", { method: "POST", body: JSON.stringify(permission) }),
+    update: (id: number, permission: Partial<Permission>) => request<ApiResponse<Permission>>("/api/permissions/" + id, { method: "PUT", body: JSON.stringify(permission) }),
+    delete: (id: number) => request<ApiResponse<void>>("/api/permissions/" + id, { method: "DELETE" }),
 };
 
 export const releasesApi = {
-    getAll: () => request<ApiResponse<Release[]>>("/releases", { method: "GET" }),
-    getById: (id: number) => request<ApiResponse<Release>>("/releases/" + id, { method: "GET" }),
-    getByAppName: (appName: string) => request<ApiResponse<Release[]>>("/releases/app/" + encodeURIComponent(appName), { method: "GET" }),
-    create: (release: ReleaseFormData) => request<ApiResponse<Release>>("/releases", { method: "POST", body: JSON.stringify(release) }),
-    update: (id: number, release: Partial<ReleaseFormData>) => request<ApiResponse<Release>>("/releases/" + id, { method: "PUT", body: JSON.stringify(release) }),
-    delete: (id: number) => request<ApiResponse<void>>("/releases/" + id, { method: "DELETE" }),
-    getImpactAnalysis: (releaseId: number) => request<ApiResponse<ImpactAnalysis>>("/releases/" + releaseId + "/impact", { method: "GET" }),
+    getAll: () => request<ApiResponse<Release[]>>("/api/releases", { method: "GET" }),
+    getById: (id: number) => request<ApiResponse<Release>>("/api/releases/" + id, { method: "GET" }),
+    getByAppName: (appName: string) => request<ApiResponse<Release[]>>("/api/releases/app/" + encodeURIComponent(appName), { method: "GET" }),
+    create: (release: ReleaseFormData) => request<ApiResponse<Release>>("/api/releases", { method: "POST", body: JSON.stringify(release) }),
+    update: (id: number, release: Partial<ReleaseFormData>) => request<ApiResponse<Release>>("/api/releases/" + id, { method: "PUT", body: JSON.stringify(release) }),
+    delete: (id: number) => request<ApiResponse<void>>("/api/releases/" + id, { method: "DELETE" }),
+    getImpactAnalysis: (releaseId: number) => request<ApiResponse<ImpactAnalysis>>("/api/releases/" + releaseId + "/impact", { method: "GET" }),
 };
 
 export const agentsApi = {
-    getAll: () => request<ApiResponse<Agent[]>>("/agents", { method: "GET" }),
-    getById: (id: number) => request<ApiResponse<Agent>>("/agents/" + id, { method: "GET" }),
-    getByAppName: (appName: string) => request<ApiResponse<Agent[]>>("/agents/app/" + encodeURIComponent(appName), { method: "GET" }),
-    getByStatus: (status: string) => request<ApiResponse<Agent[]>>("/agents/status/" + status, { method: "GET" }),
-    create: (agent: AgentFormData) => request<ApiResponse<Agent>>("/agents", { method: "POST", body: JSON.stringify(agent) }),
-    update: (id: number, agent: Partial<AgentFormData>) => request<ApiResponse<Agent>>("/agents/" + id, { method: "PUT", body: JSON.stringify(agent) }),
-    delete: (id: number) => request<ApiResponse<void>>("/agents/" + id, { method: "DELETE" }),
-    search: (keyword: string) => request<ApiResponse<Agent[]>>("/agents/search?keyword=" + encodeURIComponent(keyword), { method: "GET" }),
+    getAll: () => request<ApiResponse<Agent[]>>("/api/agents", { method: "GET" }),
+    getById: (id: number) => request<ApiResponse<Agent>>("/api/agents/" + id, { method: "GET" }),
+    getByAppName: (appName: string) => request<ApiResponse<Agent[]>>("/api/agents/app/" + encodeURIComponent(appName), { method: "GET" }),
+    getByStatus: (status: string) => request<ApiResponse<Agent[]>>("/api/agents/status/" + status, { method: "GET" }),
+    create: (agent: AgentFormData) => request<ApiResponse<Agent>>("/api/agents", { method: "POST", body: JSON.stringify(agent) }),
+    update: (id: number, agent: Partial<AgentFormData>) => request<ApiResponse<Agent>>("/api/agents/" + id, { method: "PUT", body: JSON.stringify(agent) }),
+    delete: (id: number) => request<ApiResponse<void>>("/api/agents/" + id, { method: "DELETE" }),
+    search: (keyword: string) => request<ApiResponse<Agent[]>>("/api/agents/search?keyword=" + encodeURIComponent(keyword), { method: "GET" }),
 };
 
 export const alertRulesApi = {
-    getAll: () => request<ApiResponse<AlertRule[]>>("/alert-rules", { method: "GET" }),
-    getById: (id: number) => request<ApiResponse<AlertRule>>("/alert-rules/" + id, { method: "GET" }),
-    getByAppName: (appName: string) => request<ApiResponse<AlertRule[]>>("/alert-rules/app/" + encodeURIComponent(appName), { method: "GET" }),
-    create: (rule: AlertRuleFormData) => request<ApiResponse<AlertRule>>("/alert-rules", { method: "POST", body: JSON.stringify(rule) }),
-    update: (id: number, rule: Partial<AlertRuleFormData>) => request<ApiResponse<AlertRule>>("/alert-rules/" + id, { method: "PUT", body: JSON.stringify(rule) }),
-    delete: (id: number) => request<ApiResponse<void>>("/alert-rules/" + id, { method: "DELETE" }),
-    toggleStatus: (id: number, status: string) => request<ApiResponse<AlertRule>>("/alert-rules/" + id + "/status", { method: "PUT", body: JSON.stringify({ status }) }),
-    search: (keyword: string) => request<ApiResponse<AlertRule[]>>("/alert-rules/search?keyword=" + encodeURIComponent(keyword), { method: "GET" }),
+    getAll: () => request<ApiResponse<AlertRule[]>>("/api/alert-rules", { method: "GET" }),
+    getById: (id: number) => request<ApiResponse<AlertRule>>("/api/alert-rules/" + id, { method: "GET" }),
+    getByAppName: (appName: string) => request<ApiResponse<AlertRule[]>>("/api/alert-rules/app/" + encodeURIComponent(appName), { method: "GET" }),
+    create: (rule: AlertRuleFormData) => request<ApiResponse<AlertRule>>("/api/alert-rules", { method: "POST", body: JSON.stringify(rule) }),
+    update: (id: number, rule: Partial<AlertRuleFormData>) => request<ApiResponse<AlertRule>>("/api/alert-rules/" + id, { method: "PUT", body: JSON.stringify(rule) }),
+    delete: (id: number) => request<ApiResponse<void>>("/api/alert-rules/" + id, { method: "DELETE" }),
+    toggleStatus: (id: number, status: string) => request<ApiResponse<AlertRule>>("/api/alert-rules/" + id + "/status", { method: "PUT", body: JSON.stringify({ status }) }),
+    search: (keyword: string) => request<ApiResponse<AlertRule[]>>("/api/alert-rules/search?keyword=" + encodeURIComponent(keyword), { method: "GET" }),
+};
+
+export const jvmApi = {
+    getApplications: () => request<ApiResponse<string[]>>("/api/jvm/applications", { method: "GET" }),
+    getHostMetrics: (appName: string) => request<ApiResponse<Record<string, any>>>("/api/jvm/host-metrics?appName=" + encodeURIComponent(appName), { method: "GET" }),
+    getHeapMemData: () => request<ApiResponse<Record<string, any>[]>>("/api/jvm/heap-mem", { method: "GET" }),
+    getThreadData: () => request<ApiResponse<Record<string, any>[]>>("/api/jvm/threads", { method: "GET" }),
+    getGcData: () => request<ApiResponse<Record<string, any>[]>>("/api/jvm/gc", { method: "GET" }),
+    getNetworkData: () => request<ApiResponse<Record<string, any>[]>>("/api/jvm/network", { method: "GET" }),
+    getClassLoadingStats: () => request<ApiResponse<Record<string, any>>>("/api/jvm/class-loading", { method: "GET" }),
 };
 
 export const traceApi = {

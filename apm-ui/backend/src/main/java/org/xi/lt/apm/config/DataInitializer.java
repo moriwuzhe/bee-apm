@@ -34,6 +34,9 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired
     private ReleaseRepository releaseRepository;
 
+    @Autowired
+    private AlertRuleRepository alertRuleRepository;
+
     @Override
     public void run(String... args) throws Exception {
         initPermissions();
@@ -43,6 +46,7 @@ public class DataInitializer implements CommandLineRunner {
         initApplications();
         initAlerts();
         initReleases();
+        initAlertRules();
     }
 
     private void initPermissions() {
@@ -433,5 +437,91 @@ public class DataInitializer implements CommandLineRunner {
         r4.setImpactInstances(3);
         r4.setAlertsCount(0);
         releaseRepository.save(r4);
+    }
+
+    private void initAlertRules() {
+        AlertRule rule1 = new AlertRule();
+        rule1.setName("CPU使用率告警");
+        rule1.setMetric("cpu");
+        rule1.setCondition(">");
+        rule1.setThreshold(85.0);
+        rule1.setUnit("%");
+        rule1.setLevel("warning");
+        rule1.setStatus("enabled");
+        rule1.setChannels("email,dingtalk");
+        rule1.setTriggerCount(12);
+        rule1.setLastTrigger("2024-01-15 10:30:00");
+        rule1.setAppName("order-service");
+        alertRuleRepository.save(rule1);
+
+        AlertRule rule2 = new AlertRule();
+        rule2.setName("内存使用率告警");
+        rule2.setMetric("memory");
+        rule2.setCondition(">");
+        rule2.setThreshold(90.0);
+        rule2.setUnit("%");
+        rule2.setLevel("error");
+        rule2.setStatus("enabled");
+        rule2.setChannels("email,sms");
+        rule2.setTriggerCount(5);
+        rule2.setLastTrigger("2024-01-14 15:20:00");
+        rule2.setAppName("payment-gateway");
+        alertRuleRepository.save(rule2);
+
+        AlertRule rule3 = new AlertRule();
+        rule3.setName("响应时间告警");
+        rule3.setMetric("responseTime");
+        rule3.setCondition(">");
+        rule3.setThreshold(500.0);
+        rule3.setUnit("ms");
+        rule3.setLevel("warning");
+        rule3.setStatus("enabled");
+        rule3.setChannels("dingtalk");
+        rule3.setTriggerCount(8);
+        rule3.setLastTrigger("2024-01-15 09:45:00");
+        rule3.setAppName("user-service");
+        alertRuleRepository.save(rule3);
+
+        AlertRule rule4 = new AlertRule();
+        rule4.setName("错误率告警");
+        rule4.setMetric("errorRate");
+        rule4.setCondition(">");
+        rule4.setThreshold(5.0);
+        rule4.setUnit("%");
+        rule4.setLevel("error");
+        rule4.setStatus("disabled");
+        rule4.setChannels("email");
+        rule4.setTriggerCount(0);
+        rule4.setLastTrigger(null);
+        rule4.setAppName("inventory-service");
+        alertRuleRepository.save(rule4);
+
+        AlertRule rule5 = new AlertRule();
+        rule5.setName("JVM堆内存告警");
+        rule5.setMetric("heapUsed");
+        rule5.setCondition(">");
+        rule5.setThreshold(80.0);
+        rule5.setUnit("%");
+        rule5.setLevel("warning");
+        rule5.setStatus("enabled");
+        rule5.setChannels("email,dingtalk");
+        rule5.setTriggerCount(3);
+        rule5.setLastTrigger("2024-01-15 11:00:00");
+        rule5.setAppName("order-service");
+        alertRuleRepository.save(rule5);
+
+        AlertRule rule6 = new AlertRule();
+        rule6.setName("线程数告警");
+        rule6.setMetric("threadCount");
+        rule6.setCondition(">");
+        rule6.setThreshold(200.0);
+        rule6.setUnit("");
+        rule6.setLevel("error");
+        rule6.setStatus("enabled");
+        rule6.setChannels("sms");
+        rule6.setTriggerCount(1);
+        rule6.setLastTrigger("2024-01-13 16:30:00");
+        rule6.setAppName("payment-gateway");
+        alertRuleRepository.save(rule6);
     }
 }

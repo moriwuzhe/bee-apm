@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import MainLayout from "../components/Layout/MainLayout";
 import { Search, Filter, Download, RefreshCw, Clock, AlertTriangle, Info, Terminal, ChevronDown, ChevronRight, Copy, Check, FileText } from "lucide-react";
 
@@ -33,14 +33,38 @@ const levelConfig = {
 };
 
 export default function LogViewer() {
+  const [logs, setLogs] = useState<LogEntry[]>(mockLogs);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [filterLevel, setFilterLevel] = useState<string>("all");
   const [filterService, setFilterService] = useState<string>("all");
   const [expandedLogs, setExpandedLogs] = useState<Set<string>>(new Set());
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  useEffect(() => {
+    fetchLogs();
+  }, []);
+
+  const fetchLogs = async () => {
+    try {
+      const url = new URL("/api/logs", window.location.origin);
+      if (searchKeyword) url.searchParams.set("keyword", searchKeyword);
+      if (filterLevel !== "all") url.searchParams.set("level", filterLevel);
+      if (filterService !== "all") url.searchParams.set("service", filterService);
+
+      const response = await fetch(url.toString());
+      if (response.ok) {
+        const result = await response.json();
+        if (result.data) {
+          setLogs(result.data);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch logs:", error);
+    }
+  };
+
   const filteredLogs = useMemo(() => {
-    return mockLogs.filter((log) => {
+    return logs.filter((log) => {
       const matchesKeyword =
         searchKeyword === "" ||
         log.message.toLowerCase().includes(searchKeyword.toLowerCase()) ||
@@ -50,15 +74,15 @@ export default function LogViewer() {
       const matchesService = filterService === "all" || log.service === filterService;
       return matchesKeyword && matchesLevel && matchesService;
     });
-  }, [searchKeyword, filterLevel, filterService]);
+  }, [logs, searchKeyword, filterLevel, filterService]);
 
-  const uniqueServices = [...new Set(mockLogs.map((l) => l.service))];
+  const uniqueServices = [...new Set(logs.map((l) => l.service))];
 
   const stats = {
-    total: mockLogs.length,
-    error: mockLogs.filter((l) => l.level === "ERROR").length,
-    warn: mockLogs.filter((l) => l.level === "WARN").length,
-    info: mockLogs.filter((l) => l.level === "INFO").length,
+    total: logs.length,
+    error: logs.filter((l) => l.level === "ERROR").length,
+    warn: logs.filter((l) => l.level === "WARN").length,
+    info: logs.filter((l) => l.level === "INFO").length,
   };
 
   const toggleExpand = (id: string) => {
@@ -292,9 +316,9 @@ export default function LogViewer() {
               { level: "ERROR", count: stats.error, color: "#FF4D4F" },
               { level: "WARN", count: stats.warn, color: "#FFAA00" },
               { level: "INFO", count: stats.info, color: "#00D68F" },
-              { level: "DEBUG", count: mockLogs.filter(l => l.level === "DEBUG").length, color: "#60A5FA" },
+              { level: "DEBUG", count: logs.filter(l => l.level === "DEBUG").length, color: "#60A5FA" },
             ].map((item) => {
-              const percentage = (item.count / mockLogs.length) * 100;
+              const percentage = logs.length > 0 ? (item.count / logs.length) * 100 : 0;
               return (
                 <div
                   key={item.level}

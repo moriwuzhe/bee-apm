@@ -41,7 +41,18 @@ export default function HealthCheck() {
 
   const refreshStatus = async () => {
     setIsRefreshing(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const response = await fetch("/api/health-check");
+      if (response.ok) {
+        const result = await response.json();
+        if (result.data) {
+          setServices(result.data);
+          return;
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch health check data:", error);
+    }
     setServices(prev => prev.map(service => ({
       ...service,
       responseTime: service.status === "offline" ? 0 : Math.floor(Math.random() * 100) + 5,
@@ -51,6 +62,15 @@ export default function HealthCheck() {
   };
 
   useEffect(() => {
+    fetch("/api/health-check")
+      .then(response => response.json())
+      .then(result => {
+        if (result.data) {
+          setServices(result.data);
+        }
+      })
+      .catch(error => console.error("Failed to fetch health check data:", error));
+
     const interval = setInterval(refreshStatus, 30000);
     return () => clearInterval(interval);
   }, []);

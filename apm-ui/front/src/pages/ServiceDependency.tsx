@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import MainLayout from "../components/Layout/MainLayout";
 import { Search, Filter, Download, RefreshCw, Server, ArrowRight, Activity, Database, Globe, Wifi } from "lucide-react";
 
@@ -44,6 +44,35 @@ const mockCalls: ServiceCall[] = [
   { source: "Payment Service", target: "Kafka", calls: 1700, avgTime: 8 },
   { source: "Inventory Service", target: "MySQL", calls: 4100, avgTime: 12 },
 ];
+
+export default function ServiceDependency() {
+  const [services, setServices] = useState<ServiceNode[]>(mockServices);
+  const [calls, setCalls] = useState<ServiceCall[]>(mockCalls);
+  const [selectedService, setSelectedService] = useState<ServiceNode | null>(null);
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/service-dep");
+      if (response.ok) {
+        const result = await response.json();
+        if (result.data) {
+          setServices(result.data.services || mockServices);
+          setCalls(result.data.calls || mockCalls);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch service dependency data:", error);
+    }
+    setIsLoading(false);
+  };
 
 const typeConfig = {
   app: { icon: Server, color: "#165DFF", label: "应用服务" },

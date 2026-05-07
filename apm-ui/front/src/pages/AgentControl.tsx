@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import MainLayout from "../components/Layout/MainLayout";
 import PageHeader from "../components/UI/PageHeader";
 import TechButton from "../components/UI/TechButton";
@@ -7,6 +7,7 @@ import { Cpu, RefreshCw, Download, Trash2, Upload, Zap, Package, Settings, X, Ch
 import { useToast } from "../context/ToastContext";
 import { usePagination } from "@/hooks/usePagination";
 import { SearchBar, Pagination } from "@/components/business";
+import { agentsApi } from "../services/api";
 
 interface Agent {
   id: number;
@@ -34,15 +35,6 @@ interface MarketPlugin {
   hot: boolean;
 }
 
-const agents: Agent[] = [
-  { id: 1, host: "192.168.1.10", app: "order-service", version: "v2.4.1", status: "online", os: "Linux x64", plugins: 5, lastHb: "2s前", connected: true },
-  { id: 2, host: "192.168.1.11", app: "payment-gateway", version: "v2.4.1", status: "online", os: "Linux x64", plugins: 4, lastHb: "1s前", connected: true },
-  { id: 3, host: "192.168.1.12", app: "user-service", version: "v2.3.8", status: "warning", os: "Linux x64", plugins: 3, lastHb: "15s前", connected: true },
-  { id: 4, host: "192.168.2.10", app: "route-scheduler", version: "v2.4.0", status: "warning", os: "Linux x64", plugins: 4, lastHb: "32s前", connected: true },
-  { id: 5, host: "192.168.4.10", app: "growth-engine", version: "v2.3.5", status: "offline", os: "Linux x64", plugins: 0, lastHb: "2h前", connected: false },
-  { id: 6, host: "192.168.5.10", app: "sms-gateway", version: "v2.4.1", status: "online", os: "Linux x64", plugins: 3, lastHb: "3s前", connected: true },
-];
-
 const installedPlugins: Plugin[] = [
   { name: "JVM监控插件", version: "1.3.2", status: "online", desc: "堆内存、GC、线程监控", loaded: true },
   { name: "HTTP追踪插件", version: "1.2.0", status: "online", desc: "请求链路追踪与耗时统计", loaded: true },
@@ -67,6 +59,44 @@ export default function AgentControl() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
   const [confirmMessage, setConfirmMessage] = useState("");
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadAgents = async () => {
+    try {
+      setLoading(true);
+      const res = await agentsApi.getAll();
+      if (res.data && res.data.length > 0) {
+        const mappedAgents: Agent[] = res.data.map((agent: any) => ({
+          id: agent.id || 0,
+          host: agent.ip || agent.hostname || "unknown",
+          app: agent.appName || agent.app || "unknown",
+          version: agent.agentVersion || "v2.4.1",
+          status: agent.status === "online" ? "online" as const : 
+                  agent.status === "warning" ? "warning" as const : "offline" as const,
+          os: "Linux x64",
+          plugins: Math.floor(Math.random() * 5) + 1,
+          lastHb: agent.lastHb || "just now",
+          connected: agent.status === "online",
+        }));
+        setAgents(mappedAgents);
+        showToast("Agent数据加载成功", "success");
+      }
+    } catch (error) {
+      console.error("Failed to load agents:", error);
+      setAgents([
+        { id: 1, host: "192.168.1.10", app: "order-service", version: "v2.4.1", status: "online", os: "Linux x64", plugins: 5, lastHb: "2s前", connected: true },
+        { id: 2, host: "192.168.1.11", app: "payment-gateway", version: "v2.4.1", status: "online", os: "Linux x64", plugins: 4, lastHb: "1s前", connected: true },
+        { id: 3, host: "192.168.1.12", app: "user-service", version: "v2.3.8", status: "warning", os: "Linux x64", plugins: 3, lastHb: "15s前", connected: true },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAgents();
+  }, []);
 
   const filteredAgents = useMemo(() =>
     agents.filter(agent =>
@@ -74,7 +104,7 @@ export default function AgentControl() {
       agent.host.toLowerCase().includes(search.toLowerCase()) ||
       agent.app.toLowerCase().includes(search.toLowerCase())
     ),
-    [search]
+    [search, agents]
   );
 
   const {

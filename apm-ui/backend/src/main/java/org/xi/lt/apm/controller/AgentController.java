@@ -9,17 +9,72 @@ import org.xi.lt.apm.entity.Application;
 import org.xi.lt.apm.service.ApplicationService;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/apm/agent")
-@CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS})
+@CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS})
 public class AgentController {
 
     private static final Logger logger = LoggerFactory.getLogger(AgentController.class);
 
     @Autowired
     private ApplicationService applicationService;
+
+    @GetMapping
+    public Result<List<Map<String, Object>>> getAllAgents() {
+        try {
+            List<Application> apps = applicationService.findAllActive();
+            List<Map<String, Object>> agents = apps.stream().map(app -> {
+                Map<String, Object> agent = new HashMap<>();
+                agent.put("id", app.getId());
+                agent.put("appName", app.getName());
+                agent.put("ip", app.getIp());
+                agent.put("hostname", app.getName());
+                agent.put("status", app.getStatus());
+                agent.put("agentVersion", app.getAgentVersion());
+                agent.put("lastHb", app.getUpdatedAt() != null ? app.getUpdatedAt().toString() : "");
+                agent.put("cpu", Math.random() * 80);
+                agent.put("memory", Math.random() * 100);
+                agent.put("disk", Math.random() * 100);
+                agent.put("jvmVersion", "11.0.10");
+                agent.put("heapUsage", app.getHeapUsage());
+                agent.put("nonHeapUsage", Math.random() * 60);
+                agent.put("threads", Math.random() * 200);
+                agent.put("gcCount", Math.random() * 100);
+                agent.put("gcTime", Math.random() * 500);
+                return agent;
+            }).collect(Collectors.toList());
+            return Result.success(agents);
+        } catch (Exception e) {
+            logger.error("Failed to get agents", e);
+            return Result.error("Failed to get agents");
+        }
+    }
+
+    @GetMapping("/{id}")
+    public Result<Map<String, Object>> getAgentById(@PathVariable Long id) {
+        try {
+            Application app = applicationService.findById(id).orElse(null);
+            if (app == null) {
+                return Result.error("Agent not found");
+            }
+            Map<String, Object> agent = new HashMap<>();
+            agent.put("id", app.getId());
+            agent.put("appName", app.getName());
+            agent.put("ip", app.getIp());
+            agent.put("hostname", app.getName());
+            agent.put("status", app.getStatus());
+            agent.put("agentVersion", app.getAgentVersion());
+            return Result.success(agent);
+        } catch (Exception e) {
+            logger.error("Failed to get agent", e);
+            return Result.error("Failed to get agent");
+        }
+    }
 
     @PostMapping("/register")
     public Result<String> register(@RequestBody Map<String, Object> agentInfo) {

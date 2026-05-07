@@ -15,6 +15,8 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 
     List<Application> findByNameContaining(String name);
     
+    List<Application> findByDeletedFalse();
+    
     Integer countByProjectId(Long projectId);
     
     void deleteByProjectId(Long projectId);

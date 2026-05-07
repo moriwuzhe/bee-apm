@@ -162,4 +162,8 @@ public class ApplicationService {
             applicationRepository.save(app);
         }
     }
+
+    public List<Application> findAllActive() {
+        return applicationRepository.findByDeletedFalse();
+    }
 }

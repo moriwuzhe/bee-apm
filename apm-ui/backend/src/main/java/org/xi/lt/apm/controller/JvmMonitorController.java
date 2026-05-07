@@ -50,4 +50,9 @@ public class JvmMonitorController {
     public Result<Map<String, Object>> getClassLoadingStats() {
         return Result.success(jvmMonitorService.getClassLoadingStats());
     }
+
+    @GetMapping("/metrics")
+    public Result<Map<String, Object>> getMetrics() {
+        return Result.success(jvmMonitorService.getMetrics());
+    }
 }

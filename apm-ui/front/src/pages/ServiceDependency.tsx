@@ -45,6 +45,20 @@ const mockCalls: ServiceCall[] = [
   { source: "Inventory Service", target: "MySQL", calls: 4100, avgTime: 12 },
 ];
 
+const typeConfig = {
+  app: { icon: Server, color: "#165DFF", label: "应用服务" },
+  database: { icon: Database, color: "#00B42A", label: "数据库" },
+  cache: { icon: Wifi, color: "#FFAA00", label: "缓存" },
+  gateway: { icon: Globe, color: "#722ED1", label: "网关" },
+  external: { icon: Activity, color: "#86909C", label: "外部服务" },
+};
+
+const statusConfig = {
+  healthy: { color: "#00D68F", label: "健康" },
+  warning: { color: "#FFAA00", label: "警告" },
+  critical: { color: "#FF4D4F", label: "危急" },
+};
+
 export default function ServiceDependency() {
   const [services, setServices] = useState<ServiceNode[]>(mockServices);
   const [calls, setCalls] = useState<ServiceCall[]>(mockCalls);
@@ -74,42 +88,23 @@ export default function ServiceDependency() {
     setIsLoading(false);
   };
 
-const typeConfig = {
-  app: { icon: Server, color: "#165DFF", label: "应用服务" },
-  database: { icon: Database, color: "#00B42A", label: "数据库" },
-  cache: { icon: Wifi, color: "#FFAA00", label: "缓存" },
-  gateway: { icon: Globe, color: "#722ED1", label: "网关" },
-  external: { icon: Activity, color: "#86909C", label: "外部服务" },
-};
-
-const statusConfig = {
-  healthy: { color: "#00D68F", label: "健康" },
-  warning: { color: "#FFAA00", label: "警告" },
-  critical: { color: "#FF4D4F", label: "危急" },
-};
-
-export default function ServiceDependency() {
-  const [selectedService, setSelectedService] = useState<ServiceNode | null>(null);
-  const [filterType, setFilterType] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-
   const filteredServices = useMemo(() => {
-    return mockServices.filter((service) => {
+    return services.filter((service) => {
       const matchesType = filterType === "all" || service.type === filterType;
       const matchesStatus = filterStatus === "all" || service.status === filterStatus;
       return matchesType && matchesStatus;
     });
-  }, [filterType, filterStatus]);
+  }, [services, filterType, filterStatus]);
 
   const stats = {
-    totalCalls: mockCalls.reduce((sum, c) => sum + c.calls, 0),
-    avgResponseTime: Math.round(mockServices.reduce((sum, s) => sum + s.avgResponseTime, 0) / mockServices.length),
-    totalErrors: mockServices.reduce((sum, s) => sum + (s.calls * s.errorRate / 100), 0),
-    healthyServices: mockServices.filter((s) => s.status === "healthy").length,
+    totalCalls: calls.reduce((sum, c) => sum + c.calls, 0),
+    avgResponseTime: Math.round(services.reduce((sum, s) => sum + s.avgResponseTime, 0) / services.length),
+    totalErrors: services.reduce((sum, s) => sum + (s.calls * s.errorRate / 100), 0),
+    healthyServices: services.filter((s) => s.status === "healthy").length,
   };
 
   const getRelatedCalls = (serviceName: string) => {
-    return mockCalls.filter((c) => c.source === serviceName || c.target === serviceName);
+    return calls.filter((c) => c.source === serviceName || c.target === serviceName);
   };
 
   return (
@@ -161,7 +156,7 @@ export default function ServiceDependency() {
               <div>
                 <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>健康服务</div>
                 <div className="text-xl font-bold mt-1" style={{ color: "#00D68F" }}>
-                  {stats.healthyServices}/{mockServices.length}
+                  {stats.healthyServices}/{services.length}
                 </div>
               </div>
               <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(0, 214, 143, 0.1)" }}>
@@ -199,6 +194,7 @@ export default function ServiceDependency() {
             <option value="critical">危急</option>
           </select>
           <button
+            onClick={fetchData}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium ml-auto"
             style={{ background: "rgba(22, 93, 255, 0.1)", color: "#165DFF" }}
           >
@@ -267,7 +263,7 @@ export default function ServiceDependency() {
                 <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>服务调用拓扑</span>
               </div>
               <div className="flex flex-wrap gap-3">
-                {mockServices.map((service) => {
+                {services.map((service) => {
                   const TypeIcon = typeConfig[service.type].icon;
                   const statusStyle = statusConfig[service.status];
                   
@@ -297,7 +293,7 @@ export default function ServiceDependency() {
               <div className="mt-4 pt-4 border-t" style={{ borderColor: "var(--border)" }}>
                 <div className="text-xs mb-2" style={{ color: "var(--muted-foreground)" }}>调用关系</div>
                 <div className="space-y-1 max-h-32 overflow-y-auto">
-                  {mockCalls.slice(0, 8).map((call, index) => (
+                  {calls.slice(0, 8).map((call, index) => (
                     <div key={index} className="flex items-center gap-2 text-xs">
                       <span style={{ color: "var(--foreground)" }}>{call.source}</span>
                       <ArrowRight size={12} style={{ color: "var(--muted-foreground)" }} />

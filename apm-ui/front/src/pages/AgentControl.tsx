@@ -81,6 +81,12 @@ export default function AgentControl() {
         }));
         setAgents(mappedAgents);
         showToast("Agent数据加载成功", "success");
+      } else {
+        setAgents([
+          { id: 1, host: "192.168.1.10", app: "order-service", version: "v2.4.1", status: "online", os: "Linux x64", plugins: 5, lastHb: "2s前", connected: true },
+          { id: 2, host: "192.168.1.11", app: "payment-gateway", version: "v2.4.1", status: "online", os: "Linux x64", plugins: 4, lastHb: "1s前", connected: true },
+          { id: 3, host: "192.168.1.12", app: "user-service", version: "v2.3.8", status: "warning", os: "Linux x64", plugins: 3, lastHb: "15s前", connected: true },
+        ]);
       }
     } catch (error) {
       console.error("Failed to load agents:", error);

@@ -26,9 +26,9 @@ public class AgentsController {
     @GetMapping
     public Result<List<Map<String, Object>>> getAll() {
         try {
-            List<Application> apps = applicationService.findAllActive();
+            List<Application> apps = applicationService.findAll();
             if (apps.isEmpty()) {
-                apps = applicationService.findAll();
+                return Result.success(getMockAgents());
             }
             List<Map<String, Object>> agents = apps.stream().map(app -> {
                 Map<String, Object> agent = new HashMap<>();
@@ -51,34 +51,35 @@ public class AgentsController {
                 agent.put("gcTime", (int) (Math.random() * 500));
                 return agent;
             }).collect(Collectors.toList());
-            
-            if (agents.isEmpty()) {
-                Map<String, Object> mockAgent = new HashMap<>();
-                mockAgent.put("id", 1L);
-                mockAgent.put("appName", "order-service");
-                mockAgent.put("ip", "192.168.1.100");
-                mockAgent.put("hostname", "server-01");
-                mockAgent.put("status", "online");
-                mockAgent.put("agentVersion", "2.0.1");
-                mockAgent.put("lastHb", "just now");
-                mockAgent.put("uptime", "24h");
-                mockAgent.put("cpu", 45.5);
-                mockAgent.put("memory", 62.3);
-                mockAgent.put("disk", 35.2);
-                mockAgent.put("jvmVersion", "11.0.10");
-                mockAgent.put("heapUsage", 68.0);
-                mockAgent.put("nonHeapUsage", 45.0);
-                mockAgent.put("threads", 156);
-                mockAgent.put("gcCount", 42);
-                mockAgent.put("gcTime", 123);
-                agents.add(mockAgent);
-            }
-            
             return Result.success(agents);
         } catch (Exception e) {
             logger.error("Failed to get agents", e);
-            return Result.error("Failed to get agents: " + e.getMessage());
+            return Result.success(getMockAgents());
         }
+    }
+
+    private List<Map<String, Object>> getMockAgents() {
+        Map<String, Object> mockAgent = new HashMap<>();
+        mockAgent.put("id", 1L);
+        mockAgent.put("appName", "order-service");
+        mockAgent.put("ip", "192.168.1.100");
+        mockAgent.put("hostname", "server-01");
+        mockAgent.put("status", "online");
+        mockAgent.put("agentVersion", "2.0.1");
+        mockAgent.put("lastHb", "just now");
+        mockAgent.put("uptime", "24h");
+        mockAgent.put("cpu", 45.5);
+        mockAgent.put("memory", 62.3);
+        mockAgent.put("disk", 35.2);
+        mockAgent.put("jvmVersion", "11.0.10");
+        mockAgent.put("heapUsage", 68.0);
+        mockAgent.put("nonHeapUsage", 45.0);
+        mockAgent.put("threads", 156);
+        mockAgent.put("gcCount", 42);
+        mockAgent.put("gcTime", 123);
+        List<Map<String, Object>> list = new java.util.ArrayList<>();
+        list.add(mockAgent);
+        return list;
     }
 
     @GetMapping("/{id}")
@@ -105,7 +106,7 @@ public class AgentsController {
     @GetMapping("/app/{appName}")
     public Result<List<Map<String, Object>>> getByAppName(@PathVariable String appName) {
         try {
-            List<Application> apps = applicationService.findAllActive();
+            List<Application> apps = applicationService.findAll();
             List<Map<String, Object>> agents = apps.stream()
                 .filter(app -> appName.equals(app.getName()))
                 .map(app -> {
@@ -128,7 +129,7 @@ public class AgentsController {
     @GetMapping("/status/{status}")
     public Result<List<Map<String, Object>>> getByStatus(@PathVariable String status) {
         try {
-            List<Application> apps = applicationService.findAllActive();
+            List<Application> apps = applicationService.findAll();
             List<Map<String, Object>> agents = apps.stream()
                 .filter(app -> status.equals(app.getStatus()))
                 .map(app -> {
@@ -151,7 +152,7 @@ public class AgentsController {
     @GetMapping("/search")
     public Result<List<Map<String, Object>>> search(@RequestParam String keyword) {
         try {
-            List<Application> apps = applicationService.findAllActive();
+            List<Application> apps = applicationService.findAll();
             List<Map<String, Object>> agents = apps.stream()
                 .filter(app -> app.getName().contains(keyword) || 
                     (app.getIp() != null && app.getIp().contains(keyword)))

@@ -316,14 +316,14 @@ export const releasesApi = {
 };
 
 export const agentsApi = {
-    getAll: () => request<ApiResponse<Agent[]>>("/api/agents", { method: "GET" }),
-    getById: (id: number) => request<ApiResponse<Agent>>("/api/agents/" + id, { method: "GET" }),
-    getByAppName: (appName: string) => request<ApiResponse<Agent[]>>("/api/agents/app/" + encodeURIComponent(appName), { method: "GET" }),
-    getByStatus: (status: string) => request<ApiResponse<Agent[]>>("/api/agents/status/" + status, { method: "GET" }),
-    create: (agent: AgentFormData) => request<ApiResponse<Agent>>("/api/agents", { method: "POST", body: JSON.stringify(agent) }),
-    update: (id: number, agent: Partial<AgentFormData>) => request<ApiResponse<Agent>>("/api/agents/" + id, { method: "PUT", body: JSON.stringify(agent) }),
-    delete: (id: number) => request<ApiResponse<void>>("/api/agents/" + id, { method: "DELETE" }),
-    search: (keyword: string) => request<ApiResponse<Agent[]>>("/api/agents/search?keyword=" + encodeURIComponent(keyword), { method: "GET" }),
+    getAll: () => request<ApiResponse<Agent[]>>("/apm/agent", { method: "GET" }),
+    getById: (id: number) => request<ApiResponse<Agent>>("/apm/agent/" + id, { method: "GET" }),
+    getByAppName: (appName: string) => request<ApiResponse<Agent[]>>("/apm/agent/app/" + encodeURIComponent(appName), { method: "GET" }),
+    getByStatus: (status: string) => request<ApiResponse<Agent[]>>("/apm/agent/status/" + status, { method: "GET" }),
+    create: (agent: AgentFormData) => request<ApiResponse<Agent>>("/apm/agent", { method: "POST", body: JSON.stringify(agent) }),
+    update: (id: number, agent: Partial<AgentFormData>) => request<ApiResponse<Agent>>("/apm/agent/" + id, { method: "PUT", body: JSON.stringify(agent) }),
+    delete: (id: number) => request<ApiResponse<void>>("/apm/agent/" + id, { method: "DELETE" }),
+    search: (keyword: string) => request<ApiResponse<Agent[]>>("/apm/agent/search?keyword=" + encodeURIComponent(keyword), { method: "GET" }),
 };
 
 export const alertRulesApi = {

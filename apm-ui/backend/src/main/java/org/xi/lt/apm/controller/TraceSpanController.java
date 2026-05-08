@@ -24,16 +24,7 @@ public class TraceSpanController {
     @Autowired
     private TraceSpanService traceSpanService;
 
-    @PostMapping("/report")
-    public Result<String> report(@RequestBody List<Map<String, Object>> spanList) {
-        try {
-            traceSpanService.report(spanList);
-            return Result.success("Spans received successfully");
-        } catch (Exception e) {
-            logger.error("Failed to process spans", e);
-            return Result.error("Failed to process spans: " + e.getMessage());
-        }
-    }
+    // ReportController已接管此功能，避免URL映射冲突
 
     @GetMapping("/traces")
     public Result<List<TraceSpan>> getTraces(

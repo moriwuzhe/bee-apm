@@ -1,0 +1,111 @@
+server:
+  port: 8088
+
+spring:
+  application:
+    name: lt-agent-plugin-test
+  
+  # H2数据库配置 - 用于测试JDBC插件
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+  
+  # H2控制台
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+# MyBatis Plus配置
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      id-type: auto
+
+# LT Agent插件配置
+lt:
+  agent:
+    plugins:
+      # JDBC插件配置
+      jdbc:
+        enable: true
+        enableParam: true
+        spend: -1
+      
+      # Redis插件配置
+      redis:
+        enable: true
+      
+      # HTTP客户端插件配置
+      httpclient3x:
+        enable: true
+      httpclient4x:
+        enable: true
+      okhttp3x:
+        enable: true
+      jdkhttp:
+        enable: true
+      
+      # Logger插件配置
+      logger:
+        enable: true
+      
+      # Process插件配置
+      process:
+        enable: true
+        enableParam: true
+        enableMethodSign: true
+        spend: -1
+        enableError: true
+      
+      # Thread插件配置
+      thread:
+        enable: true
+      
+      # 消息队列插件配置
+      kafka:
+        enable: true
+      rabbitmq:
+        enable: true
+      
+      # 其他插件可以根据需要启用
+      dubbo:
+        enable: false
+      feign:
+        enable: false
+      elasticsearch:
+        enable: false
+      mongodb:
+        enable: false
+      sentinel:
+        enable: false
+      seata:
+        enable: false
+      hystrix:
+        enable: false
+      resilience4j:
+        enable: false
+      nacos:
+        enable: false
+      apollo:
+        enable: false
+      xxljob:
+        enable: false
+      shardingjdbc:
+        enable: false
+      gateway:
+        enable: false
+      springtx:
+        enable: true
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    org.xi.lt.plugin.test: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

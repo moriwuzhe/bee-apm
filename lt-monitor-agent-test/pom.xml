@@ -12,6 +12,7 @@
     <modules>
         <module>lt-apm-test-web</module>
         <module>lt-apm-sb-demo</module>
+        <module>lt-agent-plugin-test</module>
     </modules>
     <dependencies>
 

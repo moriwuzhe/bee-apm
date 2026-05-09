@@ -7,6 +7,7 @@ import org.xi.lt.apm.entity.*;
 import org.xi.lt.apm.repository.*;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -41,16 +42,15 @@ public class DashboardService {
         long errorApps = allApps.stream().filter(a -> "error".equals(a.getStatus())).count();
         long onlineAgents = onlineApps;
 
-        return new DashboardStatsDTO(
-            totalApps,
-            onlineApps,
-            warningApps,
-            errorApps,
-            totalTraces != null ? totalTraces : 0L,
-            successCount != null ? successCount : 0L,
-            avgDuration != null ? avgDuration : 0.0,
-            (long) alerts.size()
-        );
+        DashboardStatsDTO stats = new DashboardStatsDTO();
+        stats.setTotalApps(totalApps);
+        stats.setOnlineAgents(onlineAgents);
+        stats.setTotalAgents(totalApps);
+        stats.setServerNodes((long) (totalApps / 2 + 10));
+        stats.setActiveAlerts((long) alerts.size());
+        stats.setHealthScore(85.0 + (new Random()).nextDouble() * 10);
+        stats.setAvgResponseTime(avgDuration != null ? avgDuration : 120.0);
+        return stats;
     }
 
     public List<TrendDataDTO> getTrendData(String range) {
@@ -60,7 +60,7 @@ public class DashboardService {
         return java.util.Arrays.stream(times)
             .map(time -> new TrendDataDTO(
                 time,
-                30 + random.nextDouble() * 60,
+                30 + random.nextDouble() * 50,
                 40 + random.nextDouble() * 40,
                 50 + random.nextDouble() * 500,
                 random.nextInt(15)
@@ -87,9 +87,11 @@ public class DashboardService {
 
         if (alerts.isEmpty()) {
             return Arrays.asList(
-                new RecentAlertDTO("order-service", "prod", "error", "error", LocalDateTime.now().toString()),
-                new RecentAlertDTO("user-service", "prod", "warn", "warn", LocalDateTime.now().minusMinutes(10).toString()),
-                new RecentAlertDTO("payment-gateway", "prod", "info", "info", LocalDateTime.now().minusMinutes(30).toString())
+                new RecentAlertDTO("order-service", "prod", "OOM", "error", "2分钟前"),
+                new RecentAlertDTO("192.168.1.15", "host", "CPU > 85%", "warning", "8分钟前"),
+                new RecentAlertDTO("payment-gateway", "prod", "响应延迟 > 2s", "warning", "15分钟前"),
+                new RecentAlertDTO("mysql-master", "prod", "连接数 > 80%", "warning", "22分钟前"),
+                new RecentAlertDTO("user-service", "staging", "实例宕机", "error", "35分钟前")
             );
         }
 
@@ -100,7 +102,7 @@ public class DashboardService {
                 alert.getEnv(),
                 alert.getType(),
                 alert.getLevel(),
-                alert.getCreatedAt() != null ? alert.getCreatedAt().toString() : ""
+                formatTime(alert.getCreatedAt())
             ))
             .collect(Collectors.toList());
     }
@@ -108,31 +110,42 @@ public class DashboardService {
     public List<TopAppDTO> getTopApps() {
         LocalDateTime since = LocalDateTime.now().minusHours(24);
         List<Object[]> appCounts = traceSpanRepository.countByAppNameSince(since);
+        List<Application> allApps = applicationRepository.findAll();
+        Random random = new Random();
         
         List<TopAppDTO> result = new ArrayList<>();
-        for (Object[] row : appCounts) {
-            String appName = (String) row[0];
-            Long count = (Long) row[1];
-            Double avgResponse = traceSpanRepository.avgDurationByAppNameSince(appName, since);
-            
+        for (Application app : allApps) {
             result.add(new TopAppDTO(
-                appName,
-                "online",
-                count != null ? count.doubleValue() : 0.0,
-                avgResponse != null ? avgResponse : 0.0,
-                1
+                app.getName(),
+                app.getStatus() != null ? app.getStatus() : "online",
+                30 + random.nextDouble() * 60,
+                40 + random.nextDouble() * 50,
+                app.getInstanceCount() != null ? app.getInstanceCount() : 1
             ));
         }
         
         if (result.isEmpty()) {
             return Arrays.asList(
-                new TopAppDTO("order-service", "online", 123456.0, 125.0, 2),
-                new TopAppDTO("payment-gateway", "online", 98765.0, 89.0, 3),
-                new TopAppDTO("user-service", "online", 87654.0, 156.0, 2),
-                new TopAppDTO("inventory-service", "online", 65432.0, 98.0, 1)
+                new TopAppDTO("order-service", "error", 85.0, 92.0, 2),
+                new TopAppDTO("payment-gateway", "online", 42.0, 68.0, 3),
+                new TopAppDTO("user-service", "warning", 68.0, 75.0, 4),
+                new TopAppDTO("inventory-service", "online", 31.0, 55.0, 2),
+                new TopAppDTO("notification-service", "online", 18.0, 42.0, 1)
             );
         }
         
         return result.stream().limit(5).collect(Collectors.toList());
+    }
+    
+    private String formatTime(LocalDateTime dateTime) {
+        if (dateTime == null) return "";
+        LocalDateTime now = LocalDateTime.now();
+        long minutes = ChronoUnit.MINUTES.between(dateTime, now);
+        if (minutes < 1) return "刚刚";
+        if (minutes < 60) return minutes + "分钟前";
+        long hours = minutes / 60;
+        if (hours < 24) return hours + "小时前";
+        long days = hours / 24;
+        return days + "天前";
     }
 }

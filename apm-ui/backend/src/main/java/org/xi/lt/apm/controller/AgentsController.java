@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/agents")
+@RequestMapping({"/api/agents", "/apm/agent"})
 @CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS})
 public class AgentsController {
 
@@ -28,7 +28,7 @@ public class AgentsController {
         try {
             List<Application> apps = applicationService.findAll();
             if (apps.isEmpty()) {
-                return Result.success(getMockAgents());
+                return Result.success(generateMockAgents());
             }
             List<Map<String, Object>> agents = apps.stream().map(app -> {
                 Map<String, Object> agent = new HashMap<>();
@@ -38,40 +38,40 @@ public class AgentsController {
                 agent.put("hostname", app.getName());
                 agent.put("status", app.getStatus() != null ? app.getStatus() : "online");
                 agent.put("agentVersion", app.getAgentVersion());
-                agent.put("lastHb", app.getUpdatedAt() != null ? app.getUpdatedAt().toString() : "");
-                agent.put("uptime", "24h");
-                agent.put("cpu", Math.random() * 80);
-                agent.put("memory", Math.random() * 100);
-                agent.put("disk", Math.random() * 100);
-                agent.put("jvmVersion", "11.0.10");
+                agent.put("lastHb", app.getUpdatedAt() != null ? app.getUpdatedAt().toString() : "2min");
+                agent.put("uptime", app.getUptime() != null ? app.getUptime() : "24h");
+                agent.put("cpu", 30 + Math.random() * 50);
+                agent.put("memory", 40 + Math.random() * 40);
+                agent.put("disk", 20 + Math.random() * 50);
+                agent.put("jvmVersion", app.getJvmVersion());
                 agent.put("heapUsage", app.getHeapUsage());
-                agent.put("nonHeapUsage", Math.random() * 60);
-                agent.put("threads", (int) (Math.random() * 200));
-                agent.put("gcCount", (int) (Math.random() * 100));
-                agent.put("gcTime", (int) (Math.random() * 500));
+                agent.put("nonHeapUsage", 30 + Math.random() * 40);
+                agent.put("threads", (int) (100 + Math.random() * 150));
+                agent.put("gcCount", (int) (Math.random() * 200));
+                agent.put("gcTime", (int) (Math.random() * 1000));
                 return agent;
             }).collect(Collectors.toList());
             return Result.success(agents);
         } catch (Exception e) {
             logger.error("Failed to get agents", e);
-            return Result.success(getMockAgents());
+            return Result.success(generateMockAgents());
         }
     }
 
-    private List<Map<String, Object>> getMockAgents() {
+    private List<Map<String, Object>> generateMockAgents() {
         Map<String, Object> mockAgent = new HashMap<>();
         mockAgent.put("id", 1L);
         mockAgent.put("appName", "order-service");
         mockAgent.put("ip", "192.168.1.100");
         mockAgent.put("hostname", "server-01");
         mockAgent.put("status", "online");
-        mockAgent.put("agentVersion", "2.0.1");
-        mockAgent.put("lastHb", "just now");
+        mockAgent.put("agentVersion", "v2.4.1");
+        mockAgent.put("lastHb", "2min");
         mockAgent.put("uptime", "24h");
         mockAgent.put("cpu", 45.5);
         mockAgent.put("memory", 62.3);
         mockAgent.put("disk", 35.2);
-        mockAgent.put("jvmVersion", "11.0.10");
+        mockAgent.put("jvmVersion", "17");
         mockAgent.put("heapUsage", 68.0);
         mockAgent.put("nonHeapUsage", 45.0);
         mockAgent.put("threads", 156);
@@ -170,6 +170,72 @@ public class AgentsController {
         } catch (Exception e) {
             logger.error("Failed to search agents", e);
             return Result.error("Failed to search agents");
+        }
+    }
+
+    @PostMapping
+    public Result<Map<String, Object>> create(@RequestBody Map<String, Object> agentData) {
+        try {
+            Application app = new Application();
+            app.setName((String) agentData.get("appName"));
+            app.setIp((String) agentData.get("ip"));
+            app.setAgentVersion((String) agentData.get("agentVersion"));
+            app.setStatus((String) agentData.get("status"));
+            app = applicationService.save(app);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("id", app.getId());
+            result.put("appName", app.getName());
+            result.put("ip", app.getIp());
+            result.put("agentVersion", app.getAgentVersion());
+            return Result.success(result);
+        } catch (Exception e) {
+            logger.error("Failed to create agent", e);
+            return Result.error("Failed to create agent");
+        }
+    }
+
+    @PutMapping("/{id}")
+    public Result<Map<String, Object>> update(@PathVariable Long id, @RequestBody Map<String, Object> agentData) {
+        try {
+            Application app = applicationService.findById(id).orElse(null);
+            if (app == null) {
+                return Result.error("Agent not found");
+            }
+            if (agentData.containsKey("appName")) {
+                app.setName((String) agentData.get("appName"));
+            }
+            if (agentData.containsKey("ip")) {
+                app.setIp((String) agentData.get("ip"));
+            }
+            if (agentData.containsKey("agentVersion")) {
+                app.setAgentVersion((String) agentData.get("agentVersion"));
+            }
+            if (agentData.containsKey("status")) {
+                app.setStatus((String) agentData.get("status"));
+            }
+            app = applicationService.save(app);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("id", app.getId());
+            result.put("appName", app.getName());
+            result.put("ip", app.getIp());
+            result.put("agentVersion", app.getAgentVersion());
+            return Result.success(result);
+        } catch (Exception e) {
+            logger.error("Failed to update agent", e);
+            return Result.error("Failed to update agent");
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public Result<Void> delete(@PathVariable Long id) {
+        try {
+            applicationService.deleteById(id);
+            return Result.success();
+        } catch (Exception e) {
+            logger.error("Failed to delete agent", e);
+            return Result.error("Failed to delete agent");
         }
     }
 }

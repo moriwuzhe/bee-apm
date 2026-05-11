@@ -61,18 +61,13 @@ public class TraceSpanService {
             span.setTraceId(traceId);
             span.setSpanType(spanType);
             span.setAppName(getString(spanMap, "app"));
-            span.setServiceName(getString(spanMap, "serviceName"));
-            span.setMethodName(getString(spanMap, "methodName"));
             span.setEnv(getString(spanMap, "env"));
             span.setInstanceName(getString(spanMap, "inst"));
             span.setIpAddress(getString(spanMap, "ip"));
             span.setPort(getInt(spanMap, "port"));
             span.setProcessId(getString(spanMap, "pid"));
             span.setGroupId(getString(spanMap, "gid"));
-            span.setParentId(getString(spanMap, "parentId"));
             span.setDuration(getLong(spanMap, "spend"));
-            span.setSuccess(getBoolean(spanMap, "success"));
-            span.setErrorMsg(getString(spanMap, "errorMsg"));
 
             Object timeObj = spanMap.get("time");
             if (timeObj instanceof Date) {
@@ -91,9 +86,20 @@ public class TraceSpanService {
 
             Object tagsObj = spanMap.get("tags");
             if (tagsObj instanceof Map) {
-                String tagsJson = JSON.toJSONString(tagsObj);
+                Map<String, Object> tags = (Map<String, Object>) tagsObj;
+                String tagsJson = JSON.toJSONString(tags);
                 span.setTags(tagsJson);
-                span.setTagMap((Map<String, Object>) tagsObj);
+                span.setTagMap(tags);
+                
+                span.setServiceName(getString(tags, "serviceName"));
+                span.setMethodName(getString(tags, "methodName"));
+                span.setParentId(getString(tags, "parentId"));
+                span.setSuccess(getBoolean(tags, "success"));
+                String errorMsg = getString(tags, "errorMsg");
+                if (errorMsg != null && errorMsg.length() > 512) {
+                    errorMsg = errorMsg.substring(0, 512);
+                }
+                span.setErrorMsg(errorMsg);
             }
 
             return span;

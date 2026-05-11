@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import MainLayout from "../components/Layout/MainLayout";
 import PageHeader from "../components/UI/PageHeader";
 import TechButton from "../components/UI/TechButton";
-import { Plus, Bell, CheckCircle, XCircle, PauseCircle, Edit, Trash, X, ChevronDown, CheckSquare, Square, MinusSquare, Play, StopCircle, Eye } from "lucide-react";
+import { Plus, Bell, CheckCircle, XCircle, PauseCircle, Edit, Trash, X, ChevronDown, CheckSquare, Square, MinusSquare, Play, StopCircle, Eye, Zap, Clock, Users, Mail, MessageSquare, Webhook, Shield, Settings, History, BarChart3, AlertTriangle, TrendingUp } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from "recharts";
 import { useToast } from "../context/ToastContext";
 import { alertRulesApi } from "../services/api";
@@ -24,17 +24,33 @@ interface AlertRule {
   channels: string[];
   triggerCount: number;
   lastTrigger: string;
+  agentIds?: number[];
+  expression?: string;
+  cooldown?: number;
+  autoRecover?: boolean;
 }
 
-const initRules: AlertRule[] = [
-  { id: 1, name: "CPU 使用率过高", metric: "cpu_usage", condition: ">", threshold: 90, unit: "%", level: "critical", status: "enabled", channels: ["钉钉", "邮件"], triggerCount: 12, lastTrigger: "5分钟前" },
-  { id: 2, name: "内存使用率告警", metric: "mem_usage", condition: ">", threshold: 85, unit: "%", level: "warning", status: "enabled", channels: ["邮件"], triggerCount: 4, lastTrigger: "2小时前" },
-  { id: 3, name: "接口响应时间超标", metric: "response_time", condition: ">", threshold: 500, unit: "ms", level: "warning", status: "enabled", channels: ["钉钉", "Slack"], triggerCount: 28, lastTrigger: "3分钟前" },
-  { id: 4, name: "磁盘空间不足", metric: "disk_usage", condition: ">", threshold: 80, unit: "%", level: "critical", status: "muted", channels: ["邮件", "短信"], triggerCount: 2, lastTrigger: "1天前" },
-  { id: 5, name: "错误请求率超限", metric: "error_rate", condition: ">", threshold: 5, unit: "%", level: "critical", status: "enabled", channels: ["钉钉", "邮件", "短信"], triggerCount: 7, lastTrigger: "18分钟前" },
-  { id: 6, name: "JVM 堆内存告警", metric: "jvm_heap", condition: ">", threshold: 75, unit: "%", level: "warning", status: "enabled", channels: ["邮件"], triggerCount: 3, lastTrigger: "45分钟前" },
-  { id: 7, name: "GC 停顿时间", metric: "gc_pause", condition: ">", threshold: 200, unit: "ms", level: "info", status: "disabled", channels: ["钉钉"], triggerCount: 0, lastTrigger: "—" },
-  { id: 8, name: "TCP 连接数过高", metric: "tcp_conn", condition: ">", threshold: 1000, unit: "个", level: "warning", status: "enabled", channels: ["钉钉", "邮件"], triggerCount: 1, lastTrigger: "3天前" },
+const initRules: AlertRule[] = [];
+
+const advancedMetricOptions = [
+  { value: "cpu_usage", label: "CPU 使用率 (%)", category: "系统" },
+  { value: "mem_usage", label: "内存使用率 (%)", category: "系统" },
+  { value: "disk_usage", label: "磁盘使用率 (%)", category: "系统" },
+  { value: "network_in", label: "网络入口流量 (MB/s)", category: "网络" },
+  { value: "network_out", label: "网络出口流量 (MB/s)", category: "网络" },
+  { value: "response_time", label: "接口响应时间 (ms)", category: "应用" },
+  { value: "error_rate", label: "错误请求率 (%)", category: "应用" },
+  { value: "qps", label: "每秒请求数 (req/s)", category: "应用" },
+  { value: "jvm_heap", label: "JVM 堆内存 (%)", category: "JVM" },
+  { value: "jvm_nonheap", label: "JVM 非堆内存 (%)", category: "JVM" },
+  { value: "gc_pause", label: "GC 停顿时间 (ms)", category: "JVM" },
+  { value: "gc_count", label: "GC 次数 (次/分钟)", category: "JVM" },
+  { value: "thread_count", label: "线程数 (个)", category: "JVM" },
+  { value: "tcp_conn", label: "TCP 连接数 (个)", category: "网络" },
+  { value: "db_query_time", label: "数据库查询时间 (ms)", category: "数据库" },
+  { value: "db_conn_pool", label: "数据库连接池使用率 (%)", category: "数据库" },
+  { value: "cache_hit_rate", label: "缓存命中率 (%)", category: "缓存" },
+  { value: "mq_lag", label: "消息队列积压 (条)", category: "消息" },
 ];
 
 const historyData = [
@@ -75,10 +91,25 @@ const statusOptions = [
 
 const channelOptions = ["钉钉", "邮件", "短信", "Slack", "Webhook", "飞书"];
 
+const alertTemplates = [
+  { id: 1, name: "CPU 过载告警", template: "【{level}】{name}检测到CPU使用率超过{threshold}%，当前值{current}%，请及时处理！" },
+  { id: 2, name: "内存告警", template: "【{level}】{name}检测到内存使用率超过{threshold}%，当前值{current}%，请检查是否存在内存泄漏！" },
+  { id: 3, name: "响应时间告警", template: "【{level}】{name}检测到响应时间超过{threshold}ms，当前值{current}ms，请优化性能！" },
+  { id: 4, name: "错误率告警", template: "【{level}】{name}检测到错误率超过{threshold}%，当前值{current}%，请检查服务状态！" },
+];
+
+const escalationPolicies = [
+  { id: 1, name: "5分钟升级", levels: [{ duration: 5, notifyChannels: ["钉钉"], escalateTo: "运维人员" }] },
+  { id: 2, name: "15分钟升级", levels: [{ duration: 15, notifyChannels: ["钉钉", "邮件"], escalateTo: "运维经理" }] },
+  { id: 3, name: "30分钟升级", levels: [{ duration: 30, notifyChannels: ["钉钉", "邮件", "短信"], escalateTo: "技术总监" }] },
+];
+
 export default function AlertRules() {
   const { showToast } = useToast();
   const [rules, setRules] = useState<AlertRule[]>(initRules);
   const [showModal, setShowModal] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [showEscalationModal, setShowEscalationModal] = useState(false);
   const [editingRule, setEditingRule] = useState<AlertRule | null>(null);
   const [viewingRule, setViewingRule] = useState<AlertRule | null>(null);
   const [deletingRule, setDeletingRule] = useState<AlertRule | null>(null);
@@ -87,7 +118,44 @@ export default function AlertRules() {
   const [selectedRuleId, setSelectedRuleId] = useState<number | null>(null);
   const [checkedIds, setCheckedIds] = useState<Set<number>>(new Set());
   const [search, setSearch] = useState("");
-  const [formData, setFormData] = useState({ name: "", metric: "cpu_usage", condition: ">", threshold: 80, level: "critical" as Level, status: "enabled" as RuleStatus, channels: [] as string[] });
+  const [advancedMode, setAdvancedMode] = useState(false);
+  const [formData, setFormData] = useState({ 
+    name: "", 
+    metric: "cpu_usage", 
+    condition: ">", 
+    threshold: 80, 
+    level: "critical" as Level, 
+    status: "enabled" as RuleStatus, 
+    channels: [] as string[],
+    expression: "",
+    cooldown: 5,
+    autoRecover: false,
+    templateId: null as number | null,
+    escalationPolicyId: null as number | null,
+  });
+
+  const [alertStatistics, setAlertStatistics] = useState({
+    todayTotal: 156,
+    criticalCount: 23,
+    warningCount: 85,
+    infoCount: 48,
+    resolvedCount: 142,
+    avgResolveTime: 12.5,
+    topMetrics: [
+      { metric: "CPU 使用率", count: 45, trend: 12 },
+      { metric: "响应时间", count: 38, trend: -5 },
+      { metric: "内存使用率", count: 32, trend: 8 },
+      { metric: "错误率", count: 28, trend: 15 },
+    ],
+  });
+
+  const [recentAlerts, setRecentAlerts] = useState([
+    { id: 1, time: "14:35:22", rule: "CPU 过载告警", level: "critical", agent: "order-service", value: 95, status: "firing" },
+    { id: 2, time: "14:32:15", rule: "响应时间告警", level: "warning", agent: "payment-service", value: 320, status: "firing" },
+    { id: 3, time: "14:28:45", rule: "内存使用告警", level: "critical", agent: "user-service", value: 92, status: "resolved" },
+    { id: 4, time: "14:25:30", rule: "错误率告警", level: "warning", agent: "gateway-service", value: 5.2, status: "resolved" },
+    { id: 5, time: "14:20:12", rule: "磁盘使用告警", level: "info", agent: "inventory-service", value: 85, status: "firing" },
+  ]);
 
   useEffect(() => { fetchRules(); }, []);
 
@@ -95,7 +163,10 @@ export default function AlertRules() {
     try {
       const response = await alertRulesApi.getAll();
       if (response.data?.length > 0) {
-        setRules(response.data.map((rule: any) => ({ ...rule, channels: rule.channels ? rule.channels.split(",") : [] })));
+        setRules(response.data.map((rule: any) => ({ 
+          ...rule, 
+          channels: Array.isArray(rule.channels) ? rule.channels : (rule.channels ? rule.channels.split(",") : [])
+        })));
       }
     } catch (error) { console.error("加载告警规则失败:", error); }
   };
@@ -211,17 +282,85 @@ export default function AlertRules() {
               <FilterDropdown value={filterLevel} options={levelOptions} onChange={setFilterLevel} />
               <FilterDropdown value={filterStatus} options={statusOptions} onChange={setFilterStatus} />
               <TechButton variant="primary" icon={<Plus size={13} />} onClick={handleCreate}>新增规则</TechButton>
+              <TechButton variant="secondary" icon={<Zap size={13} />} onClick={() => setShowTemplateModal(true)}>模板管理</TechButton>
+              <TechButton variant="secondary" icon={<TrendingUp size={13} />} onClick={() => setShowEscalationModal(true)}>升级策略</TechButton>
             </>
           }
         />
 
-        <div className="grid grid-cols-4 gap-3">
-          {stats.map((s) => (
-            <div key={s.label} className="rounded-xl p-4 bg-card border border-border">
-              <div className="text-xs mb-1.5 text-muted-foreground">{s.label}</div>
+        <div className="grid grid-cols-6 gap-3">
+          {[
+            { label: "今日告警", value: alertStatistics.todayTotal, color: "#FF4D4F", icon: <AlertTriangle size={16} /> },
+            { label: "严重告警", value: alertStatistics.criticalCount, color: "#FF4D4F", icon: <AlertTriangle size={16} /> },
+            { label: "警告告警", value: alertStatistics.warningCount, color: "#FFAA00", icon: <AlertTriangle size={16} /> },
+            { label: "已解决", value: alertStatistics.resolvedCount, color: "#00D68F", icon: <CheckCircle size={16} /> },
+            { label: "平均解决时间", value: `${alertStatistics.avgResolveTime}min`, color: "#165DFF", icon: <Clock size={16} /> },
+            { label: "活跃规则", value: rules.filter(r => r.status === "enabled").length, color: "#00D68F", icon: <Bell size={16} /> },
+          ].map((s) => (
+            <div key={s.label} className="rounded-xl p-4 bg-card border border-border hover:border-blue-500/50 transition-colors cursor-pointer">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs text-muted-foreground">{s.label}</div>
+                <div style={{ color: s.color }}>{s.icon}</div>
+              </div>
               <div className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</div>
             </div>
           ))}
+        </div>
+
+        <div className="rounded-xl p-4 bg-card border border-border">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 size={14} className="text-blue-500" />
+              <span className="text-sm font-medium text-white">TOP 告警指标</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground">更新时间: </span>
+              <span className="text-white">{new Date().toLocaleTimeString()}</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-4 gap-3">
+            {alertStatistics.topMetrics.map((item, index) => (
+              <div key={item.metric} className="p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-muted-foreground">{index + 1}. {item.metric}</span>
+                  <span className={`text-xs ${item.trend > 0 ? "text-red-400" : "text-green-400"}`}>
+                    {item.trend > 0 ? "+" : ""}{item.trend}%
+                  </span>
+                </div>
+                <div className="text-lg font-bold text-white">{item.count} 次</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-xl p-4 bg-card border border-border">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <History size={14} className="text-yellow-500" />
+              <span className="text-sm font-medium text-white">最近告警</span>
+            </div>
+            <span className="text-xs text-muted-foreground">实时更新</span>
+          </div>
+          <div className="space-y-2">
+            {recentAlerts.slice(0, 5).map((alert) => (
+              <div key={alert.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className={`w-2 h-2 rounded-full ${alert.level === "critical" ? "bg-red-500" : alert.level === "warning" ? "bg-yellow-500" : "bg-blue-500"} ${alert.status === "firing" ? "animate-pulse" : ""}`} />
+                  <div>
+                    <div className="text-xs text-white">{alert.rule}</div>
+                    <div className="text-xs text-muted-foreground">{alert.agent}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-white">{alert.value}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded ${alert.status === "firing" ? "bg-red-500/20 text-red-400" : "bg-green-500/20 text-green-400"}`}>
+                    {alert.status === "firing" ? "触发中" : "已解决"}
+                  </span>
+                  <span className="text-xs text-muted-foreground">{alert.time}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="flex gap-3" style={{ height: 440 }}>

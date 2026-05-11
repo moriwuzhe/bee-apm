@@ -10,6 +10,7 @@ import org.xi.lt.apm.entity.Application;
 import org.xi.lt.apm.repository.TraceSpanRepository;
 import org.xi.lt.apm.repository.ApplicationRepository;
 import org.xi.lt.apm.service.ApplicationService;
+import org.xi.lt.apm.service.TraceSpanService;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -25,6 +26,9 @@ public class ReportController {
 
     @Autowired
     private TraceSpanRepository traceSpanRepository;
+
+    @Autowired
+    private TraceSpanService traceSpanService;
 
     @Autowired
     private ApplicationRepository applicationRepository;
@@ -61,26 +65,7 @@ public class ReportController {
                 return Result.success("No spans to report");
             }
 
-            List<TraceSpan> traceSpans = new ArrayList<>();
-            String lastAppName = null;
-            String lastIp = null;
-
-            for (Map<String, Object> spanData : spans) {
-                TraceSpan span = convertToTraceSpan(spanData);
-                if (span != null) {
-                    traceSpans.add(span);
-                    lastAppName = span.getAppName();
-                    lastIp = span.getIpAddress();
-                }
-            }
-
-            if (!traceSpans.isEmpty()) {
-                traceSpanRepository.saveAll(traceSpans);
-                if (lastAppName != null) {
-                    updateApplicationStatus(lastAppName, lastIp);
-                }
-                logger.info("Batch reported {} spans", traceSpans.size());
-            }
+            traceSpanService.report(spans);
 
             return Result.success("Spans reported successfully");
         } catch (Exception e) {
@@ -175,103 +160,142 @@ public class ReportController {
      * 将Agent的Span数据转换为TraceSpan实体
      */
     private TraceSpan convertToTraceSpan(Map<String, Object> spanData) {
-        if (spanData == null || spanData.isEmpty()) {
-            return null;
-        }
-
-        TraceSpan span = new TraceSpan();
-        
-        // 提取基本字段
-        span.setTraceId((String) spanData.get("id"));
-        span.setSpanType((String) spanData.get("type"));
-        span.setAppName((String) spanData.get("app"));
-        span.setEnv((String) spanData.get("env"));
-        span.setInstanceName((String) spanData.get("inst"));
-        span.setIpAddress((String) spanData.get("ip"));
-        span.setProcessId((String) spanData.get("pid"));
-        span.setGroupId((String) spanData.get("gid"));
-        
-        // 处理端口
-        Object portObj = spanData.get("port");
-        if (portObj != null) {
-            if (portObj instanceof Number) {
-                span.setPort(((Number) portObj).intValue());
-            } else if (portObj instanceof String) {
-                try {
-                    span.setPort(Integer.parseInt((String) portObj));
-                } catch (NumberFormatException ignored) {}
-            }
-        }
-        
-        // 处理耗时
-        Object spendObj = spanData.get("spend");
-        if (spendObj != null) {
-            if (spendObj instanceof Number) {
-                span.setDuration(((Number) spendObj).longValue());
-            } else if (spendObj instanceof String) {
-                try {
-                    span.setDuration(Long.parseLong((String) spendObj));
-                } catch (NumberFormatException ignored) {}
-            }
-        }
-        
-        // 处理时间戳
-        Object timeObj = spanData.get("time");
-        if (timeObj != null) {
-            if (timeObj instanceof Number) {
-                long timestamp = ((Number) timeObj).longValue();
-                span.setTimestamp(LocalDateTime.ofInstant(
-                    Instant.ofEpochMilli(timestamp),
-                    ZoneId.systemDefault()
-                ));
-            }
-        }
-        if (span.getTimestamp() == null) {
-            span.setTimestamp(LocalDateTime.now());
-        }
-        
-        // 从tags中提取更多信息
-        Object tagsObj = spanData.get("tags");
-        if (tagsObj instanceof Map) {
-            Map<?, ?> tags = (Map<?, ?>) tagsObj;
-            span.setServiceName((String) tags.get("serviceName"));
-            span.setMethodName((String) tags.get("methodName"));
-            span.setParentId((String) tags.get("parentId"));
+        try {
+            logger.debug("Processing span data: {}", spanData);
             
-            // 处理成功状态
-            Object successObj = tags.get("success");
-            if (successObj != null) {
-                if (successObj instanceof Boolean) {
-                    span.setSuccess((Boolean) successObj);
-                } else if (successObj instanceof String) {
-                    span.setSuccess(Boolean.parseBoolean((String) successObj));
+            if (spanData == null || spanData.isEmpty()) {
+                logger.warn("Empty span data received");
+                return null;
+            }
+
+            TraceSpan span = new TraceSpan();
+            
+            // 提取基本字段 - 安全转换
+            Object idObj = spanData.get("id");
+            span.setTraceId(idObj != null ? String.valueOf(idObj) : null);
+            
+            Object typeObj = spanData.get("type");
+            span.setSpanType(typeObj != null ? String.valueOf(typeObj) : null);
+            
+            Object appObj = spanData.get("app");
+            span.setAppName(appObj != null ? String.valueOf(appObj) : null);
+            
+            Object envObj = spanData.get("env");
+            span.setEnv(envObj != null ? String.valueOf(envObj) : null);
+            
+            Object instObj = spanData.get("inst");
+            span.setInstanceName(instObj != null ? String.valueOf(instObj) : null);
+            
+            Object ipObj = spanData.get("ip");
+            span.setIpAddress(ipObj != null ? String.valueOf(ipObj) : null);
+            
+            Object pidObj = spanData.get("pid");
+            span.setProcessId(pidObj != null ? String.valueOf(pidObj) : null);
+            
+            Object gidObj = spanData.get("gid");
+            span.setGroupId(gidObj != null ? String.valueOf(gidObj) : null);
+            
+            // 处理端口
+            Object portObj = spanData.get("port");
+            if (portObj != null) {
+                if (portObj instanceof Number) {
+                    span.setPort(((Number) portObj).intValue());
+                } else if (portObj instanceof String) {
+                    try {
+                        span.setPort(Integer.parseInt((String) portObj));
+                    } catch (NumberFormatException ignored) {}
                 }
             }
             
-            // 处理错误信息
-            span.setErrorMsg((String) tags.get("errorMsg"));
+            // 处理耗时
+            Object spendObj = spanData.get("spend");
+            if (spendObj != null) {
+                if (spendObj instanceof Number) {
+                    span.setDuration(((Number) spendObj).longValue());
+                } else if (spendObj instanceof String) {
+                    try {
+                        span.setDuration(Long.parseLong((String) spendObj));
+                    } catch (NumberFormatException ignored) {}
+                }
+            }
             
-            // 保存完整tags
-            span.setTags(tags.toString());
+            // 处理时间戳
+            Object timeObj = spanData.get("time");
+            if (timeObj != null) {
+                if (timeObj instanceof Number) {
+                    long timestamp = ((Number) timeObj).longValue();
+                    span.setTimestamp(LocalDateTime.ofInstant(
+                        Instant.ofEpochMilli(timestamp),
+                        ZoneId.systemDefault()
+                    ));
+                }
+            }
+            if (span.getTimestamp() == null) {
+                span.setTimestamp(LocalDateTime.now());
+            }
+            
+            // 从tags中提取更多信息
+            Object tagsObj = spanData.get("tags");
+            if (tagsObj instanceof Map) {
+                Map<?, ?> tags = (Map<?, ?>) tagsObj;
+                
+                Object serviceNameObj = tags.get("serviceName");
+                span.setServiceName(serviceNameObj != null ? String.valueOf(serviceNameObj) : null);
+                
+                Object methodNameObj = tags.get("methodName");
+                span.setMethodName(methodNameObj != null ? String.valueOf(methodNameObj) : null);
+                
+                Object parentIdObj = tags.get("parentId");
+                span.setParentId(parentIdObj != null ? String.valueOf(parentIdObj) : null);
+                
+                // 处理成功状态
+                Object successObj = tags.get("success");
+                if (successObj != null) {
+                    if (successObj instanceof Boolean) {
+                        span.setSuccess((Boolean) successObj);
+                    } else if (successObj instanceof String) {
+                        span.setSuccess(Boolean.parseBoolean((String) successObj));
+                    }
+                }
+                
+                // 处理错误信息
+                Object errorMsgObj = tags.get("errorMsg");
+                span.setErrorMsg(errorMsgObj != null ? String.valueOf(errorMsgObj) : null);
+                
+                // 保存完整tags
+                try {
+                    span.setTags(tags.toString());
+                } catch (Exception e) {
+                    logger.warn("Failed to convert tags to string", e);
+                    span.setTags("{}");
+                }
+            }
+            
+            // 如果tags中没有提取到信息，尝试从顶层提取
+            if (span.getServiceName() == null) {
+                Object serviceNameObj = spanData.get("serviceName");
+                span.setServiceName(serviceNameObj != null ? String.valueOf(serviceNameObj) : null);
+            }
+            if (span.getMethodName() == null) {
+                Object methodNameObj = spanData.get("methodName");
+                span.setMethodName(methodNameObj != null ? String.valueOf(methodNameObj) : null);
+            }
+            if (span.getParentId() == null) {
+                Object parentIdObj = spanData.get("parentId");
+                span.setParentId(parentIdObj != null ? String.valueOf(parentIdObj) : null);
+            }
+            
+            // 设置默认值
+            if (span.getSuccess() == null) {
+                span.setSuccess(true);
+            }
+            
+            logger.debug("Successfully converted span: traceId={}, appName={}", span.getTraceId(), span.getAppName());
+            return span;
+        } catch (Exception e) {
+            logger.error("Failed to convert span data: {}", spanData, e);
+            return null;
         }
-        
-        // 如果tags中没有提取到信息，尝试从顶层提取
-        if (span.getServiceName() == null) {
-            span.setServiceName((String) spanData.get("serviceName"));
-        }
-        if (span.getMethodName() == null) {
-            span.setMethodName((String) spanData.get("methodName"));
-        }
-        if (span.getParentId() == null) {
-            span.setParentId((String) spanData.get("parentId"));
-        }
-        
-        // 设置默认值
-        if (span.getSuccess() == null) {
-            span.setSuccess(true);
-        }
-        
-        return span;
     }
 
     /**

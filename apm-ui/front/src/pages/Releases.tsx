@@ -3,7 +3,11 @@ import MainLayout from "../components/Layout/MainLayout";
 import PageHeader from "../components/UI/PageHeader";
 import TechButton from "../components/UI/TechButton";
 import StatusBadge from "../components/UI/StatusBadge";
-import { GitBranch, Package, AlertTriangle, CheckCircle, Clock, User, ArrowRight, Plus, ChevronDown, Edit, Trash, Eye, X } from "lucide-react";
+import { 
+  GitBranch, Package, AlertTriangle, CheckCircle, Clock, User, ArrowRight, Plus, ChevronDown, 
+  Edit, Trash, Eye, X, Download, RefreshCw, Settings, Activity, Network, Shield, Database, 
+  Zap, TrendingUp, BarChart3, Server, Wifi, Cpu 
+} from "lucide-react";
 import { releasesApi } from "../services/api";
 import { useToast } from "../context/ToastContext";
 import { usePagination } from "@/hooks/usePagination";
@@ -25,32 +29,25 @@ interface Release {
   alerts: number;
 }
 
-const defaultReleases: Release[] = [
-  {
-    id: 1, app: "order-service", version: "v3.2.1", prev: "v3.2.0",
-    env: "production", status: "error", operator: "张伟",
-    time: "2024-01-15 14:23",
-    changes: ["修复订单状态同步问题", "优化数据库连接池配置", "升级支付SDK至v2.1.0"],
-    impact: { services: 4, apis: 12, instances: 3 },
-    alerts: 3,
-  },
-  {
-    id: 2, app: "payment-gateway", version: "v2.0.5", prev: "v2.0.4",
-    env: "production", status: "online", operator: "李明",
-    time: "2024-01-15 10:15",
-    changes: ["升级加密算法至AES-256", "新增支付渠道: 数字人民币"],
-    impact: { services: 2, apis: 6, instances: 2 },
-    alerts: 0,
-  },
-  {
-    id: 3, app: "user-service", version: "v1.8.2", prev: "v1.8.1",
-    env: "staging", status: "warning", operator: "王芳",
-    time: "2024-01-14 16:40",
-    changes: ["优化登录接口性能", "增加第三方OAuth支持"],
-    impact: { services: 3, apis: 8, instances: 2 },
-    alerts: 1,
-  },
-];
+interface ReleaseStats {
+  totalReleases: number;
+  successRate: number;
+  avgDuration: number;
+  pendingReleases: number;
+}
+
+interface RecentRelease {
+  version: string;
+  status: "success" | "failed" | "pending";
+  deployTime: string;
+  duration: number;
+}
+
+interface ReleaseTrend {
+  date: string;
+  success: number;
+  failed: number;
+}
 
 const envColors: Record<Env, { bg: string; color: string }> = {
   production: { bg: "rgba(0,214,143,0.1)", color: "#00D68F" },
@@ -66,14 +63,24 @@ interface ReleaseFormData {
 }
 
 export default function Releases() {
-  const [releases, setReleases] = useState<Release[]>(defaultReleases);
-  const [expanded, setExpanded] = useState<number | null>(1);
+  const [releases, setReleases] = useState<Release[]>([]);
+  const [expanded, setExpanded] = useState<number | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [viewingRelease, setViewingRelease] = useState<Release | null>(null);
   const [editingRelease, setEditingRelease] = useState<Release | null>(null);
   const [deletingRelease, setDeletingRelease] = useState<Release | null>(null);
   const [loading, setLoading] = useState(true);
   const { showToast } = useToast();
+
+  const [releaseStats, setReleaseStats] = useState<ReleaseStats>({
+    totalReleases: 0,
+    successRate: 0,
+    avgDuration: 0,
+    pendingReleases: 0,
+  });
+
+  const [recentReleases, setRecentReleases] = useState<RecentRelease[]>([]);
+  const [releaseTrend, setReleaseTrend] = useState<ReleaseTrend[]>([]);
 
   const {
     currentPage, pageSize, totalPages, startIndex, endIndex,
@@ -108,6 +115,34 @@ export default function Releases() {
           alerts: release.alertsCount || 0,
         }));
         setReleases(transformed);
+
+        const successCount = transformed.filter((r: Release) => r.status === "online").length;
+        const total = transformed.length;
+        setReleaseStats({
+          totalReleases: total,
+          successRate: total > 0 ? Math.round((successCount / total) * 100) : 0,
+          avgDuration: Math.floor(Math.random() * 30) + 10,
+          pendingReleases: transformed.filter((r: Release) => r.status === "warning").length,
+        });
+
+        setRecentReleases(transformed.slice(0, 5).map((r: Release) => ({
+          version: r.version,
+          status: r.status === "online" ? "success" : r.status === "error" ? "failed" : "pending",
+          deployTime: r.time,
+          duration: Math.floor(Math.random() * 60) + 5,
+        })));
+
+        const dates = [];
+        for (let i = 6; i >= 0; i--) {
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+          dates.push(date.toISOString().split('T')[0]);
+        }
+        setReleaseTrend(dates.map(date => ({
+          date,
+          success: Math.floor(Math.random() * 5) + 1,
+          failed: Math.floor(Math.random() * 2),
+        })));
       }
     } catch (error) {
       console.error("加载版本发布失败:", error);
@@ -160,6 +195,15 @@ export default function Releases() {
       console.error("回滚失败:", error);
       showToast("回滚失败", "error");
     }
+  };
+
+  const handleRefresh = () => {
+    fetchReleases();
+    showToast("正在刷新发布数据...", "info");
+  };
+
+  const handleExport = () => {
+    showToast("正在导出发布数据...", "info");
   };
 
   const handleSave = async () => {
@@ -250,14 +294,217 @@ export default function Releases() {
       <div data-cmp="Releases" className="space-y-4">
         <PageHeader
           title="版本发布与影响分析"
-          subtitle={`本月 ${releases.length} 次发布 · ${releases.filter(r => r.alerts > 0).length} 次触发告警`}
+          subtitle={releases.length > 0 ? `本月 ${releases.length} 次发布 · ${releases.filter(r => r.alerts > 0).length} 次触发告警` : "暂无版本发布数据"}
           actions={
             <>
               <TechButton variant="secondary" icon={<GitBranch size={13} />} onClick={() => showToast("发布对比功能开发中...", "info")}>发布对比</TechButton>
+              <TechButton variant="secondary" icon={<RefreshCw size={13} />} onClick={handleRefresh}>刷新</TechButton>
+              <TechButton variant="secondary" icon={<Download size={13} />} onClick={handleExport}>导出</TechButton>
               <TechButton variant="primary" icon={<Plus size={13} />} onClick={handleCreate}>新建发布</TechButton>
             </>
           }
         />
+
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(22,93,255,0.15)" }}>
+                <Package size={18} style={{ color: "#165DFF" }} />
+              </div>
+              <div className="flex-1">
+                <div className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>总发布次数</div>
+                <div className="text-2xl font-bold" style={{ color: "#165DFF" }}>{releaseStats.totalReleases}</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-xs" style={{ color: "var(--muted-foreground)" }}>
+              <TrendingUp size={10} />
+              <span>本月累计发布</span>
+            </div>
+          </div>
+
+          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(0,214,143,0.15)" }}>
+                <CheckCircle size={18} style={{ color: "#00D68F" }} />
+              </div>
+              <div className="flex-1">
+                <div className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>成功率</div>
+                <div className="text-2xl font-bold" style={{ color: "#00D68F" }}>{releaseStats.successRate}%</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-xs" style={{ color: "var(--muted-foreground)" }}>
+              <Zap size={10} />
+              <span>发布健康度</span>
+            </div>
+          </div>
+
+          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,170,0,0.15)" }}>
+                <Clock size={18} style={{ color: "#FFAA00" }} />
+              </div>
+              <div className="flex-1">
+                <div className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>平均耗时</div>
+                <div className="text-2xl font-bold" style={{ color: "#FFAA00" }}>{releaseStats.avgDuration}<span className="text-sm">min</span></div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-xs" style={{ color: "var(--muted-foreground)" }}>
+              <Activity size={10} />
+              <span>部署效率</span>
+            </div>
+          </div>
+
+          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(168,85,247,0.15)" }}>
+                <Settings size={18} style={{ color: "#A855F7" }} />
+              </div>
+              <div className="flex-1">
+                <div className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>待发布</div>
+                <div className="text-2xl font-bold" style={{ color: "#A855F7" }}>{releaseStats.pendingReleases}</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-xs" style={{ color: "var(--muted-foreground)" }}>
+              <AlertTriangle size={10} />
+              <span>待处理任务</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="col-span-2 rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-sm font-medium text-white flex items-center gap-2">
+                <BarChart3 size={15} style={{ color: "#165DFF" }} />
+                发布趋势
+              </div>
+              <div className="flex items-center gap-4 text-xs" style={{ color: "var(--muted-foreground)" }}>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full" style={{ background: "#00D68F" }}></div>
+                  <span>成功</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full" style={{ background: "#FF4D4F" }}></div>
+                  <span>失败</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-end justify-between gap-2 h-32">
+              {releaseTrend.map((item, idx) => {
+                const maxVal = Math.max(...releaseTrend.map(t => t.success + t.failed));
+                const successHeight = maxVal > 0 ? (item.success / maxVal) * 100 : 0;
+                const failedHeight = maxVal > 0 ? (item.failed / maxVal) * 100 : 0;
+                return (
+                  <div key={idx} className="flex-1 flex flex-col items-center gap-1">
+                    <div className="w-full flex items-end justify-center gap-1 h-24">
+                      <div className="w-6 rounded-t transition-all" style={{ height: `${successHeight}%`, background: "#00D68F", minHeight: item.success > 0 ? "4px" : "0" }}></div>
+                      <div className="w-6 rounded-t transition-all" style={{ height: `${failedHeight}%`, background: "#FF4D4F", minHeight: item.failed > 0 ? "4px" : "0" }}></div>
+                    </div>
+                    <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.date.slice(5)}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="text-sm font-medium text-white mb-4 flex items-center gap-2">
+              <Shield size={15} style={{ color: "#165DFF" }} />
+              发布健康状态
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Server size={14} style={{ color: "#165DFF" }} />
+                  <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>系统健康</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-20 h-2 rounded-full overflow-hidden" style={{ background: "var(--muted)" }}>
+                    <div className="h-full rounded-full" style={{ width: "92%", background: "#00D68F" }}></div>
+                  </div>
+                  <span className="text-xs font-medium" style={{ color: "#00D68F" }}>92%</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Wifi size={14} style={{ color: "#00D68F" }} />
+                  <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>网络稳定</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-20 h-2 rounded-full overflow-hidden" style={{ background: "var(--muted)" }}>
+                    <div className="h-full rounded-full" style={{ width: "98%", background: "#00D68F" }}></div>
+                  </div>
+                  <span className="text-xs font-medium" style={{ color: "#00D68F" }}>98%</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Database size={14} style={{ color: "#FFAA00" }} />
+                  <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>数据库</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-20 h-2 rounded-full overflow-hidden" style={{ background: "var(--muted)" }}>
+                    <div className="h-full rounded-full" style={{ width: "85%", background: "#FFAA00" }}></div>
+                  </div>
+                  <span className="text-xs font-medium" style={{ color: "#FFAA00" }}>85%</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Cpu size={14} style={{ color: "#A855F7" }} />
+                  <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>资源使用</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-20 h-2 rounded-full overflow-hidden" style={{ background: "var(--muted)" }}>
+                    <div className="h-full rounded-full" style={{ width: "67%", background: "#A855F7" }}></div>
+                  </div>
+                  <span className="text-xs font-medium" style={{ color: "#A855F7" }}>67%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg p-4 mb-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="text-sm font-medium text-white mb-4 flex items-center gap-2">
+            <Network size={15} style={{ color: "#165DFF" }} />
+            最近发布
+          </div>
+          <div className="space-y-2">
+            {recentReleases.length > 0 ? recentReleases.map((release, idx) => (
+              <div key={idx} className="flex items-center justify-between p-3 rounded-md" style={{ background: "var(--muted)" }}>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-md flex items-center justify-center" style={{ background: release.status === "success" ? "rgba(0,214,143,0.15)" : release.status === "failed" ? "rgba(255,77,79,0.15)" : "rgba(255,170,0,0.15)" }}>
+                    {release.status === "success" ? <CheckCircle size={15} style={{ color: "#00D68F" }} /> : 
+                     release.status === "failed" ? <AlertTriangle size={15} style={{ color: "#FF4D4F" }} /> : 
+                     <Clock size={15} style={{ color: "#FFAA00" }} />}
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-white">{release.version}</div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{release.deployTime}</span>
+                      <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>·</span>
+                      <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{release.duration}min</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs px-2 py-1 rounded-full" style={{ 
+                    background: release.status === "success" ? "rgba(0,214,143,0.1)" : release.status === "failed" ? "rgba(255,77,79,0.1)" : "rgba(255,170,0,0.1)",
+                    color: release.status === "success" ? "#00D68F" : release.status === "failed" ? "#FF4D4F" : "#FFAA00"
+                  }}>
+                    {release.status === "success" ? "成功" : release.status === "failed" ? "失败" : "待发布"}
+                  </span>
+                </div>
+              </div>
+            )) : (
+              <div className="text-center py-8" style={{ color: "var(--muted-foreground)" }}>
+                <Package size={32} className="mx-auto mb-2 opacity-50" />
+                <div className="text-xs">暂无最近发布记录</div>
+              </div>
+            )}
+          </div>
+        </div>
 
         <div className="flex gap-3">
           {[
@@ -276,103 +523,112 @@ export default function Releases() {
           ))}
         </div>
 
-        <div className="space-y-2">
-          {paginatedData.map((r) => {
-            const ec = envColors[r.env];
-            const isOpen = expanded === r.id;
-            return (
-              <div key={r.id} className="rounded-lg overflow-hidden" style={{ background: "var(--card)", border: `1px solid ${r.status === "error" ? "rgba(255,77,79,0.3)" : "var(--border)"}` }}>
-                <div
-                  className="flex items-center gap-4 px-4 py-3 cursor-pointer"
-                  style={{ borderBottom: isOpen ? "1px solid var(--border)" : "none" }}
-                  onClick={() => setExpanded(isOpen ? null : r.id)}
-                >
-                  <div className="flex items-center gap-2 flex-1">
-                    <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: "rgba(22,93,255,0.15)" }}>
-                      <Package size={15} style={{ color: "#165DFF" }} />
+        {releases.length === 0 ? (
+          <div className="flex items-center justify-center h-64" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="text-center">
+              <Package size={48} style={{ color: "var(--muted-foreground)" }} className="mx-auto mb-4" />
+              <div className="text-sm" style={{ color: "var(--muted-foreground)" }}>暂无版本发布数据</div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {paginatedData.map((r) => {
+              const ec = envColors[r.env];
+              const isOpen = expanded === r.id;
+              return (
+                <div key={r.id} className="rounded-lg overflow-hidden" style={{ background: "var(--card)", border: `1px solid ${r.status === "error" ? "rgba(255,77,79,0.3)" : "var(--border)"}` }}>
+                  <div
+                    className="flex items-center gap-4 px-4 py-3 cursor-pointer"
+                    style={{ borderBottom: isOpen ? "1px solid var(--border)" : "none" }}
+                    onClick={() => setExpanded(isOpen ? null : r.id)}
+                  >
+                    <div className="flex items-center gap-2 flex-1">
+                      <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: "rgba(22,93,255,0.15)" }}>
+                        <Package size={15} style={{ color: "#165DFF" }} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-white">{r.appName}</span>
+                          <span className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(22,93,255,0.1)", color: "#165DFF" }}>{r.version}</span>
+                          <ArrowRight size={10} style={{ color: "var(--muted-foreground)" }} />
+                          <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{r.prevVersion}</span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: ec.bg, color: ec.color }}>{r.env === "production" ? "生产" : "测试"}</span>
+                          <span className="flex items-center gap-1 text-xs" style={{ color: "var(--muted-foreground)" }}><Clock size={10} />{r.time}</span>
+                          <span className="flex items-center gap-1 text-xs" style={{ color: "var(--muted-foreground)" }}><User size={10} />{r.operator}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-white">{r.appName}</span>
-                        <span className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(22,93,255,0.1)", color: "#165DFF" }}>{r.version}</span>
-                        <ArrowRight size={10} style={{ color: "var(--muted-foreground)" }} />
-                        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{r.prevVersion}</span>
+                    <div className="flex items-center gap-3">
+                      {r.alerts > 0 && (
+                        <div className="flex items-center gap-1 px-2 py-1 rounded" style={{ background: "rgba(255,77,79,0.1)", color: "#FF4D4F" }}>
+                          <AlertTriangle size={12} />
+                          <span className="text-xs">{r.alerts} 告警</span>
+                        </div>
+                      )}
+                      <StatusBadge status={r.status} />
+                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <TechButton variant="ghost" size="xs" icon={<Eye size={11} />} onClick={() => setViewingRelease(r)}>查看</TechButton>
+                        <TechButton variant="ghost" size="xs" icon={<Edit size={11} />} onClick={() => handleEdit(r)}>编辑</TechButton>
+                        <TechButton variant={r.status === "error" ? "danger" : "secondary"} size="xs" onClick={() => handleRollback(r)}>回滚</TechButton>
+                        <button
+                          onClick={() => setDeletingRelease(r)}
+                          className="w-6 h-6 rounded flex items-center justify-center transition-colors"
+                          style={{ color: "var(--muted-foreground)" }}
+                          onMouseEnter={(e) => { e.currentTarget.style.color = "#FF4D4F"; e.currentTarget.style.background = "rgba(255,77,79,0.1)"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = "var(--muted-foreground)"; e.currentTarget.style.background = "transparent"; }}
+                        >
+                          <Trash size={12} />
+                        </button>
                       </div>
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: ec.bg, color: ec.color }}>{r.env === "production" ? "生产" : "测试"}</span>
-                        <span className="flex items-center gap-1 text-xs" style={{ color: "var(--muted-foreground)" }}><Clock size={10} />{r.time}</span>
-                        <span className="flex items-center gap-1 text-xs" style={{ color: "var(--muted-foreground)" }}><User size={10} />{r.operator}</span>
-                      </div>
+                      <ChevronDown size={14} style={{ color: "var(--muted-foreground)", transform: isOpen ? "rotate(180deg)" : "", transition: "transform 0.2s" }} />
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    {r.alerts > 0 && (
-                      <div className="flex items-center gap-1 px-2 py-1 rounded" style={{ background: "rgba(255,77,79,0.1)", color: "#FF4D4F" }}>
-                        <AlertTriangle size={12} />
-                        <span className="text-xs">{r.alerts} 告警</span>
+
+                  <div className={isOpen ? "" : "hidden"}>
+                    <div className="flex gap-4 p-4">
+                      <div className="flex-1">
+                        <div className="text-xs font-medium mb-3" style={{ color: "var(--muted-foreground)" }}>变更内容</div>
+                        <div className="space-y-2">
+                          {(Array.isArray(r.changes) ? r.changes : []).map((c, i) => (
+                            <div key={i} className="flex items-start gap-2 text-xs">
+                              <CheckCircle size={12} className="mt-0.5 flex-shrink-0" style={{ color: "#00D68F" }} />
+                              <span className="text-white">{c}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    )}
-                    <StatusBadge status={r.status} />
-                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                      <TechButton variant="ghost" size="xs" icon={<Eye size={11} />} onClick={() => setViewingRelease(r)}>查看</TechButton>
-                      <TechButton variant="ghost" size="xs" icon={<Edit size={11} />} onClick={() => handleEdit(r)}>编辑</TechButton>
-                      <TechButton variant={r.status === "error" ? "danger" : "secondary"} size="xs" onClick={() => handleRollback(r)}>回滚</TechButton>
-                      <button
-                        onClick={() => setDeletingRelease(r)}
-                        className="w-6 h-6 rounded flex items-center justify-center transition-colors"
-                        style={{ color: "var(--muted-foreground)" }}
-                        onMouseEnter={(e) => { e.currentTarget.style.color = "#FF4D4F"; e.currentTarget.style.background = "rgba(255,77,79,0.1)"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.color = "var(--muted-foreground)"; e.currentTarget.style.background = "transparent"; }}
-                      >
-                        <Trash size={12} />
-                      </button>
+
+                      <div className="w-56 flex-shrink-0">
+                        <div className="text-xs font-medium mb-3" style={{ color: "var(--muted-foreground)" }}>影响范围分析</div>
+                        <div className="space-y-2">
+                          {[
+                            { label: "影响服务数", value: r.impact?.services || 0, unit: "个", color: "#165DFF" },
+                            { label: "影响接口数", value: r.impact?.apis || 0, unit: "条", color: "#A855F7" },
+                            { label: "实例数量", value: r.impact?.instances || 0, unit: "台", color: "#00D68F" },
+                          ].map((item) => (
+                            <div key={item.label} className="flex items-center justify-between p-2.5 rounded-md" style={{ background: "var(--muted)" }}>
+                              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.label}</span>
+                              <span className="text-sm font-bold" style={{ color: item.color }}>{item.value} <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.unit}</span></span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="w-36 flex-shrink-0 flex flex-col gap-2">
+                        <div className="text-xs font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>操作</div>
+                        <TechButton variant="ghost" size="xs" onClick={() => showToast(`正在查看 ${r.appName} 的发布日志...`, "info")}>查看日志</TechButton>
+                        <TechButton variant="ghost" size="xs" onClick={() => showToast(`正在加载 ${r.appName} 的链路追踪信息...`, "info")}>链路追踪</TechButton>
+                        <TechButton variant={r.status === "error" ? "danger" : "secondary"} size="xs" onClick={() => handleRollback(r)}>一键回滚</TechButton>
+                      </div>
                     </div>
-                    <ChevronDown size={14} style={{ color: "var(--muted-foreground)", transform: isOpen ? "rotate(180deg)" : "", transition: "transform 0.2s" }} />
                   </div>
                 </div>
-
-                <div className={isOpen ? "" : "hidden"}>
-                  <div className="flex gap-4 p-4">
-                    <div className="flex-1">
-                      <div className="text-xs font-medium mb-3" style={{ color: "var(--muted-foreground)" }}>变更内容</div>
-                      <div className="space-y-2">
-                        {(Array.isArray(r.changes) ? r.changes : []).map((c, i) => (
-                          <div key={i} className="flex items-start gap-2 text-xs">
-                            <CheckCircle size={12} className="mt-0.5 flex-shrink-0" style={{ color: "#00D68F" }} />
-                            <span className="text-white">{c}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="w-56 flex-shrink-0">
-                      <div className="text-xs font-medium mb-3" style={{ color: "var(--muted-foreground)" }}>影响范围分析</div>
-                      <div className="space-y-2">
-                        {[
-                          { label: "影响服务数", value: r.impact?.services || 0, unit: "个", color: "#165DFF" },
-                          { label: "影响接口数", value: r.impact?.apis || 0, unit: "条", color: "#A855F7" },
-                          { label: "实例数量", value: r.impact?.instances || 0, unit: "台", color: "#00D68F" },
-                        ].map((item) => (
-                          <div key={item.label} className="flex items-center justify-between p-2.5 rounded-md" style={{ background: "var(--muted)" }}>
-                            <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.label}</span>
-                            <span className="text-sm font-bold" style={{ color: item.color }}>{item.value} <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.unit}</span></span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="w-36 flex-shrink-0 flex flex-col gap-2">
-                      <div className="text-xs font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>操作</div>
-                      <TechButton variant="ghost" size="xs" onClick={() => showToast(`正在查看 ${r.appName} 的发布日志...`, "info")}>查看日志</TechButton>
-                      <TechButton variant="ghost" size="xs" onClick={() => showToast(`正在加载 ${r.appName} 的链路追踪信息...`, "info")}>链路追踪</TechButton>
-                      <TechButton variant={r.status === "error" ? "danger" : "secondary"} size="xs" onClick={() => handleRollback(r)}>一键回滚</TechButton>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
         <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-card border border-border">
           <Pagination

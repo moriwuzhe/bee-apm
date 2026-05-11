@@ -50,11 +50,22 @@ public class HealthCheckService {
             }
         }
 
+        // 如果没有真实数据，只返回系统基础信息
         if (statusList.isEmpty()) {
-            return getMockStatus();
+            statusList.add(new HealthCheckDTO(
+                "1",
+                "APM Backend",
+                "backend",
+                "online",
+                10,
+                "刚刚",
+                "v2.4.1",
+                "localhost:8081"
+            ));
+        } else {
+            // 只添加系统服务，不使用mock应用数据
+            statusList.addAll(getSystemServicesStatus());
         }
-
-        statusList.addAll(getSystemServicesStatus());
         
         return statusList;
     }
@@ -104,17 +115,6 @@ public class HealthCheckService {
             new HealthCheckDTO(String.valueOf(100 + random.nextInt(10)), "APM Backend", "backend", "online", 10 + random.nextInt(20), "刚刚", "v2.4.1", "localhost:8081"),
             new HealthCheckDTO(String.valueOf(100 + random.nextInt(10)), "H2 Database", "database", "online", 5 + random.nextInt(15), "刚刚", "1.4.200", "localhost:8081/h2-console"),
             new HealthCheckDTO(String.valueOf(100 + random.nextInt(10)), "Agent Collector", "backend", "online", 1 + random.nextInt(5), "刚刚", "v1.0.0", "localhost:8081/apm/report")
-        );
-    }
-
-    private List<HealthCheckDTO> getMockStatus() {
-        return Arrays.asList(
-            new HealthCheckDTO("1", "APM Backend", "backend", "online", 10 + random.nextInt(20), "刚刚", "v2.4.1", "localhost:8081"),
-            new HealthCheckDTO("2", "MySQL Database", "database", "online", 5 + random.nextInt(15), "刚刚", "8.0.33", "localhost:3306"),
-            new HealthCheckDTO("3", "Redis Cache", "redis", "online", 1 + random.nextInt(5), "刚刚", "7.0.11", "localhost:6379"),
-            new HealthCheckDTO("4", "Agent Service", "agent", "online", 12 + random.nextInt(15), "刚刚", "v1.2.0", "localhost:9999"),
-            new HealthCheckDTO("5", "Prometheus", "backend", "warning", 140 + random.nextInt(40), "5秒前", "v2.45.0", "localhost:9090"),
-            new HealthCheckDTO("6", "Grafana", "backend", "offline", 0, "1分钟前", "v10.1.0", "localhost:3000")
         );
     }
 }

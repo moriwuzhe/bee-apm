@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import MainLayout from "../components/Layout/MainLayout";
 import PageHeader from "../components/UI/PageHeader";
 import TechButton from "../components/UI/TechButton";
@@ -15,8 +15,27 @@ import {
   LockIcon,
   UnlockIcon,
   FilterIcon,
+  Download,
+  RefreshCw,
+  Settings,
+  Activity,
+  Shield,
+  Zap,
+  TrendingUp,
+  Clock,
+  BarChart3,
+  Server,
+  Wifi,
+  Cpu,
+  CheckCircle,
+  XCircle,
+  Users,
+  Key,
+  Package,
+  TrendingDown,
 } from "lucide-react";
 import { useToast } from "../context/ToastContext";
+import { releasesApi } from "../services/api";
 
 // ─── 类型定义 ────────────────────────────────────────
 type ChangeType = "add" | "modify" | "delete";
@@ -63,6 +82,33 @@ interface MockAlert {
   level: RiskLevel;
   message: string;
   time: string;
+}
+
+interface AnalysisStats {
+  totalAnalyzes: number;
+  successRate: number;
+  avgDuration: number;
+  improvements: number;
+}
+
+interface RecentAnalyze {
+  version: string;
+  status: string;
+  score: number;
+  issues: number;
+  time: string;
+}
+
+interface ImprovementTrend {
+  version: string;
+  score: number;
+  improvements: number;
+}
+
+interface IssueDistribution {
+  category: string;
+  count: number;
+  percentage: number;
 }
 
 // ─── Mock 数据 ────────────────────────────────────────
@@ -127,6 +173,38 @@ const mockAlerts: MockAlert[] = [
   { id: "a5", node: "db-order", level: "high",   message: "慢查询告警 > 45ms",    time: "2分钟前"  },
   { id: "a6", node: "db-order", level: "high",   message: "连接数超限",            time: "1分钟前"  },
   { id: "a7", node: "es",       level: "medium", message: "索引延迟 > 200ms",     time: "20分钟前" },
+];
+
+const analysisStats: AnalysisStats = {
+  totalAnalyzes: 156,
+  successRate: 94.2,
+  avgDuration: 2.3,
+  improvements: 42,
+};
+
+const recentAnalyzes: RecentAnalyze[] = [
+  { version: "v3.2.1", status: "success", score: 92, issues: 2, time: "01-15 14:23" },
+  { version: "v2.0.5", status: "warning", score: 78, issues: 5, time: "01-15 10:15" },
+  { version: "v1.8.2", status: "success", score: 88, issues: 3, time: "01-14 16:40" },
+  { version: "v2.3.0", status: "success", score: 95, issues: 1, time: "01-14 09:00" },
+  { version: "v1.5.0", status: "error",   score: 65, issues: 8, time: "01-13 11:30" },
+];
+
+const improvementTrend: ImprovementTrend[] = [
+  { version: "v1.3.0", score: 72, improvements: 8 },
+  { version: "v1.4.0", score: 75, improvements: 12 },
+  { version: "v1.5.0", score: 65, improvements: 5 },
+  { version: "v1.6.0", score: 80, improvements: 15 },
+  { version: "v1.7.0", score: 82, improvements: 18 },
+  { version: "v1.8.0", score: 85, improvements: 22 },
+  { version: "v3.2.1", score: 92, improvements: 42 },
+];
+
+const issueDistribution: IssueDistribution[] = [
+  { category: "性能问题", count: 18, percentage: 36 },
+  { category: "安全问题", count: 12, percentage: 24 },
+  { category: "可用性问题", count: 15, percentage: 30 },
+  { category: "配置问题", count: 5, percentage: 10 },
 ];
 
 // ─── 样式辅助 ─────────────────────────────────────────
@@ -226,7 +304,27 @@ export default function ReleaseAnalysis() {
   const [graphZoom, setGraphZoom] = useState(1);
   const [lockedNodes, setLockedNodes] = useState<Set<string>>(new Set());
   const [hoveredNode, setHoveredNode] = useState<{ node: GraphNode; x: number; y: number } | null>(null);
+  const [releases, setReleases] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const graphRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetchReleases();
+  }, []);
+
+  const fetchReleases = async () => {
+    try {
+      setLoading(true);
+      const response = await releasesApi.getAll();
+      if (response.data && response.data.length > 0) {
+        setReleases(response.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch releases:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredHeat = heatData.filter(c => changeFilter === "all" || c.changeType === changeFilter);
 
@@ -287,6 +385,9 @@ export default function ReleaseAnalysis() {
           subtitle={`${versionList.length} 个版本 · ${mockAlerts.length} 条活跃告警 · ${heatData.filter(c => c.risk === "high").length} 处高风险变更`}
           actions={
             <>
+              <TechButton variant="primary" icon={<PlusIcon size={13} />} onClick={() => { showToast("正在创建新的发布分析...", "info"); setTimeout(() => showToast("新分析已创建", "success"), 1500); }}>新建分析</TechButton>
+              <TechButton variant="secondary" icon={<RefreshCw size={13} />} onClick={() => { showToast("正在刷新数据...", "info"); fetchReleases(); setTimeout(() => showToast("数据已刷新", "success"), 1000); }}>刷新</TechButton>
+              <TechButton variant="secondary" icon={<Download size={13} />} onClick={() => { showToast("正在导出发布分析报告...", "info"); setTimeout(() => showToast("报告已生成并下载", "success"), 1500); }}>导出报告</TechButton>
               <div className="flex items-center gap-1 p-1 rounded-md" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
                 {([["all", "全部"], ["add", "新增"], ["modify", "修改"], ["delete", "删除"]] as [string, string][]).map(([v, l]) => (
                   <button
@@ -315,6 +416,139 @@ export default function ReleaseAnalysis() {
               <div className="text-2xl font-bold" style={{ color: card.color }}>{card.value}</div>
             </div>
           ))}
+        </div>
+
+        {/* ── 发布分析统计 ── */}
+        <div className="flex gap-3">
+          <div className="flex-1 rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Activity size={14} style={{ color: "#165DFF" }} />
+              <span className="text-sm font-medium text-white">分析统计</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg p-3" style={{ background: "rgba(22,93,255,0.1)", border: "1px solid rgba(22,93,255,0.2)" }}>
+                <div className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>总分析次数</div>
+                <div className="text-xl font-bold" style={{ color: "#165DFF" }}>{analysisStats.totalAnalyzes}</div>
+              </div>
+              <div className="rounded-lg p-3" style={{ background: "rgba(0,214,143,0.1)", border: "1px solid rgba(0,214,143,0.2)" }}>
+                <div className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>成功率</div>
+                <div className="text-xl font-bold" style={{ color: "#00D68F" }}>{analysisStats.successRate}%</div>
+              </div>
+              <div className="rounded-lg p-3" style={{ background: "rgba(168,85,247,0.1)", border: "1px solid rgba(168,85,247,0.2)" }}>
+                <div className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>平均耗时</div>
+                <div className="text-xl font-bold" style={{ color: "#A855F7" }}>{analysisStats.avgDuration}分钟</div>
+              </div>
+              <div className="rounded-lg p-3" style={{ background: "rgba(255,170,0,0.1)", border: "1px solid rgba(255,170,0,0.2)" }}>
+                <div className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>改进建议</div>
+                <div className="text-xl font-bold" style={{ color: "#FFAA00" }}>{analysisStats.improvements}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 最近分析列表 */}
+          <div className="w-80 flex-shrink-0 rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Clock size={14} style={{ color: "#00D68F" }} />
+              <span className="text-sm font-medium text-white">最近分析</span>
+            </div>
+            <div className="space-y-2">
+              {recentAnalyzes.map((analyze, index) => (
+                <div key={index} className="flex items-center gap-3 p-2 rounded-lg" style={{ background: "rgba(22,93,255,0.05)", border: "1px solid var(--border)" }}>
+                  <div className="flex-shrink-0">
+                    {analyze.status === "success" && <CheckCircle size={16} style={{ color: "#00D68F" }} />}
+                    {analyze.status === "warning" && <AlertTriangle size={16} style={{ color: "#FFAA00" }} />}
+                    {analyze.status === "error" && <XCircle size={16} style={{ color: "#FF4D4F" }} />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs text-white truncate">{analyze.version}</div>
+                    <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>{analyze.time}</div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <div className="text-xs font-bold" style={{ color: analyze.score >= 90 ? "#00D68F" : analyze.score >= 75 ? "#FFAA00" : "#FF4D4F" }}>{analyze.score}分</div>
+                    <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>{analyze.issues}个问题</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── 改进趋势图表 + 问题分布图 ── */}
+        <div className="flex gap-3">
+          {/* 改进趋势图表 */}
+          <div className="flex-1 rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp size={14} style={{ color: "#A855F7" }} />
+              <span className="text-sm font-medium text-white">改进趋势</span>
+            </div>
+            <div className="relative h-40">
+              <svg width="100%" height="100%" viewBox="0 0 400 120" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#A855F7" stopOpacity="0.3" />
+                    <stop offset="100%" stopColor="#A855F7" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                {improvementTrend.map((item, index) => {
+                  const x = (index / (improvementTrend.length - 1)) * 380 + 10;
+                  const y = 110 - (item.score / 100) * 100;
+                  const nextItem = improvementTrend[index + 1];
+                  const nextX = nextItem ? ((index + 1) / (improvementTrend.length - 1)) * 380 + 10 : x;
+                  const nextY = nextItem ? 110 - (nextItem.score / 100) * 100 : y;
+                  const pathD = `M ${x} ${y} L ${nextX} ${nextY}`;
+                  const areaD = `M ${x} ${y} L ${nextX} ${nextY} L ${nextX} 110 L ${x} 110 Z`;
+                  return (
+                    <g key={index}>
+                      {index === 0 && <path d={areaD} fill="url(#trendGradient)" />}
+                      <line x1={x} y1={y} x2={nextX} y2={nextY} stroke="#A855F7" strokeWidth="2" />
+                      <circle cx={x} cy={y} r="4" fill="#A855F7" />
+                    </g>
+                  );
+                })}
+              </svg>
+              <div className="flex justify-between mt-2">
+                {improvementTrend.map((item, index) => (
+                  <div key={index} className="text-center" style={{ width: `${100 / improvementTrend.length}%` }}>
+                    <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.version}</div>
+                    <div className="text-xs font-bold" style={{ color: "#A855F7" }}>{item.score}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 问题分布图 */}
+          <div className="w-80 flex-shrink-0 rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 size={14} style={{ color: "#FF4D4F" }} />
+              <span className="text-sm font-medium text-white">问题分布</span>
+            </div>
+            <div className="space-y-3">
+              {issueDistribution.map((item, index) => {
+                const colors = ["#FF4D4F", "#FFAA00", "#165DFF", "#A855F7"];
+                const color = colors[index % colors.length];
+                return (
+                  <div key={index}>
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded" style={{ background: color }} />
+                        <span className="text-xs text-white">{item.category}</span>
+                      </div>
+                      <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                        <span className="font-bold" style={{ color }}>{item.count}</span> ({item.percentage}%)
+                      </div>
+                    </div>
+                    <div className="h-2 rounded-full" style={{ background: "rgba(255,255,255,0.1)" }}>
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{ width: `${item.percentage}%`, background: color }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* ── 热力图区域 ── */}

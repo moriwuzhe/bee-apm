@@ -58,12 +58,11 @@ public class JvmMonitorService {
                     }
                 }
             } catch (Exception e) {
-                metrics.put("cpuUsage", 40 + random.nextDouble() * 50);
-                metrics.put("memUsage", 50 + random.nextDouble() * 30);
+                // 忽略异常
             }
         } else {
-            metrics.put("cpuUsage", 40 + random.nextDouble() * 50);
-            metrics.put("memUsage", 50 + random.nextDouble() * 30);
+            // 如果没有真实数据，返回空数据，不使用mock
+            return metrics;
         }
 
         metrics.put("diskIO", 20 + random.nextDouble() * 60);
@@ -118,15 +117,8 @@ public class JvmMonitorService {
                 data.add(item);
             }
         } else {
-            String[] times = {"10:00", "10:05", "10:10", "10:15", "10:20", "10:25", "10:30", "10:35", "10:40", "10:45", "10:50", "10:55", "11:00"};
-            Random random = new Random();
-            for (String time : times) {
-                Map<String, Object> item = new HashMap<>();
-                item.put("t", time);
-                item.put("heap", 50 + random.nextDouble() * 30);
-                item.put("nonheap", 20 + random.nextDouble() * 10);
-                data.add(item);
-            }
+            // 如果没有真实数据，返回空列表，不使用mock
+            return data;
         }
 
         return data;
@@ -166,23 +158,13 @@ public class JvmMonitorService {
                         item.put("peak", 200);
                     }
                 } catch (Exception e) {
-                    item.put("live", 150);
-                    item.put("daemon", 100);
-                    item.put("peak", 200);
+                    // 忽略异常
                 }
                 data.add(item);
             }
         } else {
-            String[] times = {"10:00", "10:05", "10:10", "10:15", "10:20", "10:25", "10:30", "10:35", "10:40", "10:45", "10:50", "10:55", "11:00"};
-            Random random = new Random();
-            for (String time : times) {
-                Map<String, Object> item = new HashMap<>();
-                item.put("t", time);
-                item.put("live", 150 + random.nextInt(100));
-                item.put("daemon", 100 + random.nextInt(50));
-                item.put("peak", 200 + random.nextInt(50));
-                data.add(item);
-            }
+            // 如果没有真实数据，返回空列表，不使用mock
+            return data;
         }
 
         return data;
@@ -218,40 +200,21 @@ public class JvmMonitorService {
                         item.put("fgc", 0);
                     }
                 } catch (Exception e) {
-                    item.put("ygc", 0);
-                    item.put("fgc", 0);
+                    // 忽略异常
                 }
                 data.add(item);
             }
         } else {
-            String[] times = {"10:00", "10:05", "10:10", "10:15", "10:20", "10:25", "10:30", "10:35", "10:40", "10:45", "10:50", "10:55", "11:00"};
-            Random random = new Random();
-            for (String time : times) {
-                Map<String, Object> item = new HashMap<>();
-                item.put("t", time);
-                item.put("ygc", random.nextInt(10));
-                item.put("fgc", random.nextInt(2));
-                data.add(item);
-            }
+            // 如果没有真实数据，返回空列表，不使用mock
+            return data;
         }
 
         return data;
     }
 
     public List<Map<String, Object>> getNetworkData() {
-        List<Map<String, Object>> data = new ArrayList<>();
-        String[] times = {"10:00", "10:05", "10:10", "10:15", "10:20", "10:25", "10:30", "10:35", "10:40", "10:45", "10:50", "10:55", "11:00"};
-
-        Random random = new Random();
-        for (String time : times) {
-            Map<String, Object> item = new HashMap<>();
-            item.put("t", time);
-            item.put("rx", 50 + random.nextDouble() * 150);
-            item.put("tx", 20 + random.nextDouble() * 80);
-            data.add(item);
-        }
-
-        return data;
+        // 如果没有真实数据，返回空列表，不使用mock
+        return new ArrayList<>();
     }
 
     public Map<String, Object> getClassLoadingStats() {
@@ -299,29 +262,43 @@ public class JvmMonitorService {
                 appNames.add(span.getAppName());
             }
         }
-        if (appNames.isEmpty()) {
-            return Arrays.asList("order-service", "payment-gateway", "user-service", "inventory-service");
-        }
+        // 如果没有真实数据，返回空列表，不使用mock
         return new ArrayList<>(appNames);
     }
 
     public Map<String, Object> getMetrics() {
-        Random random = new Random();
         Map<String, Object> metrics = new HashMap<>();
         
-        metrics.put("heapUsed", 512 + random.nextDouble() * 256);
-        metrics.put("heapMax", 1024.0);
-        metrics.put("heapUsedPercent", 50 + random.nextDouble() * 30);
-        metrics.put("nonHeapUsed", 128 + random.nextDouble() * 64);
-        metrics.put("nonHeapMax", 256.0);
-        metrics.put("threadCount", 120 + random.nextInt(80));
-        metrics.put("daemonThreadCount", 80 + random.nextInt(40));
-        metrics.put("peakThreadCount", 180 + random.nextInt(40));
-        metrics.put("youngGcCount", 45 + random.nextInt(30));
-        metrics.put("youngGcTime", 120 + random.nextInt(80));
-        metrics.put("fullGcCount", 3 + random.nextInt(5));
-        metrics.put("fullGcTime", 45 + random.nextInt(30));
-        
+        List<TraceSpan> spans = traceSpanRepository.findRecent(LocalDateTime.now().minusHours(24));
+        if (spans != null && !spans.isEmpty()) {
+            // 从真实数据中提取指标
+            TraceSpan latestSpan = spans.get(spans.size() - 1);
+            try {
+                if (latestSpan.getTags() != null) {
+                    Map<String, Object> tags = JSON.parseObject(latestSpan.getTags(), Map.class);
+                    if (tags != null) {
+                        if (tags.containsKey("memory")) {
+                            Map<String, Object> memory = (Map<String, Object>) tags.get("memory");
+                            metrics.put("heapUsed", memory.getOrDefault("youngSize", 512));
+                            metrics.put("heapMax", 1024.0);
+                        }
+                        if (tags.containsKey("thread")) {
+                            Map<String, Object> thread = (Map<String, Object>) tags.get("thread");
+                            metrics.put("threadCount", thread.getOrDefault("threadCount", 150));
+                            metrics.put("daemonThreadCount", thread.getOrDefault("daemonThreadCount", 100));
+                        }
+                        if (tags.containsKey("gc")) {
+                            Map<String, Object> gc = (Map<String, Object>) tags.get("gc");
+                            metrics.put("youngGcCount", gc.getOrDefault("youngGcCount", 0));
+                            metrics.put("fullGcCount", gc.getOrDefault("oldGcCount", 0));
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // 忽略异常
+            }
+        }
+        // 如果没有真实数据，返回空map，不使用mock
         return metrics;
     }
 }

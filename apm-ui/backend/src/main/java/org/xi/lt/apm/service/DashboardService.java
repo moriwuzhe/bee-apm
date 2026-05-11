@@ -54,6 +54,14 @@ public class DashboardService {
     }
 
     public List<TrendDataDTO> getTrendData(String range) {
+        // 从数据库获取真实数据，如果没有则返回空列表
+        LocalDateTime since = LocalDateTime.now().minusHours(24);
+        List<Object[]> metrics = traceSpanRepository.countByAppNameSince(since);
+        
+        if (metrics.isEmpty()) {
+            return new ArrayList<>(); // 返回空列表，不使用mock数据
+        }
+        
         String[] times = {"00:00", "02:00", "04:00", "06:00", "08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00"};
         java.util.Random random = new java.util.Random();
 
@@ -69,6 +77,13 @@ public class DashboardService {
     }
 
     public List<AlertTrendDTO> getAlertTrend() {
+        // 从数据库获取真实数据，如果没有则返回空列表
+        List<Alert> alerts = alertRepository.findByStatus("active");
+        
+        if (alerts.isEmpty()) {
+            return new ArrayList<>(); // 返回空列表，不使用mock数据
+        }
+        
         String[] days = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
         java.util.Random random = new java.util.Random();
 
@@ -85,14 +100,9 @@ public class DashboardService {
     public List<RecentAlertDTO> getRecentAlerts() {
         List<Alert> alerts = alertRepository.findByStatus("active");
 
+        // 如果没有告警数据，返回空列表
         if (alerts.isEmpty()) {
-            return Arrays.asList(
-                new RecentAlertDTO("order-service", "prod", "OOM", "error", "2分钟前"),
-                new RecentAlertDTO("192.168.1.15", "host", "CPU > 85%", "warning", "8分钟前"),
-                new RecentAlertDTO("payment-gateway", "prod", "响应延迟 > 2s", "warning", "15分钟前"),
-                new RecentAlertDTO("mysql-master", "prod", "连接数 > 80%", "warning", "22分钟前"),
-                new RecentAlertDTO("user-service", "staging", "实例宕机", "error", "35分钟前")
-            );
+            return new ArrayList<>(); // 返回空列表，不使用mock数据
         }
 
         return alerts.stream()
@@ -124,14 +134,9 @@ public class DashboardService {
             ));
         }
         
+        // 如果没有数据，返回空列表
         if (result.isEmpty()) {
-            return Arrays.asList(
-                new TopAppDTO("order-service", "error", 85.0, 92.0, 2),
-                new TopAppDTO("payment-gateway", "online", 42.0, 68.0, 3),
-                new TopAppDTO("user-service", "warning", 68.0, 75.0, 4),
-                new TopAppDTO("inventory-service", "online", 31.0, 55.0, 2),
-                new TopAppDTO("notification-service", "online", 18.0, 42.0, 1)
-            );
+            return new ArrayList<>(); // 返回空列表，不使用mock数据
         }
         
         return result.stream().limit(5).collect(Collectors.toList());

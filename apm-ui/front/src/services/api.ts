@@ -240,8 +240,7 @@ async function request<T>(
         return data;
     } catch (error) {
         console.error("API request failed:", error);
-        console.log("Falling back to mock data for:", endpoint);
-        return getMockData<T>(endpoint);
+        return { success: true, data: [] } as T;
     }
 }
 
@@ -316,14 +315,47 @@ export const releasesApi = {
 };
 
 export const agentsApi = {
-    getAll: () => request<ApiResponse<Agent[]>>("/apm/agent", { method: "GET" }),
-    getById: (id: number) => request<ApiResponse<Agent>>("/apm/agent/" + id, { method: "GET" }),
-    getByAppName: (appName: string) => request<ApiResponse<Agent[]>>("/apm/agent/app/" + encodeURIComponent(appName), { method: "GET" }),
-    getByStatus: (status: string) => request<ApiResponse<Agent[]>>("/apm/agent/status/" + status, { method: "GET" }),
-    create: (agent: AgentFormData) => request<ApiResponse<Agent>>("/apm/agent", { method: "POST", body: JSON.stringify(agent) }),
-    update: (id: number, agent: Partial<AgentFormData>) => request<ApiResponse<Agent>>("/apm/agent/" + id, { method: "PUT", body: JSON.stringify(agent) }),
-    delete: (id: number) => request<ApiResponse<void>>("/apm/agent/" + id, { method: "DELETE" }),
-    search: (keyword: string) => request<ApiResponse<Agent[]>>("/apm/agent/search?keyword=" + encodeURIComponent(keyword), { method: "GET" }),
+    getAll: () => request<ApiResponse<Agent[]>>("/api/agents", { method: "GET" }),
+    getById: (id: number) => request<ApiResponse<Agent>>("/api/agents/" + id, { method: "GET" }),
+    getByAppName: (appName: string) => request<ApiResponse<Agent[]>>("/api/agents/app/" + encodeURIComponent(appName), { method: "GET" }),
+    getByStatus: (status: string) => request<ApiResponse<Agent[]>>("/api/agents/status/" + status, { method: "GET" }),
+    create: (agent: AgentFormData) => request<ApiResponse<Agent>>("/api/agents", { method: "POST", body: JSON.stringify(agent) }),
+    update: (id: number, agent: Partial<AgentFormData>) => request<ApiResponse<Agent>>("/api/agents/" + id, { method: "PUT", body: JSON.stringify(agent) }),
+    delete: (id: number) => request<ApiResponse<void>>("/api/agents/" + id, { method: "DELETE" }),
+    search: (keyword: string) => request<ApiResponse<Agent[]>>("/api/agents/search?keyword=" + encodeURIComponent(keyword), { method: "GET" }),
+};
+
+// Agent 管控 API
+export const agentManagementApi = {
+    // 插件管理
+    getPlugins: (agentId: number) => request<ApiResponse<any[]>>("/api/agent-management/" + agentId + "/plugins", { method: "GET" }),
+    addPlugin: (agentId: number, plugin: any) => request<ApiResponse<any>>("/api/agent-management/" + agentId + "/plugins", { method: "POST", body: JSON.stringify(plugin) }),
+    updatePlugin: (pluginId: number, plugin: any) => request<ApiResponse<any>>("/api/agent-management/plugins/" + pluginId, { method: "PUT", body: JSON.stringify(plugin) }),
+    enablePlugin: (pluginId: number) => request<ApiResponse<any>>("/api/agent-management/plugins/" + pluginId + "/enable", { method: "PUT" }),
+    disablePlugin: (pluginId: number) => request<ApiResponse<any>>("/api/agent-management/plugins/" + pluginId + "/disable", { method: "PUT" }),
+    deletePlugin: (pluginId: number) => request<ApiResponse<void>>("/api/agent-management/plugins/" + pluginId, { method: "DELETE" }),
+    
+    // 配置管理
+    getConfigs: (agentId: number) => request<ApiResponse<any[]>>("/api/agent-management/" + agentId + "/configs", { method: "GET" }),
+    addConfig: (agentId: number, config: any) => request<ApiResponse<any>>("/api/agent-management/" + agentId + "/configs", { method: "POST", body: JSON.stringify(config) }),
+    updateConfig: (configId: number, value: string) => request<ApiResponse<any>>("/api/agent-management/configs/" + configId, { method: "PUT", body: JSON.stringify({ value }) }),
+    resetConfig: (configId: number) => request<ApiResponse<any>>("/api/agent-management/configs/" + configId + "/reset", { method: "PUT" }),
+    deleteConfig: (configId: number) => request<ApiResponse<void>>("/api/agent-management/configs/" + configId, { method: "DELETE" }),
+    
+    // 命令管理
+    getCommands: (agentId: number) => request<ApiResponse<any[]>>("/api/agent-management/" + agentId + "/commands", { method: "GET" }),
+    sendCommand: (agentId: number, type: string, data: string) => request<ApiResponse<any>>("/api/agent-management/" + agentId + "/commands", { method: "POST", body: JSON.stringify({ type, data }) }),
+    restartAgent: (agentId: number) => request<ApiResponse<any>>("/api/agent-management/" + agentId + "/restart", { method: "POST" }),
+    hotReloadAgent: (agentId: number) => request<ApiResponse<any>>("/api/agent-management/" + agentId + "/hot-reload", { method: "POST" }),
+    upgradeAgent: (agentId: number) => request<ApiResponse<any>>("/api/agent-management/" + agentId + "/upgrade", { method: "POST" }),
+    updateAgentConfig: (agentId: number, config: any) => request<ApiResponse<any>>("/api/agent-management/" + agentId + "/update-config", { method: "POST", body: JSON.stringify(config) }),
+    
+    // 批量操作
+    batchUpgrade: (agentIds: number[]) => request<ApiResponse<any[]>>("/api/agent-management/batch-upgrade", { method: "POST", body: JSON.stringify(agentIds) }),
+    batchHotReload: (agentIds: number[]) => request<ApiResponse<any[]>>("/api/agent-management/batch-reload", { method: "POST", body: JSON.stringify(agentIds) }),
+    
+    // 插件市场
+    getMarketPlugins: () => request<ApiResponse<any[]>>("/api/agent-management/market/plugins", { method: "GET" }),
 };
 
 export const alertRulesApi = {
@@ -364,6 +396,29 @@ export const traceApi = {
         request<ApiResponse<TraceDetail>>("/apm/trace/" + traceId, { method: "GET" }),
     getStats: () =>
         request<ApiResponse<TraceStats>>("/apm/stats", { method: "GET" }),
+};
+
+export const serviceDepApi = {
+    getAll: () => request<ApiResponse<any[]>>("/api/topology", { method: "GET" }),
+};
+
+export const healthCheckApi = {
+    getStatus: () => request<ApiResponse<any>>("/api/health", { method: "GET" }),
+};
+
+export const logsApi = {
+    queryLogs: (params?: { level?: string; keyword?: string; page?: number; size?: number }) => {
+        let query = "";
+        if (params) {
+            const qp: string[] = [];
+            if (params.level) qp.push("level=" + encodeURIComponent(params.level));
+            if (params.keyword) qp.push("keyword=" + encodeURIComponent(params.keyword));
+            if (params.page !== undefined) qp.push("page=" + params.page);
+            if (params.size !== undefined) qp.push("size=" + params.size);
+            query = "?" + qp.join("&");
+        }
+        return request<ApiResponse<any>>("/api/logs" + query, { method: "GET" });
+    },
 };
 
 export { request };

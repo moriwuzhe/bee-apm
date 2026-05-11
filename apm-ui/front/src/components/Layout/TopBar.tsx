@@ -31,8 +31,24 @@ const searchHistory = ["order-service", "192.168.1.15", "CPU告警", "payment-ga
 
 export default function TopBar({
   title = "监控大盘",
+  actions,
+  breadcrumbs = [],
+  showRefresh = false,
+  onRefresh,
+  showSettings: externalShowSettings = false,
+  onSettings,
+  showNotifications = false,
+  notificationCount = 0,
 }: {
   title?: string;
+  actions?: React.ReactNode;
+  breadcrumbs?: Array<{ label: string; href?: string }>;
+  showRefresh?: boolean;
+  onRefresh?: () => void;
+  showSettings?: boolean;
+  onSettings?: () => void;
+  showNotifications?: boolean;
+  notificationCount?: number;
 }) {
   const navigate = useNavigate();
   const { theme, setTheme, themes } = useTheme();
@@ -209,6 +225,12 @@ export default function TopBar({
       </div>
 
       <div className="flex items-center gap-1">
+        {actions && (
+          <div className="flex items-center gap-1">
+            {actions}
+          </div>
+        )}
+
         <div className="relative" ref={themeRef}>
           <button
             onClick={() => { setShowTheme(!showTheme); setShowUser(false); setShowAlerts(false); setShowSearch(false); }}

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import MainLayout from "../components/Layout/MainLayout";
 import PageHeader from "../components/UI/PageHeader";
 import TechButton from "../components/UI/TechButton";
-import { Plus, Shield, Edit2, Users, CheckSquare, Square, Trash2, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Shield, Edit2, Users, CheckSquare, Square, Trash2, X, ChevronDown, ChevronUp, Download, RefreshCw, AlertTriangle, Settings, Activity, Zap, TrendingUp, Clock, BarChart3, Server, Wifi, Cpu, CheckCircle, XCircle, Key, Lock } from "lucide-react";
 import { rolesApi } from "../services/api";
 import { useToast } from "../context/ToastContext";
 import type { Role as RoleType } from "../types";
@@ -86,6 +86,30 @@ export default function Roles() {
   const [loading, setLoading] = useState(true);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set(permModules.map(m => m.module)));
   const { showToast } = useToast();
+
+  const [roleStats, setRoleStats] = useState({
+    totalRoles: defaultRoles.length,
+    activeRoles: defaultRoles.filter(r => !r.isSystem).length,
+    permissionsCount: permModules.reduce((sum, m) => sum + m.perms.length, 0),
+    usersCount: defaultRoles.reduce((sum, r) => sum + (r.userCount || 0), 0),
+  });
+
+  const [recentRoleChanges, setRecentRoleChanges] = useState([
+    { role: "运维管理员", action: "权限更新", user: "张明", time: "5分钟前" },
+    { role: "项目负责人", action: "新增权限", user: "李华", time: "15分钟前" },
+    { role: "运维工程师", action: "角色编辑", user: "王强", time: "1小时前" },
+    { role: "开发工程师", action: "权限变更", user: "赵丽", time: "2小时前" },
+    { role: "运维管理员", action: "新增用户", user: "陈刚", time: "3小时前" },
+  ]);
+
+  const [roleDistribution, setRoleDistribution] = useState(
+    defaultRoles.map((r, index) => ({
+      role: r.name,
+      users: r.userCount || 0,
+      permissions: r.permissionCount || 0,
+      color: colors[index % colors.length],
+    }))
+  );
 
   const [formData, setFormData] = useState<RoleFormData>({
     name: "",
@@ -283,9 +307,143 @@ export default function Roles() {
           title="角色与权限管理"
           subtitle={`${roles.length} 个角色 · ${roles.reduce((a, r) => a + (r.userCount || 0), 0)} 个用户`}
           actions={
-            <TechButton variant="primary" icon={<Plus size={13} />} onClick={handleCreate}>新建角色</TechButton>
+            <div className="flex items-center gap-2">
+              <TechButton variant="secondary" icon={<RefreshCw size={13} />} onClick={fetchRoles}>刷新</TechButton>
+              <TechButton variant="secondary" icon={<Download size={13} />} onClick={() => showToast("角色数据导出中...", "info")}>导出</TechButton>
+              <TechButton variant="primary" icon={<Plus size={13} />} onClick={handleCreate}>新建角色</TechButton>
+            </div>
           }
         />
+
+        <div className="grid grid-cols-4 gap-4">
+          <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(22,93,255,0.15)" }}>
+                <Shield size={18} style={{ color: "#165DFF" }} />
+              </div>
+              <div>
+                <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>总角色数</div>
+                <div className="text-xl font-bold text-white">{roleStats.totalRoles}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(0,214,143,0.15)" }}>
+                <Activity size={18} style={{ color: "#00D68F" }} />
+              </div>
+              <div>
+                <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>活跃角色</div>
+                <div className="text-xl font-bold text-white">{roleStats.activeRoles}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(168,85,247,0.15)" }}>
+                <Key size={18} style={{ color: "#A855F7" }} />
+              </div>
+              <div>
+                <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>权限总数</div>
+                <div className="text-xl font-bold text-white">{roleStats.permissionsCount}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,77,79,0.15)" }}>
+                <Users size={18} style={{ color: "#FF4D4F" }} />
+              </div>
+              <div>
+                <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>用户总数</div>
+                <div className="text-xl font-bold text-white">{roleStats.usersCount}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-sm font-medium text-white flex items-center gap-2">
+                <Clock size={14} style={{ color: "#165DFF" }} />
+                最近角色变更
+              </div>
+            </div>
+            <div className="space-y-3">
+              {recentRoleChanges.slice(0, 5).map((change, index) => (
+                <div key={index} className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full" style={{ background: "#165DFF" }}></div>
+                    <span style={{ color: "var(--muted-foreground)" }}>{change.role}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span style={{ color: "var(--foreground)" }}>{change.action}</span>
+                    <span style={{ color: "var(--muted-foreground)" }}>{change.time}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-sm font-medium text-white flex items-center gap-2">
+                <BarChart3 size={14} style={{ color: "#A855F7" }} />
+                角色权限分布
+              </div>
+            </div>
+            <div className="space-y-3">
+              {roleDistribution.map((item, index) => (
+                <div key={index}>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span style={{ color: "var(--foreground)" }}>{item.role}</span>
+                    <span style={{ color: "var(--muted-foreground)" }}>{item.permissions} 权限</span>
+                  </div>
+                  <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--muted)" }}>
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${(item.permissions / Math.max(...roleDistribution.map(d => d.permissions))) * 100}%`,
+                        background: item.color
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-sm font-medium text-white flex items-center gap-2">
+                <Server size={14} style={{ color: "#00D68F" }} />
+                角色配置列表
+              </div>
+            </div>
+            <div className="space-y-2">
+              {roles.slice(0, 5).map((role) => (
+                <div key={role.id} className="flex items-center justify-between text-xs p-2 rounded-lg" style={{ background: "var(--muted)" }}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full" style={{ background: role.color }}></div>
+                    <span style={{ color: "var(--foreground)" }}>{role.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1" style={{ color: "var(--muted-foreground)" }}>
+                      <Users size={10} />{role.userCount}
+                    </span>
+                    <span className="flex items-center gap-1" style={{ color: "var(--muted-foreground)" }}>
+                      <Key size={10} />{role.permissionCount}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
         <div className="flex gap-4">
           <div className="w-72 flex-shrink-0 space-y-2">

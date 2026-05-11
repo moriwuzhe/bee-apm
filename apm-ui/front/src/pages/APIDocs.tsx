@@ -1,6 +1,6 @@
 import { useState } from "react";
 import MainLayout from "../components/Layout/MainLayout";
-import { Book, Terminal, Copy, Check, ExternalLink, ChevronDown, ChevronRight, Search } from "lucide-react";
+import { Book, Terminal, Copy, Check, ExternalLink, ChevronDown, ChevronRight, Search, Download, RefreshCw, AlertTriangle, Settings, Activity, Shield, Zap, TrendingUp, Clock, BarChart3, Server, Wifi, Cpu, CheckCircle, XCircle, Users, Key, Lock, Plus } from "lucide-react";
 
 interface APICategory {
   name: string;
@@ -15,6 +15,28 @@ interface APIEndpoint {
   parameters?: { name: string; type: string; required: boolean; description: string }[];
   requestBody?: { description: string; example: string };
   response?: { description: string; example: string };
+}
+
+interface APIStats {
+  totalAPIs: number;
+  documentedAPIs: number;
+  avgResponseTime: number;
+  apiCalls: number;
+}
+
+interface RecentAPI {
+  endpoint: string;
+  method: string;
+  status: string;
+  calls: number;
+  lastCall: string;
+}
+
+interface APIUsage {
+  api: string;
+  calls: number;
+  errors: number;
+  avgTime: number;
 }
 
 const apiCategories: APICategory[] = [
@@ -164,6 +186,60 @@ export default function APIDocs() {
   const [expandedEndpoints, setExpandedEndpoints] = useState<Set<string>>(new Set());
   const [copiedPath, setCopiedPath] = useState<string | null>(null);
   const [searchKeyword, setSearchKeyword] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const apiStats: APIStats = {
+    totalAPIs: 15,
+    documentedAPIs: 12,
+    avgResponseTime: 45,
+    apiCalls: 12847
+  };
+
+  const recentAPIs: RecentAPI[] = [
+    { endpoint: "/apm/report", method: "POST", status: "success", calls: 1250, lastCall: "2秒前" },
+    { endpoint: "/apm/traces", method: "GET", status: "success", calls: 890, lastCall: "5秒前" },
+    { endpoint: "/apm/trace/{traceId}", method: "GET", status: "success", calls: 756, lastCall: "12秒前" },
+    { endpoint: "/health", method: "GET", status: "success", calls: 2340, lastCall: "1秒前" },
+    { endpoint: "/agent/register", method: "POST", status: "success", calls: 45, lastCall: "3分钟前" },
+    { endpoint: "/config/themes", method: "GET", status: "error", calls: 128, lastCall: "10分钟前" },
+  ];
+
+  const apiUsage: APIUsage[] = [
+    { api: "/apm/report", calls: 1250, errors: 3, avgTime: 32 },
+    { api: "/apm/traces", calls: 890, errors: 12, avgTime: 156 },
+    { api: "/health", calls: 2340, errors: 0, avgTime: 8 },
+    { api: "/agent/register", calls: 45, errors: 2, avgTime: 89 },
+    { api: "/config/themes", calls: 128, errors: 8, avgTime: 45 },
+  ];
+
+  const healthStatus = {
+    overall: "healthy",
+    services: [
+      { name: "APM Collector", status: "healthy", uptime: "99.9%", latency: "32ms" },
+      { name: "Trace Storage", status: "healthy", uptime: "99.7%", latency: "156ms" },
+      { name: "Agent Registry", status: "healthy", uptime: "100%", latency: "89ms" },
+      { name: "Config Service", status: "degraded", uptime: "98.5%", latency: "45ms" },
+    ]
+  };
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    setTimeout(() => setIsRefreshing(false), 1500);
+  };
+
+  const handleExport = () => {
+    const exportData = {
+      exportDate: new Date().toISOString(),
+      categories: apiCategories
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "api-docs-export.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const toggleCategory = (name: string) => {
     setExpandedCategories((prev) => {
@@ -202,8 +278,174 @@ export default function APIDocs() {
     .filter((cat) => cat.endpoints.length > 0);
 
   return (
-    <MainLayout title="API文档">
+    <MainLayout 
+      title="API文档"
+      actions={
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {}}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+            style={{ background: "var(--muted)", color: "var(--foreground)" }}
+          >
+            <Plus size={16} />
+            新建API
+          </button>
+          <button
+            onClick={handleRefresh}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+            style={{ background: "var(--muted)", color: "var(--foreground)" }}
+          >
+            <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />
+            刷新
+          </button>
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+            style={{ background: "#165DFF", color: "white" }}
+          >
+            <Download size={16} />
+            导出文档
+          </button>
+        </div>
+      }
+    >
       <div className="space-y-4">
+        {/* API统计概览 */}
+        <div className="grid grid-cols-4 gap-4">
+          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(22, 93, 255, 0.1)" }}>
+                <Server size={20} style={{ color: "#165DFF" }} />
+              </div>
+              <div>
+                <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>总API数</p>
+                <p className="text-xl font-semibold" style={{ color: "var(--foreground)" }}>{apiStats.totalAPIs}</p>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(0, 214, 143, 0.1)" }}>
+                <CheckCircle size={20} style={{ color: "#00D68F" }} />
+              </div>
+              <div>
+                <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>已文档化</p>
+                <p className="text-xl font-semibold" style={{ color: "var(--foreground)" }}>{apiStats.documentedAPIs}</p>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(255, 170, 0, 0.1)" }}>
+                <Clock size={20} style={{ color: "#FFAA00" }} />
+              </div>
+              <div>
+                <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>平均响应时间</p>
+                <p className="text-xl font-semibold" style={{ color: "var(--foreground)" }}>{apiStats.avgResponseTime}ms</p>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(255, 77, 79, 0.1)" }}>
+                <Activity size={20} style={{ color: "#FF4D4F" }} />
+              </div>
+              <div>
+                <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>API调用次数</p>
+                <p className="text-xl font-semibold" style={{ color: "var(--foreground)" }}>{apiStats.apiCalls.toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 最近API调用 & API健康状态 */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* 最近API调用列表 */}
+          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium" style={{ color: "var(--foreground)" }}>最近API调用</h3>
+              <TrendingUp size={16} style={{ color: "var(--muted-foreground)" }} />
+            </div>
+            <div className="space-y-3">
+              {recentAPIs.map((api, index) => (
+                <div key={index} className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="px-1.5 py-0.5 rounded text-xs font-medium"
+                      style={{ background: methodColors[api.method].bg, color: methodColors[api.method].text }}
+                    >
+                      {api.method}
+                    </span>
+                    <code className="text-xs" style={{ color: "var(--foreground)" }}>{api.endpoint}</code>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span style={{ color: api.status === "success" ? "#00D68F" : "#FF4D4F" }}>
+                      {api.status === "success" ? <CheckCircle size={12} /> : <XCircle size={12} />}
+                    </span>
+                    <span style={{ color: "var(--muted-foreground)" }}>{api.lastCall}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* API健康状态 */}
+          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium" style={{ color: "var(--foreground)" }}>API健康状态</h3>
+              <Shield size={16} style={{ color: healthStatus.overall === "healthy" ? "#00D68F" : "#FFAA00" }} />
+            </div>
+            <div className="space-y-3">
+              {healthStatus.services.map((service, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Wifi size={14} style={{ color: service.status === "healthy" ? "#00D68F" : "#FFAA00" }} />
+                    <span className="text-xs" style={{ color: "var(--foreground)" }}>{service.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs">
+                    <span style={{ color: "var(--muted-foreground)" }}>延迟: {service.latency}</span>
+                    <span style={{ color: service.status === "healthy" ? "#00D68F" : "#FFAA00" }}>
+                      {service.uptime}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* API使用分布图表 */}
+        <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium" style={{ color: "var(--foreground)" }}>API使用分布</h3>
+            <BarChart3 size={16} style={{ color: "var(--muted-foreground)" }} />
+          </div>
+          <div className="space-y-3">
+            {apiUsage.map((usage, index) => {
+              const maxCalls = Math.max(...apiUsage.map(u => u.calls));
+              const percentage = (usage.calls / maxCalls) * 100;
+              return (
+                <div key={index} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <code style={{ color: "var(--foreground)" }}>{usage.api}</code>
+                    <div className="flex items-center gap-3">
+                      <span style={{ color: "var(--muted-foreground)" }}>{usage.calls} 调用</span>
+                      <span style={{ color: usage.errors > 0 ? "#FF4D4F" : "#00D68F" }}>{usage.errors} 错误</span>
+                      <span style={{ color: "var(--muted-foreground)" }}>{usage.avgTime}ms</span>
+                    </div>
+                  </div>
+                  <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--muted)" }}>
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${percentage}%`, background: "#165DFF" }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {/* 头部 */}
         <div className="rounded-lg p-6" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
           <div className="flex items-center gap-4 mb-4">

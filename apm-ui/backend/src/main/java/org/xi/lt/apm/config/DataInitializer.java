@@ -44,16 +44,11 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        // 只初始化权限、角色、用户
+        // 其他数据（项目、应用、告警、发布、追踪、指标）来自Agent采集
         initPermissions();
         initRoles();
         initUsers();
-        initProjects();
-        initApplications();
-        initAlertRules();
-        initReleases();
-        initAlerts();
-        initTraceSpans();
-        initMetrics();
     }
 
     private void initPermissions() {

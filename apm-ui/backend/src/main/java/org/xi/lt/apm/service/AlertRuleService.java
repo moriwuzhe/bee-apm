@@ -26,23 +26,9 @@ public class AlertRuleService {
 
     public List<AlertRuleDTO> findAllDTO() {
         List<AlertRule> rules = alertRuleRepository.findAll();
-        if (rules.isEmpty()) {
-            return getMockAlertRules();
-        }
         return rules.stream()
             .map(this::toDTO)
             .collect(Collectors.toList());
-    }
-
-    private List<AlertRuleDTO> getMockAlertRules() {
-        return Arrays.asList(
-            new AlertRuleDTO(null, "CPU使用率告警", "cpu", ">", 85.0, "%", "warning", "enabled", Arrays.asList("email", "dingtalk"), 12, "2024-01-15 10:30:00", "order-service"),
-            new AlertRuleDTO(null, "内存使用率告警", "memory", ">", 90.0, "%", "error", "enabled", Arrays.asList("email", "sms"), 5, "2024-01-14 15:20:00", "payment-gateway"),
-            new AlertRuleDTO(null, "响应时间告警", "responseTime", ">", 500.0, "ms", "warning", "enabled", Arrays.asList("dingtalk"), 8, "2024-01-15 09:45:00", "user-service"),
-            new AlertRuleDTO(null, "错误率告警", "errorRate", ">", 5.0, "%", "error", "disabled", Arrays.asList("email"), 0, null, "inventory-service"),
-            new AlertRuleDTO(null, "JVM堆内存告警", "heapUsed", ">", 80.0, "%", "warning", "enabled", Arrays.asList("email", "dingtalk"), 3, "2024-01-15 11:00:00", "order-service"),
-            new AlertRuleDTO(null, "线程数告警", "threadCount", ">", 200.0, "", "error", "enabled", Arrays.asList("sms"), 1, "2024-01-13 16:30:00", "payment-gateway")
-        );
     }
 
     public Optional<AlertRule> findById(Long id) {

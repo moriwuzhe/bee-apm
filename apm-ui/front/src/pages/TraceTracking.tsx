@@ -2,7 +2,36 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import MainLayout from "../components/Layout/MainLayout";
 import { traceApi } from "../services/api";
 import type { TraceSpan, TraceStats, TraceDetail } from "../types";
-import { Search, Filter, Activity, Clock, AlertCircle, CheckCircle, ChevronRight, Flame, Network, Server, Send, Download, RefreshCw } from "lucide-react";
+import { Search, Filter, Activity, Clock, AlertCircle, CheckCircle, ChevronRight, Flame, Network, Server, Send, Download, RefreshCw, AlertTriangle, Settings, Zap, TrendingUp, BarChart3, List } from "lucide-react";
+
+interface TopTrace {
+  traceId: string;
+  duration: number;
+  services: number;
+  status: string;
+  startTime: string;
+}
+
+interface SlowTrace {
+  traceId: string;
+  duration: number;
+  slowService: string;
+  reason: string;
+}
+
+interface ServiceTopology {
+  service: string;
+  calls: number;
+  avgLatency: number;
+  errorRate: number;
+}
+
+interface AdvancedStats {
+  totalTraces: number;
+  avgDuration: number;
+  errorRate: number;
+  slowestService: string;
+}
 
 export default function TraceTracking() {
   const [loading, setLoading] = useState(true);
@@ -15,6 +44,15 @@ export default function TraceTracking() {
   const [filterStatus, setFilterStatus] = useState<string>("");
   const [filterType, setFilterType] = useState<string>("");
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [advancedStats, setAdvancedStats] = useState<AdvancedStats>({
+    totalTraces: 0,
+    avgDuration: 0,
+    errorRate: 0,
+    slowestService: "",
+  });
+  const [topTraces, setTopTraces] = useState<TopTrace[]>([]);
+  const [slowTraces, setSlowTraces] = useState<SlowTrace[]>([]);
+  const [serviceTopology, setServiceTopology] = useState<ServiceTopology[]>([]);
 
   useEffect(() => {
     loadData();
@@ -128,6 +166,93 @@ export default function TraceTracking() {
       }
       if (statsRes.data) {
         setStats(statsRes.data);
+      }
+
+      // 计算高级统计数据
+      if (tracesRes.data && tracesRes.data.length > 0) {
+        const traceGroups = new Map<string, any[]>();
+        tracesRes.data.forEach((t: any) => {
+          const tid = t.traceId || t.id;
+          if (!traceGroups.has(tid)) traceGroups.set(tid, []);
+          traceGroups.get(tid)!.push(t);
+        });
+
+        const totalTraces = traceGroups.size;
+        const durations = tracesRes.data.map((t: any) => safeParseInt(t.duration, safeParseInt(t.spend, 0)));
+        const avgDuration = durations.reduce((a: number, b: number) => a + b, 0) / durations.length;
+        const errorTraces = tracesRes.data.filter((t: any) => t.success === false).length;
+        const errorRate = tracesRes.data.length > 0 ? (errorTraces / tracesRes.data.length) * 100 : 0;
+
+        // 找出最慢服务
+        const serviceDurations = new Map<string, number[]>();
+        tracesRes.data.forEach((t: any) => {
+          const service = t.appName || t.app || 'unknown';
+          const duration = safeParseInt(t.duration, safeParseInt(t.spend, 0));
+          if (!serviceDurations.has(service)) serviceDurations.set(service, []);
+          serviceDurations.get(service)!.push(duration);
+        });
+
+        let slowestService = '';
+        let maxAvgDuration = 0;
+        serviceDurations.forEach((durations, service) => {
+          const avg = durations.reduce((a: number, b: number) => a + b, 0) / durations.length;
+          if (avg > maxAvgDuration) {
+            maxAvgDuration = avg;
+            slowestService = service;
+          }
+        });
+
+        setAdvancedStats({
+          totalTraces,
+          avgDuration,
+          errorRate,
+          slowestService,
+        });
+
+        // TOP 10 慢链路
+        const topTracesData: TopTrace[] = Array.from(traceGroups.entries())
+          .map(([traceId, spans]) => {
+            const duration = spans.reduce((sum: number, s: any) => sum + safeParseInt(s.duration, safeParseInt(s.spend, 0)), 0);
+            const hasError = spans.some((s: any) => s.success === false);
+            return {
+              traceId,
+              duration,
+              services: spans.length,
+              status: hasError ? 'error' : 'success',
+              startTime: spans[0]?.timestamp ? new Date(safeParseDate(spans[0].timestamp)).toISOString() : new Date().toISOString(),
+            };
+          })
+          .sort((a, b) => b.duration - a.duration)
+          .slice(0, 10);
+
+        setTopTraces(topTracesData);
+
+        // 慢链路详情
+        const slowTracesData: SlowTrace[] = tracesRes.data
+          .filter((t: any) => safeParseInt(t.duration, safeParseInt(t.spend, 0)) > 500)
+          .map((t: any) => ({
+            traceId: t.traceId || t.id,
+            duration: safeParseInt(t.duration, safeParseInt(t.spend, 0)),
+            slowService: t.appName || t.app || 'unknown',
+            reason: t.errorMsg || '执行时间过长',
+          }))
+          .sort((a: SlowTrace, b: SlowTrace) => b.duration - a.duration)
+          .slice(0, 10);
+
+        setSlowTraces(slowTracesData);
+
+        // 服务拓扑数据
+        const topologyData: ServiceTopology[] = Array.from(serviceDurations.entries())
+          .map(([service, durations]) => {
+            const totalCalls = tracesRes.data.filter((t: any) => (t.appName || t.app) === service).length;
+            const avgLatency = durations.reduce((a: number, b: number) => a + b, 0) / durations.length;
+            const errorCount = tracesRes.data.filter((t: any) => (t.appName || t.app) === service && t.success === false).length;
+            const errorRate = totalCalls > 0 ? (errorCount / totalCalls) * 100 : 0;
+            return { service, calls: totalCalls, avgLatency, errorRate };
+          })
+          .sort((a, b) => b.calls - a.calls);
+
+        setServiceTopology(topologyData);
       }
     } catch (error) {
       console.error("Failed to load trace data:", error);
@@ -292,8 +417,172 @@ export default function TraceTracking() {
   const uniqueTypes = [...new Set(traces.map((t) => t.spanType).filter((type): type is string => !!type))];
 
   return (
-    <MainLayout title="链路追踪">
+    <MainLayout title="链路追踪" actions={
+      <div className="flex items-center gap-2">
+        <button
+          onClick={loadData}
+          className="p-2 rounded-md transition-colors"
+          style={{
+            background: "rgba(22, 93, 255, 0.1)",
+            color: "#165DFF",
+          }}
+          title="刷新"
+        >
+          <RefreshCw size={16} />
+        </button>
+        <button
+          onClick={exportData}
+          className="p-2 rounded-md transition-colors"
+          style={{
+            background: "rgba(250, 204, 21, 0.1)",
+            color: "#FACC15",
+          }}
+          title="导出链路"
+        >
+          <Download size={16} />
+        </button>
+        <button
+          className="p-2 rounded-md transition-colors"
+          style={{
+            background: "var(--muted)",
+            color: "var(--muted-foreground)",
+          }}
+          title="筛选"
+          onClick={() => {
+            const filterSection = document.querySelector('input[placeholder*="搜索"]');
+            if (filterSection) {
+              (filterSection as HTMLInputElement).focus();
+            }
+          }}
+        >
+          <Filter size={16} />
+        </button>
+      </div>
+    }>
       <div className="space-y-4">
+        {/* 高级链路追踪统计概览 */}
+        <div className="grid grid-cols-4 gap-4">
+          <div
+            className="p-4 rounded-lg"
+            style={{
+              background: "var(--card)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg" style={{ background: "rgba(22, 93, 255, 0.15)" }}>
+                <Network className="w-5 h-5" style={{ color: "#165DFF" }} />
+              </div>
+              <div>
+                <div className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>
+                  总链路数
+                </div>
+                <div className="text-2xl font-semibold" style={{ color: "var(--foreground)" }}>
+                  {advancedStats.totalTraces.toLocaleString()}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="p-4 rounded-lg"
+            style={{
+              background: "var(--card)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg" style={{ background: "rgba(0, 180, 42, 0.15)" }}>
+                <Clock className="w-5 h-5" style={{ color: "#00B42A" }} />
+              </div>
+              <div>
+                <div className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>
+                  平均耗时
+                </div>
+                <div className="text-2xl font-semibold" style={{ color: "var(--foreground)" }}>
+                  {formatDuration(advancedStats.avgDuration)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="p-4 rounded-lg"
+            style={{
+              background: "var(--card)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg" style={{ background: "rgba(255, 77, 79, 0.15)" }}>
+                <AlertTriangle className="w-5 h-5" style={{ color: "#FF4D4F" }} />
+              </div>
+              <div>
+                <div className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>
+                  错误率
+                </div>
+                <div className="text-2xl font-semibold" style={{ color: "var(--foreground)" }}>
+                  {advancedStats.errorRate.toFixed(2)}%
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="p-4 rounded-lg"
+            style={{
+              background: "var(--card)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg" style={{ background: "rgba(255, 170, 0, 0.15)" }}>
+                <Zap className="w-5 h-5" style={{ color: "#FFAA00" }} />
+              </div>
+              <div>
+                <div className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>
+                  最慢服务
+                </div>
+                <div className="text-lg font-semibold truncate" style={{ color: "var(--foreground)" }}>
+                  {advancedStats.slowestService || "-"}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 链路健康状态指示器 */}
+        <div
+          className="rounded-lg p-4"
+          style={{
+            background: "var(--card)",
+            border: "1px solid var(--border)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" style={{ color: "#00D68F" }} />
+              <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
+                链路健康状态
+              </span>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ background: advancedStats.errorRate < 5 ? "#00D68F" : advancedStats.errorRate < 15 ? "#FFAA00" : "#FF4D4F" }}
+                />
+                <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                  {advancedStats.errorRate < 5 ? "健康" : advancedStats.errorRate < 15 ? "警告" : "异常"}
+                </span>
+              </div>
+              <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                过去1小时内共 {advancedStats.totalTraces} 条链路
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* 统计卡片 */}
         {stats && (
           <div className="grid grid-cols-6 gap-3">
@@ -538,6 +827,151 @@ export default function TraceTracking() {
           </div>
           <ServiceDependencyGraph traces={traces} />
         </div>
+
+        {/* TOP 慢链路表格 */}
+        {slowTraces.length > 0 && (
+          <div
+            className="rounded-lg p-4"
+            style={{
+              background: "var(--card)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 className="w-4 h-4" style={{ color: "#FF7D00" }} />
+              <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
+                TOP 慢链路
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr style={{ background: "var(--muted)" }}>
+                    <th className="text-left px-3 py-2 text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
+                      链路ID
+                    </th>
+                    <th className="text-left px-3 py-2 text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
+                      耗时
+                    </th>
+                    <th className="text-left px-3 py-2 text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
+                      慢服务
+                    </th>
+                    <th className="text-left px-3 py-2 text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
+                      原因
+                    </th>
+                    <th className="text-left px-3 py-2 text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
+                      操作
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y" style={{ borderColor: "var(--border)" }}>
+                  {slowTraces.slice(0, 5).map((trace, index) => (
+                    <tr
+                      key={index}
+                      className="hover:bg-opacity-50 transition-colors"
+                      style={{ background: "transparent" }}
+                    >
+                      <td className="px-3 py-3 text-sm font-mono" style={{ color: "var(--foreground)" }}>
+                        {trace.traceId}
+                      </td>
+                      <td className="px-3 py-3 text-sm font-medium" style={{ color: "#FF7D00" }}>
+                        {formatDuration(trace.duration)}
+                      </td>
+                      <td className="px-3 py-3 text-sm" style={{ color: "var(--foreground)" }}>
+                        {trace.slowService}
+                      </td>
+                      <td className="px-3 py-3 text-sm" style={{ color: "var(--muted-foreground)" }}>
+                        {trace.reason}
+                      </td>
+                      <td className="px-3 py-3">
+                        <button
+                          className="px-3 py-1 rounded text-xs font-medium transition-colors"
+                          style={{
+                            background: "rgba(22, 93, 255, 0.1)",
+                            color: "#165DFF",
+                          }}
+                          onClick={() => trace.traceId && viewTraceDetail(trace.traceId)}
+                        >
+                          查看详情
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* 服务拓扑简图 */}
+        {serviceTopology.length > 0 && (
+          <div
+            className="rounded-lg p-4"
+            style={{
+              background: "var(--card)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <List className="w-4 h-4" style={{ color: "#722ED1" }} />
+              <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
+                服务拓扑
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {serviceTopology.slice(0, 6).map((service, index) => (
+                <div
+                  key={index}
+                  className="p-3 rounded-lg border"
+                  style={{
+                    background: "var(--background)",
+                    borderColor: "var(--border)",
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Server className="w-4 h-4" style={{ color: "#722ED1" }} />
+                      <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
+                        {service.service}
+                      </span>
+                    </div>
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{
+                        background: service.errorRate < 5 ? "#00D68F" : service.errorRate < 15 ? "#FFAA00" : "#FF4D4F",
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-1 text-xs" style={{ color: "var(--muted-foreground)" }}>
+                    <div className="flex justify-between">
+                      <span>调用次数:</span>
+                      <span className="font-medium" style={{ color: "var(--foreground)" }}>
+                        {service.calls}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>平均延迟:</span>
+                      <span className="font-medium" style={{ color: "var(--foreground)" }}>
+                        {formatDuration(service.avgLatency)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>错误率:</span>
+                      <span
+                        className="font-medium"
+                        style={{
+                          color: service.errorRate < 5 ? "#00D68F" : service.errorRate < 15 ? "#FFAA00" : "#FF4D4F",
+                        }}
+                      >
+                        {service.errorRate.toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* 耗时分布直方图 */}
         <div

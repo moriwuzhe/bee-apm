@@ -1,16 +1,57 @@
 import MainLayout from "../components/Layout/MainLayout";
 import MetricCard from "../components/UI/MetricCard";
+import TechButton from "../components/UI/TechButton";
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell
 } from "recharts";
 import {
   Server, Cpu, Wifi, AlertTriangle, CheckCircle,
-  Activity, Layers, Zap, ArrowRight, Clock
+  Activity, Layers, Zap, ArrowRight, Clock,
+  BarChart3, TrendingUp, TrendingDown, X, Search, Filter, Eye, Target
 } from "lucide-react";
 import StatusBadge from "../components/UI/StatusBadge";
 import { useEffect, useState } from "react";
 import { dashboardApi } from "../services/api";
+
+// 告警聚合数据
+const alertAggregationData = {
+  totalAlerts: 23,
+  critical: 5,
+  warning: 12,
+  info: 6,
+  topIssues: [
+    { id: 1, name: "OOM 问题", count: 8, severity: "critical", trend: "up" },
+    { id: 2, name: "CPU 过载", count: 7, severity: "warning", trend: "down" },
+    { id: 3, name: "响应延迟", count: 5, severity: "warning", trend: "stable" },
+    { id: 4, name: "GC 频繁", count: 3, severity: "info", trend: "up" },
+  ],
+  serviceImpacts: [
+    { id: 1, service: "order-service", impact: "high", alerts: 6 },
+    { id: 2, service: "payment-gateway", impact: "medium", alerts: 4 },
+    { id: 3, service: "user-service", impact: "low", alerts: 2 },
+  ],
+  trendByHour: Array.from({ length: 24 }, (_, i) => ({
+    hour: `${i}:00`,
+    alerts: Math.floor(Math.random() * 15),
+  })),
+};
+
+// 根因分析数据
+const rootCauseAnalysis = {
+  currentIssue: "order-service 频繁 OOM",
+  possibleCauses: [
+    { id: 1, cause: "内存泄漏", confidence: 85, recommendation: "检查 JVM 堆内存配置" },
+    { id: 2, cause: "流量突增", confidence: 72, recommendation: "检查负载均衡配置" },
+    { id: 3, cause: "异常请求", confidence: 60, recommendation: "查看错误日志" },
+  ],
+  timeline: [
+    { time: "10:25", event: "首次 OOM 告警", severity: "warning" },
+    { time: "10:30", event: "CPU 利用率突增", severity: "warning" },
+    { time: "10:35", event: "响应延迟 > 2s", severity: "critical" },
+    { time: "10:40", event: "多个实例 OOM", severity: "critical" },
+  ],
+};
 
 // 默认数据，在API未加载时显示
 const defaultTrendData = [
@@ -78,6 +119,8 @@ export default function Dashboard() {
   const [alertData, setAlertData] = useState(defaultAlertData);
   const [recentAlerts, setRecentAlerts] = useState(defaultRecentAlerts);
   const [topApps, setTopApps] = useState(defaultTopApps);
+  const [showAlertAggregation, setShowAlertAggregation] = useState(false);
+  const [showRootCause, setShowRootCause] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -322,7 +365,279 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* 快捷操作区域 */}
+        <div className="flex gap-3 mt-4">
+          <div className="flex-1 rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium text-white">系统洞察</span>
+              <div className="flex gap-2">
+                <TechButton variant="secondary" size="sm" icon={<BarChart3 size={12} />} onClick={() => setShowAlertAggregation(true)}>告警聚合</TechButton>
+                <TechButton variant="primary" size="sm" icon={<Target size={12} />} onClick={() => setShowRootCause(true)}>根因分析</TechButton>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <div className="text-xs text-blue-400 mb-1">系统稳定性</div>
+                <div className="text-lg font-bold text-white">98.7%</div>
+                <div className="text-xs text-green-400 mt-1">↑ 2.3% 较上周</div>
+              </div>
+              <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                <div className="text-xs text-purple-400 mb-1">资源利用率</div>
+                <div className="text-lg font-bold text-white">67.2%</div>
+                <div className="text-xs text-yellow-400 mt-1">↑ 5.8% 较上周</div>
+              </div>
+              <div className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+                <div className="text-xs text-cyan-400 mb-1">性能优化</div>
+                <div className="text-lg font-bold text-white">12项</div>
+                <div className="text-xs text-blue-400 mt-1">↓ 4项 已完成</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* 告警聚合视图模态框 */}
+      {showAlertAggregation && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/70 z-[200]" onClick={() => setShowAlertAggregation(false)}>
+          <div className="bg-card border border-border rounded-xl p-6 w-[1000px] max-h-[85vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <BarChart3 size={20} className="text-orange-500" />
+                <h3 className="text-lg font-semibold text-white">告警聚合视图</h3>
+              </div>
+              <button onClick={() => setShowAlertAggregation(false)} className="text-muted-foreground hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              <div className="p-4 rounded-xl bg-muted border border-border">
+                <div className="text-xs text-muted-foreground mb-1">总告警数</div>
+                <div className="text-2xl font-bold text-white">{alertAggregationData.totalAlerts}</div>
+                <div className="text-xs text-yellow-400 mt-1">↑ 8 较昨日</div>
+              </div>
+              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+                <div className="text-xs text-red-400 mb-1">严重告警</div>
+                <div className="text-2xl font-bold text-red-400">{alertAggregationData.critical}</div>
+                <div className="text-xs text-red-400 mt-1">需要立即处理</div>
+              </div>
+              <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
+                <div className="text-xs text-yellow-400 mb-1">警告告警</div>
+                <div className="text-2xl font-bold text-yellow-400">{alertAggregationData.warning}</div>
+                <div className="text-xs text-yellow-400 mt-1">需要关注</div>
+              </div>
+              <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                <div className="text-xs text-blue-400 mb-1">信息告警</div>
+                <div className="text-2xl font-bold text-blue-400">{alertAggregationData.info}</div>
+                <div className="text-xs text-blue-400 mt-1">一般提醒</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6 flex-1 overflow-hidden">
+              <div className="rounded-xl bg-muted border border-border p-4">
+                <div className="text-sm font-semibold text-white mb-4">告警类型分布</div>
+                <ResponsiveContainer width="100%" height={180}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: '严重', value: alertAggregationData.critical, fill: '#FF4D4F' },
+                        { name: '警告', value: alertAggregationData.warning, fill: '#FFAA00' },
+                        { name: '信息', value: alertAggregationData.info, fill: '#165DFF' }
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={60}
+                      dataKey="value"
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {[
+                        { name: '严重', value: alertAggregationData.critical, fill: '#FF4D4F' },
+                        { name: '警告', value: alertAggregationData.warning, fill: '#FFAA00' },
+                        { name: '信息', value: alertAggregationData.info, fill: '#165DFF' }
+                      ].map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="rounded-xl bg-muted border border-border p-4">
+                <div className="text-sm font-semibold text-white mb-4">24小时告警趋势</div>
+                <ResponsiveContainer width="100%" height={180}>
+                  <AreaChart data={alertAggregationData.trendByHour}>
+                    <defs>
+                      <linearGradient id="gradAlerts" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#FF4D4F" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#FF4D4F" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" />
+                    <XAxis dataKey="hour" tick={{ fontSize: 10, fill: "#64748B" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: "#64748B" }} axisLine={false} tickLine={false} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Area type="monotone" dataKey="alerts" stroke="#FF4D4F" fill="url(#gradAlerts)" strokeWidth={2} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-4">
+              <div className="rounded-xl bg-muted border border-border p-4">
+                <div className="text-sm font-semibold text-white mb-3">Top问题</div>
+                <div className="space-y-2">
+                  {alertAggregationData.topIssues.map((issue) => (
+                    <div key={issue.id} className="flex items-center justify-between p-2 rounded-lg bg-card/50">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs px-2 py-0.5 rounded ${
+                          issue.severity === "critical" ? "bg-red-500/20 text-red-400" :
+                          issue.severity === "warning" ? "bg-yellow-500/20 text-yellow-400" :
+                          "bg-blue-500/20 text-blue-400"
+                        }`}>
+                          {issue.severity === "critical" ? "严重" :
+                           issue.severity === "warning" ? "警告" : "信息"}
+                        </span>
+                        <span className="text-sm text-white">{issue.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-white">{issue.count}次</span>
+                        {issue.trend === "up" && <TrendingUp size={12} className="text-red-400" />}
+                        {issue.trend === "down" && <TrendingDown size={12} className="text-green-400" />}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-muted border border-border p-4">
+                <div className="text-sm font-semibold text-white mb-3">服务影响</div>
+                <div className="space-y-2">
+                  {alertAggregationData.serviceImpacts.map((service) => (
+                    <div key={service.id} className="flex items-center justify-between p-2 rounded-lg bg-card/50">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs px-2 py-0.5 rounded ${
+                          service.impact === "high" ? "bg-red-500/20 text-red-400" :
+                          service.impact === "medium" ? "bg-yellow-500/20 text-yellow-400" :
+                          "bg-blue-500/20 text-blue-400"
+                        }`}>
+                          {service.impact === "high" ? "高危" :
+                           service.impact === "medium" ? "中危" : "低危"}
+                        </span>
+                        <span className="text-sm text-white">{service.service}</span>
+                      </div>
+                      <span className="text-sm font-medium text-white">{service.alerts}条告警</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <TechButton variant="secondary" onClick={() => setShowAlertAggregation(false)}>关闭</TechButton>
+              <TechButton variant="primary">导出报告</TechButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 根因分析模态框 */}
+      {showRootCause && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/70 z-[200]" onClick={() => setShowRootCause(false)}>
+          <div className="bg-card border border-border rounded-xl p-6 w-[950px] max-h-[85vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <Target size={20} className="text-blue-500" />
+                <h3 className="text-lg font-semibold text-white">根因分析</h3>
+              </div>
+              <div className="flex items-center gap-3">
+                <TechButton variant="secondary" size="sm">重新分析</TechButton>
+                <button onClick={() => setShowRootCause(false)} className="text-muted-foreground hover:text-white">
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 mb-6">
+              <div className="flex items-center gap-3">
+                <AlertTriangle size={20} className="text-red-400" />
+                <div>
+                  <div className="text-sm font-semibold text-red-400">{rootCauseAnalysis.currentIssue}</div>
+                  <div className="text-xs text-muted-foreground mt-1">AI 正在分析可能原因...</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6 flex-1 overflow-hidden">
+              <div className="rounded-xl bg-muted border border-border p-4 overflow-y-auto">
+                <div className="text-sm font-semibold text-white mb-4">可能原因</div>
+                <div className="space-y-3">
+                  {rootCauseAnalysis.possibleCauses.map((cause) => (
+                    <div key={cause.id} className="p-4 rounded-lg bg-card/50 border border-border">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-white">{cause.cause}</span>
+                        <div className="flex items-center gap-2">
+                          <div className="text-xs text-muted-foreground">置信度</div>
+                          <div className="w-20 h-2 bg-gray-700 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-blue-500"
+                              style={{ width: `${cause.confidence}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-medium text-blue-400">{cause.confidence}%</span>
+                        </div>
+                      </div>
+                      <div className="text-xs text-yellow-400 bg-yellow-500/10 px-2 py-1 rounded">
+                        💡 {cause.recommendation}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-muted border border-border p-4">
+                <div className="text-sm font-semibold text-white mb-4">事件时间线</div>
+                <div className="space-y-3">
+                  {rootCauseAnalysis.timeline.map((item, index) => (
+                    <div key={index} className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <div className={`w-3 h-3 rounded-full ${
+                          item.severity === "critical" ? "bg-red-500" :
+                          item.severity === "warning" ? "bg-yellow-500" :
+                          "bg-blue-500"
+                        }`} />
+                        {index < rootCauseAnalysis.timeline.length - 1 && (
+                          <div className="w-0.5 flex-1 bg-gray-700 my-1" />
+                        )}
+                      </div>
+                      <div className="flex-1 pb-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs text-muted-foreground">{item.time}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded ${
+                            item.severity === "critical" ? "bg-red-500/20 text-red-400" :
+                            item.severity === "warning" ? "bg-yellow-500/20 text-yellow-400" :
+                            "bg-blue-500/20 text-blue-400"
+                          }`}>
+                            {item.severity === "critical" ? "严重" :
+                             item.severity === "warning" ? "警告" : "信息"}
+                          </span>
+                        </div>
+                        <span className="text-sm text-white">{item.event}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <TechButton variant="secondary" onClick={() => setShowRootCause(false)}>关闭</TechButton>
+              <TechButton variant="primary">执行建议</TechButton>
+            </div>
+          </div>
+        </div>
+      )}
     </MainLayout>
   );
 }

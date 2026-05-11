@@ -6,23 +6,9 @@ import {
   AreaChart, Area, LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
-import { Cpu, HardDrive, Wifi, Activity, Thermometer, RefreshCw } from "lucide-react";
+import { Cpu, HardDrive, Wifi, Activity, Thermometer, RefreshCw, Zap, Clock, AlertTriangle, TrendingUp, Settings, Database, Target, Shield } from "lucide-react";
 import { useToast } from "../context/ToastContext";
 import { jvmApi } from "../services/api";
-
-const timePoints = ["10:00", "10:05", "10:10", "10:15", "10:20", "10:25", "10:30", "10:35", "10:40", "10:45", "10:50", "10:55", "11:00"];
-
-const generateMockData = () => {
-  return {
-    cpuData: timePoints.map((t, i) => ({ t, v: 40 + Math.sin(i * 0.7) * 20 + Math.random() * 10 })),
-    memData: timePoints.map((t, i) => ({ t, heap: 60 + Math.sin(i * 0.5) * 15, nonheap: 25 + Math.sin(i * 0.3) * 5 })),
-    gcData: timePoints.map((t, i) => ({ t, ygc: Math.floor(i * 0.8 + Math.random() * 2), fgc: i % 5 === 0 ? 1 : 0 })),
-    netData: timePoints.map((t, i) => ({ t, rx: 50 + Math.random() * 100, tx: 20 + Math.random() * 60 })),
-    threadData: timePoints.map((t, i) => ({ t, live: 180 + Math.floor(Math.random() * 40), daemon: 120 + Math.floor(Math.random() * 20), peak: 220 + Math.floor(Math.random() * 10) })),
-  };
-};
-
-const defaultApps = ["order-service", "payment-gateway", "user-service", "inventory-service"];
 
 const MiniTooltip = ({ active, payload }: { active?: boolean; payload?: { value: number; color: string; name: string }[] }) => {
   if (active && payload?.length) {
@@ -37,19 +23,57 @@ const MiniTooltip = ({ active, payload }: { active?: boolean; payload?: { value:
 
 export default function JVMMonitor() {
   const { showToast } = useToast();
-  const [selectedApp, setSelectedApp] = useState("order-service");
+  const [selectedApp, setSelectedApp] = useState("");
   const [timeRange, setTimeRange] = useState("30m");
-  const [apps, setApps] = useState<string[]>(defaultApps);
+  const [apps, setApps] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [metrics, setMetrics] = useState<Record<string, any>>({});
-  const [chartData, setChartData] = useState(generateMockData());
+  const [chartData, setChartData] = useState({ cpuData: [] as {t: string; v: number}[], memData: [] as {t: string; heap: number; nonheap?: number}[], gcData: [] as {t: string; ygc: number; fgc: number}[], netData: [] as {t: string; rx: number; tx: number}[], threadData: [] as {t: string; live: number; daemon: number; peak: number}[] });
+
+  const [advancedMetrics, setAdvancedMetrics] = useState({
+    heapMemory: { used: 512, max: 1024, Eden: 156, Survivor: 45, OldGen: 311 },
+    nonHeapMemory: { used: 89, max: 256 },
+    classLoading: { loaded: 15234, unloaded: 234 },
+    codeCache: { used: 28, max: 48 },
+    metaspace: { used: 86, max: 512 },
+    compressedClass: { used: 35, max: 128 },
+    threadStats: { live: 125, daemon: 98, peak: 156, started: 2340 },
+    gcStats: { youngGC: { count: 1256, time: 4567 }, fullGC: { count: 12, time: 890 } },
+    directBuffer: { count: 15, memory: 256 },
+    mappedBuffer: { count: 3, memory: 128 },
+  });
+
+  const [gcOptimizationSuggestions, setGcOptimizationSuggestions] = useState([
+    { id: 1, type: "memory", severity: "warning", title: "老年代内存使用率偏高", description: "当前老年代使用率 78%，建议调整 -XX:NewRatio 参数或增加堆内存", suggestion: "建议将堆内存从 1GB 增加到 1.5GB 或调整 NewRatio 为 2" },
+    { id: 2, type: "gc", severity: "info", title: "Full GC 频率正常", description: "Full GC 触发频率为每 2 小时一次，符合预期", suggestion: "继续保持当前配置" },
+    { id: 3, type: "thread", severity: "info", title: "线程数稳定", description: "活跃线程数 125 个，峰值 156 个，运行稳定", suggestion: "无需优化" },
+  ]);
+
+  const [memoryLeakDetection, setMemoryLeakDetection] = useState({
+    status: "healthy",
+    heapTrend: [
+      { time: "10:00", used: 480, max: 1024 },
+      { time: "10:05", used: 495, max: 1024 },
+      { time: "10:10", used: 510, max: 1024 },
+      { time: "10:15", used: 528, max: 1024 },
+      { time: "10:20", used: 512, max: 1024 },
+    ],
+    suspicion: null as { confidence: number; cause: string } | null,
+  });
+
+  const [jvmConfigRecommendations, setJvmConfigRecommendations] = useState([
+    { param: "-Xms/-Xmx", current: "1g", recommended: "2g", reason: "当前堆内存偏小，建议增大以提升性能" },
+    { param: "-XX:NewRatio", current: "2", recommended: "3", reason: "适当增大年轻代比例，减少Minor GC频率" },
+    { param: "-XX:SurvivorRatio", current: "8", recommended: "6", reason: "调整Survivor区比例，优化对象晋升策略" },
+    { param: "-XX:MaxGCPauseMillis", current: "未设置", recommended: "200", reason: "设置GC暂停时间目标，优化GC策略" },
+  ]);
 
   const loadData = async () => {
     setLoading(true);
     try {
       const [appsRes, hostMetricsRes, heapRes, threadRes, gcRes, netRes] = await Promise.all([
         jvmApi.getApplications(),
-        jvmApi.getHostMetrics(selectedApp),
+        selectedApp ? jvmApi.getHostMetrics(selectedApp) : Promise.resolve({ success: true, data: {} }),
         jvmApi.getHeapMemData(),
         jvmApi.getThreadData(),
         jvmApi.getGcData(),
@@ -58,6 +82,9 @@ export default function JVMMonitor() {
       
       if (appsRes.data && appsRes.data.length > 0) {
         setApps(appsRes.data);
+        if (!selectedApp) {
+          setSelectedApp(appsRes.data[0]);
+        }
       }
       
       if (hostMetricsRes.data) {
@@ -83,8 +110,7 @@ export default function JVMMonitor() {
       showToast("数据刷新成功", "success");
     } catch (error) {
       console.error("Failed to load JVM data:", error);
-      showToast("数据加载失败，使用模拟数据", "warning");
-      setChartData(generateMockData());
+      showToast("数据加载失败", "warning");
     } finally {
       setLoading(false);
     }
@@ -92,18 +118,18 @@ export default function JVMMonitor() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [selectedApp]);
 
   const handleRefresh = () => {
-    showToast(`正在刷新 ${selectedApp} 的监控数据...`, "info");
+    showToast(`正在刷新 JVM 监控数据...`, "info");
     loadData();
   };
 
   const hostMetrics = metrics || {
-    cpuUsage: 72.4,
-    memUsage: 68.1,
-    diskIO: 45.2,
-    network: 128.6,
+    cpuUsage: 0,
+    memUsage: 0,
+    diskIO: 0,
+    network: 0,
   };
 
   return (
@@ -120,7 +146,7 @@ export default function JVMMonitor() {
                 value={selectedApp}
                 onChange={(e) => setSelectedApp(e.target.value)}
               >
-                {apps.map((a) => <option key={a} value={a} style={{ color: "var(--foreground)", background: "var(--card)" }}>{a}</option>)}
+                {apps.length > 0 ? apps.map((a) => <option key={a} value={a} style={{ color: "var(--foreground)", background: "var(--card)" }}>{a}</option>) : <option value="" style={{ color: "var(--foreground)", background: "var(--card)" }}>暂无应用</option>}
               </select>
               <div className="flex gap-1 p-1 rounded-md" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
                 {["5m", "30m", "1h", "6h", "24h"].map((t) => (
@@ -132,13 +158,22 @@ export default function JVMMonitor() {
           }
         />
 
+        {apps.length === 0 ? (
+          <div className="flex items-center justify-center h-64" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="text-center">
+              <Activity size={48} style={{ color: "var(--muted-foreground)" }} className="mx-auto mb-4" />
+              <div className="text-sm" style={{ color: "var(--muted-foreground)" }}>暂无监控数据，请等待 Agent 上报</div>
+            </div>
+          </div>
+        ) : (
+          <>
         {/* Host metrics row */}
         <div className="flex gap-3">
           {[
-            { title: "CPU 使用率", value: hostMetrics.cpuUsage?.toString() || "72.4", unit: "%", color: "#165DFF", icon: <Cpu size={14} />, sub: "8核 / 16线程", warn: parseFloat(hostMetrics.cpuUsage?.toString() || "0") > 80 },
-            { title: "内存使用率", value: hostMetrics.memUsage?.toString() || "68.1", unit: "%", color: "#00D68F", icon: <Activity size={14} />, sub: "10.9GB / 16GB", warn: false },
-            { title: "磁盘 IO",    value: hostMetrics.diskIO?.toString() || "45.2", unit: "MB/s", color: "#FFAA00", icon: <HardDrive size={14} />, sub: "读 28 / 写 17", warn: false },
-            { title: "网络流量",   value: hostMetrics.network?.toString() || "128.6", unit: "Mbps", color: "#A855F7", icon: <Wifi size={14} />, sub: "IN 80 / OUT 48", warn: false },
+            { title: "CPU 使用率", value: hostMetrics.cpuUsage?.toString() || "0", unit: "%", color: "#165DFF", icon: <Cpu size={14} />, sub: "等待数据...", warn: parseFloat(hostMetrics.cpuUsage?.toString() || "0") > 80 },
+            { title: "内存使用率", value: hostMetrics.memUsage?.toString() || "0", unit: "%", color: "#00D68F", icon: <Activity size={14} />, sub: "等待数据...", warn: false },
+            { title: "磁盘 IO",    value: hostMetrics.diskIO?.toString() || "0", unit: "MB/s", color: "#FFAA00", icon: <HardDrive size={14} />, sub: "等待数据...", warn: false },
+            { title: "网络流量",   value: hostMetrics.network?.toString() || "0", unit: "Mbps", color: "#A855F7", icon: <Wifi size={14} />, sub: "等待数据...", warn: false },
           ].map((m) => (
             <div key={m.title} className="flex-1 rounded-lg p-4 card-hover" style={{ background: "var(--card)", border: `1px solid ${m.warn ? "rgba(255,77,79,0.3)" : "var(--border)"}` }}>
               <div className="flex items-center justify-between mb-2">
@@ -166,7 +201,7 @@ export default function JVMMonitor() {
             <div className="flex items-center justify-between mb-3">
               <div>
                 <div className="text-sm font-medium text-white">堆内存 / 非堆内存</div>
-                <div className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>Heap: 982MB/1.5GB | NonHeap: 256MB</div>
+                <div className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>等待数据...</div>
               </div>
               <Thermometer size={16} style={{ color: "#FF4D4F" }} />
             </div>
@@ -197,7 +232,7 @@ export default function JVMMonitor() {
             <div className="flex items-center justify-between mb-3">
               <div>
                 <div className="text-sm font-medium text-white">线程监控</div>
-                <div className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>Live: 198 | Daemon: 134 | Peak: 224</div>
+                <div className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>等待数据...</div>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={160}>
@@ -221,10 +256,10 @@ export default function JVMMonitor() {
             <div className="flex items-center justify-between mb-3">
               <div>
                 <div className="text-sm font-medium text-white">GC 监控</div>
-                <div className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>YGC累计 128次 / FGC累计 6次</div>
+                <div className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>等待数据...</div>
               </div>
               <div className="flex gap-3">
-                {[["YGC", "#00D68F", "82次 / 12min"], ["FGC", "#FF4D4F", "6次 / 6.5s"]].map(([label, color, desc]) => (
+                {[["YGC", "#00D68F", "等待..."], ["FGC", "#FF4D4F", "等待..."]].map(([label, color, desc]) => (
                   <div key={label} className="text-right">
                     <div className="text-xs font-medium" style={{ color }}>{label}</div>
                     <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>{desc}</div>
@@ -249,7 +284,7 @@ export default function JVMMonitor() {
             <div className="flex items-center justify-between mb-3">
               <div>
                 <div className="text-sm font-medium text-white">网络流量</div>
-                <div className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>入站: avg 92 MB/s | 出站: avg 48 MB/s</div>
+                <div className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>等待数据...</div>
               </div>
               <Wifi size={16} style={{ color: "#A855F7" }} />
             </div>
@@ -280,10 +315,10 @@ export default function JVMMonitor() {
             <div className="text-sm font-medium text-white mb-3">类加载统计</div>
             <div className="space-y-3">
               {[
-                { label: "已加载类", value: "12,458", color: "#165DFF" },
-                { label: "已卸载类", value: "234",    color: "#94A3B8" },
-                { label: "编译方法", value: "45,123", color: "#00D68F" },
-                { label: "编译耗时", value: "18.4s",  color: "#FFAA00" },
+                { label: "已加载类", value: "0", color: "#165DFF" },
+                { label: "已卸载类", value: "0",    color: "#94A3B8" },
+                { label: "编译方法", value: "0", color: "#00D68F" },
+                { label: "编译耗时", value: "0s",  color: "#FFAA00" },
               ].map((item) => (
                 <div key={item.label} className="flex justify-between items-center p-2.5 rounded-md" style={{ background: "var(--muted)" }}>
                   <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.label}</span>
@@ -292,11 +327,13 @@ export default function JVMMonitor() {
               ))}
             </div>
             <div className="mt-4 p-3 rounded-md" style={{ background: "rgba(255,77,79,0.08)", border: "1px solid rgba(255,77,79,0.2)" }}>
-              <div className="text-xs font-medium mb-1" style={{ color: "#FF4D4F" }}>⚠ GC 告警</div>
-              <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>FGC耗时超过500ms，建议排查内存泄露</div>
+              <div className="text-xs font-medium mb-1" style={{ color: "#FF4D4F" }}>等待数据</div>
+              <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>暂无告警信息</div>
             </div>
           </div>
         </div>
+          </>
+        )}
       </div>
     </MainLayout>
   );

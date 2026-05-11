@@ -3,7 +3,7 @@ import MainLayout from "../components/Layout/MainLayout";
 import PageHeader from "../components/UI/PageHeader";
 import TechButton from "../components/UI/TechButton";
 import StatusBadge from "../components/UI/StatusBadge";
-import { Plus, Search, Edit2, User, Trash2, Eye, X, Check } from "lucide-react";
+import { Plus, Search, Edit2, User, Trash2, Eye, X, Check, Download, RefreshCw, AlertTriangle, Settings, Activity, Shield, Zap, TrendingUp, Clock, BarChart3, Server, Wifi, Cpu, CheckCircle, XCircle, Users, Key, Lock, UserCheck } from "lucide-react";
 import { usersApi } from "../services/api";
 import { useToast } from "../context/ToastContext";
 import type { User as UserType } from "../types";
@@ -39,6 +39,29 @@ export default function Users() {
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const { showToast } = useToast();
 
+  const [userStats, setUserStats] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    adminUsers: 0,
+    newUsers: 0,
+  });
+
+  const [recentUsers] = useState([
+    { name: "张伟", email: "zhangwei@bee.cn", role: "运维管理员", lastLogin: "2024-01-15 14:30", status: "online" },
+    { name: "李娜", email: "lina@bee.cn", role: "开发工程师", lastLogin: "2024-01-15 13:20", status: "online" },
+    { name: "王强", email: "wangqiang@bee.cn", role: "项目负责人", lastLogin: "2024-01-15 11:45", status: "offline" },
+    { name: "赵敏", email: "zhaomin@bee.cn", role: "超级管理员", lastLogin: "2024-01-15 10:00", status: "online" },
+    { name: "陈刚", email: "chengang@bee.cn", role: "运维工程师", lastLogin: "2024-01-14 18:30", status: "warning" },
+  ]);
+
+  const [userActivity] = useState([
+    { user: "张伟", actions: 156, lastAction: "2分钟前" },
+    { user: "李娜", actions: 89, lastAction: "15分钟前" },
+    { user: "王强", actions: 234, lastAction: "1小时前" },
+    { user: "赵敏", actions: 67, lastAction: "3小时前" },
+    { user: "陈刚", actions: 123, lastAction: "昨天" },
+  ]);
+
   const [formData, setFormData] = useState<UserFormData>({
     name: "",
     account: "",
@@ -64,13 +87,31 @@ export default function Users() {
           lastLoginTime: user.lastLoginTime || "—",
         }));
         setUsers(parsedUsers);
+
+        const totalUsers = parsedUsers.length;
+        const activeUsers = parsedUsers.filter((u: any) => u.status === "online" || u.status === "warning").length;
+        const adminUsers = parsedUsers.filter((u: any) => 
+          u.roleName === "超级管理员" || u.roleName === "运维管理员" || 
+          (u.roles && u.roles.some((r: string) => r === "超级管理员" || r === "运维管理员"))
+        ).length;
+        const newUsers = parsedUsers.filter((u: any) => {
+          if (!u.createTime) return false;
+          const createDate = new Date(u.createTime);
+          const weekAgo = new Date();
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          return createDate >= weekAgo;
+        }).length;
+
+        setUserStats({ totalUsers, activeUsers, adminUsers, newUsers });
       } else {
         setUsers([]);
+        setUserStats({ totalUsers: 0, activeUsers: 0, adminUsers: 0, newUsers: 0 });
       }
     } catch (error) {
       console.error("加载用户数据失败:", error);
       showToast("获取用户数据失败", "error");
       setUsers([]);
+      setUserStats({ totalUsers: 0, activeUsers: 0, adminUsers: 0, newUsers: 0 });
     } finally {
       setLoading(false);
     }
@@ -209,6 +250,43 @@ export default function Users() {
     u.account.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleRefresh = () => {
+    fetchUsers();
+    showToast("正在刷新数据...", "info");
+  };
+
+  const handleExport = () => {
+    const csvContent = [
+      ["姓名", "账号", "邮箱", "角色", "状态", "最后登录"].join(","),
+      ...filtered.map(u => [
+        u.name,
+        u.account,
+        u.email,
+        u.roles?.join(";") || u.roleName,
+        u.status,
+        u.lastLoginTime,
+      ].join(",")),
+    ].join("\n");
+
+    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `users_${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+    showToast("用户数据导出成功", "success");
+  };
+
+  const getRoleDistribution = () => {
+    const distribution: Record<string, number> = {};
+    users.forEach(u => {
+      const roles = u.roles && u.roles.length > 0 ? u.roles : [u.roleName];
+      roles.forEach((role: string) => {
+        distribution[role] = (distribution[role] || 0) + 1;
+      });
+    });
+    return distribution;
+  };
+
   if (loading) {
     return (
       <MainLayout title="用户管理">
@@ -226,24 +304,141 @@ export default function Users() {
           title="用户管理"
           subtitle={`${users.length} 个用户`}
           actions={
-            <TechButton variant="primary" icon={<Plus size={13} />} onClick={handleCreate}>
-              新建用户
-            </TechButton>
+            <>
+              <TechButton variant="ghost" icon={<RefreshCw size={13} />} onClick={handleRefresh}>
+                刷新
+              </TechButton>
+              <TechButton variant="ghost" icon={<Download size={13} />} onClick={handleExport}>
+                导出
+              </TechButton>
+              <TechButton variant="primary" icon={<Plus size={13} />} onClick={handleCreate}>
+                新建用户
+              </TechButton>
+            </>
           }
         />
 
-        <div className="flex gap-3">
-          {[
-            { label: "在线用户", value: users.filter(u => u.status === "online").length, color: "#00D68F" },
-            { label: "异常用户", value: users.filter(u => u.status === "warning").length, color: "#FFAA00" },
-            { label: "离线用户", value: users.filter(u => u.status === "offline").length, color: "#94A3B8" },
-            { label: "已禁用", value: users.filter(u => u.status === "disabled").length, color: "#FF4D4F" },
-          ].map((s) => (
-            <div key={s.label} className="flex-1 rounded-lg p-3 flex items-center gap-3" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold" style={{ background: `${s.color}1a`, color: s.color }}>{s.value}</div>
-              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{s.label}</span>
+        <div className="grid grid-cols-4 gap-3">
+          <div className="rounded-lg p-4 flex items-center gap-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "rgba(22,93,255,0.15)" }}>
+              <Users size={20} style={{ color: "#165DFF" }} />
             </div>
-          ))}
+            <div>
+              <div className="text-2xl font-bold" style={{ color: "#165DFF" }}>{userStats.totalUsers}</div>
+              <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>总用户数</div>
+            </div>
+          </div>
+          <div className="rounded-lg p-4 flex items-center gap-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "rgba(0,214,143,0.15)" }}>
+              <Activity size={20} style={{ color: "#00D68F" }} />
+            </div>
+            <div>
+              <div className="text-2xl font-bold" style={{ color: "#00D68F" }}>{userStats.activeUsers}</div>
+              <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>活跃用户</div>
+            </div>
+          </div>
+          <div className="rounded-lg p-4 flex items-center gap-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "rgba(255,77,79,0.15)" }}>
+              <Shield size={20} style={{ color: "#FF4D4F" }} />
+            </div>
+            <div>
+              <div className="text-2xl font-bold" style={{ color: "#FF4D4F" }}>{userStats.adminUsers}</div>
+              <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>管理员</div>
+            </div>
+          </div>
+          <div className="rounded-lg p-4 flex items-center gap-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "rgba(168,85,247,0.15)" }}>
+              <TrendingUp size={20} style={{ color: "#A855F7" }} />
+            </div>
+            <div>
+              <div className="text-2xl font-bold" style={{ color: "#A855F7" }}>{userStats.newUsers}</div>
+              <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>本周新增</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-lg overflow-hidden" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: "1px solid var(--border)" }}>
+              <Clock size={14} style={{ color: "#165DFF" }} />
+              <span className="text-xs font-medium text-white">最近用户</span>
+            </div>
+            <div className="divide-y" style={{ borderColor: "var(--border)" }}>
+              {recentUsers.map((user, idx) => (
+                <div key={idx} className="px-4 py-2.5 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium" style={{ background: "rgba(22,93,255,0.15)", color: "#165DFF" }}>
+                    {user.name.charAt(0)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium text-white truncate">{user.name}</div>
+                    <div className="text-xs truncate" style={{ color: "var(--muted-foreground)" }}>{user.email}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs" style={{ color: roleColors[user.role]?.color || "#94A3B8" }}>{user.role}</div>
+                    <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>{user.lastLogin}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-lg overflow-hidden" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: "1px solid var(--border)" }}>
+              <Zap size={14} style={{ color: "#A855F7" }} />
+              <span className="text-xs font-medium text-white">用户活跃度</span>
+            </div>
+            <div className="divide-y" style={{ borderColor: "var(--border)" }}>
+              {userActivity.map((activity, idx) => (
+                <div key={idx} className="px-4 py-2.5 flex items-center gap-3">
+                  <div className="flex-1">
+                    <div className="text-xs font-medium text-white">{activity.user}</div>
+                    <div className="flex items-center gap-1 mt-1">
+                      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--muted)" }}>
+                        <div 
+                          className="h-full rounded-full" 
+                          style={{ 
+                            width: `${Math.min((activity.actions / 250) * 100, 100)}%`,
+                            background: "linear-gradient(90deg, #165DFF, #A855F7)" 
+                          }} 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs font-medium" style={{ color: "#165DFF" }}>{activity.actions}</div>
+                    <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>{activity.lastAction}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-lg overflow-hidden" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: "1px solid var(--border)" }}>
+              <BarChart3 size={14} style={{ color: "#00D68F" }} />
+              <span className="text-xs font-medium text-white">角色分布</span>
+            </div>
+            <div className="p-4 space-y-3">
+              {Object.entries(getRoleDistribution()).map(([role, count]) => {
+                const colors = roleColors[role] || roleColors["开发工程师"];
+                const percentage = users.length > 0 ? Math.round((count / users.length) * 100) : 0;
+                return (
+                  <div key={role}>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span style={{ color: colors.color }}>{role}</span>
+                      <span style={{ color: "var(--muted-foreground)" }}>{count} ({percentage}%)</span>
+                    </div>
+                    <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--muted)" }}>
+                      <div 
+                        className="h-full rounded-full transition-all" 
+                        style={{ width: `${percentage}%`, background: colors.color }} 
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         <div className="flex gap-3">

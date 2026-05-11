@@ -1,0 +1,99 @@
+app:
+  name: apm-backend
+
+agent:
+  enabled: true
+
+reporter:
+  type: okhttp
+  serverUrl: http://localhost:8081/apm/report
+  okhttp:
+    url:
+      - http://localhost:8081/apm/report
+  threadNum: 1
+  queueSize: 1000
+  batchSize: 50
+  idleSleep: 100
+  log: true
+
+sampling:
+  rate: 1
+
+logger:
+    console: true
+    level: trace
+    fileSize: 10485760
+    fileNum: 3
+
+plugins:
+    process:
+        enable: true
+        spend: -1
+        enableMethodSign: true
+        param:
+            enable: true
+            excludeTypePrefix:
+                - javax.
+                - org.w3c
+                - org.springframework
+                - org.apache
+                - org.jdom
+                - com.fasterxml
+                - org.mybatis
+                - com.fasterxml
+                - net.sf.json
+                - org.codehaus
+                - java.lang.reflect
+                - java.lang.Object
+                - java.io
+                - java.nio
+                - sun.nio
+                - org.aspectj
+            includePointMatches:
+                - org.xi.lt.apm.*
+        error:
+            enable: true
+            includeErrorPointPrefix:
+                - org.xi.lt.apm
+        interceptPoints:
+            -
+                typeMatch:
+                    include:
+                        nameStartsWith: org.xi.lt.apm
+                    exclude:
+                        nameContains: CGLIB
+                        nameStartsWith: org.apache.catalina
+                methodMatch:
+                    include:
+                        named:
+                    exclude:
+                        named:
+
+    jdbc:
+        enable: true
+        spend: -1
+        enableParam: true
+    logger:
+        enable: true
+        errorRate: false
+        defLevel: debug
+        points:
+            - org.xi.lt.apm|trace
+    servlet:
+        enable: true
+        enableReqParam: true
+        enableReqBody: true
+        enableReqHeaders: true
+        enableRespBody: true
+        spend: 1
+        excludeUrlSuffix: .html,.jsp,.css,.js,.ico
+        excludeClassPrefix:
+            - org.apache.
+    springTx:
+        enable: true
+        spend: 0
+    thread:
+        enable: true
+        excludeClass:
+            nameStartsWith:
+                - org.apache.tomcat.util

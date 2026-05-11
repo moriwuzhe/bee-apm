@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import MainLayout from "../components/Layout/MainLayout";
 import PageHeader from "../components/UI/PageHeader";
 import TechButton from "../components/UI/TechButton";
-import { Plus, Search, Key, Edit2, Trash2, ChevronRight, X } from "lucide-react";
+import { Plus, Search, Key, Edit2, Trash2, ChevronRight, X, Download, RefreshCw, AlertTriangle, Settings, Activity, Shield, Zap, TrendingUp, Clock, BarChart3, Server, Wifi, Cpu, CheckCircle, XCircle, Users, Lock } from "lucide-react";
 import { useToast } from "../context/ToastContext";
 import { permissionsApi } from "../services/api";
 
@@ -61,6 +61,28 @@ export default function Permissions() {
     module: "项目管理",
     description: "",
   });
+
+  const [permissionStats] = useState({
+    totalPermissions: 19,
+    activePermissions: 18,
+    rolesCount: 5,
+    usersCount: 24,
+  });
+
+  const [recentPermissions] = useState([
+    { user: "admin", action: "创建", resource: "project:create", time: "2分钟前" },
+    { user: "zhangsan", action: "修改", resource: "app:deploy", time: "5分钟前" },
+    { user: "lisi", action: "删除", resource: "monitor:alert", time: "10分钟前" },
+    { user: "wangwu", action: "授权", resource: "role:manage", time: "15分钟前" },
+    { user: "zhaoliu", action: "查看", resource: "user:manage", time: "20分钟前" },
+  ]);
+
+  const [permissionDistribution] = useState([
+    { role: "管理员", permissions: 19, users: 2 },
+    { role: "运维工程师", permissions: 8, users: 5 },
+    { role: "开发人员", permissions: 6, users: 12 },
+    { role: "访客", permissions: 2, users: 5 },
+  ]);
 
   useEffect(() => {
     fetchPermissions();
@@ -200,6 +222,23 @@ export default function Permissions() {
 
   const filtered = getPermissionsByModule();
 
+  const handleRefresh = () => {
+    fetchPermissions();
+    showToast("权限数据已刷新", "success");
+  };
+
+  const handleExport = () => {
+    const data = JSON.stringify(permissions, null, 2);
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "permissions.json";
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("权限数据已导出", "success");
+  };
+
   if (loading) {
     return (
       <MainLayout title="权限管理">
@@ -225,10 +264,144 @@ export default function Permissions() {
                 <Search size={13} style={{ color: "var(--muted-foreground)" }} />
                 <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜索权限..." className="bg-transparent border-none outline-none text-xs" style={{ color: "var(--foreground)", width: 160 }} />
               </div>
+              <TechButton variant="ghost" icon={<RefreshCw size={13} />} onClick={handleRefresh}>刷新</TechButton>
+              <TechButton variant="secondary" icon={<Download size={13} />} onClick={handleExport}>导出</TechButton>
               <TechButton variant="primary" icon={<Plus size={13} />} onClick={handleCreate}>新建权限</TechButton>
             </>
           }
         />
+
+        {/* Permission Stats Overview */}
+        <div className="grid grid-cols-4 gap-3">
+          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Shield size={16} style={{ color: "#165DFF" }} />
+              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>总权限数</span>
+            </div>
+            <div className="text-2xl font-bold text-white">{permissionStats.totalPermissions}</div>
+            <div className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>已配置权限</div>
+          </div>
+          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle size={16} style={{ color: "#00D68F" }} />
+              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>活跃权限</span>
+            </div>
+            <div className="text-2xl font-bold text-white">{permissionStats.activePermissions}</div>
+            <div className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>正在使用</div>
+          </div>
+          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Users size={16} style={{ color: "#A855F7" }} />
+              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>角色数量</span>
+            </div>
+            <div className="text-2xl font-bold text-white">{permissionStats.rolesCount}</div>
+            <div className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>已定义角色</div>
+          </div>
+          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Lock size={16} style={{ color: "#FFAA00" }} />
+              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>用户数量</span>
+            </div>
+            <div className="text-2xl font-bold text-white">{permissionStats.usersCount}</div>
+            <div className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>系统用户</div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          {/* Recent Permission Changes */}
+          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Activity size={16} style={{ color: "#00D68F" }} />
+              <span className="text-sm font-medium text-white">最近权限变更</span>
+            </div>
+            <div className="space-y-2">
+              {recentPermissions.map((item, index) => (
+                <div key={index} className="flex items-center justify-between py-2" style={{ borderBottom: index < recentPermissions.length - 1 ? "1px solid var(--border)" : "none" }}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium" style={{ background: "rgba(22,93,255,0.2)", color: "#60A5FA" }}>
+                      {item.user.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="text-xs text-white">{item.user}</div>
+                      <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.action} {item.resource}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock size={10} style={{ color: "var(--muted-foreground)" }} />
+                    <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.time}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Permission Distribution Chart */}
+          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-2 mb-3">
+              <BarChart3 size={16} style={{ color: "#A855F7" }} />
+              <span className="text-sm font-medium text-white">权限分布</span>
+            </div>
+            <div className="space-y-3">
+              {permissionDistribution.map((item, index) => {
+                const percentage = (item.permissions / permissionStats.totalPermissions) * 100;
+                const colors = ["#165DFF", "#00D68F", "#A855F7", "#FFAA00"];
+                return (
+                  <div key={index}>
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full" style={{ background: colors[index] }}></div>
+                        <span className="text-xs text-white">{item.role}</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: "rgba(15,23,42,0.5)", color: "var(--muted-foreground)" }}>{item.users}人</span>
+                      </div>
+                      <span className="text-xs font-medium" style={{ color: colors[index] }}>{item.permissions} 权限</span>
+                    </div>
+                    <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(15,23,42,0.8)" }}>
+                      <div className="h-full rounded-full transition-all" style={{ width: `${percentage}%`, background: colors[index] }}></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Role Permission Configuration */}
+        <div className="rounded-lg overflow-hidden" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: "1px solid var(--border)", background: "rgba(15,23,42,0.5)" }}>
+            <Settings size={16} style={{ color: "#FF4D4F" }} />
+            <span className="text-sm font-medium text-white">角色权限配置</span>
+          </div>
+          <div className="p-4">
+            <div className="grid grid-cols-4 gap-3">
+              {permissionDistribution.map((role, index) => {
+                const colors = ["#165DFF", "#00D68F", "#A855F7", "#FFAA00"];
+                const icons = [Shield, Activity, Users, Lock];
+                const IconComponent = icons[index];
+                return (
+                  <div key={index} className="rounded-lg p-3" style={{ background: `${colors[index]}0a`, border: `1px solid ${colors[index]}30` }}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <IconComponent size={14} style={{ color: colors[index] }} />
+                      <span className="text-sm font-medium" style={{ color: colors[index] }}>{role.role}</span>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>权限数</span>
+                        <span className="text-xs font-medium text-white">{role.permissions}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>用户数</span>
+                        <span className="text-xs font-medium text-white">{role.users}</span>
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <TechButton variant="ghost" size="xs" icon={<Settings size={11} />} className="w-full">配置</TechButton>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
 
         {/* Stats */}
         <div className="flex gap-3">

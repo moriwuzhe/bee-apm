@@ -114,13 +114,50 @@ public class AgentController {
         }
     }
 
-    @GetMapping("/heartbeat")
-    public Result<String> heartbeat(@RequestParam(required = false) String app, @RequestParam(required = false) String ip) {
+    @PostMapping("/heartbeat")
+    public Result<String> heartbeat(@RequestBody Map<String, Object> heartbeatData) {
         try {
+            String app = (String) heartbeatData.get("app");
+            String ip = (String) heartbeatData.get("ip");
+            String inst = (String) heartbeatData.get("inst");
+            String version = (String) heartbeatData.get("version");
+            String configVersion = (String) heartbeatData.get("configVersion");
+            
             if (app != null && !app.isEmpty()) {
-                applicationService.updateHeartbeat(app, ip);
+                // 更新或创建应用
+                Application appEntity = applicationService.findByAppName(app);
+                if (appEntity == null) {
+                    appEntity = new Application();
+                    appEntity.setName(app);
+                    appEntity.setStatus("online");
+                    appEntity.setDeleted(false);
+                }
+                
+                appEntity.setIp(ip);
+                appEntity.setInstanceCount(inst != null ? inst.hashCode() : 1);
+                appEntity.setAgentVersion(version);
+                appEntity.setEnv("production");
+                appEntity.setUpdatedAt(LocalDateTime.now());
+                
+                applicationService.save(appEntity);
+                
+                logger.info("Agent heartbeat received: app={}, ip={}, inst={}, version={}", 
+                    app, ip, inst, version);
             }
-            return Result.success("OK");
+            
+            // 返回响应（包含配置检查指令）
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "success");
+            response.put("hasNewConfig", false);
+            response.put("hasNewPlugins", false);
+            response.put("pluginLastUpdateTime", 0);
+            
+            // 将Map转换为JSON字符串
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            String jsonResponse = mapper.writeValueAsString(response);
+            
+            return Result.success(jsonResponse);
         } catch (Exception e) {
             logger.error("Heartbeat failed", e);
             return Result.error("Heartbeat failed");

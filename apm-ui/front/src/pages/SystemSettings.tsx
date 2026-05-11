@@ -88,6 +88,11 @@ export default function SystemSettings() {
   const [settings, setSettings] = useState(mockSettings);
   const [activeTab, setActiveTab] = useState("general");
   const [saved, setSaved] = useState(false);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState(new Date());
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
+  const [showBatchModal, setShowBatchModal] = useState(false);
 
   const updateSetting = (id: string, newValue: string | boolean) => {
     setSettings((prev) =>

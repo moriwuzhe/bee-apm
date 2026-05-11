@@ -22,6 +22,16 @@ import LogViewer from "./pages/LogViewer";
 import APIDocs from "./pages/APIDocs";
 import DatabaseManagement from "./pages/DatabaseManagement";
 import SystemSettings from "./pages/SystemSettings";
+import ReportBuilder from "./pages/ReportBuilder";
+import CapacityPlanning from "./pages/CapacityPlanning";
+import WorkflowAutomation from "./pages/WorkflowAutomation";
+import DisasterRecovery from "./pages/DisasterRecovery";
+import PerformanceAnalyzer from "./pages/PerformanceAnalyzer";
+import AIAutomationCenter from "./pages/AIAutomationCenter";
+import KnowledgeBase from "./pages/KnowledgeBase";
+import SLAManagement from "./pages/SLAManagement";
+import PluginMarketplace from "./pages/PluginMarketplace";
+import NotificationCenter from "./pages/NotificationCenter";
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -78,6 +88,16 @@ const App = () => (
         <Route path="/api-docs" element={<APIDocs />} />
         <Route path="/database" element={<DatabaseManagement />} />
         <Route path="/settings" element={<SystemSettings />} />
+        <Route path="/reports" element={<ReportBuilder />} />
+        <Route path="/capacity" element={<CapacityPlanning />} />
+        <Route path="/workflows" element={<WorkflowAutomation />} />
+        <Route path="/dr" element={<DisasterRecovery />} />
+        <Route path="/performance" element={<PerformanceAnalyzer />} />
+        <Route path="/ai-automation" element={<AIAutomationCenter />} />
+        <Route path="/knowledge" element={<KnowledgeBase />} />
+        <Route path="/sla" element={<SLAManagement />} />
+        <Route path="/marketplace" element={<PluginMarketplace />} />
+        <Route path="/notifications" element={<NotificationCenter />} />
       </Routes>
     </ErrorBoundary>
     <Toaster position="top-right" />

@@ -64,6 +64,10 @@ export default function HealthCheck() {
   });
   const [healthHistory, setHealthHistory] = useState<HealthHistoryItem[]>([]);
   const [systemHealth, setSystemHealth] = useState<SystemHealthItem[]>([]);
+  const [isRealtime, setIsRealtime] = useState(true);
+  const [refreshInterval, setRefreshInterval] = useState(30);
+  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
+  const [showBatchModal, setShowBatchModal] = useState(false);
 
   const loadHealthData = async () => {
     try {

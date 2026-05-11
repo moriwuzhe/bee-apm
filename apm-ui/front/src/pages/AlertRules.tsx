@@ -119,6 +119,10 @@ export default function AlertRules() {
   const [checkedIds, setCheckedIds] = useState<Set<number>>(new Set());
   const [search, setSearch] = useState("");
   const [advancedMode, setAdvancedMode] = useState(false);
+  const [selectedRules, setSelectedRules] = useState<Set<number>>(new Set());
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [batchAction, setBatchAction] = useState<"enable" | "disable" | "delete">("enable");
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [formData, setFormData] = useState({ 
     name: "", 
     metric: "cpu_usage", 

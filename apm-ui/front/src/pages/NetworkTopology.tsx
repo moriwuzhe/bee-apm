@@ -122,6 +122,12 @@ export default function NetworkTopology() {
   });
   const [topConnections, setTopConnections] = useState<TopConnection[]>([]);
   const [networkHealth, setNetworkHealth] = useState<NetworkHealthNode[]>([]);
+  const [isRealtime, setIsRealtime] = useState(true);
+  const [refreshInterval, setRefreshInterval] = useState(30);
+  const [lastRefreshTime, setLastRefreshTime] = useState(new Date());
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     fetchTopology();

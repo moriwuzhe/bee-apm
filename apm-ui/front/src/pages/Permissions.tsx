@@ -61,6 +61,9 @@ export default function Permissions() {
     module: "项目管理",
     description: "",
   });
+  const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(new Set());
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [showPermissionTree, setShowPermissionTree] = useState(true);
 
   const [permissionStats] = useState({
     totalPermissions: 19,

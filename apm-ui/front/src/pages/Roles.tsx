@@ -86,6 +86,8 @@ export default function Roles() {
   const [loading, setLoading] = useState(true);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set(permModules.map(m => m.module)));
   const { showToast } = useToast();
+  const [selectedRoles, setSelectedRoles] = useState<Set<number>>(new Set());
+  const [showBatchModal, setShowBatchModal] = useState(false);
 
   const [roleStats, setRoleStats] = useState({
     totalRoles: defaultRoles.length,

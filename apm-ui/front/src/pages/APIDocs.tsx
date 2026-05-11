@@ -187,6 +187,9 @@ export default function APIDocs() {
   const [copiedPath, setCopiedPath] = useState<string | null>(null);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedEndpoints, setSelectedEndpoints] = useState<Set<string>>(new Set());
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isRealtime, setIsRealtime] = useState(true);
 
   const apiStats: APIStats = {
     totalAPIs: 15,

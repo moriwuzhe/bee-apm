@@ -88,10 +88,23 @@ export default function ServiceDependency() {
   const [edges, setEdges] = useState<DependencyEdge[]>([]);
   const [viewMode, setViewMode] = useState<"list" | "graph">("list");
   const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
+  const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set());
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [isRealtime, setIsRealtime] = useState(true);
+  const [lastRefreshTime, setLastRefreshTime] = useState(new Date());
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (!isRealtime) return;
+    const interval = setInterval(() => {
+      console.log("实时刷新服务依赖数据...");
+      setLastRefreshTime(new Date());
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [isRealtime]);
 
   const fetchData = async () => {
     setIsLoading(true);

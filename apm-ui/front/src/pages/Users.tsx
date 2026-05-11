@@ -38,6 +38,11 @@ export default function Users() {
   const [loading, setLoading] = useState(true);
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const { showToast } = useToast();
+  const [selectedUsers, setSelectedUsers] = useState<Set<number>>(new Set());
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [isRealtime, setIsRealtime] = useState(true);
+  const [lastRefreshTime, setLastRefreshTime] = useState(new Date());
 
   const [userStats, setUserStats] = useState({
     totalUsers: 0,

@@ -52,6 +52,19 @@ export default function Projects() {
   const [actionLoading, setActionLoading] = useState(false);
   const [viewingProject, setViewingProject] = useState<Project | null>(null);
   const { showToast } = useToast();
+  const [selectedProjects, setSelectedProjects] = useState<Set<number>>(new Set());
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [batchAction, setBatchAction] = useState<"delete" | "export" | "archive">("delete");
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState({
+    status: "all",
+    health: "all",
+    owner: "",
+    dateRange: "all",
+    sortBy: "name" as "name" | "health" | "created",
+    sortOrder: "asc" as "asc" | "desc"
+  });
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const [projectStats, setProjectStats] = useState({
     totalProjects: 0,
@@ -201,6 +214,127 @@ export default function Projects() {
     showToast("数据已刷新", "success");
   };
 
+  const toggleProjectSelection = (projectId: number) => {
+    const newSelection = new Set(selectedProjects);
+    if (newSelection.has(projectId)) {
+      newSelection.delete(projectId);
+    } else {
+      newSelection.add(projectId);
+    }
+    setSelectedProjects(newSelection);
+  };
+
+  const selectAllProjects = () => {
+    if (selectedProjects.size === filtered.length) {
+      setSelectedProjects(new Set());
+    } else {
+      setSelectedProjects(new Set(filtered.map(p => p.id)));
+    }
+  };
+
+  const handleBatchDelete = () => {
+    if (selectedProjects.size === 0) {
+      showToast("请先选择要删除的项目", "warning");
+      return;
+    }
+    setBatchAction("delete");
+    setShowBatchModal(true);
+  };
+
+  const handleBatchExport = () => {
+    if (selectedProjects.size === 0) {
+      showToast("请先选择要导出的项目", "warning");
+      return;
+    }
+    const selectedData = projects.filter(p => selectedProjects.has(p.id));
+    const csvContent = [
+      ["项目名称", "分组", "环境", "应用数", "状态", "负责人", "描述"],
+      ...selectedData.map(p => [
+        p.name,
+        p.groupName,
+        envLabels[p.environment],
+        p.appCount.toString(),
+        p.status,
+        p.owner || "-",
+        p.description || "-"
+      ])
+    ].map(row => row.join(",")).join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `projects_batch_export_${Date.now()}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast(`已导出 ${selectedProjects.size} 个项目`, "success");
+    setSelectedProjects(new Set());
+  };
+
+  const confirmBatchAction = async () => {
+    try {
+      setActionLoading(true);
+      if (batchAction === "delete") {
+        await Promise.all(Array.from(selectedProjects).map(id => projectsApi.delete(id)));
+        setProjects(projects.filter(p => !selectedProjects.has(p.id)));
+        showToast(`成功删除 ${selectedProjects.size} 个项目`, "success");
+      }
+      setSelectedProjects(new Set());
+      setShowBatchModal(false);
+    } catch (error) {
+      showToast("批量操作失败，请重试", "error");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleImport = () => {
+    setShowImportModal(true);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string;
+        const lines = text.split("\n").filter(line => line.trim());
+        const headers = lines[0].split(",").map(h => h.trim());
+        
+        const importedProjects: Partial<Project>[] = [];
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(",");
+          if (values.length >= headers.length) {
+            importedProjects.push({
+              name: values[0].trim(),
+              groupName: values[1].trim(),
+              environment: values[2].trim() as any,
+              appCount: parseInt(values[3]) || 0,
+              status: values[4].trim() as any,
+              owner: values[5].trim(),
+              description: values[6]?.trim(),
+            });
+          }
+        }
+
+        setProjects([...projects, ...importedProjects.map((p, idx) => ({
+          id: Date.now() + idx,
+          ...p,
+        }))]);
+        
+        showToast(`成功导入 ${importedProjects.length} 个项目`, "success");
+        setShowImportModal(false);
+      } catch (error) {
+        showToast("导入失败，请检查文件格式", "error");
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const handleExport = () => {
     const csvContent = [
       ["项目名称", "分组", "环境", "应用数", "状态", "负责人", "描述"],
@@ -249,11 +383,156 @@ export default function Projects() {
           actions={
             <div className="flex gap-2">
               <TechButton variant="secondary" icon={<Download size={13} />} onClick={handleExport}>导出</TechButton>
+              <TechButton variant="secondary" icon={<Download size={13} />} onClick={handleImport}>导入</TechButton>
               <TechButton variant="secondary" icon={<RefreshCw size={13} />} onClick={handleRefresh}>刷新</TechButton>
               <TechButton variant="primary" icon={<Plus size={13} />} onClick={handleCreate}>新建项目</TechButton>
             </div>
           }
         />
+
+        {/* 批量操作栏 */}
+        {selectedProjects.size > 0 && (
+          <div className="flex items-center justify-between p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-blue-400">已选择 {selectedProjects.size} 个项目</span>
+              <button
+                onClick={() => setSelectedProjects(new Set())}
+                className="text-xs text-muted-foreground hover:text-white"
+              >
+                取消选择
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <TechButton variant="secondary" size="sm" icon={<Download size={12} />} onClick={handleBatchExport}>
+                批量导出
+              </TechButton>
+              <TechButton variant="danger" size="sm" icon={<Trash2 size={12} />} onClick={handleBatchDelete}>
+                批量删除
+              </TechButton>
+            </div>
+          </div>
+        )}
+
+        {/* 高级筛选 */}
+        <div className="flex items-center gap-3 p-4 rounded-lg" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <input
+            type="text"
+            placeholder="搜索项目名称..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 px-4 py-2 rounded-lg border text-sm"
+            style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+          />
+          <select
+            value={envFilter}
+            onChange={(e) => setEnvFilter(e.target.value)}
+            className="px-4 py-2 rounded-lg border text-sm"
+            style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+          >
+            {envOptions.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm ${
+              showAdvancedFilters ? "bg-blue-500/20 text-blue-400" : "bg-muted text-muted-foreground"
+            }`}
+          >
+            <Settings size={14} />
+            高级筛选
+          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setView("table")}
+              className={`px-3 py-2 rounded-lg ${view === "table" ? "bg-blue-500/20 text-blue-400" : "text-muted-foreground"}`}
+            >
+              <BarChart3 size={16} />
+            </button>
+            <button
+              onClick={() => setView("card")}
+              className={`px-3 py-2 rounded-lg ${view === "card" ? "bg-blue-500/20 text-blue-400" : "text-muted-foreground"}`}
+            >
+              <FolderOpen size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* 高级筛选面板 */}
+        {showAdvancedFilters && (
+          <div className="p-4 rounded-lg" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div>
+                <label className="block text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>状态</label>
+                <select
+                  value={advancedFilters.status}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, status: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border text-sm"
+                  style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+                >
+                  <option value="all">全部</option>
+                  <option value="online">在线</option>
+                  <option value="offline">离线</option>
+                  <option value="warning">告警</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>健康度</label>
+                <select
+                  value={advancedFilters.health}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, health: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border text-sm"
+                  style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+                >
+                  <option value="all">全部</option>
+                  <option value="good">良好</option>
+                  <option value="warning">警告</option>
+                  <option value="critical">严重</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>负责人</label>
+                <input
+                  type="text"
+                  value={advancedFilters.owner}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, owner: e.target.value })}
+                  placeholder="输入负责人..."
+                  className="w-full px-3 py-2 rounded-lg border text-sm"
+                  style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>排序方式</label>
+                <select
+                  value={advancedFilters.sortBy}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, sortBy: e.target.value as any })}
+                  className="w-full px-3 py-2 rounded-lg border text-sm"
+                  style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+                >
+                  <option value="name">名称</option>
+                  <option value="health">健康度</option>
+                  <option value="created">创建时间</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>排序</label>
+                <select
+                  value={advancedFilters.sortOrder}
+                  onChange={(e) => setAdvancedFilters({ ...advancedFilters, sortOrder: e.target.value as any })}
+                  className="w-full px-3 py-2 rounded-lg border text-sm"
+                  style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+                >
+                  <option value="asc">升序</option>
+                  <option value="desc">降序</option>
+                </select>
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <TechButton variant="secondary" size="sm" onClick={() => setShowAdvancedFilters(false)}>收起</TechButton>
+              <TechButton variant="primary" size="sm" onClick={() => showToast("筛选已应用", "success")}>应用筛选</TechButton>
+            </div>
+          </div>
+        )}
 
         {/* 项目统计概览 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -692,6 +971,97 @@ export default function Projects() {
               <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-border">
                 <TechButton variant="secondary" onClick={() => setViewingProject(null)}>关闭</TechButton>
                 <TechButton variant="primary" onClick={() => { setViewingProject(null); handleEdit(viewingProject); }}>编辑</TechButton>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* 批量操作确认模态框 */}
+        {showBatchModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowBatchModal(false)}>
+            <div
+              className="bg-card rounded-lg w-full max-w-md mx-4 p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-white">确认批量操作</h3>
+                <button onClick={() => setShowBatchModal(false)} className="text-muted-foreground hover:text-white">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="mb-6">
+                <p className="text-sm text-muted-foreground mb-4">
+                  确定要删除选中的 <span className="text-red-400 font-medium">{selectedProjects.size}</span> 个项目吗？
+                </p>
+                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                  <div className="text-xs text-red-400">⚠️ 此操作不可恢复</div>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowBatchModal(false)}
+                  className="flex-1 px-4 py-2 rounded-lg border text-sm"
+                  style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
+                >
+                  取消
+                </button>
+                <button
+                  onClick={confirmBatchAction}
+                  disabled={actionLoading}
+                  className="flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-red-500 text-white hover:bg-red-600 disabled:opacity-50"
+                >
+                  {actionLoading ? "删除中..." : "确认删除"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 导入模态框 */}
+        {showImportModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowImportModal(false)}>
+            <div
+              className="bg-card rounded-lg w-full max-w-lg mx-4 p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-white">导入项目</h3>
+                <button onClick={() => setShowImportModal(false)} className="text-muted-foreground hover:text-white">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="mb-6">
+                <div className="p-6 rounded-lg border-2 border-dashed" style={{ borderColor: "var(--border)" }}>
+                  <input
+                    type="file"
+                    accept=".csv,.txt"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <label htmlFor="file-upload" className="cursor-pointer">
+                    <div className="text-center">
+                      <Download size={32} className="mx-auto mb-3 text-blue-400" />
+                      <div className="text-sm font-medium text-white mb-2">点击选择文件或拖拽到此处</div>
+                      <div className="text-xs text-muted-foreground">支持 CSV、TXT 格式</div>
+                    </div>
+                  </label>
+                </div>
+                <div className="mt-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                  <div className="text-xs text-blue-400 mb-2">CSV 格式要求：</div>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <div>项目名称,分组,环境,应用数,状态,负责人,描述</div>
+                    <div>示例: 电商核心系统,默认分组,生产,5,online,张三,核心电商业务</div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowImportModal(false)}
+                  className="px-4 py-2 rounded-lg border text-sm"
+                  style={{ borderColor: "var(--border)", color: "var(--foreground)" }}
+                >
+                  取消
+                </button>
               </div>
             </div>
           </div>

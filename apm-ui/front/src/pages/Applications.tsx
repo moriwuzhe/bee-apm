@@ -129,6 +129,20 @@ export default function Applications() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingApp, setDeletingApp] = useState<any | null>(null);
   const { showToast } = useToast();
+  const [isRealtime, setIsRealtime] = useState(true);
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [selectedApps, setSelectedApps] = useState<Set<number>>(new Set());
+  const [showTopology, setShowTopology] = useState(false);
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [performanceData, setPerformanceData] = useState<Array<{
+    time: string;
+    cpu: number;
+    memory: number;
+    requests: number;
+    errors: number;
+  }>>([]);
+  const [showPerformanceDetail, setShowPerformanceDetail] = useState(false);
+  const [detailedApp, setDetailedApp] = useState<any | null>(null);
 
   const [appStats, setAppStats] = useState<AppStats>({
     totalApps: 0,
@@ -295,6 +309,76 @@ export default function Applications() {
     link.click();
     URL.revokeObjectURL(url);
     showToast("导出成功", "success");
+  };
+
+  useEffect(() => {
+    generatePerformanceData();
+  }, []);
+
+  const generatePerformanceData = () => {
+    const data = Array.from({ length: 24 }, (_, i) => ({
+      time: `${i}:00`,
+      cpu: 30 + Math.random() * 50 + (i > 8 && i < 18 ? 20 : 0),
+      memory: 40 + Math.random() * 30,
+      requests: Math.floor(100 + Math.random() * 400),
+      errors: Math.floor(Math.random() * 10),
+    }));
+    setPerformanceData(data);
+  };
+
+  useEffect(() => {
+    if (!isRealtime) return;
+    const interval = setInterval(() => {
+      setLastRefresh(new Date());
+      console.log("实时刷新应用数据...");
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [isRealtime]);
+
+  const toggleAppSelection = (appId: number) => {
+    const newSelection = new Set(selectedApps);
+    if (newSelection.has(appId)) {
+      newSelection.delete(appId);
+    } else {
+      newSelection.add(appId);
+    }
+    setSelectedApps(newSelection);
+  };
+
+  const selectAllApps = () => {
+    if (selectedApps.size === filtered.length) {
+      setSelectedApps(new Set());
+    } else {
+      setSelectedApps(new Set(filtered.map(a => a.id)));
+    }
+  };
+
+  const handleBatchDelete = () => {
+    if (selectedApps.size === 0) {
+      showToast("请先选择要删除的应用", "warning");
+      return;
+    }
+    setShowBatchModal(true);
+  };
+
+  const confirmBatchDelete = async () => {
+    try {
+      setActionLoading(true);
+      await Promise.all(Array.from(selectedApps).map(id => applicationsApi.delete(id)));
+      setApps(apps.filter(a => !selectedApps.has(a.id)));
+      showToast(`成功删除 ${selectedApps.size} 个应用`, "success");
+      setSelectedApps(new Set());
+      setShowBatchModal(false);
+    } catch (error) {
+      showToast("批量删除失败", "error");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleViewPerformance = (app: any) => {
+    setDetailedApp(app);
+    setShowPerformanceDetail(true);
   };
 
   const selectedApp = apps.find((a) => a.id === selected);

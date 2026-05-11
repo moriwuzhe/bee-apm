@@ -29,6 +29,24 @@ export default function JVMMonitor() {
   const [loading, setLoading] = useState(false);
   const [metrics, setMetrics] = useState<Record<string, any>>({});
   const [chartData, setChartData] = useState({ cpuData: [] as {t: string; v: number}[], memData: [] as {t: string; heap: number; nonheap?: number}[], gcData: [] as {t: string; ygc: number; fgc: number}[], netData: [] as {t: string; rx: number; tx: number}[], threadData: [] as {t: string; live: number; daemon: number; peak: number}[] });
+  const [isRealtime, setIsRealtime] = useState(true);
+  const [refreshInterval, setRefreshInterval] = useState(30);
+  const [lastRefreshTime, setLastRefreshTime] = useState(new Date());
+  const [showAlertConfig, setShowAlertConfig] = useState(false);
+  const [alertThresholds, setAlertThresholds] = useState({
+    cpu: 85,
+    memory: 90,
+    heap: 85,
+    gcFrequency: 10,
+    threadCount: 200,
+  });
+  const [alerts, setAlerts] = useState<Array<{
+    id: number;
+    type: string;
+    severity: "critical" | "warning" | "info";
+    message: string;
+    timestamp: string;
+  }>>([]);
 
   const [advancedMetrics, setAdvancedMetrics] = useState({
     heapMemory: { used: 512, max: 1024, Eden: 156, Survivor: 45, OldGen: 311 },
@@ -120,10 +138,67 @@ export default function JVMMonitor() {
     loadData();
   }, [selectedApp]);
 
+  useEffect(() => {
+    if (!isRealtime) return;
+    const interval = setInterval(() => {
+      console.log("实时刷新JVM监控数据...");
+      setLastRefreshTime(new Date());
+      loadData();
+    }, refreshInterval * 1000);
+    return () => clearInterval(interval);
+  }, [isRealtime, refreshInterval]);
+
   const handleRefresh = () => {
     showToast(`正在刷新 JVM 监控数据...`, "info");
+    setLastRefreshTime(new Date());
     loadData();
   };
+
+  const handleExport = () => {
+    const exportData = {
+      exportTime: new Date().toISOString(),
+      appName: selectedApp,
+      metrics: metrics,
+      advancedMetrics: advancedMetrics,
+      chartData: chartData,
+    };
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `jvm-metrics-${selectedApp}-${new Date().toISOString().split("T")[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast("JVM监控数据导出成功", "success");
+  };
+
+  const checkAlerts = () => {
+    const newAlerts: typeof alerts = [];
+    if (metrics.cpuUsage > alertThresholds.cpu) {
+      newAlerts.push({
+        id: Date.now(),
+        type: "CPU",
+        severity: metrics.cpuUsage > 95 ? "critical" : "warning",
+        message: `CPU使用率 ${metrics.cpuUsage}% 超过阈值 ${alertThresholds.cpu}%`,
+        timestamp: new Date().toLocaleTimeString(),
+      });
+    }
+    if (metrics.memUsage > alertThresholds.memory) {
+      newAlerts.push({
+        id: Date.now() + 1,
+        type: "Memory",
+        severity: "warning",
+        message: `内存使用率 ${metrics.memUsage}% 超过阈值 ${alertThresholds.memory}%`,
+        timestamp: new Date().toLocaleTimeString(),
+      });
+    }
+    setAlerts(newAlerts);
+  };
+
+  useEffect(() => {
+    checkAlerts();
+  }, [metrics]);
 
   const hostMetrics = metrics || {
     cpuUsage: 0,
@@ -153,10 +228,132 @@ export default function JVMMonitor() {
                   <button key={t} onClick={() => setTimeRange(t)} className="px-2.5 py-1 rounded text-xs" style={{ background: timeRange === t ? "#165DFF" : "transparent", color: timeRange === t ? "#fff" : "var(--muted-foreground)" }}>{t}</button>
                 ))}
               </div>
-              <TechButton variant="secondary" icon={<RefreshCw size={13} />} onClick={handleRefresh} disabled={loading}>{loading ? "刷新中..." : "刷新"}</TechButton>
+              <TechButton variant="secondary" icon={<Settings size={13} />} onClick={() => setShowAlertConfig(!showAlertConfig)}>告警配置</TechButton>
+              <TechButton variant="secondary" icon={<Activity size={13} />} onClick={handleExport}>导出</TechButton>
+              <TechButton variant="primary" icon={<RefreshCw size={13} />} onClick={handleRefresh} disabled={loading}>{loading ? "刷新中..." : "刷新"}</TechButton>
             </>
           }
         />
+
+        {/* 实时监控控制栏 */}
+        <div className="flex items-center justify-between p-4 rounded-lg" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsRealtime(!isRealtime)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isRealtime ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"
+              }`}
+            >
+              {isRealtime ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  实时监控中
+                </>
+              ) : (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-gray-500" />
+                  已暂停
+                </>
+              )}
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>刷新间隔:</span>
+              <select
+                value={refreshInterval}
+                onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                className="px-3 py-1.5 rounded-lg border text-xs"
+                style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+              >
+                <option value={10}>10秒</option>
+                <option value={30}>30秒</option>
+                <option value={60}>1分钟</option>
+                <option value={300}>5分钟</option>
+              </select>
+            </div>
+            <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+              最后刷新: {lastRefreshTime.toLocaleTimeString()}
+            </div>
+          </div>
+          {alerts.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs px-3 py-1 rounded-full" style={{ background: "rgba(255,77,79,0.1)", color: "#FF4D4F" }}>
+                {alerts.length} 个告警
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* 告警配置面板 */}
+        {showAlertConfig && (
+          <div className="p-4 rounded-lg" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium text-white">告警阈值配置</span>
+              <button
+                onClick={() => setShowAlertConfig(false)}
+                className="p-1 hover:bg-input rounded"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div>
+                <label className="block text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>CPU阈值 (%)</label>
+                <input
+                  type="number"
+                  value={alertThresholds.cpu}
+                  onChange={(e) => setAlertThresholds({ ...alertThresholds, cpu: Number(e.target.value) })}
+                  className="w-full px-3 py-2 rounded-lg border text-sm"
+                  style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>内存阈值 (%)</label>
+                <input
+                  type="number"
+                  value={alertThresholds.memory}
+                  onChange={(e) => setAlertThresholds({ ...alertThresholds, memory: Number(e.target.value) })}
+                  className="w-full px-3 py-2 rounded-lg border text-sm"
+                  style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>堆内存阈值 (%)</label>
+                <input
+                  type="number"
+                  value={alertThresholds.heap}
+                  onChange={(e) => setAlertThresholds({ ...alertThresholds, heap: Number(e.target.value) })}
+                  className="w-full px-3 py-2 rounded-lg border text-sm"
+                  style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>GC频率阈值</label>
+                <input
+                  type="number"
+                  value={alertThresholds.gcFrequency}
+                  onChange={(e) => setAlertThresholds({ ...alertThresholds, gcFrequency: Number(e.target.value) })}
+                  className="w-full px-3 py-2 rounded-lg border text-sm"
+                  style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>线程数阈值</label>
+                <input
+                  type="number"
+                  value={alertThresholds.threadCount}
+                  onChange={(e) => setAlertThresholds({ ...alertThresholds, threadCount: Number(e.target.value) })}
+                  className="w-full px-3 py-2 rounded-lg border text-sm"
+                  style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <TechButton variant="secondary" size="sm" onClick={() => setShowAlertConfig(false)}>取消</TechButton>
+              <TechButton variant="primary" size="sm" onClick={() => { showToast("告警配置已保存", "success"); setShowAlertConfig(false); }}>保存配置</TechButton>
+            </div>
+          </div>
+        )}
 
         {apps.length === 0 ? (
           <div className="flex items-center justify-center h-64" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>

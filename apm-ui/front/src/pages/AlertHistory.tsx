@@ -49,6 +49,9 @@ export default function AlertHistory() {
   const [selectedTimeRange, setSelectedTimeRange] = useState<"today" | "7d" | "30d" | "custom">("7d");
   const [isRealtime, setIsRealtime] = useState(true);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [selectedAlerts, setSelectedAlerts] = useState<Set<string>>(new Set());
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState(new Date());
 
   const [advancedStats, setAdvancedStats] = useState({
     totalToday: 156,

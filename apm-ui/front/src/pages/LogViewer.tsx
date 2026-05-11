@@ -1,659 +1,644 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import MainLayout from "../components/Layout/MainLayout";
-import PageHeader from "../components/UI/PageHeader";
-import TechButton from "../components/UI/TechButton";
-import { SearchBar } from "@/components/business";
-import { RefreshCw, Download, Trash2, Filter, FileText, Clock, ChevronDown, X, Search, AlertTriangle, Settings, Activity, Zap, Database, Shield, TrendingUp } from "lucide-react";
-import { useToast } from "../context/ToastContext";
-import { logsApi } from "../services/api";
+import { Search, Filter, Download, RefreshCw, Terminal, AlertTriangle, Settings, Trash2, ChevronDown, Clock, Activity, Server, Cpu, Wifi, AlertCircle, Info, CheckCircle, XCircle, Calendar, Plus, Play, Pause, Trash, FileText, Columns, Rows } from "lucide-react";
 
 interface LogEntry {
-  id: number;
-  level: "INFO" | "WARN" | "ERROR" | "DEBUG";
-  time: string;
+  id: string;
+  timestamp: Date;
+  level: "info" | "warn" | "error" | "debug";
   service: string;
-  content: string;
+  instance: string;
+  message: string;
   traceId?: string;
+  spanId?: string;
+  host?: string;
+  pid?: number;
 }
 
-const levelColors: Record<string, { bg: string; color: string; label: string }> = {
-  INFO:  { bg: "rgba(22,93,255,0.12)",  color: "#60A5FA", label: "INFO"  },
-  WARN:  { bg: "rgba(255,170,0,0.12)",  color: "#FFAA00", label: "WARN"  },
-  ERROR: { bg: "rgba(255,77,79,0.12)",   color: "#FF4D4F", label: "ERROR" },
-  DEBUG: { bg: "rgba(100,116,139,0.12)",color: "#94A3B8", label: "DEBUG" },
+interface LogStats {
+  totalLogs: number;
+  errorCount: number;
+  warnCount: number;
+  infoCount: number;
+  debugCount: number;
+}
+
+interface ServiceLogStats {
+  service: string;
+  logs: number;
+  errors: number;
+  lastLog: string;
+}
+
+const levelConfig = {
+  error: { color: "#FF4D4F", bg: "rgba(255, 77, 79, 0.15)", icon: XCircle, label: "错误" },
+  warn: { color: "#FFAA00", bg: "rgba(255, 170, 0, 0.15)", icon: AlertTriangle, label: "警告" },
+  info: { color: "#165DFF", bg: "rgba(22, 93, 255, 0.15)", icon: Info, label: "信息" },
+  debug: { color: "#86909C", bg: "rgba(134, 144, 156, 0.15)", icon: Terminal, label: "调试" },
 };
 
-export default function LogViewer() {
-  const { showToast } = useToast();
-  const tableRef = useRef<HTMLDivElement>(null);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState("");
-  const [levelFilter, setLevelFilter] = useState<string>("ALL");
-  const [showLevelDropdown, setShowLevelDropdown] = useState(false);
-  const [expandedLog, setExpandedLog] = useState<number | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [searchFilters, setSearchFilters] = useState({
-    level: "ALL",
-    keyword: "",
-    startTime: "",
-    endTime: "",
-    appId: ""
-  });
-  const [savedSearches] = useState<Array<{ id: number; name: string; query: string }>>([
-    { id: 1, name: "错误日志", query: "level:ERROR" },
-    { id: 2, name: "最近1小时", query: "time:-1h" },
-    { id: 3, name: "用户服务", query: "service:user-service" }
-  ]);
-  const [recentSearches, setRecentSearches] = useState<string[]>([
-    "数据库连接错误",
-    "认证失败",
-    "API超时"
-  ]);
-  const [logStats, setLogStats] = useState({
-    total: 0,
-    error: 0,
-    warning: 0,
-    info: 0,
-    today: 0,
-    avgPerMin: 0
-  });
-  const [levelDistribution, setLevelDistribution] = useState([
-    { name: "ERROR", value: 0, color: "#FF4D4F" },
-    { name: "WARN", value: 0, color: "#FFAA00" },
-    { name: "INFO", value: 0, color: "#60A5FA" },
-    { name: "DEBUG", value: 0, color: "#94A3B8" }
-  ]);
-  const [logTrend] = useState([
-    { time: "00:00", count: 12 },
-    { time: "04:00", count: 8 },
-    { time: "08:00", count: 45 },
-    { time: "12:00", count: 67 },
-    { time: "16:00", count: 53 },
-    { time: "20:00", count: 34 }
-  ]);
+const mockServices = [
+  "order-service",
+  "payment-gateway",
+  "user-service",
+  "inventory-service",
+  "notification-service",
+];
 
-  const loadLogs = async () => {
-    try {
-      setLoading(true);
-      const response = await logsApi.queryLogs({
-        level: levelFilter !== "ALL" ? levelFilter : undefined,
-        keyword: search || undefined,
-        page: 0,
-        size: 100,
-      });
-      
-      let transformed: LogEntry[] = [];
-      if (response.data && response.data.content) {
-        transformed = response.data.content.map((log: any, index: number) => ({
-          id: log.id || index,
-          level: log.level || "INFO",
-          time: log.timestamp || log.time || new Date().toLocaleString(),
-          service: log.service || log.appName || "unknown",
-          content: log.message || log.content || "",
-          traceId: log.traceId || log.trace_id,
-        }));
-      } else if (response.data && Array.isArray(response.data)) {
-        transformed = response.data.map((log: any, index: number) => ({
-          id: log.id || index,
-          level: log.level || "INFO",
-          time: log.timestamp || log.time || new Date().toLocaleString(),
-          service: log.service || log.appName || "unknown",
-          content: log.message || log.content || "",
-          traceId: log.traceId || log.trace_id,
-        }));
-      }
-      
-      setLogs(transformed);
-      
-      const total = transformed.length;
-      const error = transformed.filter(l => l.level === "ERROR").length;
-      const warning = transformed.filter(l => l.level === "WARN").length;
-      const info = transformed.filter(l => l.level === "INFO").length;
-      const today = transformed.filter(l => {
-        const logDate = new Date(l.time).toDateString();
-        const todayStr = new Date().toDateString();
-        return logDate === todayStr;
-      }).length;
-      
-      setLogStats({
-        total,
-        error,
-        warning,
-        info,
-        today,
-        avgPerMin: total > 0 ? Math.round(total / 60 * 10) / 10 : 0
-      });
-      
-      setLevelDistribution([
-        { name: "ERROR", value: error, color: "#FF4D4F" },
-        { name: "WARN", value: warning, color: "#FFAA00" },
-        { name: "INFO", value: info, color: "#60A5FA" },
-        { name: "DEBUG", value: transformed.filter(l => l.level === "DEBUG").length, color: "#94A3B8" }
-      ]);
-      
-      showToast("日志数据加载成功", "success");
-    } catch (error) {
-      console.error("Failed to load logs:", error);
-      setLogs([]);
-      showToast("日志数据加载失败", "warning");
-    } finally {
-      setLoading(false);
-    }
+const mockHosts = [
+  "192.168.1.101",
+  "192.168.1.102",
+  "192.168.1.103",
+];
+
+const mockLogs: LogEntry[] = Array.from({ length: 50 }, (_, i) => {
+  const levels: Array<"info" | "warn" | "error" | "debug"> = ["info", "warn", "error", "debug"];
+  const level = levels[Math.floor(Math.random() * levels.length)];
+  const service = mockServices[Math.floor(Math.random() * mockServices.length)];
+  const host = mockHosts[Math.floor(Math.random() * mockHosts.length)];
+  
+  const messages: Record<string, string[]> = {
+    error: [
+      "Connection timeout after 30000ms",
+      "Failed to connect to database",
+      "OutOfMemoryError: Heap space exhausted",
+      "NullPointerException at line 145",
+      "Transaction rollback due to lock timeout",
+    ],
+    warn: [
+      "High memory usage detected: 85%",
+      "Slow query detected: 2500ms",
+      "Connection pool near capacity: 90%",
+      "Retrying request after failure",
+      "Cache miss rate above threshold",
+    ],
+    info: [
+      "Service started successfully on port 8080",
+      "New connection established",
+      "Configuration reloaded",
+      "Scheduled task completed",
+      "Health check passed",
+    ],
+    debug: [
+      "Processing request: GET /api/orders",
+      "Entering method: calculateTotal",
+      "Cache lookup for key: user_123",
+      "SQL executed in 45ms",
+      "Response sent with status 200",
+    ],
+  };
+  
+  return {
+    id: `log-${i}`,
+    timestamp: new Date(Date.now() - Math.random() * 3600000),
+    level,
+    service,
+    instance: `${host}:${8080 + Math.floor(Math.random() * 5)}`,
+    message: messages[level][Math.floor(Math.random() * messages[level].length)],
+    traceId: Math.random() > 0.5 ? `trace-${Math.random().toString(36).substr(2, 9)}` : undefined,
+    spanId: Math.random() > 0.7 ? `span-${Math.floor(Math.random() * 100)}` : undefined,
+    host,
+    pid: 1000 + Math.floor(Math.random() * 5000),
+  };
+});
+
+export default function LogViewer() {
+  const [logs, setLogs] = useState<LogEntry[]>(mockLogs);
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [filterLevel, setFilterLevel] = useState<string>("all");
+  const [filterService, setFilterService] = useState<string>("all");
+  const [filterHost, setFilterHost] = useState<string>("all");
+  const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
+  const [isRealtime, setIsRealtime] = useState(true);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [viewMode, setViewMode] = useState<"table" | "list">("list");
+  const [timeRange, setTimeRange] = useState<"1h" | "6h" | "24h" | "7d">("1h");
+  const [autoScroll, setAutoScroll] = useState(true);
+  const logsEndRef = useRef<HTMLDivElement>(null);
+  
+  const [logStats, setLogStats] = useState<LogStats>({
+    totalLogs: 0,
+    errorCount: 0,
+    warnCount: 0,
+    infoCount: 0,
+    debugCount: 0,
+  });
+
+  const [serviceStats, setServiceStats] = useState<ServiceLogStats[]>([]);
+
+  useEffect(() => {
+    updateStats();
+  }, [logs]);
+
+  const updateStats = () => {
+    const stats: LogStats = {
+      totalLogs: logs.length,
+      errorCount: logs.filter(l => l.level === "error").length,
+      warnCount: logs.filter(l => l.level === "warn").length,
+      infoCount: logs.filter(l => l.level === "info").length,
+      debugCount: logs.filter(l => l.level === "debug").length,
+    };
+    setLogStats(stats);
+
+    const serviceMap = new Map<string, ServiceLogStats>();
+    logs.forEach(log => {
+      const existing = serviceMap.get(log.service) || {
+        service: log.service,
+        logs: 0,
+        errors: 0,
+        lastLog: "",
+      };
+      existing.logs++;
+      if (log.level === "error") existing.errors++;
+      existing.lastLog = log.timestamp.toLocaleTimeString();
+      serviceMap.set(log.service, existing);
+    });
+    setServiceStats(Array.from(serviceMap.values()));
   };
 
   useEffect(() => {
-    loadLogs();
-  }, [levelFilter]);
+    if (!isRealtime) return;
+    const interval = setInterval(() => {
+      const levels: Array<"info" | "warn" | "error" | "debug"> = ["info", "warn", "error", "debug"];
+      const level = levels[Math.floor(Math.random() * levels.length)];
+      const service = mockServices[Math.floor(Math.random() * mockServices.length)];
+      const host = mockHosts[Math.floor(Math.random() * mockHosts.length)];
+      
+      const messages: Record<string, string[]> = {
+        error: ["New error detected in production"],
+        warn: ["Warning: Performance degradation"],
+        info: ["Scheduled maintenance completed"],
+        debug: ["Debug information logged"],
+      };
+      
+      const newLog: LogEntry = {
+        id: `log-${Date.now()}`,
+        timestamp: new Date(),
+        level,
+        service,
+        instance: `${host}:8080`,
+        message: messages[level][0],
+        traceId: `trace-${Math.random().toString(36).substr(2, 9)}`,
+        host,
+        pid: 1000 + Math.floor(Math.random() * 5000),
+      };
+      
+      setLogs(prev => [newLog, ...prev.slice(0, 99)]);
+    }, 3000);
+    
+    return () => clearInterval(interval);
+  }, [isRealtime]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (autoRefresh) {
-      interval = setInterval(() => {
-        loadLogs();
-      }, 10000);
+    if (autoScroll && logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [autoRefresh, levelFilter]);
+  }, [logs, autoScroll]);
 
-  const handleSearch = () => {
-    loadLogs();
+  const filteredLogs = useMemo(() => {
+    return logs.filter(log => {
+      const matchesKeyword = searchKeyword === "" || 
+        log.message.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+        log.service.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+        log.traceId?.toLowerCase().includes(searchKeyword.toLowerCase());
+      const matchesLevel = filterLevel === "all" || log.level === filterLevel;
+      const matchesService = filterService === "all" || log.service === filterService;
+      const matchesHost = filterHost === "all" || log.host === filterHost;
+      return matchesKeyword && matchesLevel && matchesService && matchesHost;
+    });
+  }, [logs, searchKeyword, filterLevel, filterService, filterHost]);
+
+  const uniqueServices = [...new Set(logs.map(l => l.service))];
+  const uniqueHosts = [...new Set(logs.map(l => l.host).filter(Boolean))];
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   };
 
   const handleExport = () => {
-    showToast("正在导出日志...", "info");
-    const data = filteredLogs.map(l => `${l.time} [${l.level}] ${l.service}: ${l.content}`).join("\n");
-    const blob = new Blob([data], { type: "text/plain" });
+    const data = filteredLogs.map(log => ({
+      timestamp: log.timestamp.toISOString(),
+      level: log.level,
+      service: log.service,
+      instance: log.instance,
+      message: log.message,
+      traceId: log.traceId,
+    }));
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `logs_${new Date().toISOString().slice(0, 10)}.txt`;
+    a.download = `logs-${Date.now()}.json`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showToast("日志导出成功", "success");
   };
 
   const handleClearLogs = () => {
-    if (logs.length === 0) {
-      showToast("暂无日志可清除", "info");
-      return;
-    }
     setLogs([]);
-    showToast("日志已清除", "success");
   };
-
-  const handleSaveSearch = () => {
-    if (search.trim()) {
-      const newSearch = { id: Date.now(), name: search.slice(0, 20), query: search };
-      showToast("搜索已保存", "success");
-    } else {
-      showToast("请输入搜索内容", "warning");
-    }
-  };
-
-  const handleApplyAdvancedFilters = () => {
-    setSearch(searchFilters.keyword);
-    setLevelFilter(searchFilters.level);
-    loadLogs();
-    setShowAdvancedFilters(false);
-    showToast("高级筛选已应用", "success");
-  };
-
-  const handleClearAdvancedFilters = () => {
-    setSearchFilters({
-      level: "ALL",
-      keyword: "",
-      startTime: "",
-      endTime: "",
-      appId: ""
-    });
-  };
-
-  const handleRecentSearchClick = (searchTerm: string) => {
-    setSearch(searchTerm);
-    loadLogs();
-  };
-
-  const handleSavedSearchClick = (query: string) => {
-    setSearch(query);
-    loadLogs();
-  };
-
-  const filteredLogs = logs.filter(log => {
-    const matchSearch = search === "" || 
-      log.content.toLowerCase().includes(search.toLowerCase()) ||
-      log.service.toLowerCase().includes(search.toLowerCase()) ||
-      (log.traceId && log.traceId.toLowerCase().includes(search.toLowerCase()));
-    return matchSearch;
-  });
-
-  const levelOptions = [
-    { value: "ALL", label: "全部级别" },
-    { value: "ERROR", label: "ERROR" },
-    { value: "WARN", label: "WARN" },
-    { value: "INFO", label: "INFO" },
-    { value: "DEBUG", label: "DEBUG" },
-  ];
-
-  const totalDistribution = levelDistribution.reduce((sum, item) => sum + item.value, 0);
 
   return (
     <MainLayout title="日志查看">
-      <div data-cmp="LogViewer" className="space-y-4">
-        <PageHeader
-          title="日志查看器"
-          subtitle={`${logs.length} 条日志`}
-          actions={
-            <>
-              <TechButton 
-                variant="secondary" 
-                icon={<Download size={13} />} 
-                onClick={handleExport}
-              >
-                导出日志
-              </TechButton>
-              <TechButton 
-                variant={showAdvancedFilters ? "primary" : "secondary"} 
-                icon={<Filter size={13} />} 
-                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              >
-                高级筛选
-              </TechButton>
-              <TechButton 
-                variant="secondary" 
-                icon={<Search size={13} />} 
-                onClick={handleSaveSearch}
-              >
-                保存搜索
-              </TechButton>
-              <div className="relative">
-                <button
-                  onClick={() => setShowLevelDropdown(!showLevelDropdown)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs"
-                  style={{ background: "var(--card)", border: "1px solid var(--border)", color: "var(--foreground)" }}
-                >
-                  <span>{levelOptions.find(o => o.value === levelFilter)?.label}</span>
-                  <ChevronDown size={12} />
-                </button>
-                {showLevelDropdown && (
-                  <div className="absolute top-full left-0 mt-1 py-1 rounded-md z-10 min-w-[100px]" style={{ background: "var(--card)", border: "1px solid var(--border)", boxShadow: "0 4px 12px rgba(0,0,0,0.3)" }}>
-                    {levelOptions.map(option => (
-                      <button
-                        key={option.value}
-                        onClick={() => { setLevelFilter(option.value); setShowLevelDropdown(false); }}
-                        className="w-full px-3 py-1.5 text-left text-xs"
-                        style={{ color: levelFilter === option.value ? "#165DFF" : "var(--foreground)" }}
-                      >{option.label}</button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <SearchBar
-                value={search}
-                onChange={setSearch}
-                onSearch={handleSearch}
-                placeholder="搜索日志内容..."
-              />
-              <TechButton
-                variant={autoRefresh ? "primary" : "secondary"}
-                icon={<RefreshCw size={13} />}
-                onClick={() => setAutoRefresh(!autoRefresh)}
-              >
-                {autoRefresh ? "停止刷新" : "自动刷新"}
-              </TechButton>
-              <TechButton variant="danger" icon={<Trash2 size={13} />} onClick={handleClearLogs}>清空</TechButton>
-            </>
-          }
-        />
-
-        {showAdvancedFilters && (
-          <div className="rounded-lg p-4 space-y-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Settings size={16} style={{ color: "#165DFF" }} />
-                <span className="text-sm font-medium">高级搜索筛选</span>
-              </div>
-              <button
-                onClick={() => setShowAdvancedFilters(false)}
-                className="p-1 rounded hover:bg-white/5"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs mb-1.5" style={{ color: "var(--muted-foreground)" }}>
-                  关键词
-                </label>
-                <input
-                  type="text"
-                  value={searchFilters.keyword}
-                  onChange={(e) => setSearchFilters({ ...searchFilters, keyword: e.target.value })}
-                  placeholder="输入搜索关键词..."
-                  className="w-full px-3 py-1.5 rounded text-xs"
-                  style={{ background: "var(--muted)", border: "1px solid var(--border)", color: "var(--foreground)" }}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-xs mb-1.5" style={{ color: "var(--muted-foreground)" }}>
-                  日志级别
-                </label>
-                <select
-                  value={searchFilters.level}
-                  onChange={(e) => setSearchFilters({ ...searchFilters, level: e.target.value })}
-                  className="w-full px-3 py-1.5 rounded text-xs"
-                  style={{ background: "var(--muted)", border: "1px solid var(--border)", color: "var(--foreground)" }}
-                >
-                  {levelOptions.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-xs mb-1.5" style={{ color: "var(--muted-foreground)" }}>
-                  开始时间
-                </label>
-                <input
-                  type="datetime-local"
-                  value={searchFilters.startTime}
-                  onChange={(e) => setSearchFilters({ ...searchFilters, startTime: e.target.value })}
-                  className="w-full px-3 py-1.5 rounded text-xs"
-                  style={{ background: "var(--muted)", border: "1px solid var(--border)", color: "var(--foreground)" }}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-xs mb-1.5" style={{ color: "var(--muted-foreground)" }}>
-                  结束时间
-                </label>
-                <input
-                  type="datetime-local"
-                  value={searchFilters.endTime}
-                  onChange={(e) => setSearchFilters({ ...searchFilters, endTime: e.target.value })}
-                  className="w-full px-3 py-1.5 rounded text-xs"
-                  style={{ background: "var(--muted)", border: "1px solid var(--border)", color: "var(--foreground)" }}
-                />
-              </div>
-              
-              <div className="col-span-2">
-                <label className="block text-xs mb-1.5" style={{ color: "var(--muted-foreground)" }}>
-                  应用ID
-                </label>
-                <input
-                  type="text"
-                  value={searchFilters.appId}
-                  onChange={(e) => setSearchFilters({ ...searchFilters, appId: e.target.value })}
-                  placeholder="输入应用ID..."
-                  className="w-full px-3 py-1.5 rounded text-xs"
-                  style={{ background: "var(--muted)", border: "1px solid var(--border)", color: "var(--foreground)" }}
-                />
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-4 pt-2 border-t" style={{ borderColor: "var(--border)" }}>
-              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>保存的搜索：</span>
-              <div className="flex gap-2 flex-wrap">
-                {savedSearches.map(s => (
-                  <button
-                    key={s.id}
-                    onClick={() => handleSavedSearchClick(s.query)}
-                    className="text-xs px-2 py-1 rounded"
-                    style={{ background: "var(--muted)", color: "#165DFF" }}
-                  >
-                    {s.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-4 pt-2 border-t" style={{ borderColor: "var(--border)" }}>
-              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>最近搜索：</span>
-              <div className="flex gap-2 flex-wrap">
-                {recentSearches.map((term, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleRecentSearchClick(term)}
-                    className="text-xs px-2 py-1 rounded flex items-center gap-1"
-                    style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}
-                  >
-                    <Clock size={10} />
-                    {term}
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            <div className="flex justify-end gap-2 pt-2">
-              <TechButton variant="secondary" onClick={handleClearAdvancedFilters}>
-                清除筛选
-              </TechButton>
-              <TechButton variant="primary" onClick={handleApplyAdvancedFilters}>
-                应用筛选
-              </TechButton>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-6 gap-3">
-          <div className="rounded-lg p-3 flex items-center gap-3" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(22,93,255,0.12)" }}>
-              <Database size={20} style={{ color: "#165DFF" }} />
-            </div>
-            <div>
-              <div className="text-lg font-bold" style={{ color: "#165DFF" }}>{logStats.total}</div>
-              <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>总日志数</div>
-            </div>
-          </div>
-          
-          <div className="rounded-lg p-3 flex items-center gap-3" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(255,77,79,0.12)" }}>
-              <AlertTriangle size={20} style={{ color: "#FF4D4F" }} />
-            </div>
-            <div>
-              <div className="text-lg font-bold" style={{ color: "#FF4D4F" }}>{logStats.error}</div>
-              <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>ERROR</div>
-            </div>
-          </div>
-          
-          <div className="rounded-lg p-3 flex items-center gap-3" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(255,170,0,0.12)" }}>
-              <Zap size={20} style={{ color: "#FFAA00" }} />
-            </div>
-            <div>
-              <div className="text-lg font-bold" style={{ color: "#FFAA00" }}>{logStats.warning}</div>
-              <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>WARNING</div>
-            </div>
-          </div>
-          
-          <div className="rounded-lg p-3 flex items-center gap-3" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(96,165,250,0.12)" }}>
-              <Activity size={20} style={{ color: "#60A5FA" }} />
-            </div>
-            <div>
-              <div className="text-lg font-bold" style={{ color: "#60A5FA" }}>{logStats.info}</div>
-              <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>INFO</div>
-            </div>
-          </div>
-          
-          <div className="rounded-lg p-3 flex items-center gap-3" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(0,214,143,0.12)" }}>
-              <TrendingUp size={20} style={{ color: "#00D68F" }} />
-            </div>
-            <div>
-              <div className="text-lg font-bold" style={{ color: "#00D68F" }}>{logStats.today}</div>
-              <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>今日日志</div>
-            </div>
-          </div>
-          
-          <div className="rounded-lg p-3 flex items-center gap-3" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(139,92,246,0.12)" }}>
-              <Shield size={20} style={{ color: "#8B5CF6" }} />
-            </div>
-            <div>
-              <div className="text-lg font-bold" style={{ color: "#8B5CF6" }}>{logStats.avgPerMin}</div>
-              <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>平均/分钟</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-3">
+      <div className="space-y-4">
+        {/* 日志统计概览 */}
+        <div className="grid grid-cols-5 gap-4">
           <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <div className="flex items-center gap-2 mb-4">
-              <Shield size={16} style={{ color: "#165DFF" }} />
-              <span className="text-sm font-medium">日志级别分布</span>
-            </div>
             <div className="flex items-center justify-between">
-              <div className="relative" style={{ width: "120px", height: "120px" }}>
-                <svg viewBox="0 0 100 100" className="transform -rotate-90">
-                  {totalDistribution > 0 ? (
-                    levelDistribution.map((item, index) => {
-                      const percentage = (item.value / totalDistribution) * 100;
-                      const previousPercentage = levelDistribution.slice(0, index).reduce((sum, i) => sum + (i.value / totalDistribution) * 100, 0);
-                      const strokeDasharray = `${percentage} ${100 - percentage}`;
-                      const strokeDashoffset = -previousPercentage;
-                      return (
-                        <circle
-                          key={item.name}
-                          cx="50"
-                          cy="50"
-                          r="40"
-                          fill="none"
-                          stroke={item.color}
-                          strokeWidth="20"
-                          strokeDasharray={strokeDasharray}
-                          strokeDashoffset={strokeDashoffset}
-                          style={{ opacity: 0.8 }}
-                        />
-                      );
-                    })
-                  ) : (
-                    <circle cx="50" cy="50" r="40" fill="none" stroke="var(--muted)" strokeWidth="20" strokeDasharray="100 100" />
-                  )}
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-lg font-bold">{totalDistribution}</div>
-                    <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>总计</div>
-                  </div>
-                </div>
+              <div>
+                <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>总日志数</div>
+                <div className="text-xl font-bold mt-1" style={{ color: "var(--foreground)" }}>{logStats.totalLogs.toLocaleString()}</div>
               </div>
-              <div className="space-y-2">
-                {levelDistribution.map((item) => (
-                  <div key={item.name} className="flex items-center gap-2 text-xs">
-                    <div className="w-3 h-3 rounded-full" style={{ background: item.color }}></div>
-                    <span style={{ color: "var(--muted-foreground)" }}>{item.name}</span>
-                    <span className="font-medium" style={{ color: item.color }}>{item.value}</span>
-                    {totalDistribution > 0 && (
-                      <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-                        ({Math.round((item.value / totalDistribution) * 100)}%)
-                      </span>
-                    )}
-                  </div>
-                ))}
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(22, 93, 255, 0.1)" }}>
+                <FileText size={20} style={{ color: "#165DFF" }} />
               </div>
             </div>
           </div>
-
-          <div className="rounded-lg p-4 col-span-2" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp size={16} style={{ color: "#165DFF" }} />
-              <span className="text-sm font-medium">日志趋势</span>
+          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>错误</div>
+                <div className="text-xl font-bold mt-1" style={{ color: "#FF4D4F" }}>{logStats.errorCount}</div>
+              </div>
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(255, 77, 79, 0.1)" }}>
+                <XCircle size={20} style={{ color: "#FF4D4F" }} />
+              </div>
             </div>
-            <div className="flex items-end gap-2 h-32">
-              {logTrend.map((item, index) => {
-                const maxCount = Math.max(...logTrend.map(t => t.count));
-                const height = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
-                return (
-                  <div key={index} className="flex-1 flex flex-col items-center gap-1">
-                    <div 
-                      className="w-full rounded-t transition-all hover:opacity-80"
-                      style={{ 
-                        height: `${height}%`,
-                        background: index === logTrend.length - 1 ? "linear-gradient(180deg, #165DFF 0%, #8B5CF6 100%)" : "rgba(22,93,255,0.3)"
-                      }}
-                    ></div>
-                    <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.count}</span>
-                    <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.time}</span>
-                  </div>
-                );
-              })}
+          </div>
+          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>警告</div>
+                <div className="text-xl font-bold mt-1" style={{ color: "#FFAA00" }}>{logStats.warnCount}</div>
+              </div>
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(255, 170, 0, 0.1)" }}>
+                <AlertTriangle size={20} style={{ color: "#FFAA00" }} />
+              </div>
+            </div>
+          </div>
+          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>信息</div>
+                <div className="text-xl font-bold mt-1" style={{ color: "#165DFF" }}>{logStats.infoCount}</div>
+              </div>
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(22, 93, 255, 0.1)" }}>
+                <Info size={20} style={{ color: "#165DFF" }} />
+              </div>
+            </div>
+          </div>
+          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>调试</div>
+                <div className="text-xl font-bold mt-1" style={{ color: "#86909C" }}>{logStats.debugCount}</div>
+              </div>
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "rgba(134, 144, 156, 0.1)" }}>
+                <Terminal size={20} style={{ color: "#86909C" }} />
+              </div>
             </div>
           </div>
         </div>
 
-        <div ref={tableRef} className="rounded-lg overflow-hidden" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-          <div className="max-h-[500px] overflow-auto">
-            {filteredLogs.length === 0 ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="text-center">
-                  <FileText size={48} style={{ color: "var(--muted-foreground)" }} className="mx-auto mb-4" />
-                  <div className="text-sm" style={{ color: "var(--muted-foreground)" }}>暂无日志数据</div>
+        {/* 服务日志统计 */}
+        <div className="grid grid-cols-5 gap-3">
+          {serviceStats.slice(0, 5).map((stat, index) => (
+            <div key={stat.service} className="rounded-lg p-3" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+              <div className="flex items-center gap-2 mb-2">
+                <Server size={14} style={{ color: "#165DFF" }} />
+                <span className="text-xs font-medium text-white truncate">{stat.service}</span>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span style={{ color: "var(--muted-foreground)" }}>日志数</span>
+                  <span className="font-medium text-white">{stat.logs}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span style={{ color: "var(--muted-foreground)" }}>错误</span>
+                  <span className="font-medium" style={{ color: "#FF4D4F" }}>{stat.errors}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span style={{ color: "var(--muted-foreground)" }}>最新</span>
+                  <span className="font-medium text-white">{stat.lastLog}</span>
                 </div>
               </div>
-            ) : (
-              <table className="w-full border-collapse">
-                <thead className="sticky top-0 z-10">
-                  <tr style={{ background: "#1E293B" }}>
-                    <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground w-16">级别</th>
-                    <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground w-40">时间</th>
-                    <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground w-28">服务</th>
-                    <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">日志内容</th>
-                    <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground w-24">操作</th>
+            </div>
+          ))}
+        </div>
+
+        {/* 实时监控指示器 */}
+        <div className="flex items-center justify-between p-4 rounded-lg" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsRealtime(!isRealtime)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium transition-colors ${isRealtime ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}`}
+            >
+              {isRealtime ? <><span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />实时监控中</> : <><span className="w-2 h-2 rounded-full bg-gray-500" />已暂停</>}
+            </button>
+            <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+              {timeRange === "1h" ? "最近1小时" : timeRange === "6h" ? "最近6小时" : timeRange === "24h" ? "最近24小时" : "最近7天"}
+            </span>
+            <div className="flex items-center gap-1">
+              {(["1h", "6h", "24h", "7d"] as const).map(range => (
+                <button
+                  key={range}
+                  onClick={() => setTimeRange(range)}
+                  className={`px-2 py-1 rounded text-xs ${timeRange === range ? "bg-blue-500/20 text-blue-400" : "text-muted-foreground hover:text-white"}`}
+                >
+                  {range === "1h" ? "1小时" : range === "6h" ? "6小时" : range === "24h" ? "24小时" : "7天"}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setAutoScroll(!autoScroll)}
+              className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${autoScroll ? "bg-blue-500/20 text-blue-400" : "text-muted-foreground"}`}
+            >
+              {autoScroll ? <><Play size={12} />自动滚动</> : <><Pause size={12} />已暂停</>}
+            </button>
+            <button
+              onClick={() => setViewMode(viewMode === "table" ? "list" : "table")}
+              className="p-1.5 rounded hover:bg-input"
+              style={{ color: "var(--muted-foreground)" }}
+              title={viewMode === "table" ? "切换到列表视图" : "切换到表格视图"}
+            >
+              {viewMode === "table" ? <Rows size={16} /> : <Columns size={16} />}
+            </button>
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-1 px-3 py-1.5 rounded text-xs"
+              style={{ background: "var(--muted)", color: "var(--foreground)" }}
+            >
+              <Download size={12} />
+              导出
+            </button>
+            <button
+              onClick={handleClearLogs}
+              className="flex items-center gap-1 px-3 py-1.5 rounded text-xs"
+              style={{ background: "rgba(255, 77, 79, 0.1)", color: "#FF4D4F" }}
+            >
+              <Trash size={12} />
+              清空
+            </button>
+          </div>
+        </div>
+
+        {/* 搜索和筛选 */}
+        <div className="flex flex-wrap items-center gap-3 p-4 rounded-lg" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="relative flex-1 min-w-[200px] max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
+            <input
+              type="text"
+              placeholder="搜索日志内容、服务名、Trace ID..."
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 rounded-lg border text-sm"
+              style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+            />
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />
+            <select
+              value={filterLevel}
+              onChange={(e) => setFilterLevel(e.target.value)}
+              className="px-3 py-2 rounded-lg border text-sm"
+              style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+            >
+              <option value="all">全部级别</option>
+              <option value="error">错误</option>
+              <option value="warn">警告</option>
+              <option value="info">信息</option>
+              <option value="debug">调试</option>
+            </select>
+            <select
+              value={filterService}
+              onChange={(e) => setFilterService(e.target.value)}
+              className="px-3 py-2 rounded-lg border text-sm"
+              style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+            >
+              <option value="all">全部服务</option>
+              {uniqueServices.map(service => (
+                <option key={service} value={service}>{service}</option>
+              ))}
+            </select>
+            <select
+              value={filterHost}
+              onChange={(e) => setFilterHost(e.target.value)}
+              className="px-3 py-2 rounded-lg border text-sm"
+              style={{ background: "var(--background)", borderColor: "var(--border)", color: "var(--foreground)" }}
+            >
+              <option value="all">全部主机</option>
+              {uniqueHosts.map(host => (
+                <option key={host} value={host}>{host}</option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm"
+            style={{ background: showAdvanced ? "rgba(22, 93, 255, 0.1)" : "var(--muted)", color: showAdvanced ? "#165DFF" : "var(--foreground)" }}
+          >
+            <Settings size={14} />
+            高级筛选
+          </button>
+          <button
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+            style={{ background: "rgba(22, 93, 255, 0.1)", color: "#165DFF" }}
+          >
+            <RefreshCw size={14} />
+            刷新
+          </button>
+        </div>
+
+        {/* 日志列表 */}
+        <div className="rounded-lg overflow-hidden" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="p-4 border-b" style={{ borderColor: "var(--border)" }}>
+            <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
+              日志列表 <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>({filteredLogs.length} 条)</span>
+            </span>
+          </div>
+          
+          {viewMode === "table" ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ background: "var(--input)" }}>
+                    <th className="text-left px-4 py-3 text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>时间</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>级别</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>服务</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>实例</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>消息</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>Trace ID</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {filteredLogs.map((log) => {
-                    const lc = levelColors[log.level];
-                    const isExpanded = expandedLog === log.id;
+                <tbody className="divide-y" style={{ borderColor: "var(--border)" }}>
+                  {filteredLogs.slice(0, 50).map((log) => {
+                    const LevelIcon = levelConfig[log.level].icon;
                     return (
-                      <tr key={log.id} className="border-b border-border hover:bg-white/[0.02] transition-colors">
-                        <td className="px-4 py-2.5">
-                          <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ background: lc.bg, color: lc.color }}>
-                            {lc.label}
+                      <tr
+                        key={log.id}
+                        className="hover:bg-input cursor-pointer transition-colors"
+                        onClick={() => setSelectedLog(log)}
+                      >
+                        <td className="px-4 py-3 text-xs font-mono" style={{ color: "var(--muted-foreground)" }}>
+                          {formatTime(log.timestamp)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium"
+                            style={{ background: levelConfig[log.level].bg, color: levelConfig[log.level].color }}
+                          >
+                            <LevelIcon size={12} />
+                            {levelConfig[log.level].label}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5">
-                          <div className="flex items-center gap-1.5">
-                            <Clock size={11} style={{ color: "var(--muted-foreground)" }} />
-                            <span className="text-xs text-muted-foreground font-mono">{log.time}</span>
-                          </div>
+                        <td className="px-4 py-3 text-xs" style={{ color: "var(--foreground)" }}>
+                          {log.service}
                         </td>
-                        <td className="px-4 py-2.5">
-                          <span className="text-xs text-white">{log.service}</span>
+                        <td className="px-4 py-3 text-xs font-mono" style={{ color: "var(--muted-foreground)" }}>
+                          {log.instance}
                         </td>
-                        <td className="px-4 py-2.5">
-                          <div className={`text-xs ${isExpanded ? "text-white" : "text-muted-foreground truncate"}`} style={{ maxWidth: "500px" }}>
-                            {isExpanded ? log.content : log.content.slice(0, 150) + (log.content.length > 150 ? "..." : "")}
-                          </div>
-                          {log.traceId && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              Trace: <span className="font-mono">{log.traceId}</span>
-                            </div>
-                          )}
+                        <td className="px-4 py-3 text-xs" style={{ color: "var(--foreground)" }}>
+                          <div className="max-w-md truncate">{log.message}</div>
                         </td>
-                        <td className="px-4 py-2.5">
-                          <button
-                            onClick={() => setExpandedLog(isExpanded ? null : log.id)}
-                            className="text-xs px-2 py-1 rounded"
-                            style={{ background: "var(--muted)", color: "var(--foreground)" }}
-                          >
-                            {isExpanded ? "收起" : "展开"}
-                          </button>
+                        <td className="px-4 py-3 text-xs font-mono" style={{ color: "var(--muted-foreground)" }}>
+                          {log.traceId || "-"}
                         </td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="divide-y" style={{ borderColor: "var(--border)" }}>
+              {filteredLogs.slice(0, 50).map((log) => {
+                const LevelIcon = levelConfig[log.level].icon;
+                return (
+                  <div
+                    key={log.id}
+                    className="flex items-start gap-3 p-4 hover:bg-input cursor-pointer transition-colors"
+                    onClick={() => setSelectedLog(log)}
+                  >
+                    <div className="flex-shrink-0 w-16 text-xs font-mono pt-1" style={{ color: "var(--muted-foreground)" }}>
+                      {formatTime(log.timestamp)}
+                    </div>
+                    <div className="flex-shrink-0">
+                      <span
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium"
+                        style={{ background: levelConfig[log.level].bg, color: levelConfig[log.level].color }}
+                      >
+                        <LevelIcon size={12} />
+                        {levelConfig[log.level].label}
+                      </span>
+                    </div>
+                    <div className="flex-shrink-0 w-32 text-xs" style={{ color: "var(--foreground)" }}>
+                      {log.service}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm" style={{ color: "var(--foreground)" }}>
+                        {log.message}
+                      </div>
+                      {log.traceId && (
+                        <div className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
+                          Trace: {log.traceId}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
+        <div ref={logsEndRef} />
+
+        {/* 详情弹窗 */}
+        {selectedLog && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setSelectedLog(null)}>
+            <div
+              className="bg-card rounded-lg w-full max-w-2xl mx-4 max-h-[80vh] overflow-auto"
+              style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: "var(--border)" }}>
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const LevelIcon = levelConfig[selectedLog.level].icon;
+                    return <LevelIcon size={16} style={{ color: levelConfig[selectedLog.level].color }} />;
+                  })()}
+                  <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>日志详情</span>
+                </div>
+                <button onClick={() => setSelectedLog(null)} className="p-1 hover:bg-input rounded">
+                  <XCircle size={16} style={{ color: "var(--muted-foreground)" }} />
+                </button>
+              </div>
+              <div className="p-4 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>时间</div>
+                    <span className="text-sm font-mono" style={{ color: "var(--foreground)" }}>{selectedLog.timestamp.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <div className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>级别</div>
+                    <span className="text-sm font-medium" style={{ color: levelConfig[selectedLog.level].color }}>{levelConfig[selectedLog.level].label}</span>
+                  </div>
+                  <div>
+                    <div className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>服务</div>
+                    <span className="text-sm" style={{ color: "var(--foreground)" }}>{selectedLog.service}</span>
+                  </div>
+                  <div>
+                    <div className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>实例</div>
+                    <span className="text-sm font-mono" style={{ color: "var(--foreground)" }}>{selectedLog.instance}</span>
+                  </div>
+                  {selectedLog.host && (
+                    <div>
+                      <div className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>主机</div>
+                      <span className="text-sm font-mono" style={{ color: "var(--foreground)" }}>{selectedLog.host}</span>
+                    </div>
+                  )}
+                  {selectedLog.pid && (
+                    <div>
+                      <div className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>进程ID</div>
+                      <span className="text-sm font-mono" style={{ color: "var(--foreground)" }}>{selectedLog.pid}</span>
+                    </div>
+                  )}
+                  {selectedLog.traceId && (
+                    <div className="col-span-2">
+                      <div className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>Trace ID</div>
+                      <span className="text-sm font-mono" style={{ color: "#165DFF" }}>{selectedLog.traceId}</span>
+                    </div>
+                  )}
+                  {selectedLog.spanId && (
+                    <div>
+                      <div className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>Span ID</div>
+                      <span className="text-sm font-mono" style={{ color: "var(--foreground)" }}>{selectedLog.spanId}</span>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div className="text-xs mb-2" style={{ color: "var(--muted-foreground)" }}>日志消息</div>
+                  <div className="p-3 rounded-lg text-sm font-mono" style={{ background: "#0B1120", color: "#94A3B8" }}>
+                    {selectedLog.message}
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2 p-4 border-t" style={{ borderColor: "var(--border)" }}>
+                <button
+                  className="flex-1 px-4 py-2 rounded-lg text-sm font-medium"
+                  style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}
+                  onClick={() => setSelectedLog(null)}
+                >
+                  关闭
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </MainLayout>
   );

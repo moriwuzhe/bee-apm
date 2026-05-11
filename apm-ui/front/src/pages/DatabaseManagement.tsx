@@ -89,6 +89,12 @@ export default function DatabaseManagement() {
   const [query, setQuery] = useState("SELECT * FROM trace_spans LIMIT 10");
   const [queryResult, setQueryResult] = useState<QueryResult | null>(mockQueryResult);
   const [searchKeyword, setSearchKeyword] = useState("");
+  const [isRealtime, setIsRealtime] = useState(true);
+  const [lastRefreshTime, setLastRefreshTime] = useState(new Date());
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [selectedTables, setSelectedTables] = useState<Set<string>>(new Set());
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [isExecuting, setIsExecuting] = useState(false);
 
   const filteredTables = mockTables.filter((t) =>
     t.name.toLowerCase().includes(searchKeyword.toLowerCase())

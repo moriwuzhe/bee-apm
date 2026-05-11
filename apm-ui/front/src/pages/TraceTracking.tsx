@@ -53,6 +53,9 @@ export default function TraceTracking() {
   const [topTraces, setTopTraces] = useState<TopTrace[]>([]);
   const [slowTraces, setSlowTraces] = useState<SlowTrace[]>([]);
   const [serviceTopology, setServiceTopology] = useState<ServiceTopology[]>([]);
+  const [isRealtime, setIsRealtime] = useState(true);
+  const [lastRefreshTime, setLastRefreshTime] = useState(new Date());
+  const [selectedTraces, setSelectedTraces] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadData();

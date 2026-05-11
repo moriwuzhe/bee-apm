@@ -3,7 +3,7 @@ import MainLayout from "../components/Layout/MainLayout";
 import PageHeader from "../components/UI/PageHeader";
 import TechButton from "../components/UI/TechButton";
 import StatusBadge from "../components/UI/StatusBadge";
-import { Plus, Search, Edit2, User, Trash2, Eye, X, Check, Download, RefreshCw, AlertTriangle, Settings, Activity, Shield, Zap, TrendingUp, Clock, BarChart3, Server, Wifi, Cpu, CheckCircle, XCircle, Users, Key, Lock, UserCheck } from "lucide-react";
+import { Plus, Search, Edit2, User, Trash2, Eye, X, Check, Download, RefreshCw, AlertTriangle, Settings, Activity, Shield, Zap, TrendingUp, Clock, BarChart3, Server, Wifi, Cpu, CheckCircle, XCircle, Users as UsersIcon, Key, Lock, UserCheck } from "lucide-react";
 import { usersApi } from "../services/api";
 import { useToast } from "../context/ToastContext";
 import type { User as UserType } from "../types";
@@ -321,7 +321,7 @@ export default function Users() {
         <div className="grid grid-cols-4 gap-3">
           <div className="rounded-lg p-4 flex items-center gap-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
             <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "rgba(22,93,255,0.15)" }}>
-              <Users size={20} style={{ color: "#165DFF" }} />
+              <UsersIcon size={20} style={{ color: "#165DFF" }} />
             </div>
             <div>
               <div className="text-2xl font-bold" style={{ color: "#165DFF" }}>{userStats.totalUsers}</div>

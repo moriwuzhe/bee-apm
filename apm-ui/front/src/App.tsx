@@ -32,6 +32,12 @@ import KnowledgeBase from "./pages/KnowledgeBase";
 import SLAManagement from "./pages/SLAManagement";
 import PluginMarketplace from "./pages/PluginMarketplace";
 import NotificationCenter from "./pages/NotificationCenter";
+import IntegrationHub from "./pages/IntegrationHub";
+import SecurityAudit from "./pages/SecurityAudit";
+import MetricExplorer from "./pages/MetricExplorer";
+import CostAnalysis from "./pages/CostAnalysis";
+import TaskScheduler from "./pages/TaskScheduler";
+import DatabaseMonitor from "./pages/DatabaseMonitor";
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -98,6 +104,12 @@ const App = () => (
         <Route path="/sla" element={<SLAManagement />} />
         <Route path="/marketplace" element={<PluginMarketplace />} />
         <Route path="/notifications" element={<NotificationCenter />} />
+        <Route path="/integrations" element={<IntegrationHub />} />
+        <Route path="/security" element={<SecurityAudit />} />
+        <Route path="/metrics" element={<MetricExplorer />} />
+        <Route path="/cost" element={<CostAnalysis />} />
+        <Route path="/tasks" element={<TaskScheduler />} />
+        <Route path="/db-monitor" element={<DatabaseMonitor />} />
       </Routes>
     </ErrorBoundary>
     <Toaster position="top-right" />

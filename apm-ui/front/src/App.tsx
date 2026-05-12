@@ -38,6 +38,14 @@ import MetricExplorer from "./pages/MetricExplorer";
 import CostAnalysis from "./pages/CostAnalysis";
 import TaskScheduler from "./pages/TaskScheduler";
 import DatabaseMonitor from "./pages/DatabaseMonitor";
+import APIGatewayMonitor from "./pages/APIGatewayMonitor";
+import MessageQueueMonitor from "./pages/MessageQueueMonitor";
+import CacheMonitor from "./pages/CacheMonitor";
+import ContainerMonitor from "./pages/ContainerMonitor";
+import APIPerformance from "./pages/APIPerformance";
+import DistributedTracing from "./pages/DistributedTracing";
+import ConfigurationManager from "./pages/ConfigurationManager";
+import CustomIntegrations from "./pages/CustomIntegrations";
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -110,6 +118,14 @@ const App = () => (
         <Route path="/cost" element={<CostAnalysis />} />
         <Route path="/tasks" element={<TaskScheduler />} />
         <Route path="/db-monitor" element={<DatabaseMonitor />} />
+        <Route path="/api-gateway" element={<APIGatewayMonitor />} />
+        <Route path="/message-queue" element={<MessageQueueMonitor />} />
+        <Route path="/cache" element={<CacheMonitor />} />
+        <Route path="/containers" element={<ContainerMonitor />} />
+        <Route path="/api-performance" element={<APIPerformance />} />
+        <Route path="/tracing" element={<DistributedTracing />} />
+        <Route path="/config" element={<ConfigurationManager />} />
+        <Route path="/integrations" element={<CustomIntegrations />} />
       </Routes>
     </ErrorBoundary>
     <Toaster position="top-right" />

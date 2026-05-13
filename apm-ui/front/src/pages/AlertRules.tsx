@@ -110,6 +110,8 @@ export default function AlertRules() {
   const [showModal, setShowModal] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showEscalationModal, setShowEscalationModal] = useState(false);
+  const [showChannelModal, setShowChannelModal] = useState(false);
+  const [showSilenceModal, setShowSilenceModal] = useState(false);
   const [editingRule, setEditingRule] = useState<AlertRule | null>(null);
   const [viewingRule, setViewingRule] = useState<AlertRule | null>(null);
   const [deletingRule, setDeletingRule] = useState<AlertRule | null>(null);
@@ -288,6 +290,8 @@ export default function AlertRules() {
               <TechButton variant="primary" icon={<Plus size={13} />} onClick={handleCreate}>新增规则</TechButton>
               <TechButton variant="secondary" icon={<Zap size={13} />} onClick={() => setShowTemplateModal(true)}>模板管理</TechButton>
               <TechButton variant="secondary" icon={<TrendingUp size={13} />} onClick={() => setShowEscalationModal(true)}>升级策略</TechButton>
+              <TechButton variant="secondary" icon={<Mail size={13} />} onClick={() => setShowChannelModal(true)}>渠道配置</TechButton>
+              <TechButton variant="secondary" icon={<Shield size={13} />} onClick={() => setShowSilenceModal(true)}>静默管理</TechButton>
             </>
           }
         />
@@ -569,6 +573,94 @@ export default function AlertRules() {
           <button onClick={handleBulkDisable} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-500/15 text-gray-400 border border-gray-500/25 hover:bg-gray-500/25 transition-colors"><StopCircle size={11} />批量停用</button>
           <button onClick={handleBulkDelete} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/15 text-red-500 border border-red-500/35 hover:bg-red-500/28 transition-colors"><Trash size={11} />批量删除</button>
           <button onClick={() => setCheckedIds(new Set())} className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-gray-500/20 hover:text-white transition-colors"><X size={13} /></button>
+        </div>
+      )}
+
+      {showChannelModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/70" onClick={() => setShowChannelModal(false)}>
+          <div className="w-[520px] rounded-xl p-6 bg-card border border-border" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setShowChannelModal(false)} className="absolute top-4 right-4 w-6 h-6 rounded flex items-center justify-center text-muted-foreground"><X size={14} /></button>
+            <div className="flex items-center gap-2 mb-5">
+              <Settings size={15} className="text-blue-500" />
+              <span className="text-sm font-semibold text-white">通知渠道配置</span>
+            </div>
+            <div className="space-y-3 max-h-80 overflow-y-auto">
+              {[
+                { name: "钉钉", icon: <MessageSquare size={14} />, enabled: true, config: "已配置机器人" },
+                { name: "邮件", icon: <Mail size={14} />, enabled: true, config: "SMTP 已配置" },
+                { name: "短信", icon: <Users size={14} />, enabled: false, config: "待配置" },
+                { name: "Slack", icon: <MessageSquare size={14} />, enabled: false, config: "待配置" },
+                { name: "Webhook", icon: <Webhook size={14} />, enabled: true, config: "2 个端点" },
+                { name: "飞书", icon: <MessageSquare size={14} />, enabled: true, config: "已配置机器人" },
+              ].map((ch) => (
+                <div key={ch.name} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${ch.enabled ? "bg-blue-500/15" : "bg-gray-500/10"}`}>
+                      <span className={ch.enabled ? "text-blue-500" : "text-gray-500"}>{ch.icon}</span>
+                    </div>
+                    <div>
+                      <div className="text-sm text-white font-medium">{ch.name}</div>
+                      <div className="text-xs text-muted-foreground">{ch.config}</div>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => showToast(`${ch.name}渠道配置页面开发中...`, "info")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${ch.enabled ? "bg-green-500/12 text-green-500 border border-green-500/25" : "bg-gray-500/15 text-gray-400 border border-gray-500/25"}`}
+                  >
+                    {ch.enabled ? "配置" : "启用"}
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end mt-5">
+              <TechButton variant="secondary" onClick={() => setShowChannelModal(false)}>关闭</TechButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSilenceModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/70" onClick={() => setShowSilenceModal(false)}>
+          <div className="w-[520px] rounded-xl p-6 bg-card border border-border" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setShowSilenceModal(false)} className="absolute top-4 right-4 w-6 h-6 rounded flex items-center justify-center text-muted-foreground"><X size={14} /></button>
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <Shield size={15} className="text-yellow-500" />
+                <span className="text-sm font-semibold text-white">静默管理</span>
+              </div>
+              <TechButton variant="primary" size="sm" icon={<Plus size={11} />}>添加静默</TechButton>
+            </div>
+            <div className="space-y-3 max-h-80 overflow-y-auto">
+              {[
+                { id: 1, name: "夜间静默", scope: "全部规则", start: "22:00", end: "06:00", status: "active" },
+                { id: 2, name: "运维窗口", scope: "生产环境", start: "2024-06-17 00:00", end: "2024-06-17 04:00", status: "pending" },
+                { id: 3, name: "紧急维护", scope: "支付服务", start: "2024-06-16 14:00", end: "2024-06-16 15:00", status: "expired" },
+              ].map((silence) => (
+                <div key={silence.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-white font-medium">{silence.name}</span>
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full ${silence.status === "active" ? "bg-green-500/15 text-green-400" : silence.status === "pending" ? "bg-yellow-500/15 text-yellow-400" : "bg-gray-500/15 text-gray-400"}`}>
+                        {silence.status === "active" ? "生效中" : silence.status === "pending" ? "待生效" : "已过期"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                      <span>{silence.scope}</span>
+                      <span>·</span>
+                      <span>{silence.start} ~ {silence.end}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <TechButton variant="ghost" size="xs">编辑</TechButton>
+                    <button className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-red-500/10"><Trash size={12} /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end mt-5">
+              <TechButton variant="secondary" onClick={() => setShowSilenceModal(false)}>关闭</TechButton>
+            </div>
+          </div>
         </div>
       )}
     </MainLayout>

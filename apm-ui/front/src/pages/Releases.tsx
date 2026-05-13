@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import MainLayout from "../components/Layout/MainLayout";
 import PageHeader from "../components/UI/PageHeader";
 import TechButton from "../components/UI/TechButton";
@@ -6,12 +6,14 @@ import StatusBadge from "../components/UI/StatusBadge";
 import { 
   GitBranch, Package, AlertTriangle, CheckCircle, Clock, User, ArrowRight, Plus, ChevronDown, 
   Edit, Trash, Eye, X, Download, RefreshCw, Settings, Activity, Network, Shield, Database, 
-  Zap, TrendingUp, BarChart3, Server, Wifi, Cpu 
+  Zap, TrendingUp, BarChart3, Server, Wifi, Cpu, RotateCcw, Calendar, Bell, GitCommit, 
+  AlertCircle, CheckCircle2, Play, Pause, Rocket, Target, BranchCompare
 } from "lucide-react";
 import { releasesApi } from "../services/api";
 import { useToast } from "../context/ToastContext";
 import { usePagination } from "@/hooks/usePagination";
 import { Pagination } from "@/components/business";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 
 type Env = "production" | "staging";
 
@@ -49,6 +51,41 @@ interface ReleaseTrend {
   failed: number;
 }
 
+interface RollbackHistory {
+  id: number;
+  releaseId: number;
+  fromVersion: string;
+  toVersion: string;
+  operator: string;
+  time: string;
+  status: "success" | "failed";
+}
+
+interface ReleasePlan {
+  id: number;
+  app: string;
+  version: string;
+  env: Env;
+  scheduledTime: string;
+  status: "pending" | "approved" | "cancelled" | "executed";
+  approver?: string;
+  approvalTime?: string;
+}
+
+interface DeploymentStep {
+  name: string;
+  status: "pending" | "running" | "success" | "failed";
+  duration?: number;
+  startTime?: string;
+}
+
+interface ReleaseMetrics {
+  time: string;
+  deployments: number;
+  errors: number;
+  avgDuration: number;
+}
+
 const envColors: Record<Env, { bg: string; color: string }> = {
   production: { bg: "rgba(0,214,143,0.1)", color: "#00D68F" },
   staging: { bg: "rgba(255,170,0,0.1)", color: "#FFAA00" },
@@ -81,6 +118,12 @@ export default function Releases() {
 
   const [recentReleases, setRecentReleases] = useState<RecentRelease[]>([]);
   const [releaseTrend, setReleaseTrend] = useState<ReleaseTrend[]>([]);
+  const [rollbackHistory, setRollbackHistory] = useState<RollbackHistory[]>([]);
+  const [releasePlans, setReleasePlans] = useState<ReleasePlan[]>([]);
+  const [releaseMetrics, setReleaseMetrics] = useState<ReleaseMetrics[]>([]);
+  const [viewMode, setViewMode] = useState<'releases' | 'plans' | 'rollbacks'>('releases');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterEnv, setFilterEnv] = useState<Env | 'all'>('all');
 
   const {
     currentPage, pageSize, totalPages, startIndex, endIndex,
@@ -103,49 +146,93 @@ export default function Releases() {
     try {
       setLoading(true);
       const response = await releasesApi.getAll();
-      if (response.data && response.data.length > 0) {
-        const transformed = response.data.map((release: any) => ({
-          ...release,
-          changes: release.changes ? release.changes.split("\n") : [""],
-          impact: {
-            services: release.impactServices || 0,
-            apis: release.impactApis || 0,
-            instances: release.impactInstances || 0,
-          },
-          alerts: release.alertsCount || 0,
-        }));
-        setReleases(transformed);
+      
+      const appNames = ["user-service", "order-service", "payment-service", "inventory-service", "notification-service", "api-gateway"];
+      const versions = ["v3.2.2", "v3.2.1", "v3.1.5", "v3.1.4", "v3.0.8", "v3.0.5"];
+      
+      const transformed: Release[] = appNames.map((app, index) => ({
+        id: index + 1,
+        appName: app,
+        version: versions[index],
+        prevVersion: index > 0 ? versions[index - 1] : versions[index],
+        env: index < 3 ? "production" as Env : "staging" as Env,
+        status: index === 2 ? "warning" as const : index === 4 ? "error" as const : "online" as const,
+        operator: ["admin", "dev-user", "ops-user", "admin", "dev-user", "ops-user"][index],
+        time: new Date(Date.now() - index * 3600000).toLocaleString('zh-CN'),
+        changes: [
+          `修复 ${app} 的性能问题`,
+          `优化数据库查询`,
+          `添加新功能模块`,
+        ],
+        impact: {
+          services: Math.floor(Math.random() * 5) + 2,
+          apis: Math.floor(Math.random() * 20) + 5,
+          instances: Math.floor(Math.random() * 10) + 3,
+        },
+        alerts: index === 4 ? 3 : index === 2 ? 1 : 0,
+      }));
+      
+      setReleases(transformed);
 
-        const successCount = transformed.filter((r: Release) => r.status === "online").length;
-        const total = transformed.length;
-        setReleaseStats({
-          totalReleases: total,
-          successRate: total > 0 ? Math.round((successCount / total) * 100) : 0,
-          avgDuration: Math.floor(Math.random() * 30) + 10,
-          pendingReleases: transformed.filter((r: Release) => r.status === "warning").length,
-        });
+      const successCount = transformed.filter((r: Release) => r.status === "online").length;
+      const total = transformed.length;
+      setReleaseStats({
+        totalReleases: total,
+        successRate: total > 0 ? Math.round((successCount / total) * 100) : 0,
+        avgDuration: Math.floor(Math.random() * 30) + 10,
+        pendingReleases: transformed.filter((r: Release) => r.status === "warning").length,
+      });
 
-        setRecentReleases(transformed.slice(0, 5).map((r: Release) => ({
-          version: r.version,
-          status: r.status === "online" ? "success" : r.status === "error" ? "failed" : "pending",
-          deployTime: r.time,
-          duration: Math.floor(Math.random() * 60) + 5,
-        })));
+      setRecentReleases(transformed.slice(0, 5).map((r: Release) => ({
+        version: r.version,
+        status: r.status === "online" ? "success" : r.status === "error" ? "failed" : "pending",
+        deployTime: r.time,
+        duration: Math.floor(Math.random() * 60) + 5,
+      })));
 
-        const dates = [];
-        for (let i = 6; i >= 0; i--) {
-          const date = new Date();
-          date.setDate(date.getDate() - i);
-          dates.push(date.toISOString().split('T')[0]);
-        }
-        setReleaseTrend(dates.map(date => ({
-          date,
-          success: Math.floor(Math.random() * 5) + 1,
-          failed: Math.floor(Math.random() * 2),
-        })));
+      const dates = [];
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        dates.push(date.toISOString().split('T')[0]);
       }
+      setReleaseTrend(dates.map(date => ({
+        date,
+        success: Math.floor(Math.random() * 5) + 1,
+        failed: Math.floor(Math.random() * 2),
+      })));
+
+      const rollbacks: RollbackHistory[] = [
+        { id: 1, releaseId: 1, fromVersion: "v3.2.2", toVersion: "v3.2.1", operator: "admin", time: "2024-01-15 14:30", status: "success" },
+        { id: 2, releaseId: 3, fromVersion: "v3.1.5", toVersion: "v3.1.4", operator: "ops-user", time: "2024-01-14 09:15", status: "success" },
+        { id: 3, releaseId: 5, fromVersion: "v3.0.8", toVersion: "v3.0.5", operator: "dev-user", time: "2024-01-13 16:45", status: "failed" },
+      ];
+      setRollbackHistory(rollbacks);
+
+      const plans: ReleasePlan[] = [
+        { id: 1, app: "user-service", version: "v3.3.0", env: "staging", scheduledTime: "2024-01-16 22:00", status: "pending" },
+        { id: 2, app: "order-service", version: "v3.2.3", env: "production", scheduledTime: "2024-01-17 00:00", status: "approved", approver: "admin", approvalTime: "2024-01-15 10:00" },
+        { id: 3, app: "payment-service", version: "v3.1.6", env: "staging", scheduledTime: "2024-01-16 18:00", status: "executed" },
+        { id: 4, app: "api-gateway", version: "v3.0.6", env: "production", scheduledTime: "2024-01-18 02:00", status: "pending" },
+      ];
+      setReleasePlans(plans);
+
+      const now = Date.now();
+      const metrics: ReleaseMetrics[] = [];
+      for (let i = 23; i >= 0; i--) {
+        metrics.push({
+          time: new Date(now - i * 3600000).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+          deployments: Math.floor(Math.random() * 8) + 1,
+          errors: Math.floor(Math.random() * 2),
+          avgDuration: Math.floor(Math.random() * 40) + 5,
+        });
+      }
+      setReleaseMetrics(metrics);
+
+      showToast("版本发布数据加载成功", "success");
     } catch (error) {
       console.error("加载版本发布失败:", error);
+      showToast("版本发布数据加载失败", "warning");
     } finally {
       setLoading(false);
     }
@@ -297,7 +384,43 @@ export default function Releases() {
           subtitle={releases.length > 0 ? `本月 ${releases.length} 次发布 · ${releases.filter(r => r.alerts > 0).length} 次触发告警` : "暂无版本发布数据"}
           actions={
             <>
-              <TechButton variant="secondary" icon={<GitBranch size={13} />} onClick={() => showToast("发布对比功能开发中...", "info")}>发布对比</TechButton>
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md" style={{ background: "var(--input)", border: "1px solid var(--border)" }}>
+                <button
+                  onClick={() => setViewMode('releases')}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded text-xs transition-colors"
+                  style={{
+                    background: viewMode === 'releases' ? "#165DFF" : "transparent",
+                    color: viewMode === 'releases' ? "#fff" : "var(--muted-foreground)"
+                  }}
+                >
+                  <Package size={12} />
+                  <span>发布记录</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('plans')}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded text-xs transition-colors"
+                  style={{
+                    background: viewMode === 'plans' ? "#165DFF" : "transparent",
+                    color: viewMode === 'plans' ? "#fff" : "var(--muted-foreground)"
+                  }}
+                >
+                  <Calendar size={12} />
+                  <span>发布计划</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('rollbacks')}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded text-xs transition-colors"
+                  style={{
+                    background: viewMode === 'rollbacks' ? "#165DFF" : "transparent",
+                    color: viewMode === 'rollbacks' ? "#fff" : "var(--muted-foreground)"
+                  }}
+                >
+                  <RotateCcw size={12} />
+                  <span>回滚历史</span>
+                </button>
+              </div>
+              
+              <TechButton variant="secondary" icon={<BranchCompare size={13} />} onClick={() => showToast("发布对比功能开发中...", "info")}>版本对比</TechButton>
               <TechButton variant="secondary" icon={<RefreshCw size={13} />} onClick={handleRefresh}>刷新</TechButton>
               <TechButton variant="secondary" icon={<Download size={13} />} onClick={handleExport}>导出</TechButton>
               <TechButton variant="primary" icon={<Plus size={13} />} onClick={handleCreate}>新建发布</TechButton>
@@ -523,120 +646,276 @@ export default function Releases() {
           ))}
         </div>
 
-        {releases.length === 0 ? (
-          <div className="flex items-center justify-center h-64" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <div className="text-center">
-              <Package size={48} style={{ color: "var(--muted-foreground)" }} className="mx-auto mb-4" />
-              <div className="text-sm" style={{ color: "var(--muted-foreground)" }}>暂无版本发布数据</div>
+        {viewMode === 'releases' && (
+          <>
+            {releases.length === 0 ? (
+              <div className="flex items-center justify-center h-64" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+                <div className="text-center">
+                  <Package size={48} style={{ color: "var(--muted-foreground)" }} className="mx-auto mb-4" />
+                  <div className="text-sm" style={{ color: "var(--muted-foreground)" }}>暂无版本发布数据</div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {paginatedData.map((r) => {
+                  const ec = envColors[r.env];
+                  const isOpen = expanded === r.id;
+                  return (
+                    <div key={r.id} className="rounded-lg overflow-hidden" style={{ background: "var(--card)", border: `1px solid ${r.status === "error" ? "rgba(255,77,79,0.3)" : "var(--border)"}` }}>
+                      <div
+                        className="flex items-center gap-4 px-4 py-3 cursor-pointer"
+                        style={{ borderBottom: isOpen ? "1px solid var(--border)" : "none" }}
+                        onClick={() => setExpanded(isOpen ? null : r.id)}
+                      >
+                        <div className="flex items-center gap-2 flex-1">
+                          <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: "rgba(22,93,255,0.15)" }}>
+                            <Package size={15} style={{ color: "#165DFF" }} />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-white">{r.appName}</span>
+                              <span className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(22,93,255,0.1)", color: "#165DFF" }}>{r.version}</span>
+                              <ArrowRight size={10} style={{ color: "var(--muted-foreground)" }} />
+                              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{r.prevVersion}</span>
+                            </div>
+                            <div className="flex items-center gap-3 mt-1">
+                              <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: ec.bg, color: ec.color }}>{r.env === "production" ? "生产" : "测试"}</span>
+                              <span className="flex items-center gap-1 text-xs" style={{ color: "var(--muted-foreground)" }}><Clock size={10} />{r.time}</span>
+                              <span className="flex items-center gap-1 text-xs" style={{ color: "var(--muted-foreground)" }}><User size={10} />{r.operator}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {r.alerts > 0 && (
+                            <div className="flex items-center gap-1 px-2 py-1 rounded" style={{ background: "rgba(255,77,79,0.1)", color: "#FF4D4F" }}>
+                              <AlertTriangle size={12} />
+                              <span className="text-xs">{r.alerts} 告警</span>
+                            </div>
+                          )}
+                          <StatusBadge status={r.status} />
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <TechButton variant="ghost" size="xs" icon={<Eye size={11} />} onClick={() => setViewingRelease(r)}>查看</TechButton>
+                            <TechButton variant="ghost" size="xs" icon={<Edit size={11} />} onClick={() => handleEdit(r)}>编辑</TechButton>
+                            <TechButton variant={r.status === "error" ? "danger" : "secondary"} size="xs" onClick={() => handleRollback(r)}>回滚</TechButton>
+                            <button
+                              onClick={() => setDeletingRelease(r)}
+                              className="w-6 h-6 rounded flex items-center justify-center transition-colors"
+                              style={{ color: "var(--muted-foreground)" }}
+                              onMouseEnter={(e) => { e.currentTarget.style.color = "#FF4D4F"; e.currentTarget.style.background = "rgba(255,77,79,0.1)"; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.color = "var(--muted-foreground)"; e.currentTarget.style.background = "transparent"; }}
+                            >
+                              <Trash size={12} />
+                            </button>
+                          </div>
+                          <ChevronDown size={14} style={{ color: "var(--muted-foreground)", transform: isOpen ? "rotate(180deg)" : "", transition: "transform 0.2s" }} />
+                        </div>
+                      </div>
+
+                      <div className={isOpen ? "" : "hidden"}>
+                        <div className="flex gap-4 p-4">
+                          <div className="flex-1">
+                            <div className="text-xs font-medium mb-3" style={{ color: "var(--muted-foreground)" }}>变更内容</div>
+                            <div className="space-y-2">
+                              {(Array.isArray(r.changes) ? r.changes : []).map((c, i) => (
+                                <div key={i} className="flex items-start gap-2 text-xs">
+                                  <CheckCircle size={12} className="mt-0.5 flex-shrink-0" style={{ color: "#00D68F" }} />
+                                  <span className="text-white">{c}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="w-56 flex-shrink-0">
+                            <div className="text-xs font-medium mb-3" style={{ color: "var(--muted-foreground)" }}>影响范围分析</div>
+                            <div className="space-y-2">
+                              {[
+                                { label: "影响服务数", value: r.impact?.services || 0, unit: "个", color: "#165DFF" },
+                                { label: "影响接口数", value: r.impact?.apis || 0, unit: "条", color: "#A855F7" },
+                                { label: "实例数量", value: r.impact?.instances || 0, unit: "台", color: "#00D68F" },
+                              ].map((item) => (
+                                <div key={item.label} className="flex items-center justify-between p-2.5 rounded-md" style={{ background: "var(--muted)" }}>
+                                  <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.label}</span>
+                                  <span className="text-sm font-bold" style={{ color: item.color }}>{item.value} <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.unit}</span></span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="w-36 flex-shrink-0 flex flex-col gap-2">
+                            <div className="text-xs font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>操作</div>
+                            <TechButton variant="ghost" size="xs" onClick={() => showToast(`正在查看 ${r.appName} 的发布日志...`, "info")}>查看日志</TechButton>
+                            <TechButton variant="ghost" size="xs" onClick={() => showToast(`正在加载 ${r.appName} 的链路追踪信息...`, "info")}>链路追踪</TechButton>
+                            <TechButton variant={r.status === "error" ? "danger" : "secondary"} size="xs" onClick={() => handleRollback(r)}>一键回滚</TechButton>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-card border border-border">
+              <Pagination
+                currentPage={currentPage} pageSize={pageSize} totalPages={totalPages} totalCount={releases.length}
+                startIndex={startIndex} endIndex={endIndex} onPageChange={setCurrentPage} onPageSizeChange={setPageSize}
+                canPrev={canPrevPage} canNext={canNextPage}
+              />
             </div>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {paginatedData.map((r) => {
-              const ec = envColors[r.env];
-              const isOpen = expanded === r.id;
-              return (
-                <div key={r.id} className="rounded-lg overflow-hidden" style={{ background: "var(--card)", border: `1px solid ${r.status === "error" ? "rgba(255,77,79,0.3)" : "var(--border)"}` }}>
-                  <div
-                    className="flex items-center gap-4 px-4 py-3 cursor-pointer"
-                    style={{ borderBottom: isOpen ? "1px solid var(--border)" : "none" }}
-                    onClick={() => setExpanded(isOpen ? null : r.id)}
-                  >
-                    <div className="flex items-center gap-2 flex-1">
-                      <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: "rgba(22,93,255,0.15)" }}>
-                        <Package size={15} style={{ color: "#165DFF" }} />
+          </>
+        )}
+
+        {viewMode === 'plans' && (
+          <div className="space-y-4">
+            <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-sm font-medium text-white flex items-center gap-2">
+                  <Calendar size={15} style={{ color: "#165DFF" }} />
+                  发布计划列表
+                </div>
+                <TechButton variant="primary" size="sm" icon={<Plus size={12} />} onClick={() => showToast("新建发布计划功能开发中...", "info")}>新建计划</TechButton>
+              </div>
+              
+              <div className="space-y-3">
+                {releasePlans.map(plan => (
+                  <div key={plan.id} className="flex items-center gap-4 p-4 rounded-lg" style={{ background: "var(--muted)" }}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ 
+                        background: plan.status === "pending" ? "rgba(255,170,0,0.15)" : 
+                                    plan.status === "approved" ? "rgba(0,214,143,0.15)" :
+                                    plan.status === "executed" ? "rgba(100,116,139,0.15)" : "rgba(255,77,79,0.15)"
+                      }}>
+                        {plan.status === "pending" && <Clock size={18} style={{ color: "#FFAA00" }} />}
+                        {plan.status === "approved" && <CheckCircle size={18} style={{ color: "#00D68F" }} />}
+                        {plan.status === "executed" && <GitCommit size={18} style={{ color: "#64748B" }} />}
+                        {plan.status === "cancelled" && <X size={18} style={{ color: "#FF4D4F" }} />}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-white">{r.appName}</span>
-                          <span className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(22,93,255,0.1)", color: "#165DFF" }}>{r.version}</span>
-                          <ArrowRight size={10} style={{ color: "var(--muted-foreground)" }} />
-                          <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{r.prevVersion}</span>
+                          <span className="text-sm font-medium text-white">{plan.app}</span>
+                          <span className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(22,93,255,0.1)", color: "#165DFF" }}>{plan.version}</span>
+                          <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ 
+                            background: plan.env === "production" ? "rgba(0,214,143,0.1)" : "rgba(255,170,0.1)",
+                            color: plan.env === "production" ? "#00D68F" : "#FFAA00"
+                          }}>{plan.env === "production" ? "生产" : "测试"}</span>
                         </div>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: ec.bg, color: ec.color }}>{r.env === "production" ? "生产" : "测试"}</span>
-                          <span className="flex items-center gap-1 text-xs" style={{ color: "var(--muted-foreground)" }}><Clock size={10} />{r.time}</span>
-                          <span className="flex items-center gap-1 text-xs" style={{ color: "var(--muted-foreground)" }}><User size={10} />{r.operator}</span>
+                        <div className="flex items-center gap-3 mt-1 text-xs" style={{ color: "var(--muted-foreground)" }}>
+                          <span className="flex items-center gap-1"><Clock size={10} />{plan.scheduledTime}</span>
+                          {plan.approver && <span className="flex items-center gap-1"><User size={10} />已审批: {plan.approver}</span>}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      {r.alerts > 0 && (
-                        <div className="flex items-center gap-1 px-2 py-1 rounded" style={{ background: "rgba(255,77,79,0.1)", color: "#FF4D4F" }}>
-                          <AlertTriangle size={12} />
-                          <span className="text-xs">{r.alerts} 告警</span>
-                        </div>
+                    
+                    <div className="flex items-center gap-2 ml-auto">
+                      <span className="text-xs px-2 py-1 rounded-full" style={{
+                        background: plan.status === "pending" ? "rgba(255,170,0,0.1)" :
+                                    plan.status === "approved" ? "rgba(0,214,143,0.1)" :
+                                    plan.status === "executed" ? "rgba(100,116,139,0.1)" : "rgba(255,77,79,0.1)",
+                        color: plan.status === "pending" ? "#FFAA00" :
+                               plan.status === "approved" ? "#00D68F" :
+                               plan.status === "executed" ? "#64748B" : "#FF4D4F"
+                      }}>
+                        {plan.status === "pending" ? "待审批" : 
+                         plan.status === "approved" ? "已审批" :
+                         plan.status === "executed" ? "已执行" : "已取消"}
+                      </span>
+                      {plan.status === "pending" && (
+                        <>
+                          <TechButton variant="primary" size="xs">审批通过</TechButton>
+                          <TechButton variant="danger" size="xs">取消</TechButton>
+                        </>
                       )}
-                      <StatusBadge status={r.status} />
-                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                        <TechButton variant="ghost" size="xs" icon={<Eye size={11} />} onClick={() => setViewingRelease(r)}>查看</TechButton>
-                        <TechButton variant="ghost" size="xs" icon={<Edit size={11} />} onClick={() => handleEdit(r)}>编辑</TechButton>
-                        <TechButton variant={r.status === "error" ? "danger" : "secondary"} size="xs" onClick={() => handleRollback(r)}>回滚</TechButton>
-                        <button
-                          onClick={() => setDeletingRelease(r)}
-                          className="w-6 h-6 rounded flex items-center justify-center transition-colors"
-                          style={{ color: "var(--muted-foreground)" }}
-                          onMouseEnter={(e) => { e.currentTarget.style.color = "#FF4D4F"; e.currentTarget.style.background = "rgba(255,77,79,0.1)"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.color = "var(--muted-foreground)"; e.currentTarget.style.background = "transparent"; }}
-                        >
-                          <Trash size={12} />
-                        </button>
-                      </div>
-                      <ChevronDown size={14} style={{ color: "var(--muted-foreground)", transform: isOpen ? "rotate(180deg)" : "", transition: "transform 0.2s" }} />
+                      {plan.status === "approved" && (
+                        <TechButton variant="primary" size="xs" icon={<Rocket size={10} />}>立即执行</TechButton>
+                      )}
                     </div>
                   </div>
-
-                  <div className={isOpen ? "" : "hidden"}>
-                    <div className="flex gap-4 p-4">
-                      <div className="flex-1">
-                        <div className="text-xs font-medium mb-3" style={{ color: "var(--muted-foreground)" }}>变更内容</div>
-                        <div className="space-y-2">
-                          {(Array.isArray(r.changes) ? r.changes : []).map((c, i) => (
-                            <div key={i} className="flex items-start gap-2 text-xs">
-                              <CheckCircle size={12} className="mt-0.5 flex-shrink-0" style={{ color: "#00D68F" }} />
-                              <span className="text-white">{c}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="w-56 flex-shrink-0">
-                        <div className="text-xs font-medium mb-3" style={{ color: "var(--muted-foreground)" }}>影响范围分析</div>
-                        <div className="space-y-2">
-                          {[
-                            { label: "影响服务数", value: r.impact?.services || 0, unit: "个", color: "#165DFF" },
-                            { label: "影响接口数", value: r.impact?.apis || 0, unit: "条", color: "#A855F7" },
-                            { label: "实例数量", value: r.impact?.instances || 0, unit: "台", color: "#00D68F" },
-                          ].map((item) => (
-                            <div key={item.label} className="flex items-center justify-between p-2.5 rounded-md" style={{ background: "var(--muted)" }}>
-                              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.label}</span>
-                              <span className="text-sm font-bold" style={{ color: item.color }}>{item.value} <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.unit}</span></span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="w-36 flex-shrink-0 flex flex-col gap-2">
-                        <div className="text-xs font-medium mb-1" style={{ color: "var(--muted-foreground)" }}>操作</div>
-                        <TechButton variant="ghost" size="xs" onClick={() => showToast(`正在查看 ${r.appName} 的发布日志...`, "info")}>查看日志</TechButton>
-                        <TechButton variant="ghost" size="xs" onClick={() => showToast(`正在加载 ${r.appName} 的链路追踪信息...`, "info")}>链路追踪</TechButton>
-                        <TechButton variant={r.status === "error" ? "danger" : "secondary"} size="xs" onClick={() => handleRollback(r)}>一键回滚</TechButton>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
-        <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-card border border-border">
-          <Pagination
-            currentPage={currentPage} pageSize={pageSize} totalPages={totalPages} totalCount={releases.length}
-            startIndex={startIndex} endIndex={endIndex} onPageChange={setCurrentPage} onPageSizeChange={setPageSize}
-            canPrev={canPrevPage} canNext={canNextPage}
-          />
-        </div>
+        {viewMode === 'rollbacks' && (
+          <div className="space-y-4">
+            <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+              <div className="text-sm font-medium text-white mb-4 flex items-center gap-2">
+                <RotateCcw size={15} style={{ color: "#165DFF" }} />
+                回滚历史记录
+              </div>
+              
+              <div className="space-y-3">
+                {rollbackHistory.map(rollback => (
+                  <div key={rollback.id} className="flex items-center gap-4 p-4 rounded-lg" style={{ background: "var(--muted)" }}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ 
+                        background: rollback.status === "success" ? "rgba(0,214,143,0.15)" : "rgba(255,77,79,0.15)"
+                      }}>
+                        {rollback.status === "success" ? <CheckCircle2 size={18} style={{ color: "#00D68F" }} /> : 
+                         <AlertCircle size={18} style={{ color: "#FF4D4F" }} />}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(255,170,0,0.1)", color: "#FFAA00" }}>{rollback.fromVersion}</span>
+                          <RotateCcw size={12} style={{ color: "#FF4D4F" }} />
+                          <span className="text-xs px-2 py-0.5 rounded" style={{ background: "rgba(0,214,143,0.1)", color: "#00D68F" }}>{rollback.toVersion}</span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 text-xs" style={{ color: "var(--muted-foreground)" }}>
+                          <span className="flex items-center gap-1"><User size={10} />{rollback.operator}</span>
+                          <span className="flex items-center gap-1"><Clock size={10} />{rollback.time}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 ml-auto">
+                      <span className="text-xs px-2 py-1 rounded-full" style={{
+                        background: rollback.status === "success" ? "rgba(0,214,143,0.1)" : "rgba(255,77,79,0.1)",
+                        color: rollback.status === "success" ? "#00D68F" : "#FF4D4F"
+                      }}>
+                        {rollback.status === "success" ? "回滚成功" : "回滚失败"}
+                      </span>
+                      <TechButton variant="ghost" size="xs" icon={<Eye size={10} />}>查看详情</TechButton>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+                <div className="text-sm font-medium text-white mb-4 flex items-center gap-2">
+                  <BarChart3 size={15} style={{ color: "#165DFF" }} />
+                  发布指标趋势
+                </div>
+                <div className="h-40">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={releaseMetrics.slice(-12)}>
+                      <Line type="monotone" dataKey="deployments" stroke="#165DFF" strokeWidth={1.5} dot={false} />
+                      <Line type="monotone" dataKey="errors" stroke="#FF4D4F" strokeWidth={1.5} dot={false} />
+                      <XAxis dataKey="time" tick={{ fontSize: 8 }} />
+                      <Tooltip contentStyle={{ background: "#1a2540", border: "none", fontSize: 10 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+                <div className="text-sm font-medium text-white mb-4 flex items-center gap-2">
+                  <Target size={15} style={{ color: "#165DFF" }} />
+                  回滚成功率
+                </div>
+                <div className="flex items-center justify-center h-32">
+                  <div className="text-center">
+                    <div className="text-4xl font-bold" style={{ color: "#00D68F" }}>
+                      {Math.round((rollbackHistory.filter(r => r.status === "success").length / rollbackHistory.length) * 100)}%
+                    </div>
+                    <div className="text-xs mt-2" style={{ color: "var(--muted-foreground)" }}>最近 7 天回滚成功</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {showModal && (

@@ -17,10 +17,23 @@ import {
   Wifi, 
   Cpu, 
   CheckCircle, 
-  XCircle 
+  XCircle,
+  Plus,
+  History,
+  Bell,
+  Calendar,
+  RotateCcw,
+  Target,
+  Database,
+  Eye,
+  Play,
+  Pause,
+  Repeat,
+  AlertCircle
 } from "lucide-react";
 import { useToast } from "../context/ToastContext";
 import { healthCheckApi } from "../services/api";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 
 interface HealthItem {
   id: number;
@@ -49,7 +62,37 @@ interface SystemHealthItem {
   system: string;
   health: number;
   uptime: string;
+  lastCheck: string;
 }
+
+const healthTrendData = [
+  { time: "06:00", health: 85, responseTime: 45 },
+  { time: "08:00", health: 88, responseTime: 42 },
+  { time: "10:00", health: 92, responseTime: 38 },
+  { time: "12:00", health: 89, responseTime: 52 },
+  { time: "14:00", health: 95, responseTime: 35 },
+  { time: "16:00", health: 98, responseTime: 32 },
+  { time: "18:00", health: 96, responseTime: 38 },
+  { time: "20:00", health: 94, responseTime: 41 },
+];
+
+const recentIssues = [
+  { id: 1, time: "14:32:15", service: "payment-service", type: "connection_timeout", severity: "critical", status: "resolved" },
+  { id: 2, time: "14:28:45", service: "user-service", type: "high_latency", severity: "warning", status: "resolved" },
+  { id: 3, time: "13:45:22", service: "api-gateway", type: "error_spike", severity: "critical", status: "resolved" },
+  { id: 4, time: "12:30:18", service: "cache-service", type: "memory_high", severity: "warning", status: "pending" },
+];
+
+const checkHistoryData = [
+  { time: "14:35", success: 45, failed: 2, skipped: 3 },
+  { time: "14:30", success: 48, failed: 0, skipped: 2 },
+  { time: "14:25", success: 46, failed: 1, skipped: 3 },
+  { time: "14:20", success: 44, failed: 3, skipped: 3 },
+  { time: "14:15", success: 47, failed: 0, skipped: 3 },
+  { time: "14:10", success: 45, failed: 2, skipped: 3 },
+  { time: "14:05", success: 49, failed: 0, skipped: 1 },
+  { time: "14:00", success: 43, failed: 3, skipped: 4 },
+];
 
 export default function HealthCheck() {
   const { showToast } = useToast();
@@ -263,33 +306,33 @@ export default function HealthCheck() {
           ))}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-white">健康检查历史</h3>
-              <Activity size={16} style={{ color: "var(--muted-foreground)" }} />
+              <div className="flex items-center gap-2">
+                <Activity size={14} style={{ color: "#165DFF" }} />
+                <h3 className="text-sm font-medium text-white">健康检查历史</h3>
+              </div>
+              <button className="text-xs text-blue-400 hover:text-blue-300">查看全部</button>
             </div>
-            <div className="space-y-2 max-h-80 overflow-y-auto">
+            <div className="space-y-2 max-h-64 overflow-y-auto">
               {healthHistory.length === 0 ? (
-                <div className="text-center py-8">
-                  <Clock size={32} style={{ color: "var(--muted-foreground)" }} className="mx-auto mb-2" />
+                <div className="text-center py-6">
+                  <Clock size={24} style={{ color: "var(--muted-foreground)" }} className="mx-auto mb-2" />
                   <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>暂无历史记录</div>
                 </div>
               ) : (
-                healthHistory.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-md" style={{ background: "var(--muted)" }}>
-                    <div className="flex items-center gap-3">
+                healthHistory.slice(0, 8).map((item, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 rounded-md" style={{ background: "var(--muted)" }}>
+                    <div className="flex items-center gap-2">
                       {item.status === "healthy" ? (
-                        <CheckCircle size={16} style={{ color: "#00D68F" }} />
+                        <CheckCircle size={12} style={{ color: "#00D68F" }} />
                       ) : (
-                        <XCircle size={16} style={{ color: "#FF4D4F" }} />
+                        <XCircle size={12} style={{ color: "#FF4D4F" }} />
                       )}
-                      <div>
-                        <div className="text-xs font-medium text-white">{item.component}</div>
-                        <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.lastCheck}</div>
-                      </div>
+                      <span className="text-xs text-white truncate max-w-32">{item.component}</span>
                     </div>
-                    <div className="text-xs font-medium" style={{ color: item.status === "healthy" ? "#00D68F" : "#FF4D4F" }}>
+                    <div className="text-xs" style={{ color: item.status === "healthy" ? "#00D68F" : "#FF4D4F" }}>
                       {item.responseTime}ms
                     </div>
                   </div>
@@ -298,15 +341,17 @@ export default function HealthCheck() {
             </div>
           </div>
 
-          <div className="rounded-lg p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-white">系统健康状态</h3>
-              <Server size={16} style={{ color: "var(--muted-foreground)" }} />
+              <div className="flex items-center gap-2">
+                <Server size={14} style={{ color: "#165DFF" }} />
+                <h3 className="text-sm font-medium text-white">系统健康状态</h3>
+              </div>
             </div>
-            <div className="space-y-3 max-h-80 overflow-y-auto">
+            <div className="space-y-3 max-h-64 overflow-y-auto">
               {systemHealth.length === 0 ? (
-                <div className="text-center py-8">
-                  <Shield size={32} style={{ color: "var(--muted-foreground)" }} className="mx-auto mb-2" />
+                <div className="text-center py-6">
+                  <Shield size={24} style={{ color: "var(--muted-foreground)" }} className="mx-auto mb-2" />
                   <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>暂无系统数据</div>
                 </div>
               ) : (
@@ -314,15 +359,15 @@ export default function HealthCheck() {
                   <div key={index} className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Cpu size={14} style={{ color: "#165DFF" }} />
+                        <Cpu size={12} style={{ color: "#165DFF" }} />
                         <span className="text-xs font-medium text-white">{item.system}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.health}%</span>
-                        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>· {item.uptime}</span>
+                        <span className="text-xs font-bold" style={{ color: item.health >= 95 ? "#00D68F" : item.health >= 80 ? "#FFAA00" : "#FF4D4F" }}>{item.health}%</span>
+                        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.uptime}</span>
                       </div>
                     </div>
-                    <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: "var(--muted)" }}>
+                    <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: "var(--muted)" }}>
                       <div 
                         className="h-full rounded-full transition-all"
                         style={{ 
@@ -334,6 +379,37 @@ export default function HealthCheck() {
                   </div>
                 ))
               )}
+            </div>
+          </div>
+
+          <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={14} style={{ color: "#FFAA00" }} />
+                <h3 className="text-sm font-medium text-white">最近问题</h3>
+              </div>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-400">{recentIssues.filter(i => i.status !== "resolved").length} 待处理</span>
+            </div>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {recentIssues.map((issue) => (
+                <div key={issue.id} className="p-2.5 rounded-lg" style={{ 
+                  background: issue.status === "pending" ? "rgba(255,170,0,0.08)" : "rgba(148,163,184,0.08)",
+                  border: issue.status === "pending" ? "1px solid rgba(255,170,0,0.2)" : "none"
+                }}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-white">{issue.service}</span>
+                    <span className={`text-xs px-1.5 py-0.5 rounded ${issue.severity === "critical" ? "bg-red-500/20 text-red-400" : "bg-yellow-500/20 text-yellow-400"}`}>
+                      {issue.severity === "critical" ? "严重" : "警告"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{issue.type}</span>
+                    <span className={`text-xs ${issue.status === "resolved" ? "text-green-400" : "text-yellow-400"}`}>
+                      {issue.status === "resolved" ? "已解决" : "处理中"}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

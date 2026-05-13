@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import MainLayout from "../components/Layout/MainLayout";
-import { Search, Filter, Download, RefreshCw, Terminal, AlertTriangle, Settings, Trash2, ChevronDown, Clock, Activity, Server, Cpu, Wifi, AlertCircle, Info, CheckCircle, XCircle, Calendar, Plus, Play, Pause, Trash, FileText, Columns, Rows } from "lucide-react";
+import { Search, Filter, Download, RefreshCw, Terminal, AlertTriangle, Settings, Trash2, ChevronDown, Clock, Activity, Server, Cpu, Wifi, AlertCircle, Info, CheckCircle, XCircle, Calendar, Plus, Play, Pause, Trash, FileText, Columns, Rows, BarChart3, TrendingUp, Zap } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 
 interface LogEntry {
   id: string;
@@ -49,6 +50,17 @@ const mockHosts = [
   "192.168.1.101",
   "192.168.1.102",
   "192.168.1.103",
+];
+
+const logTrendData = [
+  { time: "06:00", total: 120, error: 5, warn: 12, info: 80, debug: 23 },
+  { time: "08:00", total: 256, error: 8, warn: 25, info: 180, debug: 43 },
+  { time: "10:00", total: 432, error: 15, warn: 42, info: 320, debug: 55 },
+  { time: "12:00", total: 512, error: 22, warn: 58, info: 380, debug: 52 },
+  { time: "14:00", total: 478, error: 18, warn: 45, info: 355, debug: 60 },
+  { time: "16:00", total: 389, error: 12, warn: 38, info: 290, debug: 49 },
+  { time: "18:00", total: 312, error: 8, warn: 28, info: 235, debug: 41 },
+  { time: "20:00", total: 245, error: 6, warn: 22, info: 185, debug: 32 },
 ];
 
 const mockLogs: LogEntry[] = Array.from({ length: 50 }, (_, i) => {
@@ -304,7 +316,7 @@ export default function LogViewer() {
         {/* 服务日志统计 */}
         <div className="grid grid-cols-5 gap-3">
           {serviceStats.slice(0, 5).map((stat, index) => (
-            <div key={stat.service} className="rounded-lg p-3" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div key={stat.service} className="rounded-xl p-3" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
               <div className="flex items-center gap-2 mb-2">
                 <Server size={14} style={{ color: "#165DFF" }} />
                 <span className="text-xs font-medium text-white truncate">{stat.service}</span>
@@ -325,6 +337,48 @@ export default function LogViewer() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* 日志趋势图表 */}
+        <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <TrendingUp size={16} style={{ color: "#165DFF" }} />
+              <span className="text-sm font-medium text-white">日志趋势</span>
+            </div>
+            <div className="flex items-center gap-4 text-xs">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-red-500" />
+                <span style={{ color: "var(--muted-foreground)" }}>错误</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                <span style={{ color: "var(--muted-foreground)" }}>警告</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                <span style={{ color: "var(--muted-foreground)" }}>信息</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-gray-400" />
+                <span style={{ color: "var(--muted-foreground)" }}>调试</span>
+              </div>
+            </div>
+          </div>
+          <div className="h-32">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={logTrendData} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" />
+                <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} />
+                <Tooltip contentStyle={{ background: "#1E293B", border: "none", fontSize: 11 }} />
+                <Line type="monotone" dataKey="error" stroke="#FF4D4F" strokeWidth={1.5} dot={{ r: 2 }} />
+                <Line type="monotone" dataKey="warn" stroke="#FFAA00" strokeWidth={1.5} dot={{ r: 2 }} />
+                <Line type="monotone" dataKey="info" stroke="#165DFF" strokeWidth={1.5} dot={{ r: 2 }} />
+                <Line type="monotone" dataKey="debug" stroke="#86909C" strokeWidth={1.5} dot={{ r: 2 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         {/* 实时监控指示器 */}

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import MainLayout from "../components/Layout/MainLayout";
-import { GitBranch, RefreshCw, Download, AlertTriangle, CheckCircle, Clock, Search, Filter, ArrowRight, Activity, Zap, Target, Layers } from "lucide-react";
+import { GitBranch, RefreshCw, Download, AlertTriangle, CheckCircle, Clock, Search, Filter, ArrowRight, Activity, Zap, Target, Layers, Server, Database, ExternalLink, ChevronRight, Eye, Copy, Play, Pause, Gauge, BarChart3, TrendingUp, AlertCircle } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 
 interface Trace {
   id: string;
@@ -35,10 +36,36 @@ const mockTraces: Trace[] = [
 ];
 
 const mockSpans: Span[] = [
-  { id: "s1", traceId: "abc123...", parentId: null, name: "HTTP POST /api/v1/orders", service: "api-gateway", duration: 456, status: "success", start: 0, tags: [{ key: "http.method", value: "POST" }, { key: "http.status_code", value: "200" }] },
-  { id: "s2", traceId: "abc123...", parentId: "s1", name: "createOrder", service: "order-service", duration: 345, status: "success", start: 23, tags: [{ key: "db.operation", value: "INSERT" }, { key: "db.table", value: "orders" }] },
-  { id: "s3", traceId: "abc123...", parentId: "s2", name: "checkInventory", service: "inventory-service", duration: 123, status: "success", start: 67, tags: [{ key: "cache.hit", value: "true" }] },
-  { id: "s4", traceId: "abc123...", parentId: "s2", name: "processPayment", service: "payment-service", duration: 189, status: "success", start: 200, tags: [{ key: "external.system", value: "bank-gateway" }, { key: "payment.status", value: "approved" }] },
+  { id: "s1", traceId: "abc123...", parentId: null, name: "HTTP POST /api/v1/orders", service: "api-gateway", duration: 456, status: "success", start: 0, tags: [{ key: "http.method", value: "POST" }, { key: "http.status_code", value: "200" }], type: "http" },
+  { id: "s2", traceId: "abc123...", parentId: "s1", name: "createOrder", service: "order-service", duration: 345, status: "success", start: 23, tags: [{ key: "db.operation", value: "INSERT" }, { key: "db.table", value: "orders" }], type: "db" },
+  { id: "s3", traceId: "abc123...", parentId: "s2", name: "checkInventory", service: "inventory-service", duration: 123, status: "success", start: 67, tags: [{ key: "cache.hit", value: "true" }], type: "cache" },
+  { id: "s4", traceId: "abc123...", parentId: "s2", name: "processPayment", service: "payment-service", duration: 189, status: "success", start: 200, tags: [{ key: "external.system", value: "bank-gateway" }, { key: "payment.status", value: "approved" }], type: "external" },
+  { id: "s5", traceId: "abc123...", parentId: "s4", name: "verifyUser", service: "user-service", duration: 89, status: "success", start: 245, tags: [{ key: "auth.status", value: "valid" }], type: "rpc" },
+];
+
+const latencyDistributionData = [
+  { range: "0-50ms", count: 156, percentage: 35 },
+  { range: "50-100ms", count: 123, percentage: 28 },
+  { range: "100-200ms", count: 89, percentage: 20 },
+  { range: "200-500ms", count: 56, percentage: 12 },
+  { range: ">500ms", count: 22, percentage: 5 },
+];
+
+const serviceStats = [
+  { service: "api-gateway", calls: 1245, avgLatency: 45, p95: 123, errors: 12 },
+  { service: "order-service", calls: 892, avgLatency: 156, p95: 345, errors: 8 },
+  { service: "payment-service", calls: 654, avgLatency: 234, p95: 567, errors: 23 },
+  { service: "user-service", calls: 1567, avgLatency: 34, p95: 89, errors: 5 },
+  { service: "inventory-service", calls: 443, avgLatency: 67, p95: 145, errors: 3 },
+];
+
+const traceTrendData = [
+  { time: "00:00", count: 120, avgLatency: 156 },
+  { time: "04:00", count: 89, avgLatency: 134 },
+  { time: "08:00", count: 345, avgLatency: 234 },
+  { time: "12:00", count: 456, avgLatency: 345 },
+  { time: "16:00", count: 389, avgLatency: 289 },
+  { time: "20:00", count: 234, avgLatency: 198 },
 ];
 
 export default function DistributedTracing() {
@@ -354,31 +381,229 @@ export default function DistributedTracing() {
         )}
 
         {activeTab === "analysis" && (
-          <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-lg p-6" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-              <h3 className="text-lg font-medium mb-4">延迟分布分析</h3>
-              <div className="h-64 flex items-center justify-center text-sm" style={{ color: "var(--muted-foreground)" }}>
-                直方图显示追踪延迟分布
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <Activity className="w-4 h-4 text-blue-500" />
+                  <span className="text-sm font-medium">今日追踪数</span>
+                </div>
+                <div className="text-2xl font-bold">1,234</div>
+                <div className="flex items-center gap-1 mt-1 text-xs text-green-400">
+                  <TrendingUp className="w-3 h-3" />
+                  <span>+12% 较昨日</span>
+                </div>
+              </div>
+              <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <Gauge className="w-4 h-4 text-yellow-500" />
+                  <span className="text-sm font-medium">平均延迟</span>
+                </div>
+                <div className="text-2xl font-bold">189ms</div>
+                <div className="flex items-center gap-1 mt-1 text-xs text-red-400">
+                  <TrendingUp className="w-3 h-3" />
+                  <span>+5% 较昨日</span>
+                </div>
+              </div>
+              <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertCircle className="w-4 h-4 text-red-500" />
+                  <span className="text-sm font-medium">异常追踪</span>
+                </div>
+                <div className="text-2xl font-bold">23</div>
+                <div className="flex items-center gap-1 mt-1 text-xs text-green-400">
+                  <TrendingUp className="w-3 h-3" />
+                  <span>-8% 较昨日</span>
+                </div>
               </div>
             </div>
-            <div className="rounded-lg p-6" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-              <h3 className="text-lg font-medium mb-4">服务依赖分析</h3>
-              <div className="h-64 flex items-center justify-center text-sm" style={{ color: "var(--muted-foreground)" }}>
-                服务调用拓扑图
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-blue-500" />
+                    <span className="text-sm font-medium">延迟分布</span>
+                  </div>
+                  <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>今日数据</span>
+                </div>
+                <div className="space-y-3">
+                  {latencyDistributionData.map((item) => (
+                    <div key={item.range}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.range}</span>
+                        <span className="text-xs">{item.count} ({item.percentage}%)</span>
+                      </div>
+                      <div className="h-2 rounded-full" style={{ background: "var(--muted)" }}>
+                        <div 
+                          className="h-full rounded-full transition-all" 
+                          style={{ 
+                            width: `${item.percentage}%`,
+                            background: item.percentage > 20 ? "#165DFF" : item.percentage > 10 ? "#A855F7" : "#64748B"
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Server className="w-4 h-4 text-blue-500" />
+                    <span className="text-sm font-medium">服务性能排行</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {serviceStats.map((stat, index) => (
+                    <div key={stat.service} className="flex items-center gap-3 p-2 rounded-lg" style={{ background: "var(--muted)" }}>
+                      <span className="text-xs font-bold w-5" style={{ color: "#64748B" }}>{index + 1}</span>
+                      <div className="flex-1">
+                        <div className="text-xs font-medium">{stat.service}</div>
+                        <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>{stat.calls} 次调用</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs font-bold">{stat.avgLatency}ms</div>
+                        <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>P95: {stat.p95}ms</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-blue-500" />
+                  <span className="text-sm font-medium">追踪趋势</span>
+                </div>
+                <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>最近 24 小时</span>
+              </div>
+              <div className="h-40">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={traceTrendData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" />
+                    <XAxis dataKey="time" tick={{ fontSize: 9 }} />
+                    <YAxis yAxisId="left" tick={{ fontSize: 9 }} />
+                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 9 }} />
+                    <Tooltip contentStyle={{ background: "#1E293B", border: "none" }} />
+                    <Line yAxisId="left" type="monotone" dataKey="count" name="追踪数" stroke="#165DFF" strokeWidth={2} />
+                    <Line yAxisId="right" type="monotone" dataKey="avgLatency" name="平均延迟(ms)" stroke="#FFAA00" strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </div>
         )}
 
         {activeTab === "compare" && (
-          <div className="rounded-lg p-8" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <div className="text-center">
-              <GitBranch className="w-12 h-12 mx-auto mb-4" style={{ color: "var(--muted-foreground)" }} />
-              <h3 className="text-lg font-medium mb-2">追踪对比分析</h3>
-              <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-                选择多个追踪进行性能对比分析
-              </p>
+          <div className="space-y-4">
+            <div className="grid grid-cols-4 gap-4">
+              {mockTraces.slice(0, 4).map((trace) => (
+                <div 
+                  key={trace.id}
+                  className="rounded-xl p-4 cursor-pointer transition-all"
+                  style={{ 
+                    background: "var(--card)", 
+                    border: `1px solid ${selectedTrace?.id === trace.id ? "#165DFF" : "var(--border)"}`,
+                    borderLeft: selectedTrace?.id === trace.id ? "3px solid #165DFF" : "3px solid transparent"
+                  }}
+                  onClick={() => setSelectedTrace(trace)}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    {getStatusIcon(trace.status)}
+                    <span className="text-sm font-medium">{trace.name}</span>
+                  </div>
+                  <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>{trace.traceId}</div>
+                  <div className="mt-3">
+                    <div className="text-lg font-bold">{trace.duration}ms</div>
+                    <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>{trace.spans} spans</div>
+                  </div>
+                </div>
+              ))}
             </div>
+
+            {selectedTrace && (
+              <div className="rounded-xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <GitBranch className="w-4 h-4 text-blue-500" />
+                    <span className="text-sm font-medium">执行时间线对比</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs" style={{ background: "var(--muted)" }}>
+                      <Play className="w-3 h-3" />
+                      播放
+                    </button>
+                    <button className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs" style={{ background: "var(--muted)" }}>
+                      <Copy className="w-3 h-3" />
+                      复制ID
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-blue-500" />
+                    <span className="text-xs">api-gateway</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-orange-500" />
+                    <span className="text-xs">order-service</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-500" />
+                    <span className="text-xs">payment-service</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500" />
+                    <span className="text-xs">user-service</span>
+                  </div>
+                </div>
+
+                <div className="relative h-20">
+                  <div className="absolute inset-0 flex items-end">
+                    {mockSpans.filter(s => s.traceId === selectedTrace.traceId).map((span) => (
+                      <div 
+                        key={span.id}
+                        className="flex-1 flex flex-col items-center gap-1"
+                      >
+                        <div 
+                          className="w-full rounded-t-sm"
+                          style={{ 
+                            height: `${(span.duration / selectedTrace.duration) * 100}%`,
+                            background: getServiceColor(span.service),
+                            minHeight: 10
+                          }}
+                        />
+                        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{span.duration}ms</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-4 grid grid-cols-4 gap-4">
+                  <div className="p-3 rounded-lg" style={{ background: "var(--muted)" }}>
+                    <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>总延迟</div>
+                    <div className="text-lg font-bold">{selectedTrace.duration}ms</div>
+                  </div>
+                  <div className="p-3 rounded-lg" style={{ background: "var(--muted)" }}>
+                    <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>网络延迟</div>
+                    <div className="text-lg font-bold">{selectedTrace.latency.network}ms</div>
+                  </div>
+                  <div className="p-3 rounded-lg" style={{ background: "var(--muted)" }}>
+                    <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>数据库</div>
+                    <div className="text-lg font-bold">{selectedTrace.latency.db}ms</div>
+                  </div>
+                  <div className="p-3 rounded-lg" style={{ background: "var(--muted)" }}>
+                    <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>外部调用</div>
+                    <div className="text-lg font-bold">{selectedTrace.latency.external}ms</div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

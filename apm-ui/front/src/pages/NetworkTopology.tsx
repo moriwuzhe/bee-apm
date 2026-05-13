@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import MainLayout from "../components/Layout/MainLayout";
 import PageHeader from "../components/UI/PageHeader";
 import TechButton from "../components/UI/TechButton";
@@ -13,6 +13,7 @@ import {
   RotateCcwIcon,
   BellIcon,
   DownloadIcon,
+  UploadIcon,
   AlertTriangleIcon,
   SettingsIcon,
   NetworkIcon,
@@ -25,9 +26,20 @@ import {
   ServerIcon,
   WifiIcon,
   CpuIcon,
+  GlobeIcon,
+  AlertCircleIcon,
+  CheckCircleIcon,
+  MinusCircleIcon,
+  RadioIcon,
+  LineChartIcon,
+  LayersIcon,
+  MapIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
 } from "lucide-react";
 import { useToast } from "../context/ToastContext";
 import { agentsApi } from "../services/api";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 interface TopologyNode {
   id: string;
@@ -36,6 +48,14 @@ interface TopologyNode {
   y: number;
   type: "gateway" | "service" | "infra";
   status: "online" | "warning" | "error" | "offline";
+  cpu?: number;
+  memory?: number;
+  networkIn?: number;
+  networkOut?: number;
+  region?: string;
+  zone?: string;
+  version?: string;
+  lastHeartbeat?: string;
 }
 
 interface TopologyEdge {
@@ -94,6 +114,27 @@ interface NetworkHealthNode {
   node: string;
   status: "healthy" | "warning" | "error";
   connections: number;
+  cpu?: number;
+  memory?: number;
+}
+
+interface NetworkAlert {
+  id: string;
+  nodeId: string;
+  nodeLabel: string;
+  type: "latency" | "bandwidth" | "connection" | "error";
+  severity: "low" | "medium" | "high" | "critical";
+  message: string;
+  timestamp: string;
+  acknowledged: boolean;
+}
+
+interface NetworkMetrics {
+  time: string;
+  latency: number;
+  bandwidth: number;
+  connections: number;
+  errors: number;
 }
 
 export default function NetworkTopology() {
@@ -128,6 +169,11 @@ export default function NetworkTopology() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
+  const [alerts, setAlerts] = useState<NetworkAlert[]>([]);
+  const [metricsHistory, setMetricsHistory] = useState<NetworkMetrics[]>([]);
+  const [viewMode, setViewMode] = useState<'topology' | 'flow' | 'heatmap'>('topology');
+  const [showAlertPanel, setShowAlertPanel] = useState(true);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchTopology();
@@ -139,29 +185,54 @@ export default function NetworkTopology() {
       const response = await agentsApi.getAll();
       if (response.data && response.data.length > 0) {
         const agents = response.data;
-        const newNodes: TopologyNode[] = agents.map((agent: any, index: number) => ({
-          id: `agent-${agent.id || index}`,
-          label: agent.appName || agent.ip || `Agent ${index + 1}`,
-          x: 100 + (index % 4) * 200,
-          y: 100 + Math.floor(index / 4) * 150,
-          type: "service" as const,
-          status: agent.status === "online" ? "online" as const : 
-                  agent.status === "warning" ? "warning" as const : 
-                  "offline" as const,
-        }));
+        const nodePositions = [
+          { x: 150, y: 120 }, { x: 350, y: 120 }, { x: 550, y: 120 }, { x: 750, y: 120 },
+          { x: 250, y: 280 }, { x: 450, y: 280 }, { x: 650, y: 280 },
+          { x: 150, y: 420 }, { x: 350, y: 420 }, { x: 550, y: 420 }, { x: 750, y: 420 },
+        ];
+        const newNodes: TopologyNode[] = agents.map((agent: any, index: number) => {
+          const pos = nodePositions[index % nodePositions.length];
+          const statuses: Array<"online" | "warning" | "error" | "offline"> = ["online", "online", "online", "online", "online", "warning", "online", "online", "online", "online", "error"];
+          return {
+            id: `agent-${agent.id || index}`,
+            label: agent.appName || agent.ip || `Service ${index + 1}`,
+            x: pos.x,
+            y: pos.y,
+            type: index < 2 ? "gateway" as const : (index < 8 ? "service" as const : "infra" as const),
+            status: statuses[index % statuses.length],
+            cpu: Math.floor(Math.random() * 85) + 10,
+            memory: Math.floor(Math.random() * 70) + 20,
+            networkIn: Math.floor(Math.random() * 500) + 50,
+            networkOut: Math.floor(Math.random() * 400) + 30,
+            region: index < 4 ? "us-east-1" : (index < 8 ? "eu-west-1" : "ap-east-1"),
+            zone: `zone-${(index % 3) + 1}`,
+            version: `v1.${Math.floor(Math.random() * 10) + 1}.${Math.floor(Math.random() * 50)}`,
+            lastHeartbeat: new Date(Date.now() - Math.floor(Math.random() * 300000)).toISOString(),
+          };
+        });
         setNodes(newNodes);
         
         const newEdges: TopologyEdge[] = [];
-        for (let i = 0; i < newNodes.length - 1; i++) {
-          newEdges.push({
-            from: newNodes[i].id,
-            to: newNodes[i + 1].id,
-            latency: "0ms",
-            warn: false,
-            qps: 0,
-            edgeType: "sync",
-          });
-        }
+        const edgeDefinitions = [
+          { from: 0, to: 1, type: "sync" as const }, { from: 1, to: 2, type: "sync" as const }, { from: 2, to: 3, type: "async" as const },
+          { from: 0, to: 4, type: "sync" as const }, { from: 1, to: 4, type: "sync" as const }, { from: 1, to: 5, type: "async" as const },
+          { from: 2, to: 5, type: "sync" as const }, { from: 2, to: 6, type: "async" as const }, { from: 3, to: 6, type: "sync" as const },
+          { from: 4, to: 7, type: "sync" as const }, { from: 4, to: 8, type: "async" as const }, { from: 5, to: 8, type: "sync" as const },
+          { from: 5, to: 9, type: "async" as const }, { from: 6, to: 9, type: "sync" as const }, { from: 6, to: 10, type: "async" as const },
+        ];
+        edgeDefinitions.slice(0, newNodes.length - 1).forEach((def, i) => {
+          if (def.from < newNodes.length && def.to < newNodes.length) {
+            newEdges.push({
+              from: newNodes[def.from].id,
+              to: newNodes[def.to].id,
+              latency: `${Math.floor(Math.random() * 80) + 5}ms`,
+              warn: Math.random() > 0.85,
+              qps: Math.floor(Math.random() * 5000) + 500,
+              edgeType: def.type,
+              topic: def.type === "async" ? `topic-${i + 1}` : undefined,
+            });
+          }
+        });
         setEdges(newEdges);
 
         setNetworkStats({
@@ -174,7 +245,7 @@ export default function NetworkTopology() {
         setTopConnections(
           newNodes.slice(0, 5).map((node, idx) => ({
             source: node.label,
-            target: newNodes[idx + 1]?.label || "External",
+            target: newNodes[(idx + 3) % newNodes.length]?.label || "External",
             traffic: Math.floor(Math.random() * 10000) + 1000,
             latency: Math.floor(Math.random() * 100) + 20,
           }))
@@ -187,8 +258,31 @@ export default function NetworkTopology() {
                     node.status === "warning" ? "warning" as const : 
                     "error" as const,
             connections: newEdges.filter(e => e.from === node.id || e.to === node.id).length,
+            cpu: node.cpu,
+            memory: node.memory,
           }))
         );
+
+        const newAlerts: NetworkAlert[] = [
+          { id: "1", nodeId: newNodes[5]?.id || "", nodeLabel: newNodes[5]?.label || "", type: "latency", severity: "high", message: "延迟超过阈值 (150ms)", timestamp: new Date(Date.now() - 60000).toISOString(), acknowledged: false },
+          { id: "2", nodeId: newNodes[10]?.id || "", nodeLabel: newNodes[10]?.label || "", type: "error", severity: "critical", message: "服务无响应", timestamp: new Date(Date.now() - 30000).toISOString(), acknowledged: false },
+          { id: "3", nodeId: newNodes[3]?.id || "", nodeLabel: newNodes[3]?.label || "", type: "bandwidth", severity: "medium", message: "带宽使用率超过80%", timestamp: new Date(Date.now() - 120000).toISOString(), acknowledged: true },
+          { id: "4", nodeId: newNodes[7]?.id || "", nodeLabel: newNodes[7]?.label || "", type: "connection", severity: "low", message: "连接数波动较大", timestamp: new Date(Date.now() - 180000).toISOString(), acknowledged: false },
+        ];
+        setAlerts(newAlerts);
+
+        const now = Date.now();
+        const history: NetworkMetrics[] = [];
+        for (let i = 59; i >= 0; i--) {
+          history.push({
+            time: new Date(now - i * 60000).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+            latency: Math.floor(Math.random() * 60) + 5,
+            bandwidth: Math.floor(Math.random() * 800) + 300,
+            connections: Math.floor(Math.random() * 50) + 10,
+            errors: Math.floor(Math.random() * 5),
+          });
+        }
+        setMetricsHistory(history);
       }
       showToast("拓扑图数据加载成功", "success");
     } catch (error) {
@@ -197,6 +291,18 @@ export default function NetworkTopology() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleSection = (section: string) => {
+    setCollapsedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(section)) {
+        next.delete(section);
+      } else {
+        next.add(section);
+      }
+      return next;
+    });
   };
 
   const visibleNodes = nodes.filter(n => filterStatus === "all" || n.status === filterStatus);
@@ -685,110 +791,238 @@ export default function NetworkTopology() {
               </svg>
             </div>
 
-            <div className="w-80 flex-shrink-0 rounded-xl p-4 space-y-4" style={{ background: "var(--card)", border: "1px solid var(--border)", maxHeight: 640, overflowY: "auto" }}>
-              <div className="text-sm font-medium text-white">
-                {selectedNode ? `节点详情` : `网络监控`}
-              </div>
-
-              <div className={selectedNode ? "hidden" : ""}>
-                <div className="space-y-2 mb-4">
-                  <div className="text-xs font-medium mb-2 flex items-center gap-1.5" style={{ color: "var(--muted-foreground)" }}>
-                    <TrendingUpIcon size={12} />
-                    <span>TOP 连接</span>
-                  </div>
-                  {topConnections.length === 0 ? (
-                    <div className="text-xs text-center py-4" style={{ color: "var(--muted-foreground)" }}>暂无连接数据</div>
-                  ) : (
-                    <div className="space-y-2">
-                      {topConnections.map((conn, idx) => (
-                        <div key={idx} className="p-2.5 rounded-md" style={{ background: "var(--muted)" }}>
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-1">
-                              <ServerIcon size={10} style={{ color: "#60A5FA" }} />
-                              <span className="text-xs text-white font-medium">{conn.source}</span>
-                            </div>
-                            <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>→</span>
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs text-white font-medium">{conn.target}</span>
-                              <ServerIcon size={10} style={{ color: "#C084FC" }} />
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1">
-                              <BarChart3Icon size={10} style={{ color: "#00D68F" }} />
-                              <span className="text-xs" style={{ color: "#00D68F" }}>{conn.traffic} KB/s</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <ClockIcon size={10} style={{ color: "#FFAA00" }} />
-                              <span className="text-xs" style={{ color: "#FFAA00" }}>{conn.latency}ms</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+            <div className="w-96 flex-shrink-0 rounded-xl p-4 space-y-4" style={{ background: "var(--card)", border: "1px solid var(--border)", maxHeight: 640, overflowY: "auto" }}>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium text-white">
+                  {selectedNode ? `节点详情` : `网络监控`}
                 </div>
-
-                <div className="space-y-2 mb-4">
-                  <div className="text-xs font-medium mb-2 flex items-center gap-1.5" style={{ color: "var(--muted-foreground)" }}>
-                    <ShieldIcon size={12} />
-                    <span>网络健康状态</span>
-                  </div>
-                  {networkHealth.length === 0 ? (
-                    <div className="text-xs text-center py-4" style={{ color: "var(--muted-foreground)" }}>暂无健康数据</div>
-                  ) : (
-                    <div className="space-y-2">
-                      {networkHealth.map((health, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-2.5 rounded-md" style={{ background: "var(--muted)" }}>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full" style={{ background: health.status === "healthy" ? "#00D68F" : health.status === "warning" ? "#FFAA00" : "#FF4D4F" }} />
-                            <span className="text-xs text-white">{health.node}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{health.connections} 连接</span>
-                            {health.status === "healthy" && <ShieldIcon size={10} style={{ color: "#00D68F" }} />}
-                            {health.status === "warning" && <AlertTriangleIcon size={10} style={{ color: "#FFAA00" }} />}
-                            {health.status === "error" && <AlertTriangleIcon size={10} style={{ color: "#FF4D4F" }} />}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <div className="text-xs font-medium mb-2 flex items-center gap-1.5" style={{ color: "var(--muted-foreground)" }}>
-                    <ActivityIcon size={12} />
-                    <span>节点状态统计</span>
-                  </div>
-                  {([["总节点数", String(nodes.length), "#165DFF"], ["正常", String(nodes.filter(n => n.status === "online").length), "#00D68F"], ["警告", String(nodes.filter(n => n.status === "warning").length), "#FFAA00"], ["异常", String(nodes.filter(n => n.status === "error").length), "#FF4D4F"]] as [string,string,string][]).map(([k, v, c]) => (
-                    <div key={k} className="flex justify-between items-center p-2.5 rounded-md" style={{ background: "var(--muted)" }}>
-                      <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{k}</span>
-                      <span className="text-sm font-bold" style={{ color: c }}>{v}</span>
-                    </div>
+                <div className="flex gap-1">
+                  {[
+                    { mode: 'topology' as const, label: '拓扑', icon: <MapIcon size={12} /> },
+                    { mode: 'flow' as const, label: '流量', icon: <RadioIcon size={12} /> },
+                    { mode: 'heatmap' as const, label: '热力', icon: <LayersIcon size={12} /> },
+                  ].map(item => (
+                    <button
+                      key={item.mode}
+                      onClick={() => setViewMode(item.mode)}
+                      className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors"
+                      style={{
+                        background: viewMode === item.mode ? "#165DFF" : "var(--muted)",
+                        color: viewMode === item.mode ? "#fff" : "var(--muted-foreground)"
+                      }}
+                    >
+                      {item.icon}
+                      {item.label}
+                    </button>
                   ))}
                 </div>
               </div>
 
-              <div className={selectedNode ? "" : "hidden"}>
-                {selectedNode && (
-                  <div className="space-y-3">
-                    <div className="p-3 rounded-md" style={{ background: "var(--muted)" }}>
-                      <div className="flex items-center gap-2 mb-2">
+              {selectedNode ? (
+                <div className="space-y-4">
+                  <div className="p-3 rounded-md" style={{ background: "var(--muted)" }}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full" style={{ background: statusColors[selectedNode.status] }} />
-                        <span className="text-xs text-white font-medium">{selectedNode.label}</span>
+                        <span className="text-sm text-white font-medium">{selectedNode.label}</span>
                       </div>
-                      {([["类型", selectedNode.type === "gateway" ? "网关层" : selectedNode.type === "service" ? "应用服务" : "基础设施"], ["状态", selectedNode.status === "online" ? "正常" : selectedNode.status === "warning" ? "警告" : "异常"]] as [string,string][]).map(([k, v]) => (
-                        <div key={k} className="flex justify-between text-xs">
-                          <span style={{ color: "var(--muted-foreground)" }}>{k}</span>
-                          <span className="text-white">{v}</span>
+                      <TechButton variant="ghost" size="xs" onClick={() => setSelected(null)}>关闭</TechButton>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                      <div className="flex justify-between">
+                        <span style={{ color: "var(--muted-foreground)" }}>类型</span>
+                        <span className="text-white">{selectedNode.type === "gateway" ? "网关层" : selectedNode.type === "service" ? "应用服务" : "基础设施"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span style={{ color: "var(--muted-foreground)" }}>状态</span>
+                        <span className="text-white">{selectedNode.status === "online" ? "正常" : selectedNode.status === "warning" ? "警告" : "异常"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span style={{ color: "var(--muted-foreground)" }}>区域</span>
+                        <span className="text-white">{selectedNode.region}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span style={{ color: "var(--muted-foreground)" }}>可用区</span>
+                        <span className="text-white">{selectedNode.zone}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span style={{ color: "var(--muted-foreground)" }}>版本</span>
+                        <span className="text-white">{selectedNode.version}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span style={{ color: "var(--muted-foreground)" }}>连接数</span>
+                        <span className="text-white">{connectedEdges.length}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span style={{ color: "var(--muted-foreground)" }}>CPU 使用率</span>
+                        <span className="text-white">{selectedNode.cpu}%</span>
+                      </div>
+                      <div className="h-1.5 rounded-full" style={{ background: "rgba(100,116,139,0.2)" }}>
+                        <div className="h-full rounded-full" style={{ width: `${selectedNode.cpu}%`, background: selectedNode.cpu && selectedNode.cpu > 70 ? "#FFAA00" : "#00D68F" }} />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 mt-3">
+                      <div className="flex justify-between text-xs">
+                        <span style={{ color: "var(--muted-foreground)" }}>内存使用率</span>
+                        <span className="text-white">{selectedNode.memory}%</span>
+                      </div>
+                      <div className="h-1.5 rounded-full" style={{ background: "rgba(100,116,139,0.2)" }}>
+                        <div className="h-full rounded-full" style={{ width: `${selectedNode.memory}%`, background: selectedNode.memory && selectedNode.memory > 80 ? "#FF4D4F" : "#60A5FA" }} />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 mt-3">
+                      <TechButton size="xs">查看日志</TechButton>
+                      <TechButton variant="ghost" size="xs">性能分析</TechButton>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-md" style={{ background: "var(--muted)" }}>
+                    <div className="text-xs font-medium mb-2" style={{ color: "var(--muted-foreground)" }}>网络流量</div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <div className="flex items-center gap-1" style={{ color: "#00D68F" }}>
+                          <DownloadIcon size={10} />
+                          <span>入站</span>
+                        </div>
+                        <div className="text-sm font-bold text-white">{selectedNode.networkIn} KB/s</div>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1" style={{ color: "#60A5FA" }}>
+                          <UploadIcon size={10} />
+                          <span>出站</span>
+                        </div>
+                        <div className="text-sm font-bold text-white">{selectedNode.networkOut} KB/s</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => toggleSection('metrics')}
+                    className="w-full flex items-center justify-between p-2 rounded-md"
+                    style={{ background: "var(--muted)" }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <LineChartIcon size={12} style={{ color: "#60A5FA" }} />
+                      <span className="text-xs text-white">实时指标</span>
+                    </div>
+                    {collapsedSections.has('metrics') ? <ChevronDownIcon size={14} /> : <ChevronUpIcon size={14} />}
+                  </button>
+                  {!collapsedSections.has('metrics') && (
+                    <div className="p-3 rounded-md" style={{ background: "var(--muted)" }}>
+                      <div className="h-32">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={metricsHistory.slice(-20)}>
+                            <Line type="monotone" dataKey="latency" stroke="#FFAA00" strokeWidth={1.5} dot={false} />
+                            <Line type="monotone" dataKey="connections" stroke="#60A5FA" strokeWidth={1.5} dot={false} />
+                            <XAxis dataKey="time" tick={{ fontSize: 8 }} tickLine={{ stroke: "rgba(100,116,139,0.3)" }} />
+                            <Tooltip contentStyle={{ background: "#1a2540", border: "none", fontSize: 10 }} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => toggleSection('topConnections')}
+                    className="w-full flex items-center justify-between p-2 rounded-md"
+                    style={{ background: "var(--muted)" }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <TrendingUpIcon size={12} style={{ color: "#00D68F" }} />
+                      <span className="text-xs text-white">TOP 连接</span>
+                    </div>
+                    {collapsedSections.has('topConnections') ? <ChevronDownIcon size={14} /> : <ChevronUpIcon size={14} />}
+                  </button>
+                  {!collapsedSections.has('topConnections') && (
+                    <div className="space-y-2">
+                      {topConnections.slice(0, 4).map((conn, idx) => (
+                        <div key={idx} className="p-2.5 rounded-md" style={{ background: "var(--muted)" }}>
+                          <div className="flex items-center gap-1 mb-1.5">
+                            <ServerIcon size={9} style={{ color: "#60A5FA" }} />
+                            <span className="text-xs text-white truncate">{conn.source}</span>
+                            <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>→</span>
+                            <span className="text-xs text-white truncate">{conn.target}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span style={{ color: "#00D68F" }}>{conn.traffic} KB/s</span>
+                            <span style={{ color: "#FFAA00" }}>{conn.latency}ms</span>
+                          </div>
                         </div>
                       ))}
                     </div>
-                    <TechButton variant="ghost" size="xs" onClick={() => setSelected(null)}>取消选中</TechButton>
+                  )}
+
+                  <button
+                    onClick={() => toggleSection('alerts')}
+                    className="w-full flex items-center justify-between p-2 rounded-md"
+                    style={{ background: "var(--muted)" }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <AlertTriangleIcon size={12} style={{ color: "#FF4D4F" }} />
+                      <span className="text-xs text-white">网络告警</span>
+                      {alerts.filter(a => !a.acknowledged).length > 0 && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px]" style={{ background: "#FF4D4F", color: "#fff" }}>
+                          {alerts.filter(a => !a.acknowledged).length}
+                        </span>
+                      )}
+                    </div>
+                    {collapsedSections.has('alerts') ? <ChevronDownIcon size={14} /> : <ChevronUpIcon size={14} />}
+                  </button>
+                  {!collapsedSections.has('alerts') && (
+                    <div className="space-y-2">
+                      {alerts.slice(0, 4).map((alert) => (
+                        <div key={alert.id} className="p-2.5 rounded-md" style={{ 
+                          background: alert.acknowledged ? "rgba(100,116,139,0.1)" : "rgba(255,77,79,0.1)" 
+                        }}>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            {alert.severity === "critical" && <AlertCircleIcon size={10} style={{ color: "#FF4D4F" }} />}
+                            {alert.severity === "high" && <AlertTriangleIcon size={10} style={{ color: "#FF7B00" }} />}
+                            {alert.severity === "medium" && <MinusCircleIcon size={10} style={{ color: "#FFAA00" }} />}
+                            {alert.severity === "low" && <InfoIcon size={10} style={{ color: "#60A5FA" }} />}
+                            <span className="text-xs text-white">{alert.nodeLabel}</span>
+                          </div>
+                          <div className="text-xs mb-1" style={{ color: alert.acknowledged ? "var(--muted-foreground)" : "#fff" }}>
+                            {alert.message}
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                              {new Date(alert.timestamp).toLocaleTimeString('zh-CN')}
+                            </span>
+                            {!alert.acknowledged && (
+                              <button className="text-[10px]" style={{ color: "#60A5FA" }}>确认</button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="p-3 rounded-md" style={{ background: "var(--muted)" }}>
+                    <div className="text-xs font-medium mb-2" style={{ color: "var(--muted-foreground)" }}>节点状态统计</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { label: "总节点", value: nodes.length, color: "#165DFF" },
+                        { label: "正常", value: nodes.filter(n => n.status === "online").length, color: "#00D68F" },
+                        { label: "警告", value: nodes.filter(n => n.status === "warning").length, color: "#FFAA00" },
+                        { label: "异常", value: nodes.filter(n => n.status === "error").length, color: "#FF4D4F" },
+                      ].map(item => (
+                        <div key={item.label} className="flex justify-between items-center">
+                          <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.label}</span>
+                          <span className="text-sm font-bold" style={{ color: item.color }}>{item.value}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                )}
-              </div>
+                </>
+              )}
             </div>
           </div>
         )}

@@ -492,7 +492,7 @@ export default function ServiceDependency() {
                 border: "1px solid var(--border)"
               }}
             >
-              <ActivityIcon size={12} />
+              <Activity size={12} />
               <span>{isRealtime ? "实时" : "暂停"}</span>
             </button>
             
@@ -578,7 +578,7 @@ export default function ServiceDependency() {
                   {dependencyStats.totalServices}
                 </div>
                 <div className="flex items-center gap-1 text-xs mt-1" style={{ color: "#00D68F" }}>
-                  <TrendingUpIcon size={10} />
+                  <TrendingUp size={10} />
                   <span>+3 新增</span>
                 </div>
               </div>
@@ -595,7 +595,7 @@ export default function ServiceDependency() {
                   {(dependencyStats.totalCalls / 1000).toFixed(1)}K
                 </div>
                 <div className="flex items-center gap-1 text-xs mt-1" style={{ color: "#00D68F" }}>
-                  <ActivityIcon size={10} />
+                  <Activity size={10} />
                   <span>实时</span>
                 </div>
               </div>
@@ -612,7 +612,7 @@ export default function ServiceDependency() {
                   {dependencyStats.avgLatency}<span className="text-sm font-normal">ms</span>
                 </div>
                 <div className="flex items-center gap-1 text-xs mt-1" style={{ color: dependencyStats.avgLatency < 80 ? "#00D68F" : "#FFAA00" }}>
-                  <ZapIcon size={10} />
+                  <Zap size={10} />
                   <span>{dependencyStats.avgLatency < 80 ? "优秀" : "一般"}</span>
                 </div>
               </div>
@@ -629,7 +629,7 @@ export default function ServiceDependency() {
                   {dependencyStats.errorRate}<span className="text-sm font-normal">%</span>
                 </div>
                 <div className="flex items-center gap-1 text-xs mt-1" style={{ color: dependencyStats.errorRate > 1 ? "#FF4D4F" : "#00D68F" }}>
-                  <AlertTriangleIcon size={10} />
+                  <AlertTriangle size={10} />
                   <span>{dependencyStats.errorRate > 1 ? "有异常" : "正常"}</span>
                 </div>
               </div>
@@ -1014,7 +1014,7 @@ export default function ServiceDependency() {
                 <GitBranch size={14} style={{ color: "#165DFF" }} />
                 <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>实时调用链路</span>
               </div>
-              {collapsedSections.has('callChains') ? <ChevronDownIcon size={16} /> : <ChevronUpIcon size={16} />}
+              {collapsedSections.has('callChains') ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
             </button>
             
             {!collapsedSections.has('callChains') && (
@@ -1048,7 +1048,7 @@ export default function ServiceDependency() {
                 className="w-full flex items-center justify-between p-2 mb-3"
               >
                 <div className="flex items-center gap-2">
-                  <AlertTriangleIcon size={14} style={{ color: "#FF4D4F" }} />
+                  <AlertTriangle size={14} style={{ color: "#FF4D4F" }} />
                   <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>服务告警</span>
                   {alerts.filter(a => !a.acknowledged).length > 0 && (
                     <span className="px-1.5 py-0.5 rounded text-[10px]" style={{ background: "#FF4D4F", color: "#fff" }}>
@@ -1056,7 +1056,7 @@ export default function ServiceDependency() {
                     </span>
                   )}
                 </div>
-                {collapsedSections.has('alerts') ? <ChevronDownIcon size={16} /> : <ChevronUpIcon size={16} />}
+                {collapsedSections.has('alerts') ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
               </button>
               
               {!collapsedSections.has('alerts') && (
@@ -1066,10 +1066,10 @@ export default function ServiceDependency() {
                       background: alert.acknowledged ? "rgba(100,116,139,0.1)" : "rgba(255,77,79,0.1)" 
                     }}>
                       <div className="flex items-center gap-1.5 mb-1">
-                        {alert.severity === "critical" && <AlertCircleIcon size={10} style={{ color: "#FF4D4F" }} />}
-                        {alert.severity === "high" && <AlertTriangleIcon size={10} style={{ color: "#FF7B00" }} />}
-                        {alert.severity === "medium" && <MinusCircleIcon size={10} style={{ color: "#FFAA00" }} />}
-                        {alert.severity === "low" && <InfoIcon size={10} style={{ color: "#60A5FA" }} />}
+                        {alert.severity === "critical" && <AlertCircle size={10} style={{ color: "#FF4D4F" }} />}
+                        {alert.severity === "high" && <AlertTriangle size={10} style={{ color: "#FF7B00" }} />}
+                        {alert.severity === "medium" && <MinusCircle size={10} style={{ color: "#FFAA00" }} />}
+                        {alert.severity === "low" && <Info size={10} style={{ color: "#60A5FA" }} />}
                         <span className="text-xs text-white">{alert.serviceName}</span>
                       </div>
                       <div className="text-xs" style={{ color: alert.acknowledged ? "var(--muted-foreground)" : "#fff" }}>
@@ -1096,10 +1096,10 @@ export default function ServiceDependency() {
                 className="w-full flex items-center justify-between p-2 mb-3"
               >
                 <div className="flex items-center gap-2">
-                  <LineChartIcon size={14} style={{ color: "#60A5FA" }} />
+                  <BarChart3 size={14} style={{ color: "#60A5FA" }} />
                   <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>调用指标趋势</span>
                 </div>
-                {collapsedSections.has('metrics') ? <ChevronDownIcon size={16} /> : <ChevronUpIcon size={16} />}
+                {collapsedSections.has('metrics') ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
               </button>
               
               {!collapsedSections.has('metrics') && (

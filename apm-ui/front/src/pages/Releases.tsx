@@ -7,7 +7,7 @@ import {
   GitBranch, Package, AlertTriangle, CheckCircle, Clock, User, ArrowRight, Plus, ChevronDown, 
   Edit, Trash, Eye, X, Download, RefreshCw, Settings, Activity, Network, Shield, Database, 
   Zap, TrendingUp, BarChart3, Server, Wifi, Cpu, RotateCcw, Calendar, Bell, GitCommit, 
-  AlertCircle, CheckCircle2, Play, Pause, Rocket, Target, BranchCompare
+  AlertCircle, CheckCircle2, Play, Pause, Rocket, Target
 } from "lucide-react";
 import { releasesApi } from "../services/api";
 import { useToast } from "../context/ToastContext";
@@ -420,7 +420,7 @@ export default function Releases() {
                 </button>
               </div>
               
-              <TechButton variant="secondary" icon={<BranchCompare size={13} />} onClick={() => showToast("发布对比功能开发中...", "info")}>版本对比</TechButton>
+              <TechButton variant="secondary" icon={<GitBranch size={13} />} onClick={() => showToast("发布对比功能开发中...", "info")}>版本对比</TechButton>
               <TechButton variant="secondary" icon={<RefreshCw size={13} />} onClick={handleRefresh}>刷新</TechButton>
               <TechButton variant="secondary" icon={<Download size={13} />} onClick={handleExport}>导出</TechButton>
               <TechButton variant="primary" icon={<Plus size={13} />} onClick={handleCreate}>新建发布</TechButton>

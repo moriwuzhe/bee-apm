@@ -26,7 +26,7 @@ import type {
 } from "../types";
 import { mockUsers, mockApplications, mockProjects, mockAgents, mockAlertRules, mockReleases } from "../data/mockData";
 
-const API_BASE_URL = "http://localhost:8081";
+const API_BASE_URL = "http://localhost:8082";
 const USE_MOCK = false;
 
 const generateMockDashboardStats = (): DashboardStats => ({
